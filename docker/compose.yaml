@@ -1,0 +1,12 @@
+name: share-bite
+
+include:
+  - path: compose.infra.yaml
+    env_file: .env
+  # to run applications with docker
+  # - path: compose.apps.yaml
+  #   env_file: ../.env
+
+networks:
+  share-bite-net:
+    driver: bridge
