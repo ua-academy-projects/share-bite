@@ -1,4 +1,4 @@
-FROM golang:1.25.1-alpine3.22 AS builder
+FROM golang:1.25.1-bookworm AS builder
 
 WORKDIR /app
 
@@ -7,11 +7,11 @@ RUN go mod download
 
 COPY . .
 
-ENV CGO_ENABLED=false
-ENV GOOSE=linux
+ENV CGO_ENABLED=0
+ENV GOOS=linux
 RUN go build -o business cmd/business-api/main.go
 
-FROM alpine:3.22
+FROM ubuntu:22.04
 WORKDIR /app
 
 COPY --from=builder /app/business .
