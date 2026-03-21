@@ -1,0 +1,7 @@
+addReviewers: true
+addAssignees: author
+reviewers:
+  - mblinovv
+  - viktorzhabskyi
+  - DmyMi
+numberOfReviewers: 0
