@@ -19,6 +19,7 @@ type Tokens struct {
 
 type Service interface {
 	Login(ctx context.Context, email, password string) (*Tokens, error)
+	Register(ctx context.Context, email, password, slug string) (*Tokens, error)
 	Refresh(ctx context.Context, refreshToken string) (*Tokens, error)
 }
 
@@ -42,6 +43,44 @@ func (s *service) Login(ctx context.Context, email, password string) (*Tokens, e
 
 	return s.generateTokens(u.ID)
 }
+
+func (s *service) Register(ctx context.Context, email, password, slug string) (*Tokens, error) {
+	existingUser, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("find user by email: %w", err)
+	}
+	if existingUser != nil {
+		return nil, errors.New("user with this email already exists")
+	}
+
+	role, err := s.userRepo.FindRoleBySlug(ctx, slug)
+	if err != nil {
+		return nil, fmt.Errorf("find role by slug: %w", err)
+	}
+	if role == nil {
+		return nil, errors.New("role not found")
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hash password: %w", err)
+	}
+
+	createdUser, err := s.userRepo.Create(ctx, user.CreateParams{
+		Email:        email,
+		PasswordHash: string(passwordHash),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+
+	if err := s.userRepo.AssignRole(ctx, createdUser.ID, role.ID); err != nil {
+		return nil, fmt.Errorf("assign role: %w", err)
+	}
+
+	return s.generateTokens(createdUser.ID)
+}
+
 
 func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, error) {
 	cfg := config.Config().JwtToken

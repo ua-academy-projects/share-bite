@@ -10,10 +10,7 @@ CREATE TABLE auth.roles (
 CREATE TABLE auth.users (
                             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                             email VARCHAR(255) UNIQUE NOT NULL,
-                            username VARCHAR(100) NOT NULL,
                             password_hash TEXT NOT NULL,
-                            first_name VARCHAR(100),
-                            last_name VARCHAR(100),
                             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -27,12 +24,12 @@ CREATE TABLE auth.user_roles (
 INSERT INTO auth.roles (slug, name)
 VALUES ('admin', 'Адміністратор'),
        ('user', 'Користувач'),
+       ('business', 'Бізнес'),
        ('moderator', 'Модератор');
 
-INSERT INTO auth.users (email, username, password_hash)
+INSERT INTO auth.users (email, password_hash)
 VALUES (
            'test@test.com',
-           'testuser',
            '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
        );
 
