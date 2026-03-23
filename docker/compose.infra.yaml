@@ -39,7 +39,7 @@ services:
         target: /config/pgpass
         uid: "5050"
         gid: "5050"
-        mode: "0400"
+        mode: 0400
     depends_on:
       pg:
         condition: service_healthy
