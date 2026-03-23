@@ -27,3 +27,6 @@ make run-all
 ```
 
 *(To run them individually, you can use `make run-guest`, `make run-business`, or `make run-auth`).*
+
+
+### 5. Run local S3 storage

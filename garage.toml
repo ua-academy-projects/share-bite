@@ -1,0 +1,31 @@
+# =============================================================================
+# Garage S3-compatible storage — LOCAL DEVELOPMENT ONLY
+# DO NOT use this config in production.
+# =============================================================================
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir     = "/var/lib/garage/data"
+db_engine    = "sqlite"
+
+# Single-node: no replication. Fine for dev, not for production.
+replication_factor = 1
+
+rpc_bind_addr   = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+# Generate with: openssl rand -hex 32
+rpc_secret = "ffda88f07966c2a6d607bb1c8a007466aa55d5fc4e587700ff8385c1b20e7c98"
+
+[s3_api]
+s3_region    = "garage"
+api_bind_addr = "[::]:3900"
+root_domain  = ".s3.garage.localhost"
+
+[s3_web]
+bind_addr   = "[::]:3902"
+root_domain = ".web.garage.localhost"
+index       = "index.html"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token   = "dev_admin_token"
