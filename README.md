@@ -30,3 +30,27 @@ make run-all
 
 
 ### 5. Run local S3 storage
+
+### Start
+```bash
+make s3-up
+```
+
+After bootstrap, copy credentials printed in the terminal into `.env`:
+```env
+S3_ENDPOINT=http://localhost:3900
+S3_REGION=garage
+S3_ACCESS_KEY=<printed by bootstrap>
+S3_SECRET_KEY=<printed by bootstrap>
+S3_BUCKET=app-dev-bucket
+S3_USE_PATH_STYLE=true
+```
+
+> Bootstrap runs once. On subsequent starts credentials stay the same.
+
+### Web UI (optional)
+```bash
+make s3-ui
+```
+
+Open http://localhost:3909
