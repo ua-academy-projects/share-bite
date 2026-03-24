@@ -24,8 +24,8 @@ func (h *handler) login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  tokens.AccessToken,
-		"refresh_token": tokens.RefreshToken,
+	c.JSON(http.StatusOK, tokenResponce{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
 	})
 }

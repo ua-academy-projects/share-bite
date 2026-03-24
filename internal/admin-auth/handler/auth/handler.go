@@ -16,6 +16,15 @@ type handler struct {
 	service authService
 }
 
+type tokenResponce struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type errResponse struct {
+	ErrorMessage string `json:"error"`
+}
+
 func RegisterHandlers(r *gin.RouterGroup, service authService) {
 	h := &handler{service: service}
 

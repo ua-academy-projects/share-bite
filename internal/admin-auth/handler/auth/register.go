@@ -30,8 +30,8 @@ func (h *handler) register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"access_token":  tokens.AccessToken,
-		"refresh_token": tokens.RefreshToken,
+	c.JSON(http.StatusCreated, tokenResponce{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
 	})
 }
