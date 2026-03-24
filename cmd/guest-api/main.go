@@ -142,7 +142,7 @@ func main() {
 	customerMiddleware := middleware.CustomerID(customerSvc)
 
 	// handlers
-	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
+	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 	collection.RegisterHandlers(

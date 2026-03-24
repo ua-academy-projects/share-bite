@@ -2,15 +2,16 @@ package customer
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 )
 
 type handler struct {
 	service customerService
+	storage storage.ObjectStorage
 }
 
 type customerService interface {
@@ -25,9 +26,11 @@ func RegisterHandlers(
 	r *gin.RouterGroup,
 	service customerService,
 	authMiddleware gin.HandlerFunc,
+	st storage.ObjectStorage,
 ) {
 	h := &handler{
 		service: service,
+		storage: st,
 	}
 
 	// public
@@ -39,6 +42,7 @@ func RegisterHandlers(
 	protected.POST("/", h.create)
 	protected.PATCH("/", h.update)
 	protected.GET("/", h.getMe)
+	protected.POST("/avatar", h.uploadAvatar)
 }
 
 type customerResponse struct {
@@ -55,11 +59,10 @@ type customerResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func customerToResponse(customer entity.Customer) customerResponse {
+func customerToResponse(customer entity.Customer, st storage.ObjectStorage) customerResponse {
 	var avatarURL *string
-	if customer.AvatarObjectKey != nil {
-		// TODO: replace with real s3 presigned url
-		url := fmt.Sprintf("https://test.com/%s", *customer.AvatarObjectKey)
+	if customer.AvatarObjectKey != nil && st != nil {
+		url := st.BuildURL(*customer.AvatarObjectKey)
 		avatarURL = &url
 	}
 
