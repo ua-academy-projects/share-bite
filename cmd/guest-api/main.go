@@ -48,7 +48,6 @@ func main() {
 	// }
 
 	router := gin.New()
-	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
@@ -146,8 +145,7 @@ func main() {
 	// services
 	customerSvc := customersvc.New(customerRepo)
 	txManager := txmanager.NewTransactionManager(client.DB())
-	postSvc := postsvc.New(postRepo, businessGateway)
-
+	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
 	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware, storageClient)
