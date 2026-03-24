@@ -7,6 +7,16 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 )
 
+var (
+	ErrInvalidJSON       = newError(code.InvalidJSON, "invalid request body format")
+	ErrInvalidParam      = newError(code.InvalidRequest, "invalid path parameter")
+	ErrInvalidQueryParam = newError(code.InvalidRequest, "invalid query parameter")
+
+	CustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
+
+	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
+)
+
 type Error struct {
 	Code code.Code
 	Err  error
@@ -30,4 +40,19 @@ func newError(code code.Code, err string) *Error {
 func PostNotFoundID(postID string) *Error {
 	msg := fmt.Sprintf("post with id %q was not found", postID)
 	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundUserID(userID string) *Error {
+	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundUserName(userName string) *Error {
+	msg := fmt.Sprintf("customer with username %q was not found", userName)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerUserNameTaken(userName string) *Error {
+	msg := fmt.Sprintf("customer with username %q alredy exists", userName)
+	return newError(code.AlreadyExists, msg)
 }
