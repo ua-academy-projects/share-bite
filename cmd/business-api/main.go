@@ -18,15 +18,9 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// for local development only
 	if err := config.Load(".env"); err != nil {
 		logger.Fatal(ctx, "load config:", err)
 	}
-
-	// docker variant
-	// if err := config.Load(); err != nil {
-	// 	logger.Fatal(ctx, "load config:", err)
-	// }
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -40,7 +34,6 @@ func main() {
 	}
 	closer.SetShutdownTimeout(config.Config().App.GracefulShutdownTimeout())
 
-	// db connection
 	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
@@ -53,13 +46,10 @@ func main() {
 		return nil
 	})
 
-	// repos
 	businessRepo := businessrepo.New(client)
 
-	// services
 	businessSvc := businesssvc.New(businessRepo)
 
-	// handlers
 	business.RegisterHandlers(router.Group("/business"), businessSvc)
 
 	go func() {

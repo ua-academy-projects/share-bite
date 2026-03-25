@@ -31,12 +31,12 @@ CREATE TABLE business.posts (
 
 CREATE TABLE business.comments (
   id BIGSERIAL PRIMARY KEY,
-  
+
   post_id BIGINT NOT NULL
     REFERENCES business.posts(id) ON DELETE CASCADE,
-    
+
   author_id BIGINT NOT NULL, -- TODO: reference to guest schema
-  
+
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
