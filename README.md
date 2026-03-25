@@ -14,6 +14,11 @@ Start the local PostgreSQL database using Docker Compose:
 docker compose -f docker/compose.yaml up -d
 ```
 
+### Optional pgAdmin:
+```bash
+docker compose -f docker/compose.yaml --profile tools up -d
+```
+
 ### 3. Migrations
 Apply the latest database schema using the built-in migrator:
 ```bash
