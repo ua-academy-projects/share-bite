@@ -9,9 +9,11 @@ on:
 jobs:
   build-and-test:
     name: Build and test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     permissions:
       contents: read
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go

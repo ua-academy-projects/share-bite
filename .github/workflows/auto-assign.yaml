@@ -7,10 +7,11 @@ on:
 jobs:
   add-reviews:
     name: Auto assign reviewers
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     permissions:
       pull-requests: write
+      contents: read
 
     steps:
       - uses: kentaro-m/auto-assign-action@v2.0.1
