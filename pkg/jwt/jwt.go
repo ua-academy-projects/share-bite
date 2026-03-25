@@ -82,8 +82,12 @@ func (m *TokenManager) parse(tokenStr, secret string, expectedType string) (stri
 		return []byte(secret), nil
 	})
 
-	if err != nil || !token.Valid {
-		return "", "", fmt.Errorf("invalid token: %w", err)
+	if err != nil {
+		return "", "", fmt.Errorf("parse error: %w", err)
+	}
+
+	if !token.Valid {
+		return "", "", errors.New("invalid token")
 	}
 	if claims.Type != expectedType {
 		return "", "", fmt.Errorf("invalid token type: %v", claims.Type)
