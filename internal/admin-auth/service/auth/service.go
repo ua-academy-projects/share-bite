@@ -66,21 +66,14 @@ func (s *service) Register(ctx context.Context, email, password, slug string) (*
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
-	createdUser, err := s.userRepo.Create(ctx, user.CreateParams{
+	createdUser, err := s.userRepo.CreateWithRole(ctx, user.CreateWithRoleParams{
 		Email:        email,
 		PasswordHash: string(passwordHash),
+		RoleID:       role.ID,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("create user: %w", err)
-	}
-
-	if err := s.userRepo.AssignRole(ctx, createdUser.ID, role.ID); err != nil {
-		return nil, fmt.Errorf("assign role: %w", err)
-	}
 
 	return s.generateTokens(createdUser.ID)
 }
-
 
 func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, error) {
 	cfg := config.Config().JwtToken

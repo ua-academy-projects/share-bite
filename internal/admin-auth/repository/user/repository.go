@@ -21,9 +21,10 @@ type Role struct {
 	Name string
 }
 
-type CreateParams struct {
+type CreateWithRoleParams struct {
 	Email        string
 	PasswordHash string
+	RoleID       int
 }
 
 type CreatedUser struct {
@@ -35,9 +36,8 @@ type CreatedUser struct {
 
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*User, error)
-	Create(ctx context.Context, params CreateParams) (*CreatedUser, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*Role, error)
-	AssignRole(ctx context.Context, userID string, roleID int) error
+	CreateWithRole(ctx context.Context, params CreateWithRoleParams) (*CreatedUser, error)
 }
 
 type repository struct {
@@ -67,21 +67,6 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*User, erro
 	return u, nil
 }
 
-func (r *repository) Create(ctx context.Context, params CreateParams) (*CreatedUser, error) {
-	q := database.Query{
-		Name: "user.Create",
-		Sql:  `INSERT INTO auth.users (email, password_hash) VALUES ($1, $2) RETURNING id, email`,
-	}
-
-	row := r.client.DB().QueryRowContext(ctx, q, params.Email, params.PasswordHash)
-
-	u := new(CreatedUser)
-	if err := row.Scan(&u.ID, &u.Email); err != nil {
-		return nil, fmt.Errorf("scan user: %w", err)
-	}
-
-	return u, nil
-}
 
 func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*Role, error) {
 	q := database.Query{
@@ -102,15 +87,38 @@ func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*Role, er
 	return role, nil
 }
 
-func (r *repository) AssignRole(ctx context.Context, userID string, roleID int) error {
+func (r *repository) CreateWithRole(ctx context.Context, params CreateWithRoleParams) (*CreatedUser, error) {
 	q := database.Query{
-		Name: "user.AssignRole",
-		Sql:  `INSERT INTO auth.user_roles (user_id, role_id) VALUES ($1, $2)`,
+		Name: "user.CreateWithRole",
+		Sql: `
+			WITH created_user AS (
+				INSERT INTO auth.users (email, password_hash)
+				VALUES ($1, $2)
+				RETURNING id, email
+			),
+			assigned_role AS (
+				INSERT INTO auth.user_roles (user_id, role_id)
+				SELECT id, $3
+				FROM created_user
+			)
+			SELECT id, email
+			FROM created_user
+		`,
 	}
 
-	if _, err := r.client.DB().ExecContext(ctx, q, userID, roleID); err != nil {
-		return fmt.Errorf("assign role: %w", err)
+	row := r.client.DB().QueryRowContext(
+		ctx,
+		q,
+		params.Email,
+		params.PasswordHash,
+		params.RoleID,
+	)
+
+	u := new(CreatedUser)
+	if err := row.Scan(&u.ID, &u.Email); err != nil {
+		return nil, fmt.Errorf("create user with role: %w", err)
 	}
 
-	return nil
+	return u, nil
 }
+
