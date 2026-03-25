@@ -1,11 +1,19 @@
 package jwt
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
+
+type CustomClaims struct {
+	UserID string `json:"sub"`
+	Role   string `json:"role"`
+	Type   string `json:"type"`
+	jwt.RegisteredClaims
+}
 
 type TokenManager struct {
 	accessSecret  string
@@ -24,56 +32,62 @@ func NewTokenManager(accessSecret string, refreshSecret string, accessTTL, refre
 }
 
 func (m *TokenManager) GenerateToken(userID string, role string) (string, string, error) {
-	accessToken, err := m.generate(userID, role, m.accessSecret, m.accessTTL)
+	accessToken, err := m.generate(userID, role, m.accessSecret, m.accessTTL, "access")
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("generate access token: %w", err)
 	}
-	refreshToken, err := m.generate(userID, role, m.refreshSecret, m.refreshTTL)
+	refreshToken, err := m.generate(userID, role, m.refreshSecret, m.refreshTTL, "refresh")
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("generate refresh token: %w", err)
 	}
 	return accessToken, refreshToken, nil
 }
 
 func (m *TokenManager) ParseAccessToken(token string) (string, string, error) {
-	return m.parse(token, m.accessSecret)
+	return m.parse(token, m.accessSecret, "access")
 }
 func (m *TokenManager) ParseRefreshToken(token string) (string, string, error) {
-	return m.parse(token, m.refreshSecret)
+	return m.parse(token, m.refreshSecret, "refresh")
 }
 
-func (m *TokenManager) generate(userID, role, secret string, ttl time.Duration) (string, error) {
-	claims := jwt.MapClaims{
-		"sub":  userID,
-		"role": role,
-		"exp":  time.Now().Add(ttl).Unix(),
-		"iat":  time.Now().Unix(),
+func (m *TokenManager) generate(userID, role, secret string, ttl time.Duration, tokenType string) (string, error) {
+	if secret == "" {
+		return "", errors.New("jwt secret is empty")
+	}
+
+	if ttl <= 0 {
+		return "", errors.New("invalid jwt ttl")
+	}
+
+	now := time.Now()
+	claims := CustomClaims{
+		UserID: userID,
+		Role:   role,
+		Type:   tokenType,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
+			IssuedAt:  jwt.NewNumericDate(now),
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(secret))
 }
 
-func (m *TokenManager) parse(tokenStr, secret string) (string, string, error) {
-	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
-		if t.Method.Alg() != jwt.SigningMethodHS256.Alg() {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Method.Alg())
+func (m *TokenManager) parse(tokenStr, secret string, expectedType string) (string, string, error) {
+	claims := &CustomClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return []byte(secret), nil
-	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+	})
+
 	if err != nil || !token.Valid {
-		return "", "", fmt.Errorf("invalid token: %v", err)
+		return "", "", fmt.Errorf("invalid token: %w", err)
 	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return "", "", fmt.Errorf("invalid claims")
+	if claims.Type != expectedType {
+		return "", "", fmt.Errorf("invalid token type: %v", claims.Type)
 	}
-	sub, ok := claims["sub"].(string)
-	if !ok {
-		return "", "", fmt.Errorf("invalid subject")
-	}
-	role, ok := claims["role"].(string)
-	if !ok {
-		return "", "", fmt.Errorf("invalid role")
-	}
-	return sub, role, nil
+
+	return claims.UserID, claims.Role, nil
 }

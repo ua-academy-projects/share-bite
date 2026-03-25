@@ -2,12 +2,15 @@ package middleware
 
 import (
 	"net/http"
+	"slices"
 	"strings"
-
-	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 )
+
+type AccessTokenParser interface {
+	ParseAccessToken(token string) (string, string, error)
+}
 
 const (
 	authorizationHeader = "Authorization"
@@ -15,8 +18,13 @@ const (
 	CtxUserRole         = "userRole"
 )
 
-func Auth(tokenManager *jwt.TokenManager) gin.HandlerFunc {
+func Auth(parser AccessTokenParser) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if parser == nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "auth middleware is not configured"})
+			return
+		}
+
 		header := c.GetHeader(authorizationHeader)
 		if header == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "empty auth header"})
@@ -27,7 +35,7 @@ func Auth(tokenManager *jwt.TokenManager) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
 			return
 		}
-		userID, role, err := tokenManager.ParseAccessToken(headerParts[1])
+		userID, role, err := parser.ParseAccessToken(headerParts[1])
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
@@ -42,8 +50,8 @@ func Auth(tokenManager *jwt.TokenManager) gin.HandlerFunc {
 
 func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		roleVal, exist := c.Get(CtxUserRole)
-		if !exist {
+		roleVal, exists := c.Get(CtxUserRole)
+		if !exists {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
@@ -53,16 +61,8 @@ func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal error: invalid role type"})
 			return
 		}
-		hasAccess := false
-		for _, allowedRole := range allowedRoles {
-			if userRole == allowedRole {
 
-				hasAccess = true
-				break
-			}
-		}
-
-		if !hasAccess {
+		if !slices.Contains(allowedRoles, userRole) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: insufficient permissions"})
 			return
 		}
