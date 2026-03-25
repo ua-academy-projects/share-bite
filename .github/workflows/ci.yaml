@@ -4,21 +4,21 @@ on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
   build-and-test:
     name: Build and test
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-
       - name: Build
         run: go build ./...
-
       - name: Test
         run: go test -v ./...
