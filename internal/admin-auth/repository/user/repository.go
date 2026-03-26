@@ -6,38 +6,15 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
-type User struct {
-	ID           string
-	Email        string
-	PasswordHash string
-}
-
-type Role struct {
-	ID   int
-	Slug string
-	Name string
-}
-
-type CreateWithRoleParams struct {
-	Email        string
-	PasswordHash string
-	RoleID       int
-}
-
-type CreatedUser struct {
-	ID    string
-	Email string
-}
-
-
-
 type Repository interface {
-	FindByEmail(ctx context.Context, email string) (*User, error)
-	FindRoleBySlug(ctx context.Context, slug string) (*Role, error)
-	CreateWithRole(ctx context.Context, params CreateWithRoleParams) (*CreatedUser, error)
+	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
+	FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error)
+	CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error)
 }
 
 type repository struct {
@@ -48,7 +25,7 @@ func New(client database.Client) Repository {
 	return &repository{client: client}
 }
 
-func (r *repository) FindByEmail(ctx context.Context, email string) (*User, error) {
+func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error) {
 	q := database.Query{
 		Name: "user.FindByEmail",
 		Sql:  `SELECT id, email, password_hash FROM auth.users WHERE email = $1`,
@@ -56,8 +33,13 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*User, erro
 
 	row := r.client.DB().QueryRowContext(ctx, q, email)
 
-	u := new(User)
-	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash); err != nil {
+	u := new(dto.UserWithRole)
+	if err := row.Scan(&u.ID,
+		&u.Email,
+		&u.PasswordHash,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+		&u.RoleSlug); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -67,8 +49,7 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*User, erro
 	return u, nil
 }
 
-
-func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*Role, error) {
+func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error) {
 	q := database.Query{
 		Name: "user.FindRoleBySlug",
 		Sql:  `SELECT id, slug, name FROM auth.roles WHERE slug = $1`,
@@ -76,7 +57,7 @@ func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*Role, er
 
 	row := r.client.DB().QueryRowContext(ctx, q, slug)
 
-	role := new(Role)
+	role := new(entity.Role)
 	if err := row.Scan(&role.ID, &role.Slug, &role.Name); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -87,7 +68,7 @@ func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*Role, er
 	return role, nil
 }
 
-func (r *repository) CreateWithRole(ctx context.Context, params CreateWithRoleParams) (*CreatedUser, error) {
+func (r *repository) CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error) {
 	q := database.Query{
 		Name: "user.CreateWithRole",
 		Sql: `
@@ -114,11 +95,10 @@ func (r *repository) CreateWithRole(ctx context.Context, params CreateWithRolePa
 		params.RoleID,
 	)
 
-	u := new(CreatedUser)
+	u := new(dto.CreatedUser)
 	if err := row.Scan(&u.ID, &u.Email); err != nil {
 		return nil, fmt.Errorf("create user with role: %w", err)
 	}
 
 	return u, nil
 }
-
