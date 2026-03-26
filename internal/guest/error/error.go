@@ -37,6 +37,11 @@ func newError(code code.Code, err string) *Error {
 	}
 }
 
+func VenueNotFoundID(venueID string) *Error {
+	msg := fmt.Sprintf("venue with id %q was not found", venueID)
+	return newError(code.NotFound, msg)
+}
+
 func PostNotFoundID(postID string) *Error {
 	msg := fmt.Sprintf("post with id %q was not found", postID)
 	return newError(code.NotFound, msg)

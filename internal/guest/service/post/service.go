@@ -7,16 +7,23 @@ import (
 )
 
 type postRepository interface {
+	Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error)
 	List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error)
 	Get(ctx context.Context, postID string) (entity.Post, error)
 }
 
-type service struct {
-	postRepo postRepository
+type VenueProvider interface {
+	CheckExists(ctx context.Context, venueID string) (bool, error)
 }
 
-func New(postRepo postRepository) *service {
+type service struct {
+	postRepo      postRepository
+	venueProvider VenueProvider
+}
+
+func New(postRepo postRepository, venueProvider VenueProvider) *service {
 	return &service{
-		postRepo: postRepo,
+		postRepo:      postRepo,
+		venueProvider: venueProvider,
 	}
 }

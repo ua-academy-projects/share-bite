@@ -5,13 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/guest/util/httpctx"
+	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
 )
 
 type createRequest struct {
-	CustomerID string `json:"customer_id" binding:"required,uuid"`
-	VenueID    string `json:"venue_id" binding:"required,uuid"`
-	Text       string `json:"text" binding:"required,max=2000"`
-	Rating     int16  `json:"rating" binding:"required,min=1,max=5"`
+	VenueID string `json:"venue_id" binding:"required,uuid"`
+	Text    string `json:"text" binding:"required,max=2000"`
+	Rating  int16  `json:"rating" binding:"required,min=1,max=5"`
 }
 
 type createResponse struct {
@@ -19,15 +20,27 @@ type createResponse struct {
 }
 
 func (h *handler) create(c *gin.Context) {
-	req := new(createRequest)
-	if err := c.ShouldBindJSON(req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req createRequest
+	if err := request.BindJSON(c, &req); err != nil {
+		c.Error(err)
 		return
 	}
 
 	ctx := c.Request.Context()
+	userID, err := httpctx.GetUserID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	customer, err := h.customerService.GetByUserID(ctx, userID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
 	in := entity.CreatePostInput{
-		CustomerID: req.CustomerID,
+		CustomerID: customer.ID,
 		VenueID:    req.VenueID,
 		Text:       req.Text,
 		Rating:     req.Rating,

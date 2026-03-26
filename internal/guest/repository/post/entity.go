@@ -1,6 +1,7 @@
 package post
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -8,24 +9,39 @@ import (
 )
 
 type Post struct {
-	ID string `db:"id"`
-
-	Description string `db:"description"`
+	ID         int64  `db:"id"`
+	CustomerID string `db:"customer_id"`
+	VenueID    string `db:"venue_id"`
+	Text       string `db:"text"`
+	Rating     int16  `db:"rating"`
+	Status     string `db:"status"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
-func (e Post) ToEntity() entity.Post {
+func (p *Post) ToEntity() entity.Post {
 	return entity.Post{
-		ID:          e.ID,
-		Description: e.Description,
-		CreatedAt:   e.CreatedAt,
-		UpdatedAt:   e.UpdatedAt,
+		ID:         strconv.FormatInt(p.ID, 10),
+		CustomerID: p.CustomerID,
+		VenueID:    p.VenueID,
+		Text:       p.Text,
+		Rating:     p.Rating,
+		Status:     p.Status,
+		CreatedAt:  p.CreatedAt,
+		UpdatedAt:  p.UpdatedAt,
 	}
 }
 
 type Posts []Post
+
+func (ps Posts) ToEntities() []entity.Post {
+	res := make([]entity.Post, 0, len(ps))
+	for i := range ps {
+		res = append(res, ps[i].ToEntity())
+	}
+	return res
+}
 
 func executeSQLError(err error) error {
 	return errwrap.Wrap("execute sql", err)
