@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
 func (h *handler) getByUserName(c *gin.Context) {
@@ -21,12 +21,12 @@ func (h *handler) getByUserName(c *gin.Context) {
 		return
 	}
 
-	resp := getByUserNameResponse{Customer: customerToResponse(customer, h.storage)}
+	resp := getByUserNameResponse{Customer: customerToResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 
 type getByUserNameRequest struct {
-	UserName string `uri:"username" binding:"required,alphanum,min=3,max=30"`
+	UserName string `uri:"username" binding:"required,min=3,max=30"`
 }
 
 type getByUserNameResponse struct {
