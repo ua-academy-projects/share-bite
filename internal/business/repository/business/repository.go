@@ -2,6 +2,7 @@ package business
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
@@ -16,6 +17,29 @@ func New(db database.Client) *Repository {
 	return &Repository{
 		db: db,
 	}
+}
+
+func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID int64) (int, error) {
+	q := database.Query{
+		Name: "get_org_by_user_id",
+		Sql: `
+			SELECT id
+			FROM business.org_units
+			WHERE org_account_id = $1
+		`,
+	}
+
+	var orgID int
+
+	err := r.db.DB().QueryRowContext(ctx, q, userID).Scan(&orgID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, biserr.ErrNotFound
+		}
+		return 0, err
+	}
+
+	return orgID, nil
 }
 
 func (r *Repository) UpdatePost(ctx context.Context, post *entity.Post) error {

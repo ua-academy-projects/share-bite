@@ -2,6 +2,7 @@ package business
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -14,22 +15,12 @@ type handler struct {
 }
 
 type businessService interface {
-	UpdatePost(ctx context.Context, postID int64, orgID int, content string) error
-	DeletePost(ctx context.Context, postID int64, orgID int) error
+	UpdatePost(ctx context.Context, postID int64, userID int64, content string) error
+	DeletePost(ctx context.Context, postID int64, userID int64) error
 }
 
 type updatePostRequest struct {
 	Content string `json:"content" binding:"required"`
-}
-
-func getOrgID(c *gin.Context) (int, bool) {
-	val, exists := c.Get("orgID")
-	if !exists {
-		return 0, false
-	}
-
-	orgID, ok := val.(int)
-	return orgID, ok
 }
 
 func RegisterHandlers(
@@ -44,29 +35,68 @@ func RegisterHandlers(
 	r.DELETE("/posts/:id", h.DeletePost)
 }
 
+func getUserID(c *gin.Context) (int64, bool) {
+	val, exists := c.Get("userId")
+	if !exists {
+		return 0, false
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		return 0, false
+	}
+
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return userID, true
+}
+
+func checkBusinessRole(c *gin.Context) bool {
+	val, exists := c.Get("userRole")
+	if !exists {
+		return false
+	}
+
+	role, ok := val.(string)
+	if !ok {
+		return false
+	}
+
+	return role == "business"
+}
+
 func (h *handler) DeletePost(c *gin.Context) {
 	idStr := c.Param("id")
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	postID, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	orgID, ok := getOrgID(c)
+	userID, ok := getUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
+	if !checkBusinessRole(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can delete posts"})
+		return
+	}
+
 	ctx := c.Request.Context()
-	err = h.service.DeletePost(ctx, id, orgID)
+
+	err = h.service.DeletePost(ctx, postID, userID)
 	if err != nil {
-		switch err {
-		case biserr.ErrNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
-		case biserr.ErrForbidden:
-			c.JSON(http.StatusForbidden, gin.H{"error": "you are not the author"})
+		switch {
+		case errors.Is(err, biserr.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "post not found or access denied"})
+		case errors.Is(err, biserr.ErrForbidden):
+			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		}
@@ -79,15 +109,20 @@ func (h *handler) DeletePost(c *gin.Context) {
 func (h *handler) UpdatePost(c *gin.Context) {
 	idStr := c.Param("id")
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	postID, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	orgID, ok := getOrgID(c)
+	userID, ok := getUserID(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if !checkBusinessRole(c) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can update posts"})
 		return
 	}
 
@@ -98,13 +133,14 @@ func (h *handler) UpdatePost(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err = h.service.UpdatePost(ctx, id, orgID, req.Content)
+
+	err = h.service.UpdatePost(ctx, postID, userID, req.Content)
 	if err != nil {
-		switch err {
-		case biserr.ErrNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
-		case biserr.ErrForbidden:
-			c.JSON(http.StatusForbidden, gin.H{"error": "you are not the author"})
+		switch {
+		case errors.Is(err, biserr.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "post not found or access denied"})
+		case errors.Is(err, biserr.ErrForbidden):
+			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		}
