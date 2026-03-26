@@ -19,12 +19,11 @@ const (
 )
 
 func Auth(parser AccessTokenParser) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if parser == nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "auth middleware is not configured"})
-			return
-		}
+	if parser == nil {
+		panic("auth middleware is not configured: parser cannot be nil")
+	}
 
+	return func(c *gin.Context) {
 		header := c.GetHeader(authorizationHeader)
 		if header == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "empty auth header"})

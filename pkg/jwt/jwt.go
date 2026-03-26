@@ -75,7 +75,7 @@ func (m *TokenManager) generate(userID, role, secret string, ttl time.Duration, 
 
 func (m *TokenManager) parse(tokenStr, secret string, expectedType string) (string, string, error) {
 	claims := &CustomClaims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
@@ -83,7 +83,10 @@ func (m *TokenManager) parse(tokenStr, secret string, expectedType string) (stri
 	})
 
 	if err != nil {
-		return "", "", fmt.Errorf("parse error: %w", err)
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return "", "", errors.New("token is expired")
+		}
+		return "", "", fmt.Errorf("invalid token: %w", err)
 	}
 
 	if !token.Valid {
