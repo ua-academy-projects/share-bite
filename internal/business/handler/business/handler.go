@@ -14,12 +14,22 @@ type handler struct {
 }
 
 type businessService interface {
-	UpdatePost(ctx context.Context, postID int, orgID int, content string) error
-	DeletePost(ctx context.Context, postID int, orgID int) error
+	UpdatePost(ctx context.Context, postID int64, orgID int, content string) error
+	DeletePost(ctx context.Context, postID int64, orgID int) error
 }
 
 type updatePostRequest struct {
-	Content string `json:"content"`
+	Content string `json:"content" binding:"required"`
+}
+
+func getOrgID(c *gin.Context) (int, bool) {
+	val, exists := c.Get("orgID")
+	if !exists {
+		return 0, false
+	}
+
+	orgID, ok := val.(int)
+	return orgID, ok
 }
 
 func RegisterHandlers(
@@ -37,13 +47,17 @@ func RegisterHandlers(
 func (h *handler) DeletePost(c *gin.Context) {
 	idStr := c.Param("id")
 
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	orgID := 1 // заглушка
+	orgID, ok := getOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
 	ctx := c.Request.Context()
 	err = h.service.DeletePost(ctx, id, orgID)
@@ -65,9 +79,15 @@ func (h *handler) DeletePost(c *gin.Context) {
 func (h *handler) UpdatePost(c *gin.Context) {
 	idStr := c.Param("id")
 
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	orgID, ok := getOrgID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
@@ -76,8 +96,6 @@ func (h *handler) UpdatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
-
-	orgID := 1 // заглушка
 
 	ctx := c.Request.Context()
 	err = h.service.UpdatePost(ctx, id, orgID, req.Content)
