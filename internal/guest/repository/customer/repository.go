@@ -57,7 +57,7 @@ func (r *repository) Create(ctx context.Context, in entity.CreateCustomer) (stri
 			if pgErr.Code == "23505" {
 				switch pgErr.ConstraintName {
 				case "customers_user_id_key":
-					return "", apperror.CustomerAlreadyExists
+					return "", apperror.ErrCustomerAlreadyExists
 				case "customers_username_key":
 					return "", apperror.CustomerUserNameTaken(in.UserName)
 				}

@@ -12,7 +12,7 @@ var (
 	ErrInvalidParam      = newError(code.InvalidRequest, "invalid path parameter")
 	ErrInvalidQueryParam = newError(code.InvalidRequest, "invalid query parameter")
 
-	CustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
+	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
 )
