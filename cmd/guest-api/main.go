@@ -3,8 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/ua-academy-projects/share-bite/internal/storage/s3"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"net/http"
+	"os"
 
+	aws "github.com/aws/aws-sdk-go-v2/aws"
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
+	awscred "github.com/aws/aws-sdk-go-v2/credentials"
+	s3sdk "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/ua-academy-projects/share-bite/internal/config"
@@ -41,6 +48,7 @@ func main() {
 	// }
 
 	router := gin.New()
+	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
@@ -85,6 +93,44 @@ func main() {
 
 	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
 
+	var storageClient *s3.S3Storage
+	{
+		s3Endpoint := os.Getenv("S3_ENDPOINT")
+		s3Region := os.Getenv("S3_REGION")
+		s3AccessKey := os.Getenv("S3_ACCESS_KEY")
+		s3SecretKey := os.Getenv("S3_SECRET_KEY")
+		s3Bucket := os.Getenv("S3_BUCKET")
+		usePathStyle := os.Getenv("S3_USE_PATH_STYLE") == "true"
+
+		if s3Bucket != "" {
+			loaderOpts := []func(*awscfg.LoadOptions) error{
+				awscfg.WithRegion(s3Region),
+			}
+			if s3AccessKey != "" && s3SecretKey != "" {
+				loaderOpts = append(loaderOpts, awscfg.WithCredentialsProvider(
+					awscred.NewStaticCredentialsProvider(s3AccessKey, s3SecretKey, ""),
+				))
+			}
+			if s3Endpoint != "" {
+				loaderOpts = append(loaderOpts, awscfg.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
+					func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+						return aws.Endpoint{URL: s3Endpoint, HostnameImmutable: true}, nil
+					},
+				)))
+			}
+
+			awsCfg, err := awscfg.LoadDefaultConfig(ctx, loaderOpts...)
+			if err != nil {
+				logger.Fatal(ctx, "aws load config: ", err)
+			}
+			s3Client := s3sdk.NewFromConfig(awsCfg, func(o *s3sdk.Options) {
+				o.UsePathStyle = usePathStyle
+			})
+
+			storageClient = s3.NewS3Storage(s3Client, s3Bucket, s3Endpoint)
+		}
+	}
+
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
 		config.Config().JwtToken.RefreshTokenSecretKey(),
@@ -99,10 +145,12 @@ func main() {
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
+	txManager := txmanager.NewTransactionManager(client.DB())
 	postSvc := postsvc.New(postRepo, businessGateway)
+
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
-	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware)
+	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware, storageClient)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")
@@ -148,6 +196,7 @@ func ErrorMiddleware() gin.HandlerFunc {
 
 			case code.InvalidJSON,
 				code.InvalidRequest,
+				code.BadRequest,
 				code.EmptyUpdate:
 				respCode = http.StatusBadRequest
 

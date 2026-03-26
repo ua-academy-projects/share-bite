@@ -3,6 +3,8 @@ package post
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -23,7 +25,6 @@ func New(db database.Client) *Repository {
 		db: db,
 	}
 }
-
 func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error) {
 	sql := `
         INSERT INTO guest.posts(
@@ -62,14 +63,53 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 	return post.ToEntity(), nil
 }
 
+func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage) error {
+	if len(images) == 0 {
+		return nil
+	}
+	createImagesSql := `
+		INSERT INTO guest.post_images(
+			post_id,
+			object_key,
+			content_type,
+			file_size,
+			sort_order
+		) VALUES ($1, $2, $3, $4, $5)
+	`
+	q := database.Query{
+		Name: "post_repository.CreateImages",
+		Sql:  createImagesSql,
+	}
+
+	for _, img := range images {
+		postID, err := strconv.ParseInt(img.PostID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid post ID: %w", err)
+		}
+		_, err = r.db.DB().ExecContext(
+			ctx,
+			q,
+			postID,
+			img.ObjectKey,
+			img.ContentType,
+			img.FileSize,
+			img.SortOrder,
+		)
+		if err != nil {
+			return executeSQLError(err)
+		}
+	}
+	return nil
+}
+
 func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error) {
-	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = $1`
+	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = 'published'`
 	countQ := database.Query{
 		Name: "post_repository.List.Count",
 		Sql:  countSQL,
 	}
 	var total int
-	err := r.db.DB().QueryRowContext(ctx, countQ, entity.PostStatusPublished).Scan(&total)
+	err := r.db.DB().QueryRowContext(ctx, countQ).Scan(&total)
 	if err != nil {
 		return entity.ListPostsOutput{}, scanRowError(err)
 	}
@@ -86,16 +126,16 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 		       created_at,
 		       updated_at
 		FROM guest.posts
-		WHERE status = $1
+		WHERE status = 'published'
 		ORDER BY created_at DESC, id DESC
-		LIMIT $2 OFFSET $3
+		LIMIT $1 OFFSET $2
 	`
 	q := database.Query{
 		Name: "post_repository.List",
 		Sql:  sql,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, entity.PostStatusPublished, in.Limit, in.Offset)
+	rows, err := r.db.DB().QueryContext(ctx, q, in.Limit, in.Offset)
 	if err != nil {
 		return entity.ListPostsOutput{}, executeSQLError(err)
 	}
@@ -125,14 +165,14 @@ func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error
 		       updated_at
 		FROM guest.posts
 		WHERE id = $1
-		  AND status = $2
+		  AND status = 'published'
 	`
 	q := database.Query{
 		Name: "post_repository.Get",
 		Sql:  sql,
 	}
 
-	row, err := r.db.DB().QueryContext(ctx, q, postID, entity.PostStatusPublished)
+	row, err := r.db.DB().QueryContext(ctx, q, postID)
 	if err != nil {
 		return entity.Post{}, executeSQLError(err)
 	}
