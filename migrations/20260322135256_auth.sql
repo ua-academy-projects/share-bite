@@ -22,13 +22,17 @@ CREATE TABLE auth.user_roles
     user_id UUID    NOT NULL,
     role_id INTEGER NOT NULL,
     PRIMARY KEY (user_id, role_id),
-    -- Додали auth. перед users та roles
     CONSTRAINT fk_user_roles_user_id FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE CASCADE,
     CONSTRAINT fk_user_roles_role_id FOREIGN KEY (role_id) REFERENCES auth.roles (id) ON DELETE CASCADE
 );
 
--- Додали auth. перед user_roles
 CREATE INDEX idx_user_roles_role_id ON auth.user_roles(role_id);
+
+INSERT INTO auth.roles (slug, name)
+VALUES ('admin', 'Адміністратор'),
+       ('user', 'Користувач'),
+       ('business', 'Бізнес'),
+       ('moderator', 'Модератор');
 
 
 -- +goose Down

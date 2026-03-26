@@ -28,22 +28,24 @@ func New(client database.Client) Repository {
 func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error) {
 	q := database.Query{
 		Name: "user.FindByEmail",
-		Sql:  `SELECT id, email, password_hash FROM auth.users WHERE email = $1`,
+		Sql: `
+			SELECT u.id, u.email, u.password_hash, r.slug
+			FROM auth.users u
+			LEFT JOIN auth.user_roles ur ON u.id = ur.user_id
+			LEFT JOIN auth.roles r ON ur.role_id = r.id
+			WHERE u.email = $1
+		`,
 	}
 
 	row := r.client.DB().QueryRowContext(ctx, q, email)
-
 	u := new(dto.UserWithRole)
-	if err := row.Scan(&u.ID,
+	if err := row.Scan(
+		&u.ID,
 		&u.Email,
 		&u.PasswordHash,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-		&u.RoleSlug); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("scan user: %w", err)
+		&u.RoleSlug,
+	); err != nil {
+		return nil, err
 	}
 
 	return u, nil
