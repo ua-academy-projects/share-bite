@@ -16,10 +16,12 @@ import (
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	"github.com/ua-academy-projects/share-bite/pkg/middleware"
+	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
 )
@@ -38,7 +40,7 @@ func main() {
 	// }
 
 	router := gin.New()
-	router.Use(middleware.RequestLogger())
+	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
 
@@ -65,6 +67,14 @@ func main() {
 		return nil
 	})
 
+	tokenManager := jwt.NewTokenManager(
+		config.Config().JwtToken.AccessTokenSecretKey(),
+		config.Config().JwtToken.RefreshTokenSecretKey(),
+		config.Config().JwtToken.AccessTokenTTL(),
+		config.Config().JwtToken.RefreshTokenTTL(),
+	)
+	authMiddleware := middleware.Auth(tokenManager)
+
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
@@ -75,7 +85,7 @@ func main() {
 
 	// handlers
 	post.RegisterHandlers(router.Group("/posts"), postSvc)
-	customer.RegisterHandlers(router.Group("/customers"), customerSvc)
+	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

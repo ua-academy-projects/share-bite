@@ -30,5 +30,5 @@ type getByUserNameRequest struct {
 }
 
 type getByUserNameResponse struct {
-	Customer customerResponse `json:"Customer"`
+	Customer customerResponse `json:"customer"`
 }

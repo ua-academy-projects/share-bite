@@ -16,7 +16,7 @@ func (h *handler) getMe(c *gin.Context) {
 		return
 	}
 
-	customer, err := h.service.GetByUserName(ctx, userID)
+	customer, err := h.service.GetByUserID(ctx, userID)
 	if err != nil {
 		c.Error(err)
 		return

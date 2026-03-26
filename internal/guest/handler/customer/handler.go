@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/middleware"
 )
 
 type handler struct {
@@ -19,11 +18,13 @@ type customerService interface {
 	Update(ctx context.Context, in entity.UpdateCustomer) (entity.Customer, error)
 
 	GetByUserName(ctx context.Context, userName string) (entity.Customer, error)
+	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
 }
 
 func RegisterHandlers(
 	r *gin.RouterGroup,
 	service customerService,
+	authMiddleware gin.HandlerFunc,
 ) {
 	h := &handler{
 		service: service,
@@ -33,7 +34,7 @@ func RegisterHandlers(
 	r.GET("/:username", h.getByUserName)
 
 	// protected
-	protected := r.Group("/").Use(middleware.Auth())
+	protected := r.Group("/").Use(authMiddleware)
 
 	protected.POST("/", h.create)
 	protected.PATCH("/", h.update)
