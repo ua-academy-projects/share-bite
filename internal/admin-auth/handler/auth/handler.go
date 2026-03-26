@@ -1,43 +1,22 @@
 package auth
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 )
 
-type authService interface {
-	Login(ctx context.Context, email, password string) (*authsvc.Tokens, error)
-	Register(ctx context.Context, email, password, slug string) (*authsvc.Tokens, error)
-	Refresh(ctx context.Context, refreshToken string) (*authsvc.Tokens, error)
-}
-type handler struct {
-	service authService
+type Handler struct {
+	service authsvc.Service
 }
 
-func RegisterHandlers(r *gin.RouterGroup, service authService) {
-	h := &handler{service: service}
-
-	r.POST("/login", h.login)
-	r.POST("/register", h.register)
-	r.POST("/refresh", h.refresh)
+func NewHandler(service authsvc.Service) *Handler {
+	return &Handler{service: service}
 }
 
-type loginRequest struct {
-	Email    string `json:"email"    binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
-type registerRequest struct {
-	Email    string `json:"email" binding:"required,email,max=254"`
-	Password string `json:"password" binding:"required,min=8,max=72"`
-	Slug     string `json:"slug" binding:"required,oneof=user business"`
-}
-
-func (h *handler) login(c *gin.Context) {
-	var req loginRequest
+func (h *Handler) Login(c *gin.Context) {
+	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -55,8 +34,8 @@ func (h *handler) login(c *gin.Context) {
 	})
 }
 
-func (h *handler) register(c *gin.Context) {
-	var req registerRequest
+func (h *Handler) Register(c *gin.Context) {
+	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -79,12 +58,8 @@ func (h *handler) register(c *gin.Context) {
 	})
 }
 
-type refreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
-func (h *handler) refresh(c *gin.Context) {
-	var req refreshRequest
+func (h *Handler) Refresh(c *gin.Context) {
+	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
