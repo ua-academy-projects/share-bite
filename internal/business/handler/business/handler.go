@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
+
 	"github.com/gin-gonic/gin"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
 )
@@ -36,7 +38,7 @@ func RegisterHandlers(
 }
 
 func getUserID(c *gin.Context) (int64, bool) {
-	val, exists := c.Get("userId")
+	val, exists := c.Get(middleware.CtxUserID)
 	if !exists {
 		return 0, false
 	}
@@ -55,7 +57,7 @@ func getUserID(c *gin.Context) (int64, bool) {
 }
 
 func checkBusinessRole(c *gin.Context) bool {
-	val, exists := c.Get("userRole")
+	val, exists := c.Get(middleware.CtxUserRole)
 	if !exists {
 		return false
 	}
@@ -72,7 +74,7 @@ func (h *handler) DeletePost(c *gin.Context) {
 	idStr := c.Param("id")
 
 	postID, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
+	if err != nil || postID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
@@ -110,7 +112,7 @@ func (h *handler) UpdatePost(c *gin.Context) {
 	idStr := c.Param("id")
 
 	postID, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
+	if err != nil || postID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
@@ -42,7 +41,7 @@ func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID int64) (int, e
 	return orgID, nil
 }
 
-func (r *Repository) UpdatePost(ctx context.Context, post *entity.Post) error {
+func (r *Repository) UpdatePost(ctx context.Context, postID int64, orgID int, content string) error {
 
 	q := database.Query{
 		Name: "update_post",
@@ -53,7 +52,7 @@ func (r *Repository) UpdatePost(ctx context.Context, post *entity.Post) error {
 	`,
 	}
 
-	tag, err := r.db.DB().ExecContext(ctx, q, post.Content, post.ID, post.OrgID)
+	tag, err := r.db.DB().ExecContext(ctx, q, content, postID, orgID)
 	if err != nil {
 		return err
 	}

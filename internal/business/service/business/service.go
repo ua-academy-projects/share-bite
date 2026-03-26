@@ -2,12 +2,10 @@ package business
 
 import (
 	"context"
-
-	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 )
 
 type businessRepository interface {
-	UpdatePost(ctx context.Context, post *entity.Post) error
+	UpdatePost(ctx context.Context, postID int64, orgID int, content string) error
 	DeletePost(ctx context.Context, id int64, orgID int) error
 	GetOrgIDByUserID(ctx context.Context, userID int64) (int, error)
 }
@@ -28,13 +26,7 @@ func (s *service) UpdatePost(ctx context.Context, postID int64, userID int64, co
 		return err
 	}
 
-	post := &entity.Post{
-		ID:      postID,
-		OrgID:   orgID,
-		Content: content,
-	}
-
-	return s.businessRepo.UpdatePost(ctx, post)
+	return s.businessRepo.UpdatePost(ctx, postID, orgID, content)
 }
 
 func (s *service) DeletePost(ctx context.Context, postID int64, userID int64) error {
