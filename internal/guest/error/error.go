@@ -80,6 +80,18 @@ func PostNotFoundID(postID string) *Error {
 	return newError(code.NotFound, msg)
 }
 
+func BadRequest(msg string) *Error {
+	return newError(code.BadRequest, msg)
+}
+
+func Internal(msg string) *Error {
+	return newError(code.Internal, msg)
+}
+
+func NotFound(msg string) *Error {
+	return newError(code.NotFound, msg)
+}
+
 func CustomerNotFoundUserID(userID string) *Error {
 	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
 	return newError(code.NotFound, msg)
