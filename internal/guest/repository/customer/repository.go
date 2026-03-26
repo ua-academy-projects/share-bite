@@ -200,6 +200,10 @@ func (r *repository) Update(ctx context.Context, in entity.UpdateCustomer) (enti
 
 	var c Customer
 	if err := pgxscan.ScanOne(&c, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Customer{}, apperror.CustomerNotFoundUserID(in.UserID)
+		}
+
 		return entity.Customer{}, scanRowError(err)
 	}
 

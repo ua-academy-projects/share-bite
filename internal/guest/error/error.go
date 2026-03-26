@@ -53,6 +53,6 @@ func CustomerNotFoundUserName(userName string) *Error {
 }
 
 func CustomerUserNameTaken(userName string) *Error {
-	msg := fmt.Sprintf("customer with username %q alredy exists", userName)
+	msg := fmt.Sprintf("customer with username %q already exists", userName)
 	return newError(code.AlreadyExists, msg)
 }
