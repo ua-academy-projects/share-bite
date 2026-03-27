@@ -52,7 +52,7 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 }
 
 func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error) {
-	countSQL := `SELECT COUNT(*) FROM guest.posts`
+	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = 'published'`
 	countQ := database.Query{
 		Name: "post_repository.List.Count",
 		Sql:  countSQL,
@@ -75,6 +75,7 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 		       created_at,
 		       updated_at
 		FROM guest.posts
+		WHERE status = 'published'
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`
@@ -113,6 +114,7 @@ func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error
 		       updated_at
 		FROM guest.posts
 		WHERE id = $1
+		  AND status = 'published'
 	`
 	q := database.Query{
 		Name: "post_repository.Get",
