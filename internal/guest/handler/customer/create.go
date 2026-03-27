@@ -2,6 +2,7 @@ package customer
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -36,7 +37,7 @@ func (h *handler) create(c *gin.Context) {
 }
 
 type createRequest struct {
-	UserName  string `json:"userName" binding:"required,min=3,max=30"`
+	UserName  string `json:"userName" binding:"required,alphanum,min=3,max=30"`
 	FirstName string `json:"firstName" binding:"required,min=2,max=50"`
 	LastName  string `json:"lastName" binding:"required,min=2,max=50"`
 
@@ -49,10 +50,12 @@ type createResponse struct {
 
 func createRequestToCreateCustomer(req createRequest, userID string) entity.CreateCustomer {
 	return entity.CreateCustomer{
-		UserID:    userID,
-		UserName:  req.UserName,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Bio:       req.Bio,
+		UserID: userID,
+
+		UserName:  strings.ToLower(req.UserName),
+		FirstName: strings.TrimSpace(req.FirstName),
+		LastName:  strings.TrimSpace(req.LastName),
+
+		Bio: req.Bio,
 	}
 }

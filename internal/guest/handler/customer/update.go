@@ -2,6 +2,7 @@ package customer
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -36,7 +37,7 @@ func (h *handler) update(c *gin.Context) {
 }
 
 type updateRequest struct {
-	UserName  *string `json:"userName" binding:"omitempty,min=3,max=30"`
+	UserName  *string `json:"userName" binding:"omitempty,alphanum,min=3,max=30"`
 	FirstName *string `json:"firstName" binding:"omitempty,min=2,max=50"`
 	LastName  *string `json:"lastName" binding:"omitempty,min=2,max=50"`
 
@@ -52,11 +53,27 @@ func updateRequestToUpdateCustomer(req *updateRequest, userID string) entity.Upd
 	return entity.UpdateCustomer{
 		UserID: userID,
 
-		UserName:  req.UserName,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
+		UserName:  lowerPtr(req.UserName),
+		FirstName: trimSpacePtr(req.FirstName),
+		LastName:  trimSpacePtr(req.LastName),
 
 		Bio:             req.Bio,
 		AvatarObjectKey: req.AvatarObjectKey,
 	}
+}
+
+func trimSpacePtr(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	val := strings.TrimSpace(*s)
+	return &val
+}
+
+func lowerPtr(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	val := strings.ToLower(*s)
+	return &val
 }
