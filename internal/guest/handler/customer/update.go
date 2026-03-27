@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
@@ -49,4 +50,17 @@ type updateRequest struct {
 
 type updateResponse struct {
 	Customer customerResponse `json:"customer"`
+}
+
+func updateRequestToUpdateCustomer(req *updateRequest, userID string) entity.UpdateCustomer {
+	return entity.UpdateCustomer{
+		UserID: userID,
+
+		UserName:  req.UserName,
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+
+		Bio:             req.Bio,
+		AvatarObjectKey: req.AvatarObjectKey,
+	}
 }
