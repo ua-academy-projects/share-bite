@@ -31,8 +31,8 @@ func (h *handler) list(c *gin.Context) {
 }
 
 type listRequest struct {
-	Limit  int `form:"limit" binding:"required,gte=1,lte=100"`
-	Offset int `form:"offset" binding:"gte=0,lte=1000"`
+	Limit  int `form:"limit,default=20" binding:"gte=1,lte=100"`
+	Offset int `form:"offset,default=0" binding:"gte=0,lte=1000"`
 }
 
 type listResponse struct {
