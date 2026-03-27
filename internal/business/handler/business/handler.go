@@ -24,6 +24,6 @@ func RegisterHandlers(
 		service: service,
 	}
 
-	r.POST("/:id", h.get)
-	r.POST("/list", h.list)
+	r.GET("/:id", h.get)
+	r.GET("/list", h.list)
 }
