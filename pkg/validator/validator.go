@@ -17,14 +17,26 @@ type CustomValidator struct {
 	v *validator.Validate
 }
 
-func New() *CustomValidator {
+func New(tag string) *CustomValidator {
 	v := validator.New()
+
+	if tag != "" {
+		v.SetTagName(tag)
+	}
+
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-		if name == "-" {
-			return ""
+		tags := []string{"json", "uri", "form"}
+		for _, tag := range tags {
+			name := strings.SplitN(fld.Tag.Get(tag), ",", 2)[0]
+			if name == "-" {
+				return ""
+			}
+			if name != "" {
+				return name
+			}
 		}
-		return name
+
+		return fld.Name
 	})
 
 	return &CustomValidator{
@@ -32,7 +44,7 @@ func New() *CustomValidator {
 	}
 }
 
-func (cv *CustomValidator) Validate(i any) error {
+func (cv *CustomValidator) ValidateStruct(i any) error {
 	if err := cv.v.Struct(i); err != nil {
 		var validationErrors []ValidationErrorItem
 
@@ -50,6 +62,10 @@ func (cv *CustomValidator) Validate(i any) error {
 	}
 
 	return nil
+}
+
+func (cv *CustomValidator) Engine() any {
+	return cv.v
 }
 
 func msgForTag(err validator.FieldError) string {
@@ -78,6 +94,8 @@ func msgForTag(err validator.FieldError) string {
 		return "This field must be a valid phone number"
 	case "required_without":
 		return fmt.Sprintf("This field is required if %s is missing", param)
+	case "alphanum":
+		return "This field can only contain letters and numbers"
 	default:
 		return "This field is invalid"
 	}

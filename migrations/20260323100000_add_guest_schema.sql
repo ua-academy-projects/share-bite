@@ -1,9 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
-SELECT 'up SQL query';
+CREATE SCHEMA IF NOT EXISTS guest;
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP SCHEMA IF EXISTS guest;
 -- +goose StatementEnd
