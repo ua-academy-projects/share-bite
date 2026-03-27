@@ -2,17 +2,15 @@ package customer
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/internal/guest/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 func (h *handler) update(c *gin.Context) {
-	req := new(updateRequest)
-	if err := request.BindJSON(c, req); err != nil {
+	var req updateRequest
+	if err := request.BindJSON(c, &req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -24,7 +22,11 @@ func (h *handler) update(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	in := updateRequestToUpdateCustomer(req, userID)
+	in, err := updateRequestToUpdateCustomer(req, userID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
 
 	customer, err := h.service.Update(ctx, in)
 	if err != nil {
@@ -47,33 +49,4 @@ type updateRequest struct {
 
 type updateResponse struct {
 	Customer customerResponse `json:"customer"`
-}
-
-func updateRequestToUpdateCustomer(req *updateRequest, userID string) entity.UpdateCustomer {
-	return entity.UpdateCustomer{
-		UserID: userID,
-
-		UserName:  lowerPtr(req.UserName),
-		FirstName: trimSpacePtr(req.FirstName),
-		LastName:  trimSpacePtr(req.LastName),
-
-		Bio:             req.Bio,
-		AvatarObjectKey: req.AvatarObjectKey,
-	}
-}
-
-func trimSpacePtr(s *string) *string {
-	if s == nil {
-		return nil
-	}
-	val := strings.TrimSpace(*s)
-	return &val
-}
-
-func lowerPtr(s *string) *string {
-	if s == nil {
-		return nil
-	}
-	val := strings.ToLower(*s)
-	return &val
 }

@@ -2,12 +2,10 @@ package customer
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/internal/guest/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 func (h *handler) create(c *gin.Context) {
@@ -24,7 +22,11 @@ func (h *handler) create(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	in := createRequestToCreateCustomer(req, userID)
+	in, err := createRequestToCreateCustomer(req, userID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
 
 	customerID, err := h.service.Create(ctx, in)
 	if err != nil {
@@ -46,16 +48,4 @@ type createRequest struct {
 
 type createResponse struct {
 	CustomerID string `json:"customerId"`
-}
-
-func createRequestToCreateCustomer(req createRequest, userID string) entity.CreateCustomer {
-	return entity.CreateCustomer{
-		UserID: userID,
-
-		UserName:  strings.ToLower(req.UserName),
-		FirstName: strings.TrimSpace(req.FirstName),
-		LastName:  strings.TrimSpace(req.LastName),
-
-		Bio: req.Bio,
-	}
 }

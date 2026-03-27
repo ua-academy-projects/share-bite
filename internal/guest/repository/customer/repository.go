@@ -7,11 +7,17 @@ import (
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+)
+
+const (
+	constraintUserIDKey   = "customers_user_id_key"
+	constraintUserNameKey = "customers_username_key"
 )
 
 type repository struct {
@@ -54,11 +60,11 @@ func (r *repository) Create(ctx context.Context, in entity.CreateCustomer) (stri
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			// unique violation
-			if pgErr.Code == "23505" {
+			if pgErr.Code == pgerrcode.UniqueViolation {
 				switch pgErr.ConstraintName {
-				case "customers_user_id_key":
+				case constraintUserIDKey:
 					return "", apperror.ErrCustomerAlreadyExists
-				case "customers_username_key":
+				case constraintUserNameKey:
 					return "", apperror.CustomerUserNameTaken(in.UserName)
 				}
 			}
@@ -191,7 +197,7 @@ func (r *repository) Update(ctx context.Context, in entity.UpdateCustomer) (enti
 	row, err := r.db.DB().QueryContext(ctx, q, args)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "customers_username_key" {
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation && pgErr.ConstraintName == constraintUserNameKey {
 			return entity.Customer{}, apperror.CustomerUserNameTaken(*in.UserName)
 		}
 		return entity.Customer{}, executeSQLError(err)
