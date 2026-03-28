@@ -13,10 +13,13 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	commenthandler "github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
+	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
+	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
@@ -97,13 +100,16 @@ func main() {
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
+	commentRepo := commentrepo.New(client)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
 	postSvc := postsvc.New(postRepo, businessGateway)
+	commentSvc := commentsvc.New(commentRepo, postSvc)
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
 	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware)
+	commenthandler.RegisterHandlers(router.Group("/posts"), commentSvc, customerSvc, authMiddleware)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

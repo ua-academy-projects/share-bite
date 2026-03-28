@@ -13,6 +13,7 @@ var (
 	ErrInvalidQueryParam = newError(code.InvalidRequest, "invalid query parameter")
 	ErrUpstreamError     = newError(code.UpstreamError, "upstream service error")
 	ErrInvalidPostData   = newError(code.InvalidRequest, "invalid post data")
+	ErrForbidden         = newError(code.InvalidRequest, "forbidden: you are not the owner of this resource")
 
 	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
 
@@ -67,4 +68,9 @@ func CustomerNotFoundUserName(userName string) *Error {
 func CustomerUserNameTaken(userName string) *Error {
 	msg := fmt.Sprintf("customer with username %q already exists", userName)
 	return newError(code.AlreadyExists, msg)
+}
+
+func CommentNotFoundID(commentID int64) *Error {
+	msg := fmt.Sprintf("comment with id %d was not found", commentID)
+	return newError(code.NotFound, msg)
 }
