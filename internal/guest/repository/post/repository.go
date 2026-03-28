@@ -42,16 +42,8 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 
 	row, err := r.db.DB().QueryContext(ctx, q, in.CustomerID, in.VenueID, in.Text, in.Rating)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.ForeignKeyViolation:
-				if strings.Contains(pgErr.ConstraintName, "customer_id") {
-					return entity.Post{}, apperror.CustomerNotFoundID(in.CustomerID)
-				}
-			case pgerrcode.CheckViolation:
-				return entity.Post{}, apperror.ErrInvalidPostData
-			}
+		if translatedErr := translatePostInsertError(err, in); translatedErr != nil {
+			return entity.Post{}, translatedErr
 		}
 
 		return entity.Post{}, executeSQLError(err)
@@ -60,16 +52,8 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 
 	var post Post
 	if err := pgxscan.ScanOne(&post, row); err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			switch pgErr.Code {
-			case pgerrcode.ForeignKeyViolation:
-				if strings.Contains(pgErr.ConstraintName, "customer_id") {
-					return entity.Post{}, apperror.CustomerNotFoundID(in.CustomerID)
-				}
-			case pgerrcode.CheckViolation:
-				return entity.Post{}, apperror.ErrInvalidPostData
-			}
+		if translatedErr := translatePostInsertError(err, in); translatedErr != nil {
+			return entity.Post{}, translatedErr
 		}
 
 		return entity.Post{}, scanRowError(err)
@@ -160,8 +144,34 @@ func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error
 			return entity.Post{}, apperror.PostNotFoundID(postID)
 		}
 
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
+			return entity.Post{}, apperror.PostNotFoundID(postID)
+		}
+
 		return entity.Post{}, scanRowError(err)
 	}
 
 	return post.ToEntity(), nil
+}
+
+func translatePostInsertError(err error, in entity.CreatePostInput) error {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return nil
+	}
+
+	switch pgErr.Code {
+	case pgerrcode.ForeignKeyViolation:
+		if strings.Contains(pgErr.ConstraintName, "customer_id") {
+			return apperror.CustomerNotFoundID(in.CustomerID)
+		}
+		if strings.Contains(pgErr.ConstraintName, "venue_id") {
+			return apperror.VenueNotFoundID(in.VenueID)
+		}
+	case pgerrcode.CheckViolation:
+		return apperror.ErrInvalidPostData
+	}
+
+	return nil
 }
