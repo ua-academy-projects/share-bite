@@ -11,6 +11,8 @@ var (
 	ErrInvalidJSON       = newError(code.InvalidJSON, "invalid request body format")
 	ErrInvalidParam      = newError(code.InvalidRequest, "invalid path parameter")
 	ErrInvalidQueryParam = newError(code.InvalidRequest, "invalid query parameter")
+	ErrUpstreamError     = newError(code.UpstreamError, "upstream service error")
+	ErrInvalidPostData   = newError(code.InvalidRequest, "invalid post data")
 
 	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
 
@@ -49,6 +51,11 @@ func PostNotFoundID(postID string) *Error {
 
 func CustomerNotFoundUserID(userID string) *Error {
 	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundID(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q was not found", customerID)
 	return newError(code.NotFound, msg)
 }
 

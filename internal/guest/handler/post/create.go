@@ -27,20 +27,20 @@ func (h *handler) create(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	_, err := httpctx.GetUserID(c)
+	userID, err := httpctx.GetUserID(c)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	//customer, err := h.customerService.GetByUserID(ctx, userID)
-	//if err != nil {
-	//	c.Error(err)
-	//	return
-	//}
+	customer, err := h.customerService.GetByUserID(ctx, userID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
 
 	in := entity.CreatePostInput{
-		CustomerID: "7b2e1a58-4d9c-4f3a-8b1e-2c7a5d9f0b34",
+		CustomerID: customer.ID,
 		VenueID:    req.VenueID,
 		Text:       req.Text,
 		Rating:     req.Rating,

@@ -11,7 +11,7 @@ import (
 func (s *service) Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error) {
 	exists, err := s.venueProvider.CheckExists(ctx, in.VenueID)
 	if err != nil {
-		return entity.Post{}, errwrap.Wrap("check venue existence via venue provider", err)
+		return entity.Post{}, errwrap.Wrap("check venue existence via venue provider", apperror.ErrUpstreamError)
 	}
 	if !exists {
 		return entity.Post{}, apperror.VenueNotFoundID(in.VenueID)

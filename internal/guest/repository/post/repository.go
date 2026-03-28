@@ -3,9 +3,12 @@ package post
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
@@ -39,6 +42,18 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 
 	row, err := r.db.DB().QueryContext(ctx, q, in.CustomerID, in.VenueID, in.Text, in.Rating)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.ForeignKeyViolation:
+				if strings.Contains(pgErr.ConstraintName, "customer_id") {
+					return entity.Post{}, apperror.CustomerNotFoundID(in.CustomerID)
+				}
+			case pgerrcode.CheckViolation:
+				return entity.Post{}, apperror.ErrInvalidPostData
+			}
+		}
+
 		return entity.Post{}, executeSQLError(err)
 	}
 	defer row.Close()

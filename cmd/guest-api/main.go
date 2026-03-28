@@ -147,6 +147,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 				code.EmptyUpdate:
 				respCode = http.StatusBadRequest
 
+			case code.UpstreamError:
+				respCode = http.StatusBadGateway
+
 			case code.AlreadyExists:
 				respCode = http.StatusConflict
 
