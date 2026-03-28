@@ -50,7 +50,7 @@ func (h *handler) update(c *gin.Context) {
 		Text:       req.Text,
 	}
 
-	comment, err := h.service.Update(ctx, in)
+	comment, err := h.service.Update(ctx, uriReq.PostID, in)
 	if err != nil {
 		c.Error(err)
 		return

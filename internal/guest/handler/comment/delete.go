@@ -34,7 +34,7 @@ func (h *handler) delete(c *gin.Context) {
 		return
 	}
 
-	err = h.service.Delete(ctx, uriReq.CommentID, customer.ID)
+	err = h.service.Delete(ctx, uriReq.PostID, uriReq.CommentID, customer.ID)
 	if err != nil {
 		c.Error(err)
 		return

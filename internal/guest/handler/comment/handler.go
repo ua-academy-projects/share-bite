@@ -16,8 +16,8 @@ type handler struct {
 
 type commentService interface {
 	Create(ctx context.Context, in entity.CreateCommentInput) (entity.Comment, error)
-	Update(ctx context.Context, in entity.UpdateCommentInput) (entity.Comment, error)
-	Delete(ctx context.Context, commentID int64, customerID string) error
+	Update(ctx context.Context, postID int64, in entity.UpdateCommentInput) (entity.Comment, error)
+	Delete(ctx context.Context, postID int64, commentID int64, customerID string) error
 	List(ctx context.Context, in entity.ListCommentsInput) (entity.ListCommentsOutput, error)
 }
 

@@ -86,11 +86,11 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdateCommentInput) (
 	return comment.ToEntity(), nil
 }
 
-func (r *Repository) Delete(ctx context.Context, commentID int64) error {
-	sql := `DELETE FROM guest.comments WHERE id = $1`
+func (r *Repository) Delete(ctx context.Context, commentID int64, postID int64) error {
+	sql := `DELETE FROM guest.comments WHERE id = $1 AND post_id = $2`
 	q := database.Query{Name: "comment_repository.Delete", Sql: sql}
 
-	_, err := r.db.DB().ExecContext(ctx, q, commentID)
+	_, err := r.db.DB().ExecContext(ctx, q, commentID, postID)
 	return err
 }
 
