@@ -50,16 +50,3 @@ type updateRequest struct {
 type updateResponse struct {
 	Customer customerResponse `json:"customer"`
 }
-
-func updateRequestToUpdateCustomer(req *updateRequest, userID string) entity.UpdateCustomer {
-	return entity.UpdateCustomer{
-		UserID: userID,
-
-		UserName:  req.UserName,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-
-		Bio:             req.Bio,
-		AvatarObjectKey: req.AvatarObjectKey,
-	}
-}
