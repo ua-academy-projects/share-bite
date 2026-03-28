@@ -67,12 +67,12 @@ func (r *Repository) Update(ctx context.Context, postID int64, in entity.UpdateC
 	sql := `
 		UPDATE guest.comments 
 		SET text = $1, updated_at = NOW() 
-		WHERE id = $2 
+		WHERE id = $2 AND post_id = $3 
 		RETURNING id, post_id, customer_id, text, created_at, updated_at
 	`
 	q := database.Query{Name: "comment_repository.Update", Sql: sql}
 
-	row, err := r.db.DB().QueryContext(ctx, q, in.Text, in.CommentID)
+	row, err := r.db.DB().QueryContext(ctx, q, in.Text, in.CommentID, postID)
 	if err != nil {
 		return entity.Comment{}, err
 	}
