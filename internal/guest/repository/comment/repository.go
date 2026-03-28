@@ -3,6 +3,7 @@ package comment
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
@@ -94,32 +95,59 @@ func (r *Repository) Delete(ctx context.Context, commentID int64) error {
 }
 
 func (r *Repository) List(ctx context.Context, in entity.ListCommentsInput) (entity.ListCommentsOutput, error) {
-	countSQL := `SELECT COUNT(*) FROM guest.comments WHERE post_id = $1`
-	var total int
-	if err := r.db.DB().QueryRowContext(ctx, database.Query{Name: "comment.Count", Sql: countSQL}, in.PostID).Scan(&total); err != nil {
-		return entity.ListCommentsOutput{}, err
+	var cursorID int64
+	if in.PageToken != "" {
+		parsed, err := strconv.ParseInt(in.PageToken, 10, 64)
+		if err == nil {
+			cursorID = parsed
+		}
 	}
 
 	sql := `
-		SELECT id, post_id, customer_id, text, created_at, updated_at 
-		FROM guest.comments 
-		WHERE post_id = $1 
-		ORDER BY created_at DESC 
-		LIMIT $2 OFFSET $3
+		SELECT 
+			c.id, c.post_id, c.customer_id, c.text, c.created_at, c.updated_at,
+			cust.id AS cust_id, cust.user_id AS cust_user_id, cust.username AS cust_username,
+			cust.first_name AS cust_first_name, cust.last_name AS cust_last_name,
+			cust.avatar_object_key AS cust_avatar, cust.bio AS cust_bio
+		FROM guest.comments c
+		JOIN guest.customers cust ON c.customer_id = cust.id
+		WHERE c.post_id = $1
 	`
-	rows, err := r.db.DB().QueryContext(ctx, database.Query{Name: "comment.List", Sql: sql}, in.PostID, in.Limit, in.Offset)
+
+	args := []any{in.PostID}
+
+	if cursorID > 0 {
+		sql += ` AND c.id < $2`
+		args = append(args, cursorID)
+	}
+
+	limit := in.PageSize + 1
+	sql += ` ORDER BY c.id DESC LIMIT $` + strconv.Itoa(len(args)+1)
+	args = append(args, limit)
+
+	q := database.Query{Name: "comment_repository.List", Sql: sql}
+	rows, err := r.db.DB().QueryContext(ctx, q, args...)
 	if err != nil {
 		return entity.ListCommentsOutput{}, err
 	}
 	defer rows.Close()
 
-	var comments Comments
-	if err := pgxscan.ScanAll(&comments, rows); err != nil {
+	var rowsData []CommentRow
+	if err := pgxscan.ScanAll(&rowsData, rows); err != nil {
 		return entity.ListCommentsOutput{}, err
 	}
 
-	return entity.ListCommentsOutput{
-		Comments: comments.ToEntities(),
-		Total:    total,
-	}, nil
+	var out entity.ListCommentsOutput
+
+	if len(rowsData) > in.PageSize {
+		nextItem := rowsData[in.PageSize-1]
+		out.NextPageToken = strconv.FormatInt(nextItem.ID, 10)
+		rowsData = rowsData[:in.PageSize]
+	}
+
+	for _, row := range rowsData {
+		out.Comments = append(out.Comments, row.ToEntity())
+	}
+
+	return out, nil
 }

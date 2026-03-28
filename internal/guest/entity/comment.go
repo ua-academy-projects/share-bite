@@ -12,6 +12,11 @@ type Comment struct {
 	UpdatedAt time.Time
 }
 
+type CommentWithCustomer struct {
+	Comment  Comment
+	Customer Customer
+}
+
 type CreateCommentInput struct {
 	PostID     int64
 	CustomerID string
@@ -25,12 +30,12 @@ type UpdateCommentInput struct {
 }
 
 type ListCommentsInput struct {
-	PostID int64
-	Limit  int
-	Offset int
+	PostID    int64
+	PageSize  int
+	PageToken string // Курсор (например, base64)
 }
 
 type ListCommentsOutput struct {
-	Comments []Comment
-	Total    int
+	Comments      []CommentWithCustomer
+	NextPageToken string
 }

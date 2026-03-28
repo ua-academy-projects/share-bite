@@ -2,6 +2,7 @@ package comment
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,12 @@ type customerService interface {
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
 }
 
-func RegisterHandlers(r *gin.RouterGroup, service commentService, customerService customerService, authMiddleware gin.HandlerFunc) {
+func RegisterHandlers(
+	r *gin.RouterGroup,
+	service commentService,
+	customerService customerService,
+	authMiddleware gin.HandlerFunc,
+) {
 	h := &handler{
 		service:         service,
 		customerService: customerService,
@@ -38,22 +44,42 @@ func RegisterHandlers(r *gin.RouterGroup, service commentService, customerServic
 	protected.DELETE("/:comment_id", h.delete)
 }
 
-type commentResponse struct {
-	ID         int64     `json:"id"`
-	PostID     int64     `json:"postId"`
-	CustomerID string    `json:"customerId"`
-	Text       string    `json:"text"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+type customerDTO struct {
+	ID        string  `json:"id"`
+	UserName  string  `json:"userName"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	AvatarURL *string `json:"avatarURL"`
 }
 
-func commentToResponse(comment entity.Comment) commentResponse {
+type commentResponse struct {
+	ID        int64       `json:"id"`
+	PostID    int64       `json:"postId"`
+	Text      string      `json:"text"`
+	CreatedAt time.Time   `json:"createdAt"`
+	UpdatedAt time.Time   `json:"updatedAt"`
+	Customer  customerDTO `json:"customer"`
+}
+
+func commentToResponse(comment entity.Comment, customer entity.Customer) commentResponse {
+	var avatarURL *string
+	if customer.AvatarObjectKey != nil {
+		url := fmt.Sprintf("https://test.com/%s", *customer.AvatarObjectKey)
+		avatarURL = &url
+	}
+
 	return commentResponse{
-		ID:         comment.ID,
-		PostID:     comment.PostID,
-		CustomerID: comment.CustomerID,
-		Text:       comment.Text,
-		CreatedAt:  comment.CreatedAt,
-		UpdatedAt:  comment.UpdatedAt,
+		ID:        comment.ID,
+		PostID:    comment.PostID,
+		Text:      comment.Text,
+		CreatedAt: comment.CreatedAt,
+		UpdatedAt: comment.UpdatedAt,
+		Customer: customerDTO{
+			ID:        customer.ID,
+			UserName:  customer.UserName,
+			FirstName: customer.FirstName,
+			LastName:  customer.LastName,
+			AvatarURL: avatarURL,
+		},
 	}
 }

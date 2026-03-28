@@ -56,5 +56,5 @@ func (h *handler) update(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"comment": commentToResponse(comment)})
+	c.JSON(http.StatusOK, gin.H{"comment": commentToResponse(comment, customer)})
 }

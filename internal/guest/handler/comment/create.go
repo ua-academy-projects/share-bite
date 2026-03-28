@@ -35,7 +35,6 @@ func (h *handler) create(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-
 	userID, err := httpctx.GetUserID(c)
 	if err != nil {
 		c.Error(err)
@@ -60,6 +59,6 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
-	resp := createResponse{Comment: commentToResponse(comment)}
+	resp := createResponse{Comment: commentToResponse(comment, customer)}
 	c.JSON(http.StatusCreated, resp)
 }
