@@ -13,7 +13,7 @@ var (
 	ErrInvalidQueryParam = newError(code.InvalidRequest, "invalid query parameter")
 	ErrUpstreamError     = newError(code.UpstreamError, "upstream service error")
 	ErrInvalidPostData   = newError(code.InvalidRequest, "invalid post data")
-	ErrForbidden         = newError(code.InvalidRequest, "forbidden: you are not the owner of this resource")
+	ErrForbidden         = newError(code.Forbidden, "forbidden: you are not the owner of this resource")
 
 	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
 

@@ -164,6 +164,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 			case code.AlreadyExists:
 				respCode = http.StatusConflict
 
+			case code.Forbidden:
+				respCode = http.StatusForbidden
+
 			default:
 				respCode = http.StatusInternalServerError
 			}
