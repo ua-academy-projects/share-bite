@@ -166,9 +166,6 @@ func translatePostInsertError(err error, in entity.CreatePostInput) error {
 		if strings.Contains(pgErr.ConstraintName, "customer_id") {
 			return apperror.CustomerNotFoundID(in.CustomerID)
 		}
-		if strings.Contains(pgErr.ConstraintName, "venue_id") {
-			return apperror.VenueNotFoundID(in.VenueID)
-		}
 	case pgerrcode.CheckViolation:
 		return apperror.ErrInvalidPostData
 	}
