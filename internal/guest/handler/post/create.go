@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/guest/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 type createRequest struct {
@@ -27,20 +27,20 @@ func (h *handler) create(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	userID, err := httpctx.GetUserID(c)
+	_, err := httpctx.GetUserID(c)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	customer, err := h.customerService.GetByUserID(ctx, userID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
+	//customer, err := h.customerService.GetByUserID(ctx, userID)
+	//if err != nil {
+	//	c.Error(err)
+	//	return
+	//}
 
 	in := entity.CreatePostInput{
-		CustomerID: customer.ID,
+		CustomerID: "7b2e1a58-4d9c-4f3a-8b1e-2c7a5d9f0b34",
 		VenueID:    req.VenueID,
 		Text:       req.Text,
 		Rating:     req.Rating,

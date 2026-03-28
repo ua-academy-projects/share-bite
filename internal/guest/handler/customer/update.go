@@ -4,9 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/guest/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 func (h *handler) update(c *gin.Context) {
