@@ -60,6 +60,18 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 
 	var post Post
 	if err := pgxscan.ScanOne(&post, row); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.ForeignKeyViolation:
+				if strings.Contains(pgErr.ConstraintName, "customer_id") {
+					return entity.Post{}, apperror.CustomerNotFoundID(in.CustomerID)
+				}
+			case pgerrcode.CheckViolation:
+				return entity.Post{}, apperror.ErrInvalidPostData
+			}
+		}
+
 		return entity.Post{}, scanRowError(err)
 	}
 
@@ -91,7 +103,7 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 		       updated_at
 		FROM guest.posts
 		WHERE status = 'published'
-		ORDER BY created_at DESC
+		ORDER BY created_at DESC, id DESC
 		LIMIT $1 OFFSET $2
 	`
 	q := database.Query{

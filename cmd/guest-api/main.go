@@ -70,6 +70,22 @@ func main() {
 		return nil
 	})
 
+	// gateways
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
+	closer.Add(func(ctx context.Context) error {
+		httpClient.CloseIdleConnections()
+		return nil
+	})
+
+	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpServer.Address(), httpClient)
+
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
 		config.Config().JwtToken.RefreshTokenSecretKey(),
@@ -81,17 +97,6 @@ func main() {
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
-
-	// gateways
-	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
-		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 100,
-			IdleConnTimeout:     90 * time.Second,
-		},
-	}
-	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpServer.Address(), httpClient)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
