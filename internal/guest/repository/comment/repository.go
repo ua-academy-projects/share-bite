@@ -63,7 +63,7 @@ func (r *Repository) GetByID(ctx context.Context, commentID int64) (entity.Comme
 	return comment.ToEntity(), nil
 }
 
-func (r *Repository) Update(ctx context.Context, in entity.UpdateCommentInput) (entity.Comment, error) {
+func (r *Repository) Update(ctx context.Context, postID int64, in entity.UpdateCommentInput) (entity.Comment, error) {
 	sql := `
 		UPDATE guest.comments 
 		SET text = $1, updated_at = NOW() 
