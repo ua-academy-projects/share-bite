@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
 func (h *handler) getByUserName(c *gin.Context) {
