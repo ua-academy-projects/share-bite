@@ -21,6 +21,7 @@ import (
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
+	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
 )
 
 func main() {
@@ -64,8 +65,15 @@ func main() {
 	)
 
 	userRepo := userrepo.New(client)
+	emailSender, err := emailsvc.NewResendSender(
+		cfg.Email.ResendAPIKeyValue(),
+		cfg.Email.ResendFromEmailValue(),
+	)
+	if err != nil {
+		logger.Fatal(ctx, "new email sender: ", err)
+	}
 
-	authSvc := authsvc.New(userRepo, tokenManager)
+	authSvc := authsvc.New(userRepo, tokenManager, emailSender)
 
 	authHandler := authhttp.NewHandler(authSvc)
 

@@ -12,6 +12,7 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
+	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,10 +39,15 @@ type Service interface {
 type service struct {
 	userRepo      user.Repository
 	tokenProvider TokenProvider
+	emailSender   emailsvc.Sender
 }
 
-func New(userRepo user.Repository, tokenProvider TokenProvider) Service {
-	return &service{userRepo: userRepo, tokenProvider: tokenProvider}
+func New(userRepo user.Repository, tokenProvider TokenProvider, emailSender emailsvc.Sender) Service {
+	return &service{
+		userRepo:      userRepo,
+		tokenProvider: tokenProvider,
+		emailSender:   emailSender,
+	}
 }
 
 func (s *service) Login(ctx context.Context, email, password string) (*Tokens, error) {
@@ -147,6 +153,10 @@ func (s *service) RecoverAccess(ctx context.Context, email string) (string, erro
 		ExpiresAt: time.Now().Add(passwordResetTokenTTL),
 	}); err != nil {
 		return "", fmt.Errorf("create password reset token: %w", err)
+	}
+
+	if err := s.emailSender.SendPasswordResetToken(ctx, u.Email, rawToken); err != nil {
+		return "", fmt.Errorf("send password reset email: %w", err)
 	}
 
 	return rawToken, nil

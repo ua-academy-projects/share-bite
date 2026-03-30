@@ -24,6 +24,7 @@ type config struct {
 	Postgres Postgres
 
 	JwtToken JwtToken
+	Email    Email
 }
 
 var cfg *config
@@ -54,6 +55,11 @@ type JwtToken interface {
 
 	RefreshTokenSecretKey() string
 	RefreshTokenTTL() time.Duration
+}
+
+type Email interface {
+	ResendAPIKeyValue() string
+	ResendFromEmailValue() string
 }
 
 func Load(paths ...string) error {
@@ -93,6 +99,11 @@ func Load(paths ...string) error {
 		return errwrap.Wrap("jwt token config", err)
 	}
 
+	emailConfig, err := env.NewEmailConfig()
+	if err != nil {
+		return errwrap.Wrap("email config", err)
+	}
+
 	cfg = &config{
 		App: appConfig,
 
@@ -102,6 +113,7 @@ func Load(paths ...string) error {
 
 		Postgres: postgresConfig,
 		JwtToken: jwtTokenConfig,
+		Email:    emailConfig,
 	}
 
 	return nil
