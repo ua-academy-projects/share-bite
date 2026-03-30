@@ -10,6 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
+
+	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/internal/business/mapper"
 )
 
 type handler struct {
@@ -17,7 +20,7 @@ type handler struct {
 }
 
 type businessService interface {
-	UpdatePost(ctx context.Context, postID int64, userID int64, content string) error
+	UpdatePost(ctx context.Context, postID int64, userID int64, content string) (*entity.Post, error)
 	DeletePost(ctx context.Context, postID int64, userID int64) error
 }
 
@@ -96,7 +99,7 @@ func (h *handler) DeletePost(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, biserr.ErrNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "post not found or access denied"})
+			c.Status(http.StatusNoContent)
 		case errors.Is(err, biserr.ErrForbidden):
 			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		default:
@@ -105,7 +108,7 @@ func (h *handler) DeletePost(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "post deleted"})
+	c.Status(http.StatusNoContent)
 }
 
 func (h *handler) UpdatePost(c *gin.Context) {
@@ -136,7 +139,7 @@ func (h *handler) UpdatePost(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	err = h.service.UpdatePost(ctx, postID, userID, req.Content)
+	post, err := h.service.UpdatePost(ctx, postID, userID, req.Content)
 	if err != nil {
 		switch {
 		case errors.Is(err, biserr.ErrNotFound):
@@ -149,5 +152,5 @@ func (h *handler) UpdatePost(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "post updated"})
+	c.JSON(http.StatusOK, mapper.ToPostResponse(post))
 }
