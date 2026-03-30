@@ -15,6 +15,8 @@ type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error)
 	CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error)
+	CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error
+	ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error)
 }
 
 type repository struct {
@@ -45,10 +47,84 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 		&u.PasswordHash,
 		&u.RoleSlug,
 	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return u, nil
+}
+
+func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error {
+	q := database.Query{
+		Name: "user.CreatePasswordResetToken",
+		Sql: `
+			WITH invalidated AS (
+				UPDATE auth.password_reset_tokens
+				SET used_at = NOW()
+				WHERE user_id = $1
+				  AND used_at IS NULL
+			),
+			inserted AS (
+				INSERT INTO auth.password_reset_tokens (user_id, token_hash, expires_at)
+				VALUES ($1, $2, $3)
+				RETURNING id
+			)
+			SELECT id
+			FROM inserted
+		`,
+	}
+
+	var tokenID string
+	if err := r.client.DB().QueryRowContext(
+		ctx,
+		q,
+		params.UserID,
+		params.TokenHash,
+		params.ExpiresAt,
+	).Scan(&tokenID); err != nil {
+		return fmt.Errorf("create password reset token: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error) {
+	q := database.Query{
+		Name: "user.ResetPassword",
+		Sql: `
+			WITH consumed AS (
+				UPDATE auth.password_reset_tokens
+				SET used_at = NOW()
+				WHERE token_hash = $1
+				  AND used_at IS NULL
+				  AND expires_at > NOW()
+				RETURNING user_id
+			),
+			updated_user AS (
+				UPDATE auth.users AS u
+				SET password_hash = $2,
+				    updated_at = NOW()
+				FROM consumed
+				WHERE u.id = consumed.user_id
+				RETURNING u.id
+			)
+			SELECT id
+			FROM updated_user
+		`,
+	}
+
+	var userID string
+	if err := r.client.DB().QueryRowContext(ctx, q, tokenHash, passwordHash).Scan(&userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("reset password by token hash: %w", err)
+	}
+
+	return true, nil
 }
 
 func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error) {

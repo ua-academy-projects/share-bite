@@ -11,5 +11,7 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler) {
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.POST("/register", authHandler.Register)
 		authGroup.POST("/refresh", authHandler.Refresh)
+		authGroup.POST("/recover-access", authHandler.RecoverAccess)
+		authGroup.POST("/reset-password", authHandler.ResetPassword)
 	}
 }
