@@ -20,33 +20,18 @@ type OrgUnit struct {
 }
 
 func (e OrgUnit) ToEntity() entity.OrgUnit {
-	ou := entity.OrgUnit{
+	return entity.OrgUnit{
 		Id:           e.Id,
 		OrgAccountId: e.OrgAccountId,
 		ProfileType:  e.ProfileType,
 		Name:         e.Name,
+		Avatar:       e.Avatar,
+		Banner:       e.Banner,
+		Description:  e.Description,
+		ParentId:     e.ParentId,
+		Latitude:     e.Latitude,
+		Longitude:    e.Longitude,
 	}
-
-	if e.Avatar != nil {
-		ou.Avatar = *e.Avatar
-	}
-	if e.Banner != nil {
-		ou.Banner = *e.Banner
-	}
-	if e.Description != nil {
-		ou.Description = *e.Description
-	}
-	if e.ParentId != nil {
-		ou.ParentId = *e.ParentId
-	}
-	if e.Latitude != nil {
-		ou.Latitude = *e.Latitude
-	}
-	if e.Longitude != nil {
-		ou.Longitude = *e.Longitude
-	}
-
-	return ou
 }
 
 func executeSQLError(err error) error {

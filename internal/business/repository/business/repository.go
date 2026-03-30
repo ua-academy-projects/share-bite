@@ -3,12 +3,13 @@ package business
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type Repository struct {
 	db database.Client
@@ -48,7 +49,7 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("org unit with id %d was not found", id)
+			return nil, ErrNotFound
 		}
 
 		return nil, scanRowError(err)
@@ -58,19 +59,20 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 	return &result, nil
 }
 
-func (r *Repository) List(ctx context.Context, offset, limit int) ([]entity.OrgUnit, error) {
+func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int) ([]entity.OrgUnit, error) {
 	sql := `
 		SELECT id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
 		FROM business.org_units
+		WHERE parent_id = $1
 		ORDER BY id
-		LIMIT $1 OFFSET $2
+		LIMIT $2 OFFSET $3
 	`
 	q := database.Query{
-		Name: "business_repository.List",
+		Name: "business_repository.ListByParentID",
 		Sql:  sql,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, limit, offset)
+	rows, err := r.db.DB().QueryContext(ctx, q, parentID, limit, offset)
 	if err != nil {
 		return nil, executeSQLError(err)
 	}

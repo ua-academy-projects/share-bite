@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
 	businessrepo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	businesssvc "github.com/ua-academy-projects/share-bite/internal/business/service/business"
@@ -13,8 +18,15 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
+	"github.com/gin-contrib/cors"
+	_ "github.com/ua-academy-projects/share-bite/docs/api"
 )
 
+// @title			ShareBite Business API
+// @version		1.0
+// @description	API for discovering brand locations (venues).
+//
+// @BasePath		/
 func main() {
 	ctx := context.Background()
 
@@ -23,7 +35,19 @@ func main() {
 	}
 
 	router := gin.New()
+	router.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"*"},
+        AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+        ExposeHeaders:    []string{"Content-Length"},
+        AllowCredentials: true,
+    }))
 	router.Use(gin.Recovery())
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),
+	))
+
 	router.Use(ErrorMiddleware())
 
 	if config.Config().App.IsProd() {
@@ -71,13 +95,21 @@ func ErrorMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
+		ctx := c.Request.Context()
+
+		var appErr *apperror.Error
+		if errors.As(err.Err, &appErr) {
+			switch appErr.Code {
+			case code.NotFound:
+				c.JSON(http.StatusNotFound, gin.H{"error": appErr.Error()})
+				return
+			case code.BadRequest:
+				c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Error()})
+				return
+			}
 		}
 
-		// TODO: handle custom errors
-
-		c.JSON(respCode, resp)
+		logger.ErrorKV(ctx, "internal error", "error", err.Err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 	}
 }
