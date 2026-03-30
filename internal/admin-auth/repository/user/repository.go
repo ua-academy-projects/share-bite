@@ -56,7 +56,7 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("find by email: %w", err)
+		return nil, fmt.Errorf("repository: scan user failed: %w", err)
 	}
 
 	return u, nil
