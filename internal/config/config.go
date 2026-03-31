@@ -23,8 +23,9 @@ type config struct {
 
 	Postgres Postgres
 
-	JwtToken JwtToken
-	Email    Email
+	JwtToken  JwtToken
+	Email     Email
+	RateLimit RateLimit
 }
 
 var cfg *config
@@ -60,6 +61,13 @@ type JwtToken interface {
 type Email interface {
 	ResendAPIKeyValue() string
 	ResendFromEmailValue() string
+}
+
+type RateLimit interface {
+	AuthRecoverRequests() int
+	AuthRecoverDuration() time.Duration
+	AuthResetRequests() int
+	AuthResetDuration() time.Duration
 }
 
 func Load(paths ...string) error {
@@ -104,6 +112,11 @@ func Load(paths ...string) error {
 		return errwrap.Wrap("email config", err)
 	}
 
+	rateLimitConfig, err := env.NewRateLimitConfig()
+	if err != nil {
+		return errwrap.Wrap("rate limit config", err)
+	}
+
 	cfg = &config{
 		App: appConfig,
 
@@ -111,9 +124,10 @@ func Load(paths ...string) error {
 		AdminHttpServer:    adminHttpServerConfig,
 		BusinessHttpServer: businessHttpServerConfig,
 
-		Postgres: postgresConfig,
-		JwtToken: jwtTokenConfig,
-		Email:    emailConfig,
+		Postgres:  postgresConfig,
+		JwtToken:  jwtTokenConfig,
+		Email:     emailConfig,
+		RateLimit: rateLimitConfig,
 	}
 
 	return nil

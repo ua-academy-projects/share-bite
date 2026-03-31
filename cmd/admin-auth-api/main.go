@@ -18,6 +18,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
@@ -76,8 +77,12 @@ func main() {
 	authSvc := authsvc.New(userRepo, tokenManager, emailSender)
 
 	authHandler := authhttp.NewHandler(authSvc)
+	limiter := adminmw.NewAuthRecoveryLimiter(
+		cfg.RateLimit.AuthRecoverRequests(),
+		cfg.RateLimit.AuthRecoverDuration(),
+	)
 
-	routers.SetupRouter(router.Group("/"), authHandler)
+	routers.SetupRouter(router.Group("/"), authHandler, limiter)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
