@@ -1,6 +1,7 @@
 package env
 
 import (
+	"errors"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -15,6 +16,10 @@ func NewRateLimitConfig() (*rateLimitConfig, error) {
 	config := new(rateLimitConfig)
 	if err := env.Parse(config); err != nil {
 		return nil, err
+	}
+
+	if config.AuthRecoverRequestsValue <= 0 || config.AuthRecoverDurationValue <= 0 {
+		return nil, errors.New("recover rate-limit values must be greater than zero")
 	}
 
 	return config, nil
