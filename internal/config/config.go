@@ -66,8 +66,6 @@ type Email interface {
 type RateLimit interface {
 	AuthRecoverRequests() int
 	AuthRecoverDuration() time.Duration
-	AuthResetRequests() int
-	AuthResetDuration() time.Duration
 }
 
 func Load(paths ...string) error {
