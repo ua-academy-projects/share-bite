@@ -60,7 +60,7 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 		return errors.New("reset token is empty")
 	}
 
-	logger.InfoKV(ctx, "sending password reset email", "recipient", toEmail)
+	logger.InfoKV(ctx, "sending password reset email")
 
 	reqBody, err := json.Marshal(resendSendEmailRequest{
 		From:    s.fromEmail,
@@ -94,6 +94,6 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 		return fmt.Errorf("resend send email failed: status=%d body=%s", resp.StatusCode, string(respBody))
 	}
 
-	logger.InfoKV(ctx, "password reset email sent", "recipient", toEmail)
+	logger.InfoKV(ctx, "password reset email sent")
 	return nil
 }
