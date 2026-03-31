@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -89,9 +88,8 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= http.StatusBadRequest {
-		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("resend send email failed: status=%d body=%s", resp.StatusCode, string(respBody))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("resend send email failed: status=%d", resp.StatusCode)
 	}
 
 	logger.InfoKV(ctx, "password reset email sent")
