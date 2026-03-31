@@ -1,0 +1,149 @@
+basePath: /
+definitions:
+  internal_business_handler_business.brandResponse:
+    properties:
+      avatar:
+        example: https://cdn.example.com/brand-avatar.png
+        type: string
+      id:
+        example: 1
+        type: integer
+      name:
+        example: ShareBite HQ
+        type: string
+    type: object
+  internal_business_handler_business.errorResponse:
+    properties:
+      error:
+        example: location with id 999 was not found
+        type: string
+    type: object
+  internal_business_handler_business.getResponse:
+    properties:
+      avatar:
+        example: https://cdn.example.com/avatar.png
+        type: string
+      banner:
+        example: https://cdn.example.com/banner.png
+        type: string
+      brand:
+        $ref: '#/definitions/internal_business_handler_business.brandResponse'
+      description:
+        example: A cozy place in the city center.
+        type: string
+      id:
+        example: 42
+        type: integer
+      latitude:
+        example: 50.4501
+        type: number
+      longitude:
+        example: 30.5234
+        type: number
+      name:
+        example: ShareBite Downtown
+        type: string
+    type: object
+  internal_business_handler_business.listItem:
+    properties:
+      avatar:
+        example: https://cdn.example.com/avatar.png
+        type: string
+      description:
+        example: A cozy place in the city center.
+        type: string
+      id:
+        example: 42
+        type: integer
+      latitude:
+        example: 50.4501
+        type: number
+      longitude:
+        example: 30.5234
+        type: number
+      name:
+        example: ShareBite Downtown
+        type: string
+    type: object
+  internal_business_handler_business.listResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_business_handler_business.listItem'
+        type: array
+    type: object
+info:
+  contact: {}
+  description: API for discovering brand locations (venues).
+  title: ShareBite Business API
+  version: "1.0"
+paths:
+  /business/{id}:
+    get:
+      description: Returns a single venue/location that belongs to a brand, including
+        the parent brand info.
+      parameters:
+      - description: Location ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.getResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+      summary: Get location by ID
+      tags:
+      - locations
+  /business/{id}/locations:
+    get:
+      description: Returns a paginated list of venues/locations that belong to the
+        given brand.
+      parameters:
+      - description: Brand ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.listResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+      summary: List brand locations
+      tags:
+      - locations
+swagger: "2.0"

@@ -2,17 +2,9 @@ package business
 
 import (
 	"context"
-	"errors"
-	"net/http"
-	"strconv"
-
-	"github.com/ua-academy-projects/share-bite/internal/middleware"
 
 	"github.com/gin-gonic/gin"
-	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
-
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/internal/business/mapper"
 )
 
 type handler struct {
@@ -22,10 +14,9 @@ type handler struct {
 type businessService interface {
 	UpdatePost(ctx context.Context, postID int64, userID int64, content string) (*entity.Post, error)
 	DeletePost(ctx context.Context, postID int64, userID int64) error
-}
 
-type updatePostRequest struct {
-	Content string `json:"content" binding:"required"`
+	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
+	List(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
 }
 
 func RegisterHandlers(
@@ -38,119 +29,12 @@ func RegisterHandlers(
 
 	r.PUT("/posts/:id", h.UpdatePost)
 	r.DELETE("/posts/:id", h.DeletePost)
+
+	r.GET("/:id", h.get)
+	r.GET("/:id/locations", h.list)
 }
 
-func getUserID(c *gin.Context) (int64, bool) {
-	val, exists := c.Get(middleware.CtxUserID)
-	if !exists {
-		return 0, false
-	}
-
-	userIDStr, ok := val.(string)
-	if !ok {
-		return 0, false
-	}
-
-	userID, err := strconv.ParseInt(userIDStr, 10, 64)
-	if err != nil {
-		return 0, false
-	}
-
-	return userID, true
-}
-
-func checkBusinessRole(c *gin.Context) bool {
-	val, exists := c.Get(middleware.CtxUserRole)
-	if !exists {
-		return false
-	}
-
-	role, ok := val.(string)
-	if !ok {
-		return false
-	}
-
-	return role == "business"
-}
-
-func (h *handler) DeletePost(c *gin.Context) {
-	idStr := c.Param("id")
-
-	postID, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil || postID <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
-		return
-	}
-
-	userID, ok := getUserID(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	if !checkBusinessRole(c) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can delete posts"})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	err = h.service.DeletePost(ctx, postID, userID)
-	if err != nil {
-		switch {
-		case errors.Is(err, biserr.ErrNotFound):
-			c.Status(http.StatusNoContent)
-		case errors.Is(err, biserr.ErrForbidden):
-			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
-		}
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-
-func (h *handler) UpdatePost(c *gin.Context) {
-	idStr := c.Param("id")
-
-	postID, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil || postID <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
-		return
-	}
-
-	userID, ok := getUserID(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	if !checkBusinessRole(c) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can update posts"})
-		return
-	}
-
-	var req updatePostRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	post, err := h.service.UpdatePost(ctx, postID, userID, req.Content)
-	if err != nil {
-		switch {
-		case errors.Is(err, biserr.ErrNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "post not found or access denied"})
-		case errors.Is(err, biserr.ErrForbidden):
-			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
-		}
-		return
-	}
-
-	c.JSON(http.StatusOK, mapper.ToPostResponse(post))
+// errorResponse is used for swagger documentation.
+type errorResponse struct {
+	Error string `json:"error" example:"not found"`
 }
