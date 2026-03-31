@@ -43,7 +43,7 @@ func (h *Handler) RecoverAccess(c *gin.Context) {
 
 	_, err := h.service.RecoverAccess(c.Request.Context(), req.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		c.Error(err)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 
 	err := h.service.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		c.Error(err)
 		return
 	}
 
