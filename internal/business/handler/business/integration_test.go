@@ -18,6 +18,12 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
+type mockParser struct{}
+
+func (m *mockParser) ParseAccessToken(token string) (string, string, error) {
+	return "1", "business", nil
+}
+
 type mockBusinessService struct {
 	getFunc    func(ctx context.Context, id int) (*entity.OrgUnit, error)
 	listFunc   func(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
@@ -78,7 +84,8 @@ func setupRouter(svc *mockBusinessService) *gin.Engine {
 	r := gin.New()
 	r.Use(errorMiddleware())
 	g := r.Group("/business")
-	RegisterHandlers(g, svc)
+	parser := &mockParser{}
+	RegisterHandlers(g, svc, parser)
 	return r
 }
 

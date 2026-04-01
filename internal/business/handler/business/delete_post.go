@@ -7,35 +7,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
 func (h *handler) DeletePost(c *gin.Context) {
-	idStr := c.Param("id")
-
-	postID, err := strconv.ParseInt(idStr, 10, 64)
+	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || postID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
-	userID, ok := getUserID(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
+	userID, _ := middleware.GetUserID(c)
 
-	if !checkBusinessRole(c) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can delete posts"})
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	err = h.service.DeletePost(ctx, postID, userID)
+	err = h.service.DeletePost(c.Request.Context(), postID, userID)
 	if err != nil {
 		switch {
-		case errors.Is(err, repo.ErrNotFound):
-			c.Status(http.StatusNoContent)
 		case errors.Is(err, repo.ErrForbidden):
 			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		default:

@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -68,4 +69,23 @@ func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func GetUserID(c *gin.Context) (int64, bool) {
+	val, exists := c.Get(CtxUserID)
+	if !exists {
+		return 0, false
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		return 0, false
+	}
+
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return userID, true
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
 type handler struct {
@@ -19,19 +20,22 @@ type businessService interface {
 	List(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
 }
 
-func RegisterHandlers(
-	r *gin.RouterGroup,
-	service businessService,
-) {
+func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {
 	h := &handler{
 		service: service,
 	}
 
-	r.PUT("/posts/:id", h.UpdatePost)
-	r.DELETE("/posts/:id", h.DeletePost)
+	auth := middleware.Auth(parser)
 
 	r.GET("/:id", h.get)
 	r.GET("/:id/locations", h.list)
+
+	businessOnly := r.Group("/").
+		Use(auth).
+		Use(middleware.RequireRoles("business"))
+
+	businessOnly.PUT("/posts/:id", h.UpdatePost)
+	businessOnly.DELETE("/posts/:id", h.DeletePost)
 }
 
 // errorResponse is used for swagger documentation.
