@@ -5,9 +5,11 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/ua-academy-projects/share-bite/docs/api"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
@@ -16,10 +18,9 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
-	"github.com/gin-contrib/cors"
-	_ "github.com/ua-academy-projects/share-bite/docs/api"
 )
 
 // @title			ShareBite Business API
@@ -36,12 +37,12 @@ func main() {
 
 	router := gin.New()
 	router.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"*"},
-        AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-        AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-        ExposeHeaders:    []string{"Content-Length"},
-        AllowCredentials: true,
-    }))
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 	router.Use(gin.Recovery())
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
@@ -74,7 +75,14 @@ func main() {
 
 	businessSvc := businesssvc.New(businessRepo)
 
-	business.RegisterHandlers(router.Group("/business"), businessSvc)
+	tokenManager := jwt.NewTokenManager(
+		config.Config().JwtToken.AccessTokenSecretKey(),
+		config.Config().JwtToken.RefreshTokenSecretKey(),
+		config.Config().JwtToken.AccessTokenTTL(),
+		config.Config().JwtToken.RefreshTokenTTL(),
+	)
+
+	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager)
 
 	go func() {
 		logger.Info(ctx, "business http server is running")
