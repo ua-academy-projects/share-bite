@@ -27,7 +27,7 @@ func (m *mockParser) ParseAccessToken(token string) (string, string, error) {
 type mockBusinessService struct {
 	getFunc    func(ctx context.Context, id int) (*entity.OrgUnit, error)
 	listFunc   func(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
-	updateFunc func(ctx context.Context, postID int64, userID int64, content string) (*entity.Post, error)
+	updateFunc func(ctx context.Context, postID int64, userID int64, content string) (*entity.PostWithPhotos, error)
 	deleteFunc func(ctx context.Context, postID int64, userID int64) error
 }
 
@@ -39,7 +39,7 @@ func (m *mockBusinessService) List(ctx context.Context, brandId, page, limit int
 	return m.listFunc(ctx, brandId, page, limit)
 }
 
-func (m *mockBusinessService) UpdatePost(ctx context.Context, postID int64, userID int64, content string) (*entity.Post, error) {
+func (m *mockBusinessService) UpdatePost(ctx context.Context, postID int64, userID int64, content string) (*entity.PostWithPhotos, error) {
 	if m.updateFunc != nil {
 		return m.updateFunc(ctx, postID, userID, content)
 	}

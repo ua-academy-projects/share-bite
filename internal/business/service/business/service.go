@@ -12,6 +12,7 @@ type businessRepository interface {
 	GetOrgIDByUserID(ctx context.Context, userID int64) (int, error)
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) ([]entity.OrgUnit, error)
+	GetPostPhotos(ctx context.Context, postID int64) ([]string, error)
 }
 
 type service struct {

@@ -5,10 +5,10 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 )
 
-func ToPostResponse(post *entity.Post) dto.PostResponse {
+func ToPostResponse(post *entity.PostWithPhotos) dto.PostResponse {
 	return dto.PostResponse{
-		ID:       post.ID,
-		Content:  post.Content,
-		ImageURL: post.ImageURL,
+		ID:      post.ID,
+		Content: post.Content,
+		Images:  post.Images,
 	}
 }

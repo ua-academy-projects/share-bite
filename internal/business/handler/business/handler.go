@@ -13,7 +13,7 @@ type handler struct {
 }
 
 type businessService interface {
-	UpdatePost(ctx context.Context, postID int64, userID int64, content string) (*entity.Post, error)
+	UpdatePost(ctx context.Context, postID int64, userID int64, content string) (*entity.PostWithPhotos, error)
 	DeletePost(ctx context.Context, postID int64, userID int64) error
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)

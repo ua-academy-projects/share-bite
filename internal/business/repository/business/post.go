@@ -32,6 +32,40 @@ func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID int64) (int, e
 	return orgID, nil
 }
 
+func (r *Repository) GetPostPhotos(ctx context.Context, postID int64) ([]string, error) {
+	q := database.Query{
+		Name: "get_post_photos",
+		Sql: `
+		SELECT image_url
+		FROM business.post_photos
+		WHERE post_id = $1
+		ORDER BY sort_order;
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var imageUrls []string
+
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err != nil {
+			return nil, err
+		}
+		imageUrls = append(imageUrls, url)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return imageUrls, nil
+}
+
 func (r *Repository) UpdatePost(ctx context.Context, postID int64, orgID int, content string) (*entity.Post, error) {
 
 	q := database.Query{
@@ -40,14 +74,14 @@ func (r *Repository) UpdatePost(ctx context.Context, postID int64, orgID int, co
 		UPDATE business.posts
 		SET content = $1
 		WHERE id = $2 AND org_id = $3
-		RETURNING id, org_id, content, image_url, created_at
+		RETURNING id, org_id, content, created_at
 	`,
 	}
 
 	var post entity.Post
 
 	err := r.db.DB().QueryRowContext(ctx, q, content, postID, orgID).
-		Scan(&post.ID, &post.OrgID, &post.Content, &post.ImageURL, &post.CreatedAt)
+		Scan(&post.ID, &post.OrgID, &post.Content, &post.CreatedAt)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
