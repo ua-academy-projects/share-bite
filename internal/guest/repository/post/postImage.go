@@ -6,12 +6,12 @@ import (
 )
 
 type PostImage struct {
-	ID          int64     `db:"id"`
+	ID          string    `db:"id"`
 	PostID      string    `db:"post_id"`
 	ObjectKey   string    `db:"object_key"`
 	ContentType string    `db:"content_type"`
 	FileSize    int64     `db:"file_size"`
-	SortOrder   int       `db:"sort_order"`
+	SortOrder   int16     `db:"sort_order"`
 	CreatedAt   time.Time `db:"created_at"`
 }
 
