@@ -15,4 +15,7 @@ type PostWithPhotos struct {
 	Content   string
 	CreatedAt time.Time
 	Images    []string
+
+	OrgName     string
+	ProfileType string
 }

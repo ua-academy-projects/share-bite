@@ -18,6 +18,8 @@ type businessService interface {
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
+
+	GetPosts(ctx context.Context, page, limit int) ([]entity.PostWithPhotos, error)
 }
 
 func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {
@@ -29,6 +31,7 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 
 	r.GET("/:id", h.get)
 	r.GET("/:id/locations", h.list)
+	r.GET("/posts", h.GetPosts)
 
 	businessOnly := r.Group("/").
 		Use(auth).

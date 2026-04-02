@@ -18,6 +18,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
@@ -71,9 +72,11 @@ func main() {
 		return nil
 	})
 
+	txManager := txmanager.NewTransactionManager(client.DB())
+
 	businessRepo := businessrepo.New(client)
 
-	businessSvc := businesssvc.New(businessRepo)
+	businessSvc := businesssvc.New(businessRepo, txManager)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),

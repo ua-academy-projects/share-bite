@@ -2,11 +2,14 @@ package business
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
 
 func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID int64) (int, error) {
@@ -113,4 +116,113 @@ func (r *Repository) DeletePost(ctx context.Context, id int64, orgID int) error 
 	}
 
 	return nil
+}
+
+func (r *Repository) CheckOwnership(ctx context.Context, userID int64, unitID int) error {
+	checkQuery := `SELECT id
+					FROM business.org_units
+					WHERE id = $1
+					  AND (
+					  	org_account_id = $2
+						OR 
+						parent_id IN (
+							SELECT id FROM business.org_units WHERE org_account_id = $2
+						)
+					);`
+
+	q := database.Query{
+		Name: "check_ownership.CheckOwnership",
+		Sql:  checkQuery,
+	}
+
+	var foundID int
+	var err error
+
+	if tx, ok := ctx.Value(pg.TxKey).(pgx.Tx); ok {
+		err = tx.QueryRow(ctx, checkQuery, unitID, userID).Scan(&foundID)
+	} else {
+		err = r.db.DB().QueryRowContext(ctx, q, unitID, userID).Scan(&foundID)
+	}
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+			return ErrForbidden
+		}
+		return fmt.Errorf("execute check ownership query: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) CreatePost(ctx context.Context, userID int64, unitID int, description string) (*entity.Post, error) {
+	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
+	if !ok {
+		return nil, fmt.Errorf("transaction not found in context")
+	}
+	var post entity.Post
+	postQuery := `INSERT INTO business.posts (org_id, content)
+					SELECT $1, $2
+					WHERE EXISTS (
+   							SELECT 1 
+							FROM business.org_units 
+							WHERE id = $1 AND (org_account_id = $3 OR parent_id IN (SELECT id FROM business.org_units WHERE org_account_id = $3))
+							)
+					RETURNING id, org_id, content, created_at;`
+
+	err := tx.QueryRow(ctx, postQuery, unitID, description, userID).
+		Scan(&post.ID, &post.OrgID, &post.Content, &post.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrForbidden
+		}
+		return nil, fmt.Errorf("insert post query: %w", err)
+	}
+	return &post, nil
+}
+
+func (r *Repository) InsertPostImages(ctx context.Context, postID int, URLs []string) error {
+	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
+	if !ok {
+		return fmt.Errorf("transaction not found in context")
+	}
+	imagesQuery := `INSERT INTO business.post_photos (post_id, image_url, sort_order) 
+					VALUES ($1, $2, $3)`
+	for order, url := range URLs {
+		if _, err := tx.Exec(ctx, imagesQuery, postID, url, order); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Repository) GetPosts(ctx context.Context, limit, offset int) ([]entity.Post, error) {
+	q := database.Query{
+		Name: "get_posts",
+		Sql: `
+			SELECT id, org_id, content, created_at
+			FROM business.posts
+			ORDER BY created_at DESC
+			LIMIT $1 OFFSET $2
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []entity.Post
+
+	for rows.Next() {
+		var p entity.Post
+		if err := rows.Scan(&p.ID, &p.OrgID, &p.Content, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		posts = append(posts, p)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
