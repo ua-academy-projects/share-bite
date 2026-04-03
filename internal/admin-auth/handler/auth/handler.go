@@ -34,6 +34,17 @@ func (h *Handler) Login(c *gin.Context) {
 	})
 }
 
+// RecoverAccess godoc
+// @Summary Recover access
+// @Description Sends password reset instructions if account exists
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RecoverAccessRequest true "Recover access payload"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/recover-access [post]
 func (h *Handler) RecoverAccess(c *gin.Context) {
 	var req RecoverAccessRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -52,6 +63,17 @@ func (h *Handler) RecoverAccess(c *gin.Context) {
 	})
 }
 
+// ResetPassword godoc
+// @Summary Reset password
+// @Description Resets password by token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body ResetPasswordRequest true "Reset password payload"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/reset-password [post]
 func (h *Handler) ResetPassword(c *gin.Context) {
 	var req ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
