@@ -3,6 +3,7 @@ package post
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -141,12 +142,12 @@ func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error
 	var post Post
 	if err := pgxscan.ScanOne(&post, row); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return entity.Post{}, apperror.PostNotFoundID(postID)
+			return entity.Post{}, fmt.Errorf("post with id %q was not found: %w", postID, apperror.ErrPostNotFound)
 		}
 
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
-			return entity.Post{}, apperror.PostNotFoundID(postID)
+			return entity.Post{}, fmt.Errorf("post with id %q was not found: %w", postID, apperror.ErrPostNotFound)
 		}
 
 		return entity.Post{}, scanRowError(err)
@@ -164,7 +165,7 @@ func translatePostInsertError(err error, in entity.CreatePostInput) error {
 	switch pgErr.Code {
 	case pgerrcode.ForeignKeyViolation:
 		if strings.Contains(pgErr.ConstraintName, "customer_id") {
-			return apperror.CustomerNotFoundID(in.CustomerID)
+			return fmt.Errorf("customer with id %q was not found: %w", in.CustomerID, apperror.ErrCustomerNotFound)
 		}
 	case pgerrcode.CheckViolation:
 		return apperror.ErrInvalidPostData
