@@ -72,6 +72,26 @@ definitions:
           $ref: '#/definitions/internal_business_handler_business.listItem'
         type: array
     type: object
+  internal_business_handler_business.postResponse:
+    properties:
+      content:
+        example: Updated post content
+        type: string
+      id:
+        example: 123
+        type: integer
+      imageUrl:
+        example: https://cdn.example.com/post.jpg
+        type: string
+    type: object
+  internal_business_handler_business.updatePostRequest:
+    properties:
+      content:
+        example: Updated post content
+        type: string
+    required:
+    - content
+    type: object
 info:
   contact: {}
   description: API for discovering brand locations (venues).
@@ -107,6 +127,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/internal_business_handler_business.errorResponse'
+      security: []
       summary: Get location by ID
       tags:
       - locations
@@ -143,7 +164,98 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/internal_business_handler_business.errorResponse'
+      security: []
       summary: List brand locations
       tags:
       - locations
+  /business/posts/{id}:
+    delete:
+      description: Deletes a post owned by the authenticated business account.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete business post
+      tags:
+      - posts
+    put:
+      consumes:
+      - application/json
+      description: Updates a post owned by the authenticated business account.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated post payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_business_handler_business.updatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.postResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_business_handler_business.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update business post
+      tags:
+      - posts
+security:
+- BearerAuth: []
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

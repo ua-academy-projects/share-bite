@@ -22,7 +22,7 @@ import (
 //	@Router			/business/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	req := new(getRequest)
-	if err := c.ShouldBindUri(req); err != nil {
+	if err := c.ShouldBindUri(req); err != nil || req.ID < 1 {
 		c.Error(apperror.BadRequest("invalid location id"))
 		return
 	}

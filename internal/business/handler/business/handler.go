@@ -30,5 +30,5 @@ func RegisterHandlers(
 
 // errorResponse is used for swagger documentation.
 type errorResponse struct {
-	Error string `json:"error" example:"location with id 999 was not found"`
+	Error string `json:"error" example:"not found"`
 }

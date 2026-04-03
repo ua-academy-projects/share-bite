@@ -26,6 +26,10 @@ import (
 // @version		1.0
 // @description	API for discovering brand locations (venues).
 //
+// @securityDefinitions.apikey	BearerAuth
+// @in			header
+// @name		Authorization
+//
 // @BasePath		/
 func main() {
 	ctx := context.Background()
@@ -46,7 +50,7 @@ func main() {
         AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
         AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
         ExposeHeaders:    []string{"Content-Length"},
-        AllowCredentials: true,
+        AllowCredentials: false,
     }))
 	router.Use(gin.Recovery())
 
