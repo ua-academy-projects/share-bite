@@ -89,7 +89,10 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 		logger.ErrorKV(ctx, "password reset email send failed", "to_email", toEmail, "error", err.Error())
 		return fmt.Errorf("send resend request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, readErr := io.ReadAll(resp.Body)
