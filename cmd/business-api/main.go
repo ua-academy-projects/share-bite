@@ -5,9 +5,11 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/ua-academy-projects/share-bite/docs/api"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
@@ -18,8 +20,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
-	"github.com/gin-contrib/cors"
-	_ "github.com/ua-academy-projects/share-bite/docs/api"
 )
 
 // @title			ShareBite Business API
@@ -46,12 +46,12 @@ func main() {
 
 	router := gin.New()
 	router.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"*"},
-        AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-        AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-        ExposeHeaders:    []string{"Content-Length"},
-        AllowCredentials: false,
-    }))
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: false,
+	}))
 	router.Use(gin.Recovery())
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
