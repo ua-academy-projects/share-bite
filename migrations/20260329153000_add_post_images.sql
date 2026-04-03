@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS guest.post_images (
     CHECK (sort_order >= 0),
 
     CONSTRAINT post_images_content_type_chk
-    CHECK (content_type IN ('image/jpeg', 'image/png', 'image/webp'))
+    CHECK (content_type IN ('image/jpeg', 'image/png'))
     );
 
 CREATE INDEX IF NOT EXISTS idx_post_images_post_id
