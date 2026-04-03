@@ -33,7 +33,7 @@ type Service interface {
 	Login(ctx context.Context, email, password string) (*Tokens, error)
 	Register(ctx context.Context, email, password, slug string) (*Tokens, error)
 	Refresh(ctx context.Context, refreshToken string) (*Tokens, error)
-	RecoverAccess(ctx context.Context, email string) (string, error)
+	RecoverAccess(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 }
 
@@ -133,19 +133,19 @@ func (s *service) Refresh(_ context.Context, refreshToken string) (*Tokens, erro
 	}, nil
 }
 
-func (s *service) RecoverAccess(ctx context.Context, email string) (string, error) {
+func (s *service) RecoverAccess(ctx context.Context, email string) error {
 	u, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return "", fmt.Errorf("find user by email: %w", err)
+		return fmt.Errorf("find user by email: %w", err)
 	}
 
 	if u == nil {
-		return "", nil
+		return nil
 	}
 
 	rawToken, tokenHash, err := generatePasswordResetToken()
 	if err != nil {
-		return "", fmt.Errorf("generate password reset token: %w", err)
+		return fmt.Errorf("generate password reset token: %w", err)
 	}
 
 	if err := s.userRepo.CreatePasswordResetToken(ctx, dto.CreatePasswordResetTokenParams{
@@ -153,14 +153,14 @@ func (s *service) RecoverAccess(ctx context.Context, email string) (string, erro
 		TokenHash: tokenHash,
 		ExpiresAt: time.Now().Add(passwordResetTokenTTL),
 	}); err != nil {
-		return "", fmt.Errorf("create password reset token: %w", err)
+		return fmt.Errorf("create password reset token: %w", err)
 	}
 
 	if err := s.emailSender.SendPasswordResetToken(ctx, u.Email, rawToken); err != nil {
-		return "", fmt.Errorf("send password reset email: %w", err)
+		return fmt.Errorf("send password reset email: %w", err)
 	}
 
-	return rawToken, nil
+	return nil
 }
 
 func (s *service) ResetPassword(ctx context.Context, token, newPassword string) error {

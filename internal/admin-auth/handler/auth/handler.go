@@ -41,7 +41,7 @@ func (h *Handler) RecoverAccess(c *gin.Context) {
 		return
 	}
 
-	_, err := h.service.RecoverAccess(c.Request.Context(), req.Email)
+	err := h.service.RecoverAccess(c.Request.Context(), req.Email)
 	if err != nil {
 		c.Error(err)
 		return
