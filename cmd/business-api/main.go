@@ -36,12 +36,14 @@ func main() {
 		logger.Fatal(ctx, "load config:", err)
 	}
 
+	cfg := config.Config()
+
 	router := gin.New()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		AllowOrigins:     cfg.BusinessHttpServer.AllowedOrigins(),
+		AllowMethods:     cfg.BusinessHttpServer.AllowedMethods(),
+		AllowHeaders:     cfg.BusinessHttpServer.AllowedHeaders(),
+		ExposeHeaders:    cfg.BusinessHttpServer.ExposeHeaders(),
 		AllowCredentials: true,
 	}))
 	router.Use(gin.Recovery())

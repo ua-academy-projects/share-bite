@@ -12,7 +12,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
 
-func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID int64) (int, error) {
+func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, error) {
 	q := database.Query{
 		Name: "get_org_by_user_id",
 		Sql: `
@@ -118,7 +118,7 @@ func (r *Repository) DeletePost(ctx context.Context, id int64, orgID int) error 
 	return nil
 }
 
-func (r *Repository) CheckOwnership(ctx context.Context, userID int64, unitID int) error {
+func (r *Repository) CheckOwnership(ctx context.Context, userID string, unitID int) error {
 	checkQuery := `SELECT id
 					FROM business.org_units
 					WHERE id = $1
@@ -152,7 +152,7 @@ func (r *Repository) CheckOwnership(ctx context.Context, userID int64, unitID in
 	return nil
 }
 
-func (r *Repository) CreatePost(ctx context.Context, userID int64, unitID int, description string) (*entity.Post, error) {
+func (r *Repository) CreatePost(ctx context.Context, userID string, unitID int, description string) (*entity.Post, error) {
 	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
 	if !ok {
 		return nil, fmt.Errorf("transaction not found in context")

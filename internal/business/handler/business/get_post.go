@@ -11,7 +11,6 @@ import (
 func (h *handler) GetPosts(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// 🔹 параметри (поки прості)
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "10")
 

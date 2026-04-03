@@ -2,13 +2,13 @@ package business
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
-func (s *service) UpdatePost(ctx context.Context, postID int64, userID int64, content string) (*entity.PostWithPhotos, error) {
+func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error) {
 	orgID, err := s.businessRepo.GetOrgIDByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (s *service) UpdatePost(ctx context.Context, postID int64, userID int64, co
 	}, nil
 }
 
-func (s *service) DeletePost(ctx context.Context, postID int64, userID int64) error {
+func (s *service) DeletePost(ctx context.Context, postID int64, userID string) error {
 	orgID, err := s.businessRepo.GetOrgIDByUserID(ctx, userID)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (s *service) DeletePost(ctx context.Context, postID int64, userID int64) er
 	return s.businessRepo.DeletePost(ctx, postID, orgID)
 }
 
-func (s *service) CheckOwnership(ctx context.Context, userID int64, unitID int) error { //for handlers
+func (s *service) CheckOwnership(ctx context.Context, userID string, unitID int) error { //for handlers
 	err := s.businessRepo.CheckOwnership(ctx, userID, unitID)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (s *service) CheckOwnership(ctx context.Context, userID int64, unitID int) 
 	return nil
 }
 
-func (s *service) CreatePost(ctx context.Context, userID int64, unitID int, description string, URLs []string) (*entity.Post, error) {
+func (s *service) CreatePost(ctx context.Context, userID string, unitID int, description string, URLs []string) (*entity.Post, error) {
 	var post *entity.Post
 	err := s.txManager.ReadCommited(ctx, func(ctxTx context.Context) error {
 		var err error
@@ -73,8 +73,16 @@ func (s *service) CreatePost(ctx context.Context, userID int64, unitID int, desc
 }
 
 func (s *service) GetPosts(ctx context.Context, page, limit int) ([]entity.PostWithPhotos, error) {
+	if page < 1 {
+		page = 1
+	}
+
+	if limit < 1 {
+		limit = 10
+	}
+
 	if page < 1 || limit < 1 {
-		return nil, errors.New("invalid page or limit: must be positive")
+		logger.Warn(ctx, "invalid pagination params, using defaults")
 	}
 
 	offset := (page - 1) * limit

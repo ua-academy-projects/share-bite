@@ -22,3 +22,7 @@ Thumbs.db
 !.env.example
 
 /tmp/
+
+docs/api/docs.go
+docs/api/swagger.json
+docs/api/swagger.yaml

@@ -10,12 +10,12 @@ import (
 type businessRepository interface {
 	UpdatePost(ctx context.Context, postID int64, orgID int, content string) (*entity.Post, error)
 	DeletePost(ctx context.Context, id int64, orgID int) error
-	GetOrgIDByUserID(ctx context.Context, userID int64) (int, error)
+	GetOrgIDByUserID(ctx context.Context, userID string) (int, error)
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) ([]entity.OrgUnit, error)
 	GetPostPhotos(ctx context.Context, postID int64) ([]string, error)
-	CheckOwnership(ctx context.Context, userID int64, unitID int) error
-	CreatePost(ctx context.Context, userID int64, unitID int, description string) (*entity.Post, error)
+	CheckOwnership(ctx context.Context, userID string, unitID int) error
+	CreatePost(ctx context.Context, userID string, unitID int, description string) (*entity.Post, error)
 	InsertPostImages(ctx context.Context, postID int, URLs []string) error
 	GetPosts(ctx context.Context, limit, offset int) ([]entity.Post, error)
 }
