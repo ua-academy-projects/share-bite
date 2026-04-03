@@ -2,6 +2,7 @@ package apperror
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 )
@@ -14,10 +15,6 @@ var (
 	ErrInvalidPostData   = newError(code.InvalidRequest, "invalid post data")
 
 	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
-	ErrCustomerUserNameTaken = newError(code.AlreadyExists, "customer username already taken")
-	ErrCustomerNotFound      = newError(code.NotFound, "customer not found")
-	ErrVenueNotFound         = newError(code.NotFound, "venue not found")
-	ErrPostNotFound          = newError(code.NotFound, "post not found")
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
 )
@@ -40,4 +37,34 @@ func newError(code code.Code, err string) *Error {
 		Code: code,
 		Err:  errors.New(err),
 	}
+}
+
+func VenueNotFoundID(venueID string) *Error {
+	msg := fmt.Sprintf("venue with id %q was not found", venueID)
+	return newError(code.NotFound, msg)
+}
+
+func PostNotFoundID(postID string) *Error {
+	msg := fmt.Sprintf("post with id %q was not found", postID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundUserID(userID string) *Error {
+	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundID(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q was not found", customerID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundUserName(userName string) *Error {
+	msg := fmt.Sprintf("customer with username %q was not found", userName)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerUserNameTaken(userName string) *Error {
+	msg := fmt.Sprintf("customer with username %q already exists", userName)
+	return newError(code.AlreadyExists, msg)
 }
