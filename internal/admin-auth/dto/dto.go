@@ -17,3 +17,25 @@ type UserWithRole struct {
 	entity.User
 	RoleSlug string
 }
+
+type OAuthUserInfo struct {
+	Provider   string
+	ProviderID string
+	Email      string
+}
+
+// CreateUserWithSocialParams — реєстрація нового юзера через OAuth
+type CreateUserWithSocialParams struct {
+	Email      string
+	Provider   string
+	ProviderID string
+	RoleID     int
+}
+
+// CreateSocialAccountParams — прив'язка провайдера до вже існуючого юзера
+type CreateSocialAccountParams struct {
+	UserID     string
+	Provider   string
+	ProviderID string
+	Email      string
+}
