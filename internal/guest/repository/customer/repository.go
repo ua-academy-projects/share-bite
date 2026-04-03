@@ -65,7 +65,7 @@ func (r *repository) Create(ctx context.Context, in entity.CreateCustomer) (stri
 				case constraintUserIDKey:
 					return "", apperror.ErrCustomerAlreadyExists
 				case constraintUserNameKey:
-					return "", apperror.CustomerUserNameTaken(in.UserName)
+					return "", fmt.Errorf("customer with username %q already exists: %w", in.UserName, apperror.ErrCustomerUserNameTaken)
 				}
 			}
 		}
@@ -105,7 +105,7 @@ func (r *repository) GetByUserID(ctx context.Context, userID string) (entity.Cus
 	var c Customer
 	if err := pgxscan.ScanOne(&c, row); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return entity.Customer{}, apperror.CustomerNotFoundUserID(userID)
+			return entity.Customer{}, fmt.Errorf("customer with user_id %q was not found: %w", userID, apperror.ErrCustomerNotFound)
 		}
 
 		return entity.Customer{}, scanRowError(err)
@@ -143,7 +143,7 @@ func (r *repository) GetByUserName(ctx context.Context, userName string) (entity
 	var c Customer
 	if err := pgxscan.ScanOne(&c, row); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return entity.Customer{}, apperror.CustomerNotFoundUserName(userName)
+			return entity.Customer{}, fmt.Errorf("customer with username %q was not found: %w", userName, apperror.ErrCustomerNotFound)
 		}
 
 		return entity.Customer{}, scanRowError(err)
@@ -198,7 +198,7 @@ func (r *repository) Update(ctx context.Context, in entity.UpdateCustomer) (enti
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation && pgErr.ConstraintName == constraintUserNameKey {
-			return entity.Customer{}, apperror.CustomerUserNameTaken(*in.UserName)
+			return entity.Customer{}, fmt.Errorf("customer with username %q already exists: %w", *in.UserName, apperror.ErrCustomerUserNameTaken)
 		}
 		return entity.Customer{}, executeSQLError(err)
 	}
@@ -207,7 +207,7 @@ func (r *repository) Update(ctx context.Context, in entity.UpdateCustomer) (enti
 	var c Customer
 	if err := pgxscan.ScanOne(&c, row); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return entity.Customer{}, apperror.CustomerNotFoundUserID(in.UserID)
+			return entity.Customer{}, fmt.Errorf("customer with user_id %q was not found: %w", in.UserID, apperror.ErrCustomerNotFound)
 		}
 
 		return entity.Customer{}, scanRowError(err)
