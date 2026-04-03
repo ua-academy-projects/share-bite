@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -84,14 +86,22 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 
 	resp, err := s.client.Do(httpReq)
 	if err != nil {
+		logger.ErrorKV(ctx, "password reset email send failed", "to_email", toEmail, "error", err.Error())
 		return fmt.Errorf("send resend request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("resend send email failed: status=%d", resp.StatusCode)
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			logger.ErrorKV(ctx, "password reset email send failed", "to_email", toEmail, "status", resp.StatusCode, "error", readErr.Error())
+			return fmt.Errorf("resend send email failed: status=%d, read body: %w", resp.StatusCode, readErr)
+		}
+
+		logger.ErrorKV(ctx, "password reset email send failed", "to_email", toEmail, "status", resp.StatusCode)
+
+		return fmt.Errorf("resend send email failed: status=%d, body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
-	logger.InfoKV(ctx, "password reset email sent")
 	return nil
 }
