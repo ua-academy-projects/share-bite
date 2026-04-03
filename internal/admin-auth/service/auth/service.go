@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
+	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
 	"golang.org/x/crypto/bcrypt"
@@ -170,11 +171,15 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 
 	updated, err := s.userRepo.ResetPassword(ctx, hashToken(token), string(passwordHash))
 	if err != nil {
+		if errors.Is(err, apperror.ErrInvalidResetToken) {
+			return apperror.ErrInvalidResetToken
+		}
+
 		return fmt.Errorf("reset password: %w", err)
 	}
 
 	if !updated {
-		return fmt.Errorf("invalid or expired reset token")
+		return apperror.ErrInvalidResetToken
 	}
 
 	return nil

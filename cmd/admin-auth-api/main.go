@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
+	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/error/code"
 	"go.uber.org/zap"
 
 	"github.com/ua-academy-projects/share-bite/internal/config"
@@ -115,6 +115,8 @@ func ErrorMiddleware() gin.HandlerFunc {
 			switch appErr.Code {
 			case code.NotFound:
 				respCode = http.StatusNotFound
+			case code.InvalidRequest:
+				respCode = http.StatusBadRequest
 
 			default:
 				respCode = http.StatusInternalServerError

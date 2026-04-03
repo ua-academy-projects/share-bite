@@ -8,6 +8,7 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
@@ -48,7 +49,7 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 		&u.RoleSlug,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, apperror.UserNotFoundEmail(email)
 		}
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash 
 	var userID string
 	if err := r.client.DB().QueryRowContext(ctx, q, tokenHash, passwordHash).Scan(&userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return false, apperror.ErrInvalidResetToken
 		}
 
 		return false, fmt.Errorf("reset password by token hash: %w", err)
