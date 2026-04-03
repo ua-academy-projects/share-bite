@@ -7,8 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 type BusinessAPIClient struct {
@@ -29,12 +27,12 @@ func (c *BusinessAPIClient) CheckExists(ctx context.Context, venueID string) (bo
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return false, errwrap.Wrap("create request", err)
+		return false, fmt.Errorf("create request: %w", err)
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return false, errwrap.Wrap("execute request", err)
+		return false, fmt.Errorf("execute request: %w", err)
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
@@ -51,7 +49,7 @@ func (c *BusinessAPIClient) CheckExists(ctx context.Context, venueID string) (bo
 
 	var dto businessVenueResponseDTO
 	if err := json.NewDecoder(resp.Body).Decode(&dto); err != nil {
-		return false, errwrap.Wrap("decode response", err)
+		return false, fmt.Errorf("decode response: %w", err)
 	}
 
 	isActive := dto.Status == "active"
