@@ -1,0 +1,395 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is an authentication microservice for Share Bite.",
+        "title": "Share Bite Admin Auth API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:3850",
+    "basePath": "/",
+    "paths": {
+        "/auth/login": {
+            "post": {
+                "description": "Перевіряє email та пароль.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Авторизація користувача",
+                "parameters": [
+                    {
+                        "description": "Дані для входу",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_admin-auth_handler_auth.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Помилка валідації: {'message': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Невірні облікові дані: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутрішня помилка сервера: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/oauth/{provider}/callback": {
+            "post": {
+                "description": "Обмінює код від провайдера на токени доступу.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "OAuth Авторизація / Реєстрація",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Назва провайдера (google, github)",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Код від провайдера та роль",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_admin-auth_handler_auth.OAuthCallbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Непідтримуваний провайдер: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутрішня помилка сервера: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "502": {
+                        "description": "Помилка обміну коду з провайдером: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "description": "Генерує нову пару токенів на основі валідного refresh_token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Оновлення токенів",
+                "parameters": [
+                    {
+                        "description": "Refresh токен",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_admin-auth_handler_auth.RefreshRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Помилка валідації: {'message': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Невалідний або прострочений токен: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутрішня помилка сервера: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "Створює нового користувача та одразу повертає пару токенів.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Реєстрація користувача",
+                "parameters": [
+                    {
+                        "description": "Дані для реєстрації",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_admin-auth_handler_auth.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Помилка валідації: {'message': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "409": {
+                        "description": "Користувач вже існує: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "422": {
+                        "description": "Роль не знайдена: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутрішня помилка сервера: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/link/{provider}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Прив'язує Google або GitHub до вже авторизованого користувача.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Прив'язка соцмережі до акаунту",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Назва провайдера (google, github)",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Код від провайдера",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_admin-auth_handler_auth.OAuthLinkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успіх. Повертає: {'message': 'Social account successfully linked.'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Невалідний запит: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Неавторизований доступ: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "409": {
+                        "description": "Провайдер вже прив'язаний: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "500": {
+                        "description": "Внутрішня помилка сервера: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "internal_admin-auth_handler_auth.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_admin-auth_handler_auth.OAuthCallbackRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "slug"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string",
+                    "enum": [
+                        "user",
+                        "business"
+                    ]
+                }
+            }
+        },
+        "internal_admin-auth_handler_auth.OAuthLinkRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_admin-auth_handler_auth.RefreshRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_admin-auth_handler_auth.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "slug"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 254
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                },
+                "slug": {
+                    "type": "string",
+                    "enum": [
+                        "user",
+                        "business"
+                    ]
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
