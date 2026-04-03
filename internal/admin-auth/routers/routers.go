@@ -2,14 +2,25 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/ua-academy-projects/share-bite/docs/api"
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 )
 
-func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler) {
+func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc) {
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	authGroup := r.Group("/auth")
 	{
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.POST("/register", authHandler.Register)
 		authGroup.POST("/refresh", authHandler.Refresh)
+		authGroup.POST("/oauth/:provider/callback", authHandler.OAuthCallback)
+
+		protectedUserGroup := r.Group("/user").Use(authMiddleware)
+		{
+			protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
+		}
 	}
 }

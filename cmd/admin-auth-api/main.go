@@ -6,23 +6,35 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 	"go.uber.org/zap"
 
-	"github.com/ua-academy-projects/share-bite/internal/config"
-	"github.com/ua-academy-projects/share-bite/pkg/closer"
-	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
-
-	"github.com/ua-academy-projects/share-bite/pkg/jwt"
-
+	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
+	"github.com/ua-academy-projects/share-bite/internal/config"
+
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
+
+	"github.com/ua-academy-projects/share-bite/pkg/closer"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
+// @title           Share Bite Admin Auth API
+// @version         1.0
+// @description     This is an authentication microservice for Share Bite.
+
+// @host            localhost:3850
+// @BasePath        /
+
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
 func main() {
 	ctx := context.Background()
 
@@ -63,18 +75,24 @@ func main() {
 		cfg.JwtToken.RefreshTokenTTL(),
 	)
 
-	userRepo := userrepo.New(client)
+	authMw := middleware.Auth(tokenManager)
 
+	userRepo := userrepo.New(client)
 	authSvc := authsvc.New(userRepo, tokenManager)
 
-	authHandler := authhttp.NewHandler(authSvc)
+	providerFactory := provider.NewFactory(google.Config{
+		ClientID:     cfg.Google.ClientID(),
+		ClientSecret: cfg.Google.ClientSecret(),
+		RedirectURL:  cfg.Google.RedirectURL(),
+	})
 
-	routers.SetupRouter(router.Group("/"), authHandler)
+	authHandler := authhttp.NewHandler(authSvc, providerFactory)
+
+	routers.SetupRouter(router.Group("/"), authHandler, authMw)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
 		logger.Info(ctx, "auth http server is running on "+addr)
-
 		if err := router.Run(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal(ctx, "run http server: ", err)
 		}
@@ -92,26 +110,12 @@ func ErrorMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
+		var appErr *apperr.AppError
+		if errors.As(err.Err, &appErr) {
+			c.JSON(appErr.HTTPStatus(), gin.H{"message": appErr.Message})
+			return
 		}
 
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				respCode = http.StatusNotFound
-
-			default:
-				respCode = http.StatusInternalServerError
-			}
-
-			resp = map[string]any{
-				"message": appErr.Error(),
-			}
-		}
-
-		c.JSON(respCode, resp)
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "internal server error"})
 	}
 }
