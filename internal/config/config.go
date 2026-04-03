@@ -24,6 +24,7 @@ type config struct {
 	Postgres Postgres
 
 	JwtToken JwtToken
+	Google   Google
 }
 
 var cfg *config
@@ -54,6 +55,12 @@ type JwtToken interface {
 
 	RefreshTokenSecretKey() string
 	RefreshTokenTTL() time.Duration
+}
+
+type Google interface {
+	ClientID() string
+	ClientSecret() string
+	RedirectURL() string
 }
 
 func Load(paths ...string) error {
@@ -93,6 +100,11 @@ func Load(paths ...string) error {
 		return errwrap.Wrap("jwt token config", err)
 	}
 
+	googleConfig, err := env.NewGoogleConfig()
+	if err != nil {
+		return errwrap.Wrap("google config", err)
+	}
+
 	cfg = &config{
 		App: appConfig,
 
@@ -102,6 +114,7 @@ func Load(paths ...string) error {
 
 		Postgres: postgresConfig,
 		JwtToken: jwtTokenConfig,
+		Google:   googleConfig,
 	}
 
 	return nil
