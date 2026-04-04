@@ -7,7 +7,9 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -76,12 +78,23 @@ func main() {
 
 	txManager := txmanager.NewTransactionManager(client.DB())
 	userRepo := userrepo.New(client, txManager)
-	emailSender, err := emailsvc.NewResendSender(
-		cfg.Email.ResendAPIKeyValue(),
-		cfg.Email.ResendFromEmailValue(),
-	)
-	if err != nil {
-		logger.Fatal(ctx, "new email sender: ", err)
+
+	provider := strings.ToLower(strings.TrimSpace(cfg.Email.SenderProviderValue()))
+	var emailSender emailsvc.Sender
+
+	switch provider {
+	case "", "resend":
+		emailSender, err = emailsvc.NewResendSender(
+			cfg.Email.ResendAPIKeyValue(),
+			cfg.Email.ResendFromEmailValue(),
+		)
+		if err != nil {
+			logger.Fatal(ctx, "new resend email sender: ", err)
+		}
+	case "fake":
+		emailSender = emailsvc.NewFakeSender()
+	default:
+		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", provider))
 	}
 
 	authSvc := authsvc.New(userRepo, tokenManager, emailSender)

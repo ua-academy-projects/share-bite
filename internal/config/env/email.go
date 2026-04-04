@@ -3,8 +3,9 @@ package env
 import "github.com/caarlos0/env/v11"
 
 type emailConfig struct {
-	ResendAPIKey    string `env:"RESEND_API_KEY"`
-	ResendFromEmail string `env:"RESEND_FROM_EMAIL"`
+	EmailSenderProvider string `env:"EMAIL_SENDER_PROVIDER"`
+	ResendAPIKey        string `env:"RESEND_API_KEY"`
+	ResendFromEmail     string `env:"RESEND_FROM_EMAIL"`
 }
 
 func NewEmailConfig() (*emailConfig, error) {
@@ -22,4 +23,12 @@ func (c *emailConfig) ResendAPIKeyValue() string {
 
 func (c *emailConfig) ResendFromEmailValue() string {
 	return c.ResendFromEmail
+}
+
+func (c *emailConfig) SenderProviderValue() string {
+	if c.EmailSenderProvider == "" {
+		return "resend"
+	}
+
+	return c.EmailSenderProvider
 }

@@ -59,6 +59,7 @@ type JwtToken interface {
 }
 
 type Email interface {
+	SenderProviderValue() string
 	ResendAPIKeyValue() string
 	ResendFromEmailValue() string
 }
