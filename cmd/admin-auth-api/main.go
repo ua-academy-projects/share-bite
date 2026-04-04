@@ -21,6 +21,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
@@ -73,7 +74,8 @@ func main() {
 		cfg.JwtToken.RefreshTokenTTL(),
 	)
 
-	userRepo := userrepo.New(client)
+	txManager := txmanager.NewTransactionManager(client.DB())
+	userRepo := userrepo.New(client, txManager)
 	emailSender, err := emailsvc.NewResendSender(
 		cfg.Email.ResendAPIKeyValue(),
 		cfg.Email.ResendFromEmailValue(),

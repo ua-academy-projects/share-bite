@@ -21,11 +21,12 @@ type Repository interface {
 }
 
 type repository struct {
-	client database.Client
+	client    database.Client
+	txManager database.TxManager
 }
 
-func New(client database.Client) Repository {
-	return &repository{client: client}
+func New(client database.Client, txManager database.TxManager) Repository {
+	return &repository{client: client, txManager: txManager}
 }
 
 func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error) {
@@ -58,33 +59,42 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 }
 
 func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error {
-	q := database.Query{
-		Name: "user.CreatePasswordResetToken",
+	invalidateQuery := database.Query{
+		Name: "user.InvalidatePasswordResetTokens",
 		Sql: `
-			WITH invalidated AS (
-				UPDATE auth.password_reset_tokens
-				SET used_at = NOW()
-				WHERE user_id = $1
-				  AND used_at IS NULL
-			),
-			inserted AS (
-				INSERT INTO auth.password_reset_tokens (user_id, token_hash, expires_at)
-				VALUES ($1, $2, $3)
-				RETURNING id
-			)
-			SELECT id
-			FROM inserted
+			UPDATE auth.password_reset_tokens
+			SET used_at = NOW()
+			WHERE user_id = $1
+			  AND used_at IS NULL
 		`,
 	}
 
-	var tokenID string
-	if err := r.client.DB().QueryRowContext(
-		ctx,
-		q,
-		params.UserID,
-		params.TokenHash,
-		params.ExpiresAt,
-	).Scan(&tokenID); err != nil {
+	insertQuery := database.Query{
+		Name: "user.InsertPasswordResetToken",
+		Sql: `
+			INSERT INTO auth.password_reset_tokens (user_id, token_hash, expires_at)
+			VALUES ($1, $2, $3)
+		`,
+	}
+
+	err := r.txManager.ReadCommited(ctx, func(ctx context.Context) error {
+		if _, err := r.client.DB().ExecContext(ctx, invalidateQuery, params.UserID); err != nil {
+			return fmt.Errorf("invalidate previous password reset tokens: %w", err)
+		}
+
+		if _, err := r.client.DB().ExecContext(
+			ctx,
+			insertQuery,
+			params.UserID,
+			params.TokenHash,
+			params.ExpiresAt,
+		); err != nil {
+			return fmt.Errorf("insert password reset token: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
 		return fmt.Errorf("create password reset token: %w", err)
 	}
 
@@ -92,33 +102,47 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.Cr
 }
 
 func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error) {
-	q := database.Query{
-		Name: "user.ResetPassword",
+	var userID string
+
+	consumeTokenQuery := database.Query{
+		Name: "user.ConsumePasswordResetToken",
 		Sql: `
-			WITH consumed AS (
-				UPDATE auth.password_reset_tokens
-				SET used_at = NOW()
-				WHERE token_hash = $1
-				  AND used_at IS NULL
-				  AND expires_at > NOW()
-				RETURNING user_id
-			),
-			updated_user AS (
-				UPDATE auth.users AS u
-				SET password_hash = $2,
-				    updated_at = NOW()
-				FROM consumed
-				WHERE u.id = consumed.user_id
-				RETURNING u.id
-			)
-			SELECT id
-			FROM updated_user
+			UPDATE auth.password_reset_tokens
+			SET used_at = NOW()
+			WHERE token_hash = $1
+			  AND used_at IS NULL
+			  AND expires_at > NOW()
+			RETURNING user_id
 		`,
 	}
 
-	var userID string
-	if err := r.client.DB().QueryRowContext(ctx, q, tokenHash, passwordHash).Scan(&userID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	updatePasswordQuery := database.Query{
+		Name: "user.UpdatePasswordByUserID",
+		Sql: `
+			UPDATE auth.users
+			SET password_hash = $2,
+			    updated_at = NOW()
+			WHERE id = $1
+		`,
+	}
+
+	err := r.txManager.ReadCommited(ctx, func(ctx context.Context) error {
+		if err := r.client.DB().QueryRowContext(ctx, consumeTokenQuery, tokenHash).Scan(&userID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return apperror.ErrInvalidResetToken
+			}
+
+			return fmt.Errorf("consume password reset token: %w", err)
+		}
+
+		if _, err := r.client.DB().ExecContext(ctx, updatePasswordQuery, userID, passwordHash); err != nil {
+			return fmt.Errorf("update password: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, apperror.ErrInvalidResetToken) {
 			return false, apperror.ErrInvalidResetToken
 		}
 
