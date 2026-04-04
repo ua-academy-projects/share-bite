@@ -1,10 +1,10 @@
 package validator
 
 type ValidationError struct {
-	Errors []ValidationErrorItem
+	Errors []ValidationErrorItem `json:"errors"`
 }
 
 type ValidationErrorItem struct {
-	Field   string
-	Message string
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }

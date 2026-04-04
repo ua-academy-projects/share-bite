@@ -4,18 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
-	"github.com/ua-academy-projects/share-bite/internal/config"
-	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Tokens struct {
 	AccessToken  string
 	RefreshToken string
+}
+
+type TokenProvider interface {
+	GenerateToken(userID string, role string) (string, string, error)
+	ParseRefreshToken(token string) (string, string, error)
 }
 
 type Service interface {
@@ -25,12 +27,12 @@ type Service interface {
 }
 
 type service struct {
-	userRepo  user.Repository
-	txmanager database.TxManager
+	userRepo      user.Repository
+	tokenProvider TokenProvider
 }
 
-func New(userRepo user.Repository, txmanager database.TxManager) Service {
-	return &service{userRepo: userRepo, txmanager: txmanager}
+func New(userRepo user.Repository, tokenProvider TokenProvider) Service {
+	return &service{userRepo: userRepo, tokenProvider: tokenProvider}
 }
 
 func (s *service) Login(ctx context.Context, email, password string) (*Tokens, error) {
@@ -39,11 +41,20 @@ func (s *service) Login(ctx context.Context, email, password string) (*Tokens, e
 		return nil, fmt.Errorf("find user: %w", err)
 	}
 
+	if u == nil {
+		return nil, errors.New("invalid credentials")
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
 		return nil, errors.New("invalid credentials")
 	}
 
-	return s.generateTokens(u.ID)
+	accessToken, refreshToken, err := s.tokenProvider.GenerateToken(u.ID, u.RoleSlug)
+	if err != nil {
+		return nil, fmt.Errorf("generate token: %w", err)
+	}
+
+	return &Tokens{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
 
 func (s *service) Register(ctx context.Context, email, password, slug string) (*Tokens, error) {
@@ -67,85 +78,41 @@ func (s *service) Register(ctx context.Context, email, password, slug string) (*
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
-	var createdUserId string
-	if txErr := s.txmanager.ReadCommited(ctx, func(txCtx context.Context) error {
-		createdUser, err := s.userRepo.CreateUser(txCtx, user.CreateUser{
-			Email:        email,
-			PasswordHash: string(passwordHash),
-		})
-		if err != nil {
-			return fmt.Errorf("create user: %w", err)
-		}
 
-		if err := s.userRepo.AssignRole(txCtx, createdUser.ID, role.ID); err != nil {
-			return fmt.Errorf("assign role to user: %w", err)
-		}
-		createdUserId = createdUser.ID
-		return nil
-	}); txErr != nil {
-		return nil, txErr
-	}
-
-	if createdUserId == "" {
-		return nil, errors.New("created user not found")
-	}
-
-	return s.generateTokens(createdUserId)
-}
-
-func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, error) {
-	cfg := config.Config().JwtToken
-
-	token, err := jwt.Parse(refreshToken, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return []byte(cfg.RefreshTokenSecretKey()), nil
+	createdUser, err := s.userRepo.CreateWithRole(ctx, dto.CreateWithRoleParams{
+		Email:        email,
+		PasswordHash: string(passwordHash),
+		RoleID:       role.ID,
 	})
-	if err != nil || !token.Valid {
-		return nil, errors.New("invalid refresh token")
-	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("invalid token claims")
-	}
-
-	userID, ok := claims["sub"].(string)
-	if !ok {
-		return nil, errors.New("invalid token subject")
-	}
-
-	return s.generateTokens(userID)
-}
-
-func (s *service) generateTokens(userID string) (*Tokens, error) {
-	cfg := config.Config().JwtToken
-
-	accessToken, err := s.generateToken(userID, cfg.AccessTokenSecretKey(), cfg.AccessTokenTTL())
 	if err != nil {
-		return nil, fmt.Errorf("generate access token: %w", err)
+		return nil, fmt.Errorf("create user: %w", err)
 	}
-
-	refreshToken, err := s.generateToken(userID, cfg.RefreshTokenSecretKey(), cfg.RefreshTokenTTL())
+	accessToken, refreshToken, err := s.tokenProvider.GenerateToken(createdUser.ID, role.Slug)
 	if err != nil {
-		return nil, fmt.Errorf("generate refresh token: %w", err)
+		return nil, fmt.Errorf("generate tokens: %w", err)
 	}
 
 	return &Tokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
+
 }
 
-func (s *service) generateToken(userID, secretKey string, ttl time.Duration) (string, error) {
-	claims := jwt.MapClaims{
-		"sub": userID,
-		"exp": time.Now().Add(ttl).Unix(),
-		"iat": time.Now().Unix(),
+func (s *service) Refresh(_ context.Context, refreshToken string) (*Tokens, error) {
+	userID, role, err := s.tokenProvider.ParseRefreshToken(refreshToken)
+	if err != nil {
+		return nil, errors.New("invalid refresh token")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	newAccessToken, newRefreshToken, err := s.tokenProvider.GenerateToken(userID, role)
+	if err != nil {
+		return nil, fmt.Errorf("generate new tokens: %w", err)
+	}
 
-	return token.SignedString([]byte(secretKey))
+	return &Tokens{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
 }

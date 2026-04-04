@@ -1,0 +1,47 @@
+name: s3
+services:
+  s3:
+    image: dxflrs/garage:v2.0.0
+    container_name: s3
+    restart: unless-stopped
+    ports:
+      - "3900:3900"
+      - "3903:3903"
+    volumes:
+      - ../garage.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+    environment:
+      RUST_LOG: garage=info
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - share-bite-net
+
+  garage_webui:
+    image: khairul169/garage-webui:latest
+    container_name: garage-webui
+    restart: unless-stopped
+    ports:
+      - "3909:3909"
+    volumes:
+      - ../garage.toml:/etc/garage.toml:ro
+    environment:
+      API_BASE_URL: "http://s3:3903"
+      S3_ENDPOINT_URL: "http://s3:3900"
+    depends_on:
+      - s3
+    networks:
+      - share-bite-net
+
+volumes:
+  garage_meta:
+  garage_data:
+
+networks:
+  share-bite-net:
+    driver: bridge

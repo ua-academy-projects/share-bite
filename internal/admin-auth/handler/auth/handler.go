@@ -1,52 +1,22 @@
 package auth
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 )
 
-type authService interface {
-	Login(ctx context.Context, email, password string) (*authsvc.Tokens, error)
-	Register(ctx context.Context, email, password, slug string) (*authsvc.Tokens, error)
-	Refresh(ctx context.Context, refreshToken string) (*authsvc.Tokens, error)
-}
-type handler struct {
-	service authService
+type Handler struct {
+	service authsvc.Service
 }
 
-func RegisterHandlers(r *gin.RouterGroup, service authService) {
-	h := &handler{service: service}
-
-	r.POST("/login", h.login)
-	r.POST("/register", h.register)
-	r.POST("/refresh", h.refresh)
+func NewHandler(service authsvc.Service) *Handler {
+	return &Handler{service: service}
 }
 
-type loginRequest struct {
-	Email    string `json:"email"    binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
-type registerRequest struct {
-	Email    string `json:"email" binding:"required,email,max=254" example:"user@example.com"`
-	Password string `json:"password" binding:"required,min=8,max=72" example:"strong-password-123"`
-	Slug     string `json:"slug" binding:"required,oneof=user business" enums:"user,business" example:"user"`
-}
-
-type authTokensResponse struct {
-	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`
-	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`
-}
-
-type errorResponse struct {
-	Message string `json:"message" example:"invalid request payload"`
-}
-
-func (h *handler) login(c *gin.Context) {
-	var req loginRequest
+func (h *Handler) Login(c *gin.Context) {
+	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -64,20 +34,8 @@ func (h *handler) login(c *gin.Context) {
 	})
 }
 
-// register godoc
-//
-//	@Summary		Register admin user
-//	@Description	Create a new admin-auth account and return access and refresh tokens
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		registerRequest		true	"Registration payload"
-//	@Success		201		{object}	authTokensResponse
-//	@Failure		400		{object}	errorResponse
-//	@Failure		500		{object}	errorResponse
-//	@Router			/auth/register [post]
-func (h *handler) register(c *gin.Context) {
-	var req registerRequest
+func (h *Handler) Register(c *gin.Context) {
+	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -100,12 +58,8 @@ func (h *handler) register(c *gin.Context) {
 	})
 }
 
-type refreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
-func (h *handler) refresh(c *gin.Context) {
-	var req refreshRequest
+func (h *Handler) Refresh(c *gin.Context) {
+	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
