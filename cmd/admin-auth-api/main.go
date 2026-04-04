@@ -12,13 +12,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/error/code"
 	"go.uber.org/zap"
-
-	_ "github.com/ua-academy-projects/share-bite/docs/admin_auth"
 
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
@@ -39,7 +35,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	if err := config.Load(".env"); err != nil {
+	if err := config.Load("../../.env"); err != nil {
 		logger.Fatal(ctx, "load config:", err)
 	}
 
@@ -105,7 +101,6 @@ func main() {
 		cfg.RateLimit.AuthRecoverDuration(),
 	)
 
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	routers.SetupRouter(router.Group("/"), authHandler, limiter)
 
 	go func() {
