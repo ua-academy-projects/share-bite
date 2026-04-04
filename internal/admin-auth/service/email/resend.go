@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"strings"
@@ -15,8 +16,9 @@ import (
 )
 
 const (
-	resendSendEmailURL = "https://api.resend.com/emails"
-	resetEmailSubject  = "Reset your Share Bite password"
+	resendSendEmailURL        = "https://api.resend.com/emails"
+	resetEmailSubject         = "Reset your Share Bite password"
+	passwordResetTemplatePath = "internal/admin-auth/service/email/templates/password_reset.html"
 )
 
 type Sender interface {
@@ -27,6 +29,11 @@ type resendSender struct {
 	apiKey    string
 	fromEmail string
 	client    *http.Client
+	tpl       *template.Template
+}
+
+type passwordResetTemplateData struct {
+	Token string
 }
 
 type resendSendEmailRequest struct {
@@ -44,12 +51,18 @@ func NewResendSender(apiKey, fromEmail string) (Sender, error) {
 		return nil, errors.New("resend from email is empty")
 	}
 
+	tpl, err := template.ParseFiles(passwordResetTemplatePath)
+	if err != nil {
+		return nil, fmt.Errorf("parse password reset email template: %w", err)
+	}
+
 	return &resendSender{
 		apiKey:    apiKey,
 		fromEmail: fromEmail,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		tpl: tpl,
 	}, nil
 }
 
@@ -63,14 +76,16 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 
 	logger.InfoKV(ctx, "sending password reset email")
 
+	var htmlBody bytes.Buffer
+	if err := s.tpl.Execute(&htmlBody, passwordResetTemplateData{Token: token}); err != nil {
+		return fmt.Errorf("render password reset email template: %w", err)
+	}
+
 	reqBody, err := json.Marshal(resendSendEmailRequest{
 		From:    s.fromEmail,
 		To:      []string{toEmail},
 		Subject: resetEmailSubject,
-		HTML: fmt.Sprintf(
-			"<p>Hello,</p><p>You requested a password reset for your Share Bite account.</p><p>Your reset token:</p><p><strong>%s</strong></p><p>Use this token with the reset password API endpoint.</p>",
-			token,
-		),
+		HTML:    htmlBody.String(),
 	})
 	if err != nil {
 		return fmt.Errorf("marshal resend request: %w", err)
