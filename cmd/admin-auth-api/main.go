@@ -11,6 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -57,7 +58,8 @@ func main() {
 	userRepo := userrepo.New(client)
 
 	// services
-	authSvc := authsvc.New(userRepo)
+	txManager := txmanager.NewTransactionManager(client.DB())
+	authSvc := authsvc.New(userRepo, txManager)
 
 	// handlers
 	auth.RegisterHandlers(router.Group("/auth"), authSvc)

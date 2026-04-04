@@ -31,9 +31,18 @@ type loginRequest struct {
 }
 
 type registerRequest struct {
-	Email    string `json:"email" binding:"required,email,max=254"`
-	Password string `json:"password" binding:"required,min=8,max=72"`
-	Slug     string `json:"slug" binding:"required,oneof=user business"`
+	Email    string `json:"email" binding:"required,email,max=254" example:"user@example.com"`
+	Password string `json:"password" binding:"required,min=8,max=72" example:"strong-password-123"`
+	Slug     string `json:"slug" binding:"required,oneof=user business" enums:"user,business" example:"user"`
+}
+
+type authTokensResponse struct {
+	AccessToken  string `json:"access_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`
+	RefreshToken string `json:"refresh_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"`
+}
+
+type errorResponse struct {
+	Message string `json:"message" example:"invalid request payload"`
 }
 
 func (h *handler) login(c *gin.Context) {
@@ -55,6 +64,18 @@ func (h *handler) login(c *gin.Context) {
 	})
 }
 
+// register godoc
+//
+//	@Summary		Register admin user
+//	@Description	Create a new admin-auth account and return access and refresh tokens
+//	@Tags			auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		registerRequest		true	"Registration payload"
+//	@Success		201		{object}	authTokensResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Router			/auth/register [post]
 func (h *handler) register(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

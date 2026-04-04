@@ -9,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/config"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,11 +25,12 @@ type Service interface {
 }
 
 type service struct {
-	userRepo user.Repository
+	userRepo  user.Repository
+	txmanager database.TxManager
 }
 
-func New(userRepo user.Repository) Service {
-	return &service{userRepo: userRepo}
+func New(userRepo user.Repository, txmanager database.TxManager) Service {
+	return &service{userRepo: userRepo, txmanager: txmanager}
 }
 
 func (s *service) Login(ctx context.Context, email, password string) (*Tokens, error) {
@@ -65,14 +67,30 @@ func (s *service) Register(ctx context.Context, email, password, slug string) (*
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
+	var createdUserId string
+	if txErr := s.txmanager.ReadCommited(ctx, func(txCtx context.Context) error {
+		createdUser, err := s.userRepo.CreateUser(txCtx, user.CreateUser{
+			Email:        email,
+			PasswordHash: string(passwordHash),
+		})
+		if err != nil {
+			return fmt.Errorf("create user: %w", err)
+		}
 
-	createdUser, err := s.userRepo.CreateWithRole(ctx, user.CreateWithRoleParams{
-		Email:        email,
-		PasswordHash: string(passwordHash),
-		RoleID:       role.ID,
-	})
+		if err := s.userRepo.AssignRole(txCtx, createdUser.ID, role.ID); err != nil {
+			return fmt.Errorf("assign role to user: %w", err)
+		}
+		createdUserId = createdUser.ID
+		return nil
+	}); txErr != nil {
+		return nil, txErr
+	}
 
-	return s.generateTokens(createdUser.ID)
+	if createdUserId == "" {
+		return nil, errors.New("created user not found")
+	}
+
+	return s.generateTokens(createdUserId)
 }
 
 func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, error) {
