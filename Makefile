@@ -1,4 +1,4 @@
-run-guest:
+run-guest: docs-guest
 	go run cmd/guest-api/main.go
 
 run-business:
@@ -13,7 +13,7 @@ migrate-up:
 run-all:
 	make -j 3 run-guest run-business run-auth
 
-build:
+build: docs-guest
 	go build -o bin/migrator cmd/migrator/main.go
 	go build -o bin/guest-api cmd/guest-api/main.go
 	go build -o bin/business-api cmd/business-api/main.go
