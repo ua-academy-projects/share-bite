@@ -10,23 +10,23 @@ import (
 	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 )
 
-// @Summary Create a new collection
-// @Description Creates a new collection for the authenticated user.
+// @Summary		Create a new collection
+// @Description	Creates a new collection for the authenticated user.
 //
-// @Tags collections
-// @Accept json
-// @Produce json
-// @Security BearerAuth
+// @Tags			collections
+// @Accept			json
+// @Produce		json
+// @Security		BearerAuth
 //
-// @Param request body createCollectionRequest true "Collection details"
+// @Param			request	body		createCollectionRequest		true	"Collection details"
 //
-// @Success 201 {object} createCollectionResponse "Collection successfully created"
-// @Failure 400 {object} response.ErrorResponse "Validation error (e.g., name is empty or too long)"
-// @Failure 401 {object} response.AuthErrorResponse "Unauthorized: Missing or invalid token"
-// @Failure 403 {object} response.ErrorResponse "Forbidden: Customer profile not found or insufficient permissions"
-// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Success		201		{object}	createCollectionResponse	"Collection successfully created"
+// @Failure		400		{object}	response.ErrorResponse		"Validation error (e.g., name is empty or too long)"
+// @Failure		401		{object}	response.AuthErrorResponse	"Unauthorized: Missing or invalid token"
+// @Failure		403		{object}	response.ErrorResponse		"Forbidden: Customer profile not found or insufficient permissions"
+// @Failure		500		{object}	response.ErrorResponse		"Internal server error"
 //
-// @Router /collections [post]
+// @Router			/collections [post]
 func (h *handler) createCollection(c *gin.Context) {
 	var req createCollectionRequest
 	if err := request.BindJSON(c, &req); err != nil {

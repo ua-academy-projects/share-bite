@@ -37,16 +37,16 @@ import (
 	"net/http"
 )
 
-// @title Share Bite - Guest Service API
-// @version 1.0
-// @description API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
+// @title						Share Bite - Guest Service API
+// @version					1.0
+// @description				API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
 //
-// @host localhost:3800
-// @BasePath /
+// @host						localhost:3800
+// @BasePath					/
 //
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
 // @description				Type "Bearer " followed by your JWT token.
 func main() {
 	ctx := context.Background()

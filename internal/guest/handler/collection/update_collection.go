@@ -10,26 +10,26 @@ import (
 	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 )
 
-// @Summary Update a collection
-// @Description Updates the details of an existing collection (name, description, or visibility).
-// @Description Only the provided fields will be updated. Fails if the user does not own the collection.
+// @Summary		Update a collection
+// @Description	Updates the details of an existing collection (name, description, or visibility).
+// @Description	Only the provided fields will be updated. Fails if the user does not own the collection.
 //
-// @Tags collections
-// @Accept json
-// @Produce json
-// @Security BearerAuth
+// @Tags			collections
+// @Accept			json
+// @Produce		json
+// @Security		BearerAuth
 //
-// @Param collectionId path string true "Collection ID (UUID)"
-// @Param request body updateCollectionBody true "Collection fields to update"
+// @Param			collectionId	path		string						true	"Collection ID (UUID)"
+// @Param			request			body		updateCollectionBody		true	"Collection fields to update"
 //
-// @Success 200 {object} updateCollectionResponse "Collection successfully updated"
-// @Failure 400 {object} response.ErrorResponse "Validation error (e.g., empty update payload) or bad request"
-// @Failure 401 {object} response.AuthErrorResponse "Unauthorized: Missing or invalid token"
-// @Failure 403 {object} response.ErrorResponse "Forbidden: Customer profile not found or user does not own this collection"
-// @Failure 404 {object} response.ErrorResponse "Not Found: Collection not found"
-// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Success		200				{object}	updateCollectionResponse	"Collection successfully updated"
+// @Failure		400				{object}	response.ErrorResponse		"Validation error (e.g., empty update payload) or bad request"
+// @Failure		401				{object}	response.AuthErrorResponse	"Unauthorized: Missing or invalid token"
+// @Failure		403				{object}	response.ErrorResponse		"Forbidden: Customer profile not found or user does not own this collection"
+// @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection not found"
+// @Failure		500				{object}	response.ErrorResponse		"Internal server error"
 //
-// @Router /collections/{collectionId} [patch]
+// @Router			/collections/{collectionId} [patch]
 func (h *handler) updateCollection(c *gin.Context) {
 	var uri updateCollectionUri
 	if err := request.BindUri(c, &uri); err != nil {
