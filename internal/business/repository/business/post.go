@@ -31,8 +31,8 @@ func (r *Repository) GetPostByID(ctx context.Context, postID int64) (*entity.Pos
 		&post.CreatedAt,
 	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("post not found: %w", err)
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("get post by id: %w", err)
 	}
@@ -54,7 +54,7 @@ func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, 
 
 	err := r.db.DB().QueryRowContext(ctx, q, userID).Scan(&orgID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrNotFound
 		}
 		return 0, err
@@ -115,7 +115,7 @@ func (r *Repository) UpdatePost(ctx context.Context, postID int64, orgID int, co
 		Scan(&post.ID, &post.OrgID, &post.Content, &post.CreatedAt)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
 		return nil, err
@@ -206,7 +206,7 @@ func (r *Repository) CreatePost(ctx context.Context, userID string, unitID int, 
 	return &post, nil
 }
 
-func (r *Repository) InsertPostImages(ctx context.Context, postID int, URLs []string) error {
+func (r *Repository) InsertPostImages(ctx context.Context, postID int64, URLs []string) error {
 	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
 	if !ok {
 		return fmt.Errorf("transaction not found in context")
@@ -227,7 +227,7 @@ func (r *Repository) GetPosts(ctx context.Context, limit, offset int) ([]entity.
 		Sql: `
 			SELECT id, org_id, content, created_at
 			FROM business.posts
-			ORDER BY created_at DESC
+			ORDER BY created_at DESC, id DESC
 			LIMIT $1 OFFSET $2
 		`,
 	}

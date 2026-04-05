@@ -21,7 +21,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Install swag
-        run: go install github.com/swaggo/swag/cmd/swag@latest
+        run: go install github.com/swaggo/swag/cmd/swag@v1.16.6
       - name: Generate swagger
         run: swag init -g cmd/business-api/main.go -o docs/api
       - name: Build

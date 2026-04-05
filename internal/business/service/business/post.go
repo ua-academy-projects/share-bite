@@ -69,7 +69,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		if err != nil {
 			return fmt.Errorf("create post: %w", err)
 		}
-		err = s.businessRepo.InsertPostImages(ctxTx, int(post.ID), URLs)
+		err = s.businessRepo.InsertPostImages(ctxTx, post.ID, URLs)
 		if err != nil {
 			return fmt.Errorf("insert images: %w", err)
 		}
