@@ -16,4 +16,6 @@ var (
 
 	BadRequest Code = "BAD_REQUEST"
 	Internal   Code = "INTERNAL"
+
+	Forbidden Code = "PERMISSION_DENIED"
 )

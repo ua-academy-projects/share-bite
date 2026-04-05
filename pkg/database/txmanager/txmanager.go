@@ -49,9 +49,9 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn databa
 			return
 		}
 
-		if nil == err {
+		if err == nil {
 			if commitErr := tx.Commit(ctx); commitErr != nil {
-				err = fmt.Errorf("transaction commit: %w", err)
+				err = errwrap.Wrap("transaction commit", commitErr)
 			}
 		}
 	}()
