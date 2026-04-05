@@ -5,19 +5,26 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	swaggerfiles "github.com/swaggo/files"
+	ginswagger "github.com/swaggo/gin-swagger"
+	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	commenthandler "github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
+	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
 	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
+	collectionsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/collection"
 	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
+	"github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
@@ -30,6 +37,17 @@ import (
 	"net/http"
 )
 
+// @title Share Bite - Guest Service API
+// @version 1.0
+// @description API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
+//
+// @host localhost:3800
+// @BasePath /
+//
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description				Type "Bearer " followed by your JWT token.
 func main() {
 	ctx := context.Background()
 
@@ -47,6 +65,8 @@ func main() {
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
+
+	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 
 	binding.Validator = validator.New("binding")
 
@@ -99,23 +119,37 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-	authMiddleware := middleware.Auth(tokenManager)
-	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
 
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
 	commentRepo := commentrepo.New(client)
+	collectionRepo := collectionrepo.New(client)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
 	txManager := txmanager.NewTransactionManager(client.DB())
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
+	collectionSvc := collectionsvc.New(collectionRepo, businessGateway)
+
+	// middlewares
+	authMiddleware := middleware.Auth(tokenManager)
+	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
+	customerMiddleware := middleware.CustomerID(customerSvc)
+
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	commenthandler.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+
+	collection.RegisterHandlers(
+		router.Group("/collections"),
+		collectionSvc,
+		authMiddleware,
+		optionalAuthMiddleware,
+		customerMiddleware,
+	)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")
@@ -137,16 +171,22 @@ func ErrorMiddleware() gin.HandlerFunc {
 		}
 
 		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
+		resp := response.ErrorResponse{
+			Message: "internal server error",
 		}
 
-		var valErr *validator.ValidationError
-		if errors.As(err, &valErr) {
-			respCode = http.StatusBadRequest
-			resp = map[string]any{
-				"message": valErr.Error(),
-				"errors":  valErr.Errors,
+		var validationErr *validator.ValidationError
+		if errors.As(err, &validationErr) {
+			details := make([]response.ErrorDetail, 0, len(validationErr.Errors))
+			for _, e := range validationErr.Errors {
+				details = append(details, response.ErrorDetail{
+					Field:   e.Field,
+					Message: e.Message,
+				})
+			}
+			resp = response.ErrorResponse{
+				Message: validationErr.Error(),
+				Details: details,
 			}
 
 			c.JSON(respCode, resp)
@@ -178,9 +218,7 @@ func ErrorMiddleware() gin.HandlerFunc {
 				respCode = http.StatusInternalServerError
 			}
 
-			resp = map[string]any{
-				"message": appErr.Error(),
-			}
+			resp.Message = appErr.Error()
 		}
 
 		c.JSON(respCode, resp)
