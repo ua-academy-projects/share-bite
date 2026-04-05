@@ -119,6 +119,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 			case code.BadRequest:
 				c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Error()})
 				return
+			case code.Forbidden:
+				c.JSON(http.StatusForbidden, gin.H{"error": appErr.Error()})
+				return
 			}
 		}
 

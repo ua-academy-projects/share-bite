@@ -18,6 +18,7 @@ type businessRepository interface {
 	CreatePost(ctx context.Context, userID string, unitID int, description string) (*entity.Post, error)
 	InsertPostImages(ctx context.Context, postID int, URLs []string) error
 	GetPosts(ctx context.Context, limit, offset int) ([]entity.Post, error)
+	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
 }
 
 type service struct {

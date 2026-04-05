@@ -29,8 +29,8 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 
 	auth := middleware.Auth(parser)
 
-	r.GET("/:id", h.get)
-	r.GET("/:id/locations", h.list)
+	r.GET("/org-units/:id", h.get)
+	r.GET("/org-units/:id/locations", h.list)
 	r.GET("/posts", h.GetPosts)
 
 	businessOnly := r.Group("/").

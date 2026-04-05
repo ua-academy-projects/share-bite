@@ -9,19 +9,24 @@ import (
 )
 
 func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error) {
-	orgID, err := s.businessRepo.GetOrgIDByUserID(ctx, userID)
+	post, err := s.businessRepo.GetPostByID(ctx, postID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get post: %w", err)
 	}
 
-	post, err := s.businessRepo.UpdatePost(ctx, postID, orgID, content)
+	err = s.businessRepo.CheckOwnership(ctx, userID, post.OrgID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("check ownership: %w", err)
+	}
+
+	post, err = s.businessRepo.UpdatePost(ctx, postID, post.OrgID, content)
+	if err != nil {
+		return nil, fmt.Errorf("update post: %w", err)
 	}
 
 	photos, err := s.businessRepo.GetPostPhotos(ctx, post.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get photos: %w", err)
 	}
 
 	return &entity.PostWithPhotos{
@@ -34,12 +39,17 @@ func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, c
 }
 
 func (s *service) DeletePost(ctx context.Context, postID int64, userID string) error {
-	orgID, err := s.businessRepo.GetOrgIDByUserID(ctx, userID)
+	post, err := s.businessRepo.GetPostByID(ctx, postID)
 	if err != nil {
-		return err
+		return fmt.Errorf("get post: %w", err)
 	}
 
-	return s.businessRepo.DeletePost(ctx, postID, orgID)
+	err = s.businessRepo.CheckOwnership(ctx, userID, post.OrgID)
+	if err != nil {
+		return fmt.Errorf("check ownership: %w", err)
+	}
+
+	return s.businessRepo.DeletePost(ctx, postID, post.OrgID)
 }
 
 func (s *service) CheckOwnership(ctx context.Context, userID string, unitID int) error { //for handlers
@@ -73,6 +83,8 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 }
 
 func (s *service) GetPosts(ctx context.Context, page, limit int) ([]entity.PostWithPhotos, error) {
+	const maxLimit = 100
+
 	if page < 1 {
 		page = 1
 	}
@@ -81,8 +93,9 @@ func (s *service) GetPosts(ctx context.Context, page, limit int) ([]entity.PostW
 		limit = 10
 	}
 
-	if page < 1 || limit < 1 {
-		logger.Warn(ctx, "invalid pagination params, using defaults")
+	if limit > maxLimit {
+		logger.WarnKV(ctx, "pagination limit is too large, clamping", "limit", limit, "max_limit", maxLimit)
+		limit = maxLimit
 	}
 
 	offset := (page - 1) * limit

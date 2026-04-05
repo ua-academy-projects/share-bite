@@ -12,6 +12,34 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
 
+func (r *Repository) GetPostByID(ctx context.Context, postID int64) (*entity.Post, error) {
+	q := database.Query{
+		Name: "get_post_by_id",
+		Sql: `
+			SELECT id, org_id, content, created_at
+		FROM business.posts
+		WHERE id = $1
+		`,
+	}
+
+	var post entity.Post
+
+	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(
+		&post.ID,
+		&post.OrgID,
+		&post.Content,
+		&post.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("post not found: %w", err)
+		}
+		return nil, fmt.Errorf("get post by id: %w", err)
+	}
+
+	return &post, nil
+}
+
 func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, error) {
 	q := database.Query{
 		Name: "get_org_by_user_id",

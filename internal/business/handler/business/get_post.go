@@ -19,11 +19,11 @@ func (h *handler) GetPosts(c *gin.Context) {
 
 	posts, err := h.service.GetPosts(ctx, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		_ = c.Error(err)
 		return
 	}
 
-	var response []dto.PostResponse
+	response := make([]dto.PostResponse, 0, len(posts))
 
 	for _, post := range posts {
 		response = append(response, dto.PostResponse{

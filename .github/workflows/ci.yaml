@@ -20,6 +20,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      - name: Install swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+      - name: Generate swagger
+        run: swag init -g cmd/business-api/main.go -o docs/api
       - name: Build
         run: go build ./...
       - name: Test
