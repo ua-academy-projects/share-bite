@@ -63,41 +63,41 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 }
 
 func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error) {
-	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = 'published'`
+	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = $1`
 	countQ := database.Query{
 		Name: "post_repository.List.Count",
 		Sql:  countSQL,
 	}
 	var total int
-	err := r.db.DB().QueryRowContext(ctx, countQ).Scan(&total)
+	err := r.db.DB().QueryRowContext(ctx, countQ, entity.PostStatusPublished).Scan(&total)
 	if err != nil {
 		return entity.ListPostsOutput{}, scanRowError(err)
 	}
 
 	// Get paginated posts
-	sql := `
-		SELECT
-		       p.id,
-		       p.customer_id,
-		       p.venue_id,
-		       p.text,
-		       p.rating,
-		       p.status,
-		       p.created_at,
-		       p.updated_at,
-		       (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
-		       EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($3, '')::uuid) AS is_liked_by_me
-		FROM guest.posts p
-		WHERE p.status = 'published'
-		ORDER BY p.created_at DESC, p.id DESC
-		LIMIT $1 OFFSET $2
-	`
+  sql := `
+		  SELECT
+		        p.id,
+		        p.customer_id,
+		        p.venue_id,
+		        p.text,
+		        p.rating,
+		        p.status,
+		        p.created_at,
+		        p.updated_at,
+		        (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
+		        EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($4, '')::uuid) AS is_liked_by_me
+		  FROM guest.posts p
+		  WHERE p.status = $1
+		  ORDER BY p.created_at DESC, p.id DESC
+	 	  LIMIT $2 OFFSET $3
+	  `
 	q := database.Query{
 		Name: "post_repository.List",
 		Sql:  sql,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, in.Limit, in.Offset, in.CustomerID)
+  rows, err := r.db.DB().QueryContext(ctx, q, entity.PostStatusPublished, in.Limit, in.Offset, in.CustomerID)
 	if err != nil {
 		return entity.ListPostsOutput{}, executeSQLError(err)
 	}
@@ -115,7 +115,7 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 }
 
 func (r *Repository) Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error) {
-	sql := `
+sql := `
 		SELECT
 		       p.id,
 		       p.customer_id,
@@ -126,17 +126,17 @@ func (r *Repository) Get(ctx context.Context, postID string, reqCustomerID strin
 		       p.created_at,
 		       p.updated_at,
 		       (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
-		       EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($2, '')::uuid) AS is_liked_by_me
+		       EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($3, '')::uuid) AS is_liked_by_me
 		FROM guest.posts p
 		WHERE p.id = $1
-		  AND p.status = 'published'
+		  AND p.status = $2
 	`
 	q := database.Query{
 		Name: "post_repository.Get",
 		Sql:  sql,
 	}
 
-	row, err := r.db.DB().QueryContext(ctx, q, postID, reqCustomerID)
+  row, err := r.db.DB().QueryContext(ctx, q, postID, entity.PostStatusPublished, reqCustomerID)
 	if err != nil {
 		return entity.Post{}, executeSQLError(err)
 	}

@@ -1,20 +1,20 @@
 package post
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 type Post struct {
-	ID         int64  `db:"id"`
-	CustomerID string `db:"customer_id"`
-	VenueID    string `db:"venue_id"`
-	Text       string `db:"text"`
-	Rating     int16  `db:"rating"`
-	Status     string `db:"status"`
+	ID         int64             `db:"id"`
+	CustomerID string            `db:"customer_id"`
+	VenueID    string            `db:"venue_id"`
+	Text       string            `db:"text"`
+	Rating     int16             `db:"rating"`
+	Status     entity.PostStatus `db:"status"`
 
 	LikesCount  int  `db:"likes_count"`
 	IslikedByMe bool `db:"is_liked_by_me"`
@@ -49,13 +49,13 @@ func (ps Posts) ToEntities() []entity.Post {
 }
 
 func executeSQLError(err error) error {
-	return errwrap.Wrap("execute sql", err)
+	return fmt.Errorf("execute sql: %w", err)
 }
 
 func scanRowError(err error) error {
-	return errwrap.Wrap("scan row", err)
+	return fmt.Errorf("scan row: %w", err)
 }
 
 func scanRowsError(err error) error {
-	return errwrap.Wrap("scan rows", err)
+	return fmt.Errorf("scan rows: %w", err)
 }

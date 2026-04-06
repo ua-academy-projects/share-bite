@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
+	"net/url"
 
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
+
+const maxErrorBodySize = 2048
 
 type BusinessAPIClient struct {
 	client  *http.Client
@@ -24,50 +26,44 @@ func NewBusinessAPIClient(baseURL string, client *http.Client) *BusinessAPIClien
 }
 
 func (c *BusinessAPIClient) CheckExists(ctx context.Context, venueID string) (bool, error) {
-	address := normalizeDialAddress(c.baseURL)
-	url := fmt.Sprintf("http://%s/api/internal/venues/%s", address, venueID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	reqURL, err := url.JoinPath(c.baseURL, "api", "internal", "venues", venueID)
 	if err != nil {
-		return false, errwrap.Wrap("create request", err)
+		return false, fmt.Errorf("join url path: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return false, fmt.Errorf("create request: %w", err)
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return false, errwrap.Wrap("execute request", err)
+		return false, fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err)
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 	}()
 
-	if resp.StatusCode == http.StatusNotFound {
+	statusCode := resp.StatusCode
+
+	if statusCode == http.StatusOK {
+		var dto businessVenueResponseDTO
+		if err := json.NewDecoder(resp.Body).Decode(&dto); err != nil {
+			return false, fmt.Errorf("decode response: %w: %w", apperror.ErrUpstreamError, err)
+		}
+		return dto.Status == "active", nil
+	}
+
+	if statusCode == http.StatusNotFound {
 		return false, nil
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	errBody, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodySize))
+
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		return false, fmt.Errorf("client error %d: %s: %w", statusCode, string(errBody), apperror.ErrUpstreamError)
 	}
 
-	var dto businessVenueResponseDTO
-	if err := json.NewDecoder(resp.Body).Decode(&dto); err != nil {
-		return false, errwrap.Wrap("decode response", err)
-	}
-
-	isActive := dto.Status == "active"
-
-	return isActive, nil
-}
-
-func normalizeDialAddress(address string) string {
-	host, port, err := net.SplitHostPort(address)
-	if err != nil {
-		return address
-	}
-
-	if host == "0.0.0.0" || host == "::" || host == "" {
-		host = "localhost"
-	}
-
-	return net.JoinHostPort(host, port)
+	return false, fmt.Errorf("server error %d: %s: %w", statusCode, string(errBody), apperror.ErrUpstreamError)
 }
