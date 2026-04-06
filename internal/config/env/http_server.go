@@ -7,8 +7,9 @@ import (
 )
 
 type httpServerConfig struct {
-	Host string `env:"HTTP_SERVER_HOST,required"`
-	Port string `env:"HTTP_SERVER_PORT,required"`
+	Host               string   `env:"HTTP_SERVER_HOST,required"`
+	Port               string   `env:"HTTP_SERVER_PORT,required"`
+	CorsAllowedOrigins []string `env:"CORS_ALLOWED_ORIGINS" envSeparator:","`
 }
 
 func NewHttpServerConfig(prefix string) (*httpServerConfig, error) {
@@ -24,4 +25,11 @@ func NewHttpServerConfig(prefix string) (*httpServerConfig, error) {
 
 func (c *httpServerConfig) Address() string {
 	return net.JoinHostPort(c.Host, c.Port)
+}
+
+func (c *httpServerConfig) AllowedOrigins() []string {
+	if len(c.CorsAllowedOrigins) == 0 {
+		return []string{"*"}
+	}
+	return c.CorsAllowedOrigins
 }

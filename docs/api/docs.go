@@ -399,7 +399,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
 	BasePath:         "/",
-	Schemes:          []string{},
+	Schemes:          []string{"http"},
 	Title:            "ShareBite Business API",
 	Description:      "API for discovering brand locations (venues).",
 	InfoInstanceName: "swagger",

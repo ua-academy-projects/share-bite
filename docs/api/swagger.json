@@ -7,6 +7,9 @@
         "version": "1.0"
     },
     "basePath": "/",
+    "schemes": [
+        "http"
+    ],
     "paths": {
         "/business/{id}": {
             "get": {

@@ -37,6 +37,12 @@ func (h *handler) get(c *gin.Context) {
 		return
 	}
 
+	if location.ParentId == nil {
+		logger.ErrorKV(ctx, "org unit is a brand, not a location", "id", req.ID)
+		c.Error(apperror.OrgUnitNotFoundID(req.ID))
+		return
+	}
+
 	resp := getResponse{
 		Id:          location.Id,
 		Name:        location.Name,

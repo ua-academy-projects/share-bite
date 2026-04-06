@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-contrib/cors"
@@ -45,8 +46,9 @@ func main() {
 	// }
 
 	router := gin.New()
+	fmt.Println("CORS ALLOWED !!!!", config.Config().BusinessHttpServer.AllowedOrigins())
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     config.Config().BusinessHttpServer.AllowedOrigins(),
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

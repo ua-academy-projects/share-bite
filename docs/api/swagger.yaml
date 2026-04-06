@@ -97,6 +97,8 @@ info:
   description: API for discovering brand locations (venues).
   title: ShareBite Business API
   version: "1.0"
+schemes:
+- http
 paths:
   /business/{id}:
     get:
