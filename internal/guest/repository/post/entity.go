@@ -16,20 +16,25 @@ type Post struct {
 	Rating     int16  `db:"rating"`
 	Status     string `db:"status"`
 
+	LikesCount  int  `db:"likes_count"`
+	IslikedByMe bool `db:"is_liked_by_me"`
+
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
 func (p *Post) ToEntity() entity.Post {
 	return entity.Post{
-		ID:         strconv.FormatInt(p.ID, 10),
-		CustomerID: p.CustomerID,
-		VenueID:    p.VenueID,
-		Text:       p.Text,
-		Rating:     p.Rating,
-		Status:     p.Status,
-		CreatedAt:  p.CreatedAt,
-		UpdatedAt:  p.UpdatedAt,
+		ID:          strconv.FormatInt(p.ID, 10),
+		CustomerID:  p.CustomerID,
+		VenueID:     p.VenueID,
+		Text:        p.Text,
+		Rating:      p.Rating,
+		Status:      p.Status,
+		LikesCount:  p.LikesCount,
+		IsLikedByMe: p.IslikedByMe,
+		CreatedAt:   p.CreatedAt,
+		UpdatedAt:   p.UpdatedAt,
 	}
 }
 

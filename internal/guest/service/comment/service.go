@@ -14,7 +14,7 @@ type commentRepository interface {
 }
 
 type postService interface {
-	Get(ctx context.Context, postID string) (entity.Post, error)
+	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
 }
 
 type service struct {

@@ -1,6 +1,7 @@
 package post
 
 import (
+	"github.com/ua-academy-projects/share-bite/internal/guest/util/httpctx"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,8 @@ func (h *handler) get(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	post, err := h.service.Get(ctx, req.ID)
+	customerID := getOptionalCustomerID(c, h.customerService)
+	post, err := h.service.Get(ctx, req.ID, customerID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -31,4 +33,15 @@ type getRequest struct {
 
 type getResponse struct {
 	Post postResponse `json:"post"`
+}
+
+func getOptionalCustomerID(c *gin.Context, custSvc customerService) string {
+	userID, err := httpctx.GetUserID(c)
+	if err == nil && userID != "" {
+		customer, err := custSvc.GetByUserID(c.Request.Context(), userID)
+		if err == nil {
+			return customer.ID
+		}
+	}
+	return ""
 }

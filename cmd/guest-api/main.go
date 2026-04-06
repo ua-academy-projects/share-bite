@@ -96,6 +96,7 @@ func main() {
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
 	authMiddleware := middleware.Auth(tokenManager)
+	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
 
 	// repos
 	postRepo := postrepo.New(client)
@@ -108,8 +109,8 @@ func main() {
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
-	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware)
-	commenthandler.RegisterHandlers(router.Group("/posts"), commentSvc, customerSvc, authMiddleware)
+	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware)
+	commenthandler.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

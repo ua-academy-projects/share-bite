@@ -11,6 +11,9 @@ type Post struct {
 	Rating     int16
 	Status     string
 
+	LikesCount  int
+	IsLikedByMe bool
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -23,8 +26,9 @@ type CreatePostInput struct {
 }
 
 type ListPostsInput struct {
-	Limit  int
-	Offset int
+	Limit      int
+	Offset     int
+	CustomerID string
 }
 
 type ListPostsOutput struct {

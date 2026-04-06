@@ -11,7 +11,7 @@ import (
 func (s *service) Create(ctx context.Context, in entity.CreateCommentInput) (entity.Comment, error) {
 	postIDStr := strconv.FormatInt(in.PostID, 10)
 
-	_, err := s.postSvc.Get(ctx, postIDStr)
+	_, err := s.postSvc.Get(ctx, postIDStr, "")
 	if err != nil {
 		return entity.Comment{}, errwrap.Wrap("check post existence in comment service", err)
 	}

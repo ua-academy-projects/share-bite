@@ -16,9 +16,11 @@ func (h *handler) list(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+	customerID := getOptionalCustomerID(c, h.customerService)
 	in := entity.ListPostsInput{
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		Limit:      req.Limit,
+		Offset:     req.Offset,
+		CustomerID: customerID,
 	}
 	out, err := h.service.List(ctx, in)
 	if err != nil {

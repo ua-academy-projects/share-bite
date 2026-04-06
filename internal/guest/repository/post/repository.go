@@ -77,17 +77,19 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 	// Get paginated posts
 	sql := `
 		SELECT
-		       id,
-		       customer_id,
-		       venue_id,
-		       text,
-		       rating,
-		       status,
-		       created_at,
-		       updated_at
-		FROM guest.posts
-		WHERE status = 'published'
-		ORDER BY created_at DESC, id DESC
+		       p.id,
+		       p.customer_id,
+		       p.venue_id,
+		       p.text,
+		       p.rating,
+		       p.status,
+		       p.created_at,
+		       p.updated_at,
+		       (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
+		       EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($3, '')::uuid) AS is_liked_by_me
+		FROM guest.posts p
+		WHERE p.status = 'published'
+		ORDER BY p.created_at DESC, p.id DESC
 		LIMIT $1 OFFSET $2
 	`
 	q := database.Query{
@@ -95,7 +97,7 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 		Sql:  sql,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, in.Limit, in.Offset)
+	rows, err := r.db.DB().QueryContext(ctx, q, in.Limit, in.Offset, in.CustomerID)
 	if err != nil {
 		return entity.ListPostsOutput{}, executeSQLError(err)
 	}
@@ -112,27 +114,29 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 	}, nil
 }
 
-func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error) {
+func (r *Repository) Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error) {
 	sql := `
 		SELECT
-		       id,
-		       customer_id,
-		       venue_id,
-		       text,
-		       rating,
-		       status,
-		       created_at,
-		       updated_at
-		FROM guest.posts
-		WHERE id = $1
-		  AND status = 'published'
+		       p.id,
+		       p.customer_id,
+		       p.venue_id,
+		       p.text,
+		       p.rating,
+		       p.status,
+		       p.created_at,
+		       p.updated_at,
+		       (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
+		       EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($2, '')::uuid) AS is_liked_by_me
+		FROM guest.posts p
+		WHERE p.id = $1
+		  AND p.status = 'published'
 	`
 	q := database.Query{
 		Name: "post_repository.Get",
 		Sql:  sql,
 	}
 
-	row, err := r.db.DB().QueryContext(ctx, q, postID)
+	row, err := r.db.DB().QueryContext(ctx, q, postID, reqCustomerID)
 	if err != nil {
 		return entity.Post{}, executeSQLError(err)
 	}
@@ -168,6 +172,43 @@ func translatePostInsertError(err error, in entity.CreatePostInput) error {
 		}
 	case pgerrcode.CheckViolation:
 		return apperror.ErrInvalidPostData
+	}
+
+	return nil
+}
+
+func (r *Repository) Like(ctx context.Context, postID string, customerID string) error {
+	sql := `
+        INSERT INTO guest.post_likes (post_id, customer_id) 
+        VALUES ($1, $2) 
+        ON CONFLICT DO NOTHING
+    `
+	q := database.Query{
+		Name: "post_repository.Like",
+		Sql:  sql,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, postID, customerID)
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) Unlike(ctx context.Context, postID string, customerID string) error {
+	sql := `
+        DELETE FROM guest.post_likes 
+        WHERE post_id = $1 AND customer_id = $2
+    `
+	q := database.Query{
+		Name: "post_repository.Unlike",
+		Sql:  sql,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, postID, customerID)
+	if err != nil {
+		return executeSQLError(err)
 	}
 
 	return nil

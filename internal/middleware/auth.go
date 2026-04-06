@@ -69,3 +69,27 @@ func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		header := c.GetHeader(authorizationHeader)
+		if header == "" {
+			c.Next()
+			return
+		}
+
+		headerParts := strings.Split(header, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			c.Next()
+			return
+		}
+
+		userID, role, err := parser.ParseAccessToken(headerParts[1])
+		if err == nil {
+			c.Set(CtxUserID, userID)
+			c.Set(CtxUserRole, role)
+		}
+
+		c.Next()
+	}
+}
