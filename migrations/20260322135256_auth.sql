@@ -34,7 +34,6 @@ VALUES ('admin', 'Адміністратор'),
        ('business', 'Бізнес'),
        ('moderator', 'Модератор');
 
-
 -- +goose Down
 DROP TABLE IF EXISTS auth.user_roles;
 DROP TABLE IF EXISTS auth.users;
