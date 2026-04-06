@@ -52,7 +52,10 @@ func (h *handler) list(c *gin.Context) {
 	if req.Skip < 0 {
 		req.Skip = 0
 	}
-	if req.Limit < 1 {
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
+	if req.Limit < 0 {
 		req.Limit = 1
 	}
 	if req.Limit > 100 {
