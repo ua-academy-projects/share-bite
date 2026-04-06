@@ -14,6 +14,7 @@ import (
 type businessRepository interface {
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
+	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 }
 
 type service struct {
@@ -45,4 +46,13 @@ func (s *service) List(ctx context.Context, brandId, skip, limit int) (paginatio
 	}
 
 	return result, nil
+}
+
+func (s *service) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error) {
+	venues, err := s.businessRepo.GetVenuesByIDs(ctx, ids)
+	if err != nil {
+		return nil, errwrap.Wrap("get venues by ids from business repository", err)
+	}
+
+	return venues, nil
 }

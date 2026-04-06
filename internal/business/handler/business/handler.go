@@ -15,6 +15,7 @@ type handler struct {
 type businessService interface {
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
+	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 }
 
 func RegisterHandlers(
@@ -27,6 +28,7 @@ func RegisterHandlers(
 
 	r.GET("/:id", h.get)
 	r.GET("/:id/locations", h.list)
+	r.POST("/venues", h.getVenuesByIDs)
 }
 
 // errorResponse is used for swagger documentation.

@@ -92,3 +92,38 @@ func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit
 		},
 	)
 }
+
+func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error) {
+	q := database.Query{
+		Name: "business_repository.GetVenuesByIDs",
+		Sql: `
+			SELECT id, name, description, avatar, banner
+			FROM business.org_units
+			WHERE id = ANY($1) AND parent_id IS NOT NULL
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, ids)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var result []entity.OrgUnit
+	for rows.Next() {
+		var ou OrgUnit
+		err := rows.Scan(
+			&ou.Id,
+			&ou.Name,
+			&ou.Description,
+			&ou.Avatar,
+			&ou.Banner,
+		)
+		if err != nil {
+			return nil, scanRowsError(err)
+		}
+		result = append(result, ou.ToEntity())
+	}
+
+	return result, nil
+}
