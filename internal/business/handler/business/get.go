@@ -22,7 +22,7 @@ import (
 //	@Router			/business/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	req := new(getRequest)
-	if err := c.ShouldBindUri(req); err != nil {
+	if err := c.ShouldBindUri(req); err != nil || req.ID < 1 {
 		c.Error(apperror.BadRequest("invalid location id"))
 		return
 	}
@@ -34,6 +34,12 @@ func (h *handler) get(c *gin.Context) {
 	if err != nil {
 		logger.ErrorKV(ctx, "failed to get location", "id", req.ID, "error", err)
 		c.Error(err)
+		return
+	}
+
+	if location.ParentId == nil {
+		logger.ErrorKV(ctx, "org unit is a brand, not a location", "id", req.ID)
+		c.Error(apperror.OrgUnitNotFoundID(req.ID))
 		return
 	}
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error) {
@@ -78,11 +78,12 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 	return post, nil
 }
 
-func (s *service) GetPosts(ctx context.Context, page, limit int) ([]entity.PostWithPhotos, error) {
+func (s *service) GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error) {
+
 	const maxLimit = 100
 
-	if page < 1 {
-		page = 1
+	if skip < 0 {
+		skip = 0
 	}
 
 	if limit < 1 {
@@ -90,38 +91,34 @@ func (s *service) GetPosts(ctx context.Context, page, limit int) ([]entity.PostW
 	}
 
 	if limit > maxLimit {
-		logger.WarnKV(ctx, "pagination limit is too large, clamping", "limit", limit, "max_limit", maxLimit)
 		limit = maxLimit
 	}
 
-	offset := (page - 1) * limit
-
-	posts, err := s.businessRepo.GetPosts(ctx, limit, offset)
+	posts, err := s.businessRepo.GetPosts(ctx, limit, skip)
 	if err != nil {
-		return nil, fmt.Errorf("get posts: %w", err)
+		return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("get posts: %w", err)
 	}
 
-	var result []entity.PostWithPhotos
-
 	orgCache := make(map[int]*entity.OrgUnit)
+	var items []entity.PostWithPhotos
 
-	for _, post := range posts {
+	for _, post := range posts.Items {
 
 		photos, err := s.businessRepo.GetPostPhotos(ctx, post.ID)
 		if err != nil {
-			return nil, fmt.Errorf("get photos for post %d: %w", post.ID, err)
+			return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("get photos: %w", err)
 		}
 
 		org, ok := orgCache[post.OrgID]
 		if !ok {
 			org, err = s.businessRepo.GetById(ctx, post.OrgID)
 			if err != nil {
-				return nil, fmt.Errorf("get org for post %d: %w", post.ID, err)
+				return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("get org: %w", err)
 			}
 			orgCache[post.OrgID] = org
 		}
 
-		result = append(result, entity.PostWithPhotos{
+		items = append(items, entity.PostWithPhotos{
 			ID:          post.ID,
 			OrgID:       post.OrgID,
 			Content:     post.Content,
@@ -132,5 +129,8 @@ func (s *service) GetPosts(ctx context.Context, page, limit int) ([]entity.PostW
 		})
 	}
 
-	return result, nil
+	return pagination.Result[entity.PostWithPhotos]{
+		Items: items,
+		Total: posts.Total,
+	}, nil
 }

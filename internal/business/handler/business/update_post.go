@@ -15,6 +15,23 @@ type updatePostRequest struct {
 	Content string `json:"content" binding:"required"`
 }
 
+// UpdatePost updates post content by ID.
+//
+// @Summary      Update post
+// @Description  Updates the content of a post if the user has permission
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Param        id    path      int                 true  "Post ID"
+// @Param        input body      updatePostRequest   true  "Updated post content"
+// @Success      200   {object}  dto.PostResponse
+// @Failure      400   {object}  errorResponse
+// @Failure      401   {object}  errorResponse
+// @Failure      403   {object}  errorResponse
+// @Failure      404   {object}  errorResponse
+// @Failure      500   {object}  errorResponse
+// @Security     BearerAuth
+// @Router       /business/posts/{id} [put]
 func (h *handler) UpdatePost(c *gin.Context) {
 	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

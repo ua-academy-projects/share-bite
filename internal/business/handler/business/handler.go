@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 type handler struct {
@@ -17,9 +18,8 @@ type businessService interface {
 	DeletePost(ctx context.Context, postID int64, userID string) error
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
-	List(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
-
-	GetPosts(ctx context.Context, page, limit int) ([]entity.PostWithPhotos, error)
+	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
+	GetPosts(ctx context.Context, page, limit int) (pagination.Result[entity.PostWithPhotos], error)
 }
 
 func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {

@@ -10,6 +10,19 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
+// DeletePost deletes a post by ID.
+//
+// @Summary      Delete post
+// @Description  Deletes a post if the user has permission (owner of the org)
+// @Tags         posts
+// @Produce      json
+// @Param        id   path      int  true  "Post ID"
+// @Success      204  "No Content"
+// @Failure      400  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Security     BearerAuth
+// @Router       /business/posts/{id} [delete]
 func (h *handler) DeletePost(c *gin.Context) {
 	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || postID <= 0 {

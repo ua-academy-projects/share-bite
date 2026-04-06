@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
 
@@ -221,36 +222,27 @@ func (r *Repository) InsertPostImages(ctx context.Context, postID int64, URLs []
 	return nil
 }
 
-func (r *Repository) GetPosts(ctx context.Context, limit, offset int) ([]entity.Post, error) {
-	q := database.Query{
-		Name: "get_posts",
-		Sql: `
-			SELECT id, org_id, content, created_at
-			FROM business.posts
-			ORDER BY created_at DESC, id DESC
-			LIMIT $1 OFFSET $2
-		`,
+func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (pagination.Result[entity.Post], error) {
+
+	params := pagination.Params{
+		Table:   "business.posts",
+		Columns: "id, org_id, content, created_at",
+		Where:   "TRUE",
+		OrderBy: "created_at DESC, id DESC",
+		Args:    []any{},
+		Offset:  offset,
+		Limit:   limit,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var posts []entity.Post
-
-	for rows.Next() {
-		var p entity.Post
-		if err := rows.Scan(&p.ID, &p.OrgID, &p.Content, &p.CreatedAt); err != nil {
-			return nil, err
-		}
-		posts = append(posts, p)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return posts, nil
+	return pagination.List(
+		ctx,
+		r.db.DB(),
+		"posts",
+		params,
+		func(rows pgx.Rows) (entity.Post, error) {
+			var p entity.Post
+			err := rows.Scan(&p.ID, &p.OrgID, &p.Content, &p.CreatedAt)
+			return p, err
+		},
+	)
 }
