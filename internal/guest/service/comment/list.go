@@ -6,13 +6,13 @@ import (
 	"strconv"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
+	"fmt"
 )
 
 func (s *service) List(ctx context.Context, in entity.ListCommentsInput) (entity.ListCommentsOutput, error) {
 	postIDStr := strconv.FormatInt(in.PostID, 10)
 	if _, err := s.postSvc.Get(ctx, postIDStr, ""); err != nil {
-		return entity.ListCommentsOutput{}, errwrap.Wrap("check post existence for comments list", err)
+		return entity.ListCommentsOutput{}, fmt.Errorf("check post existence for comments list: %w", err)
 	}
 
 	if in.PageToken != "" {
@@ -24,7 +24,7 @@ func (s *service) List(ctx context.Context, in entity.ListCommentsInput) (entity
 
 	out, err := s.commentRepo.List(ctx, in)
 	if err != nil {
-		return entity.ListCommentsOutput{}, errwrap.Wrap("get list of comments from repo", err)
+		return entity.ListCommentsOutput{}, fmt.Errorf("get list of comments from repo: %w", err)
 	}
 
 	if out.NextPageToken != "" {
