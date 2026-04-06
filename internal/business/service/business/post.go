@@ -52,12 +52,8 @@ func (s *service) DeletePost(ctx context.Context, postID int64, userID string) e
 	return s.businessRepo.DeletePost(ctx, postID, post.OrgID)
 }
 
-func (s *service) CheckOwnership(ctx context.Context, userID string, unitID int) error { //for handlers
-	err := s.businessRepo.CheckOwnership(ctx, userID, unitID)
-	if err != nil {
-		return err
-	}
-	return nil
+func (s *service) CheckOwnership(ctx context.Context, userID string, unitID int) error {
+	return s.businessRepo.CheckOwnership(ctx, userID, unitID)
 }
 
 func (s *service) CreatePost(ctx context.Context, userID string, unitID int, description string, URLs []string) (*entity.Post, error) {
