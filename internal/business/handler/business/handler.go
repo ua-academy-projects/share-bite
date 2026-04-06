@@ -19,7 +19,14 @@ type businessService interface {
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
+
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
+	ToggleLike(ctx context.Context, postID int64, customerID string) (bool, error)
+	GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.Like, error)
+	CreateComment(ctx context.Context, postID int64, authorID, content string) (*entity.Comment, error)
+	UpdateComment(ctx context.Context, commentID int64, authorID, content string) (*entity.Comment, error)
+	DeleteComment(ctx context.Context, commentID int64, authorID string) error
+	GetComments(ctx context.Context, postID int64, limit, offset int) ([]entity.CommentWithAuthor, error)
 }
 
 func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {
@@ -32,6 +39,8 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 	r.GET("/org-units/:id", h.get)
 	r.GET("/org-units/:id/locations", h.list)
 	r.GET("/posts", h.GetPosts)
+	r.GET("/posts/:id/likes", h.GetLikes)
+	r.GET("/posts/:id/comments", h.GetComments)
 
 	businessOnly := r.Group("/").
 		Use(auth).
@@ -39,6 +48,13 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 
 	businessOnly.PUT("/posts/:id", h.UpdatePost)
 	businessOnly.DELETE("/posts/:id", h.DeletePost)
+
+	authenticated := r.Group("/").Use(auth)
+
+	authenticated.POST("/posts/:id/likes", h.ToggleLike)
+	authenticated.POST("/posts/:id/comments", h.CreateComment)
+	authenticated.PATCH("/posts/:id/comments/:comment_id", h.UpdateComment)
+	authenticated.DELETE("/posts/:id/comments/:comment_id", h.DeleteComment)
 }
 
 // errorResponse is used for swagger documentation.
