@@ -49,8 +49,8 @@ func main() {
 	fmt.Println("CORS ALLOWED !!!!", config.Config().BusinessHttpServer.AllowedOrigins())
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     config.Config().BusinessHttpServer.AllowedOrigins(),
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowMethods:     config.Config().BusinessHttpServer.AllowedMethods(),
+		AllowHeaders:     config.Config().BusinessHttpServer.AllowedHeaders(),
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: false,
 	}))

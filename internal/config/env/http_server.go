@@ -10,6 +10,8 @@ type httpServerConfig struct {
 	Host               string   `env:"HTTP_SERVER_HOST,required"`
 	Port               string   `env:"HTTP_SERVER_PORT,required"`
 	CorsAllowedOrigins []string `env:"CORS_ALLOWED_ORIGINS" envSeparator:","`
+	CorsAllowedMethods []string `env:"CORS_ALLOWED_METHODS" envSeparator:","`
+	CorsAllowedHeaders []string `env:"CORS_ALLOWED_HEADERS" envSeparator:","`
 }
 
 func NewHttpServerConfig(prefix string) (*httpServerConfig, error) {
@@ -32,4 +34,18 @@ func (c *httpServerConfig) AllowedOrigins() []string {
 		return []string{"*"}
 	}
 	return c.CorsAllowedOrigins
+}
+
+func (c *httpServerConfig) AllowedMethods() []string {
+	if len(c.CorsAllowedMethods) == 0 {
+		return []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+	}
+	return c.CorsAllowedMethods
+}
+
+func (c *httpServerConfig) AllowedHeaders() []string {
+	if len(c.CorsAllowedHeaders) == 0 {
+		return []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	}
+	return c.CorsAllowedHeaders
 }
