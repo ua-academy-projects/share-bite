@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -59,50 +60,35 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 	return &result, nil
 }
 
-func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int) ([]entity.OrgUnit, error) {
-	sql := `
-		SELECT id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
-		FROM business.org_units
-		WHERE parent_id = $1
-		ORDER BY id
-		LIMIT $2 OFFSET $3
-	`
-	q := database.Query{
-		Name: "business_repository.ListByParentID",
-		Sql:  sql,
-	}
-
-	rows, err := r.db.DB().QueryContext(ctx, q, parentID, limit, offset)
-	if err != nil {
-		return nil, executeSQLError(err)
-	}
-	defer rows.Close()
-
-	var orgUnits []entity.OrgUnit
-	for rows.Next() {
-		var ou OrgUnit
-		err := rows.Scan(
-			&ou.Id,
-			&ou.OrgAccountId,
-			&ou.ProfileType,
-			&ou.Name,
-			&ou.Avatar,
-			&ou.Banner,
-			&ou.Description,
-			&ou.ParentId,
-			&ou.Latitude,
-			&ou.Longitude,
-		)
-		if err != nil {
-			return nil, scanRowsError(err)
-		}
-
-		orgUnits = append(orgUnits, ou.ToEntity())
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, scanRowsError(err)
-	}
-
-	return orgUnits, nil
+func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error) {
+	return pagination.List(ctx, r.db.DB(), "business_repository.ListByParentID",
+		pagination.Params{
+			Table:   "business.org_units",
+			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
+			Where:   "parent_id = $1",
+			OrderBy: "id",
+			Args:    []any{parentID},
+			Offset:  offset,
+			Limit:   limit,
+		},
+		func(rows pgx.Rows) (entity.OrgUnit, error) {
+			var ou OrgUnit
+			err := rows.Scan(
+				&ou.Id,
+				&ou.OrgAccountId,
+				&ou.ProfileType,
+				&ou.Name,
+				&ou.Avatar,
+				&ou.Banner,
+				&ou.Description,
+				&ou.ParentId,
+				&ou.Latitude,
+				&ou.Longitude,
+			)
+			if err != nil {
+				return entity.OrgUnit{}, err
+			}
+			return ou.ToEntity(), nil
+		},
+	)
 }

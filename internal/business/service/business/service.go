@@ -7,12 +7,13 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 type businessRepository interface {
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
-	ListByParentID(ctx context.Context, parentID, offset, limit int) ([]entity.OrgUnit, error)
+	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 }
 
 type service struct {
@@ -37,13 +38,11 @@ func (s *service) Get(ctx context.Context, id int) (*entity.OrgUnit, error) {
 	return orgUnit, nil
 }
 
-func (s *service) List(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error) {
-	offset := (page - 1) * limit
-
-	orgUnits, err := s.businessRepo.ListByParentID(ctx, brandId, offset, limit)
+func (s *service) List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error) {
+	result, err := s.businessRepo.ListByParentID(ctx, brandId, skip, limit)
 	if err != nil {
-		return nil, errwrap.Wrap("list locations from business repository", err)
+		return pagination.Result[entity.OrgUnit]{}, errwrap.Wrap("list locations from business repository", err)
 	}
 
-	return orgUnits, nil
+	return result, nil
 }

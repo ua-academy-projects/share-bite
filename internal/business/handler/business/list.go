@@ -10,7 +10,7 @@ import (
 
 type listRequest struct {
 	BrandId int `uri:"id" binding:"required"`
-	Page    int `form:"page"`
+	Skip    int `form:"skip"`
 	Limit   int `form:"limit"`
 }
 
@@ -25,6 +25,7 @@ type listItem struct {
 
 type listResponse struct {
 	Items []listItem `json:"items"`
+	Total int        `json:"total" example:"42"`
 }
 
 // list returns locations (venues) belonging to a brand.
@@ -34,7 +35,7 @@ type listResponse struct {
 //	@Tags			locations
 //	@Produce		json
 //	@Param			id		path		int	true	"Brand ID"
-//	@Param			page	query		int	false	"Page number (default: 1)"
+//	@Param			skip	query		int	false	"Number of items to skip (default: 0)"
 //	@Param			limit	query		int	false	"Items per page (default: 10, max: 100)"
 //	@Success		200		{object}	listResponse
 //	@Failure		400		{object}	errorResponse
@@ -48,25 +49,28 @@ func (h *handler) list(c *gin.Context) {
 	}
 	c.ShouldBindQuery(req)
 
-	if req.Page < 1 {
-		req.Page = 1
+	if req.Skip < 0 {
+		req.Skip = 0
 	}
-	if req.Limit < 1 || req.Limit > 100 {
-		req.Limit = 10
+	if req.Limit < 1 {
+		req.Limit = 1
 	}
+	if req.Limit > 100 {
+		req.Limit = 100
+	}	
 
 	ctx := c.Request.Context()
-	logger.InfoKV(ctx, "list locations", "brandId", req.BrandId, "page", req.Page, "limit", req.Limit)
+	logger.InfoKV(ctx, "list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit)
 
-	orgUnits, err := h.service.List(ctx, req.BrandId, req.Page, req.Limit)
+	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit)
 	if err != nil {
 		logger.ErrorKV(ctx, "failed to list locations", "brandId", req.BrandId, "error", err)
 		c.Error(err)
 		return
 	}
 
-	items := make([]listItem, 0, len(orgUnits))
-	for _, u := range orgUnits {
+	items := make([]listItem, 0, len(result.Items))
+	for _, u := range result.Items {
 		items = append(items, listItem{
 			Id:          u.Id,
 			Name:        u.Name,
@@ -79,5 +83,6 @@ func (h *handler) list(c *gin.Context) {
 
 	c.JSON(http.StatusOK, listResponse{
 		Items: items,
+		Total: result.Total,
 	})
 }

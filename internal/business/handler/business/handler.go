@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 type handler struct {
@@ -13,7 +14,7 @@ type handler struct {
 
 type businessService interface {
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
-	List(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
+	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
 }
 
 func RegisterHandlers(
