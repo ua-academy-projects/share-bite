@@ -50,3 +50,10 @@ goose-create:
 		exit 1; \
 	fi
 	goose -dir $(MIGRATIONS_DIR) create $(name) sql
+
+install-tools:
+	go install github.com/swaggo/swag/cmd/swag@latest
+
+docs-guest:
+	@echo "generating swagger for guest service api..."
+	swag init -g main.go -d cmd/guest-api,internal/guest -o docs/api/guest --parseInternal --parseDependency
