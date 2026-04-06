@@ -5,8 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/ua-academy-projects/share-bite/internal/config"
@@ -70,13 +68,14 @@ func main() {
 		return nil
 	})
 
-	// gateways
+	// clients
+	clientCfg := config.Config().BusinessHttpClient
 	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: clientCfg.Timeout(),
 		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 100,
-			IdleConnTimeout:     90 * time.Second,
+			MaxIdleConns:        clientCfg.MaxIdleConns(),
+			MaxIdleConnsPerHost: clientCfg.MaxIdleConnsPerHost(),
+			IdleConnTimeout:     clientCfg.IdleConnTimeout(),
 		},
 	}
 	closer.Add(func(ctx context.Context) error {
@@ -84,7 +83,7 @@ func main() {
 		return nil
 	})
 
-	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpServer.Address(), httpClient)
+	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),

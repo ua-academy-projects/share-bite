@@ -2,6 +2,14 @@ package entity
 
 import "time"
 
+type PostStatus string
+
+const (
+	PostStatusDraft     PostStatus = "draft"
+	PostStatusPublished PostStatus = "published"
+	PostStatusArchived  PostStatus = "archived"
+)
+
 type Post struct {
 	ID string
 
@@ -9,7 +17,7 @@ type Post struct {
 	VenueID    string
 	Text       string
 	Rating     int16
-	Status     string
+	Status     PostStatus
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
