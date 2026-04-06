@@ -3,9 +3,9 @@ package comment
 import (
 	"context"
 	"strconv"
+	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 func (s *service) Create(ctx context.Context, in entity.CreateCommentInput) (entity.Comment, error) {
@@ -13,12 +13,12 @@ func (s *service) Create(ctx context.Context, in entity.CreateCommentInput) (ent
 
 	_, err := s.postSvc.Get(ctx, postIDStr, "")
 	if err != nil {
-		return entity.Comment{}, errwrap.Wrap("check post existence in comment service", err)
+		return entity.Comment{}, fmt.Errorf("check post existence in comment service: %w", err)
 	}
 
 	comment, err := s.commentRepo.Create(ctx, in)
 	if err != nil {
-		return entity.Comment{}, errwrap.Wrap("create comment in repo", err)
+		return entity.Comment{}, fmt.Errorf("create comment in repo: %w", err)
 	}
 
 	return comment, nil
