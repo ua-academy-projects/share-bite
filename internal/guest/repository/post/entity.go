@@ -9,12 +9,12 @@ import (
 )
 
 type Post struct {
-	ID         int64  `db:"id"`
-	CustomerID string `db:"customer_id"`
-	VenueID    string `db:"venue_id"`
-	Text       string `db:"text"`
-	Rating     int16  `db:"rating"`
-	Status     string `db:"status"`
+	ID         int64             `db:"id"`
+	CustomerID string            `db:"customer_id"`
+	VenueID    string            `db:"venue_id"`
+	Text       string            `db:"text"`
+	Rating     int16             `db:"rating"`
+	Status     entity.PostStatus `db:"status"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`

@@ -21,6 +21,8 @@ type config struct {
 	AdminHttpServer    HttpServer
 	BusinessHttpServer HttpServer
 
+	BusinessHttpClient HttpClient
+
 	Postgres Postgres
 
 	JwtToken JwtToken
@@ -41,6 +43,14 @@ type App interface {
 
 type HttpServer interface {
 	Address() string
+}
+
+type HttpClient interface {
+	BaseURL() string
+	Timeout() time.Duration
+	MaxIdleConns() int
+	MaxIdleConnsPerHost() int
+	IdleConnTimeout() time.Duration
 }
 
 type Postgres interface {
@@ -83,6 +93,11 @@ func Load(paths ...string) error {
 		return fmt.Errorf("business http server config: %w", err)
 	}
 
+	businessHttpClientConfig, err := env.NewHttpClientConfig(businessPrefix)
+	if err != nil {
+		return fmt.Errorf("business http client config: %w", err)
+	}
+
 	postgresConfig, err := env.NewPostgresConfig()
 	if err != nil {
 		return fmt.Errorf("postgres config: %w", err)
@@ -99,6 +114,8 @@ func Load(paths ...string) error {
 		GuestHttpServer:    guestHttpServerConfig,
 		AdminHttpServer:    adminHttpServerConfig,
 		BusinessHttpServer: businessHttpServerConfig,
+
+		BusinessHttpClient: businessHttpClientConfig,
 
 		Postgres: postgresConfig,
 		JwtToken: jwtTokenConfig,

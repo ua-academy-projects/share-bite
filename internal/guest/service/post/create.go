@@ -14,7 +14,7 @@ func (s *service) Create(ctx context.Context, in entity.CreatePostInput) (entity
 		return entity.Post{}, fmt.Errorf("check venue existence via venue provider: %w", apperror.ErrUpstreamError)
 	}
 	if !exists {
-		return entity.Post{}, fmt.Errorf("venue with id %q was not found: %w", in.VenueID, apperror.ErrVenueNotFound)
+		return entity.Post{}, apperror.VenueNotFoundID(in.VenueID)
 	}
 
 	post, err := s.postRepo.Create(ctx, in)
