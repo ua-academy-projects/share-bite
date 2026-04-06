@@ -18,7 +18,9 @@ coverage.html
 .DS_Store
 Thumbs.db
 
-docs/api/
+docs/api/docs.go
+docs/api/swagger.json
+docs/api/swagger.yaml
 
 .env*
 !.env.example
