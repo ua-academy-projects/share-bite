@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 )
 
 const (
@@ -34,7 +35,7 @@ func CustomerID(provider CustomerProvider) gin.HandlerFunc {
 
 		customer, err := provider.GetByUserID(ctx, userID)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "customer profile not found"})
+			c.AbortWithStatusJSON(http.StatusForbidden, response.ErrorResponse{Message: "customer profile not found"})
 			return
 		}
 

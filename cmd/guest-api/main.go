@@ -113,6 +113,8 @@ func main() {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
 
+	txManager := txmanager.NewTransactionManager(client.DB())
+
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
 		config.Config().JwtToken.RefreshTokenSecretKey(),
@@ -128,7 +130,6 @@ func main() {
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	txManager := txmanager.NewTransactionManager(client.DB())
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, businessGateway)
@@ -177,6 +178,8 @@ func ErrorMiddleware() gin.HandlerFunc {
 
 		var validationErr *validator.ValidationError
 		if errors.As(err, &validationErr) {
+			respCode = http.StatusBadRequest
+
 			details := make([]response.ErrorDetail, 0, len(validationErr.Errors))
 			for _, e := range validationErr.Errors {
 				details = append(details, response.ErrorDetail{

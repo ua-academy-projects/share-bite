@@ -24,7 +24,7 @@ import (
 // @Success		200				{object}	getCollectionResponse		"Successfully retrieved the collection"
 // @Failure		400				{object}	response.ErrorResponse		"Invalid collection ID format"
 // @Failure		401				{object}	response.AuthErrorResponse	"Unauthorized: Token was provided but is invalid or expired"
-// @Failure		403				{object}	response.AuthErrorResponse	"Forbidden: Token is valid but customer profile not found"
+// @Failure		403				{object}	response.ErrorResponse		"Forbidden: Token is valid but customer profile not found"
 // @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection does not exist, is private, or does not belong to the user"
 // @Failure		500				{object}	response.ErrorResponse		"Internal server error"
 //

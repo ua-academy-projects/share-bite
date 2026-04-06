@@ -214,6 +214,43 @@ func (r *repository) GetCollection(ctx context.Context, collectionID string) (en
 	return c.ToEntity(), nil
 }
 
+func (r *repository) GetCollectionForUpdate(ctx context.Context, collectionID string) (entity.Collection, error) {
+	sql := `
+		SELECT
+			id,
+			customer_id,
+			name,
+			description,
+			is_public,
+			created_at,
+			updated_at
+		FROM guest.collections
+		WHERE id = $1
+		FOR UPDATE
+	`
+	q := database.Query{
+		Name: "collection_repository.GetCollectionForUpdate",
+		Sql:  sql,
+	}
+
+	row, err := r.db.DB().QueryContext(ctx, q, collectionID)
+	if err != nil {
+		return entity.Collection{}, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var c Collection
+	if err := pgxscan.ScanOne(&c, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Collection{}, apperror.CollectionNotFoundID(collectionID)
+		}
+
+		return entity.Collection{}, scanRowError(err)
+	}
+
+	return c.ToEntity(), nil
+}
+
 func (r *repository) CountVenues(ctx context.Context, collectionID string) (int, error) {
 	sql := `
 		SELECT COUNT(*) AS count
@@ -309,7 +346,7 @@ func (r *repository) ListCollectionVenues(ctx context.Context, collectionID stri
 			added_at
 		FROM guest.collection_venues
 		WHERE collection_id = $1
-		ORDER BY sort_order ASC
+		ORDER BY sort_order ASC, venue_id ASC
 	`
 	q := database.Query{
 		Name: "collection_repository.ListCollectionVenues",
@@ -387,8 +424,13 @@ func (r *repository) UpdateVenueSortOrder(ctx context.Context, collectionID stri
 		Sql:  sql,
 	}
 
-	if _, err := r.db.DB().ExecContext(ctx, q, sortOrder, collectionID, venueID); err != nil {
+	cmd, err := r.db.DB().ExecContext(ctx, q, sortOrder, collectionID, venueID)
+	if err != nil {
 		return executeSQLError(err)
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return apperror.VenueNotFoundInCollection(venueID)
 	}
 
 	return nil
@@ -399,7 +441,7 @@ func (r *repository) RebalanceCollectionSortOrders(ctx context.Context, collecti
 		UPDATE guest.collection_venues cv
 		SET sort_order = new_orders.new_sort_order
 		FROM (
-			SELECT venue_id, ROW_NUMBER() OVER (ORDER BY sort_order ASC) * 100.0 AS new_sort_order
+			SELECT venue_id, ROW_NUMBER() OVER (ORDER BY sort_order ASC, venue_id ASC) * 100.0 AS new_sort_order
 			FROM guest.collection_venues
 			WHERE collection_id = $1
 		) new_orders

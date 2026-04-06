@@ -22,5 +22,13 @@ func NewBusinessAPIClient(baseURL string, client *http.Client) *businessAPIClien
 // TODO: replace this stub with an actual HTTP call to the Business API
 // once the endpoint GET /venues is implemented
 func (c *businessAPIClient) ListVenues(ctx context.Context, venueIDs []string) (map[string]entity.Venue, error) {
-	return nil, nil
+	list := make(map[string]entity.Venue, len(venueIDs))
+	for _, v := range venueIDs {
+		list[v] = entity.Venue{
+			ID:   v,
+			Name: "Venue" + v,
+		}
+	}
+
+	return list, nil
 }

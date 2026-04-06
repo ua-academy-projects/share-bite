@@ -15,50 +15,56 @@ const (
 )
 
 func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput) error {
-	collection, err := s.collectionRepo.GetCollection(ctx, in.CollectionID)
-	if err != nil {
-		return fmt.Errorf("get collection from repository: %w", err)
-	}
-	if collection.CustomerID != in.CustomerID {
-		return apperror.ErrCollectionAccessDenied
-	}
+	if txErr := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
+		collection, err := s.collectionRepo.GetCollectionForUpdate(ctx, in.CollectionID)
+		if err != nil {
+			return fmt.Errorf("get collection from repository: %w", err)
+		}
+		if collection.CustomerID != in.CustomerID {
+			return apperror.ErrCollectionAccessDenied
+		}
 
-	exists, err := s.collectionRepo.CheckIfVenueInCollection(ctx, in.CollectionID, in.VenueID)
-	if err != nil {
-		return fmt.Errorf("check if venue is in collection from repository: %w", err)
-	}
-	if !exists {
-		return apperror.VenueNotFoundInCollection(in.VenueID)
-	}
+		exists, err := s.collectionRepo.CheckIfVenueInCollection(ctx, in.CollectionID, in.VenueID)
+		if err != nil {
+			return fmt.Errorf("check if venue is in collection from repository: %w", err)
+		}
+		if !exists {
+			return apperror.VenueNotFoundInCollection(in.VenueID)
+		}
 
-	newSortOrder, gap, err := s.generateNewSortOrder(ctx, in)
-	if err != nil {
-		return fmt.Errorf("generate new sort order: %w", err)
-	}
+		newSortOrder, gap, err := s.generateNewSortOrder(ctx, in)
+		if err != nil {
+			return fmt.Errorf("generate new sort order: %w", err)
+		}
 
-	if err := s.collectionRepo.UpdateVenueSortOrder(
-		ctx,
-		in.CollectionID,
-		in.VenueID,
-		newSortOrder,
-	); err != nil {
-		return fmt.Errorf("update venue sort order in repository: %w", err)
-	}
+		if err := s.collectionRepo.UpdateVenueSortOrder(
+			ctx,
+			in.CollectionID,
+			in.VenueID,
+			newSortOrder,
+		); err != nil {
+			return fmt.Errorf("update venue sort order in repository: %w", err)
+		}
 
-	if gap > 0 && gap < rebalanceGapLimit {
-		go func(collectionID string) {
-			rebalanceCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-			defer cancel()
+		if gap > 0 && gap < rebalanceGapLimit {
+			go func(collectionID string) {
+				rebalanceCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+				defer cancel()
 
-			logger.Info(rebalanceCtx, "starting async rebalance for collection: ", collectionID)
+				logger.Info(rebalanceCtx, "starting async rebalance for collection: ", collectionID)
 
-			if err := s.collectionRepo.RebalanceCollectionSortOrders(rebalanceCtx, collectionID); err != nil {
-				logger.Errorf(rebalanceCtx, "rebalance for collection %q failed: %v", collectionID, err)
-				return
-			}
+				if err := s.collectionRepo.RebalanceCollectionSortOrders(rebalanceCtx, collectionID); err != nil {
+					logger.Errorf(rebalanceCtx, "rebalance for collection %q failed: %v", collectionID, err)
+					return
+				}
 
-			logger.Infof(rebalanceCtx, "rebalance for collection %q successfully completed", collectionID)
-		}(in.CollectionID)
+				logger.Infof(rebalanceCtx, "rebalance for collection %q successfully completed", collectionID)
+			}(in.CollectionID)
+		}
+
+		return nil
+	}); txErr != nil {
+		return txErr
 	}
 
 	return nil
@@ -66,6 +72,15 @@ func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput)
 
 func (s *service) generateNewSortOrder(ctx context.Context, in entity.ReorderVenueInput) (float64, float64, error) {
 	if in.PrevVenueID == nil && in.NextVenueID == nil {
+		return 0, 0, apperror.ErrInvalidReorderParams
+	}
+
+	if (in.PrevVenueID != nil && *in.PrevVenueID == in.VenueID) ||
+		(in.NextVenueID != nil && *in.NextVenueID == in.VenueID) {
+		return 0, 0, apperror.ErrInvalidReorderParams
+	}
+
+	if in.PrevVenueID != nil && in.NextVenueID != nil && *in.PrevVenueID == *in.NextVenueID {
 		return 0, 0, apperror.ErrInvalidReorderParams
 	}
 
@@ -89,6 +104,10 @@ func (s *service) generateNewSortOrder(ctx context.Context, in entity.ReorderVen
 		}
 
 		orderBelow = nextVenue.SortOrder
+	}
+
+	if in.PrevVenueID != nil && in.NextVenueID != nil && orderAbove >= orderBelow {
+		return 0, 0, apperror.ErrInvalidReorderParams
 	}
 
 	var (

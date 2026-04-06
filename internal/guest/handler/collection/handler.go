@@ -63,8 +63,7 @@ func RegisterHandlers(
 }
 
 type collectionResponse struct {
-	ID         string `json:"id"`
-	CustomerID string `json:"customerId"`
+	ID string `json:"id"`
 
 	Name        string  `json:"name"`
 	Description *string `json:"description"`
@@ -87,8 +86,7 @@ type enrichedVenueItemResponse struct {
 
 func collectionToResponse(collection entity.Collection) collectionResponse {
 	return collectionResponse{
-		ID:         collection.ID,
-		CustomerID: collection.CustomerID,
+		ID: collection.ID,
 
 		Name:        collection.Name,
 		Description: collection.Description,

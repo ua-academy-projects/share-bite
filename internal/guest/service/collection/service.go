@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
 type collectionRepository interface {
@@ -14,6 +15,7 @@ type collectionRepository interface {
 
 	ListCustomerCollections(ctx context.Context, customerID string, cursorTime time.Time, cursorID string, limit int) ([]entity.Collection, error)
 	GetCollection(ctx context.Context, collectionID string) (entity.Collection, error)
+	GetCollectionForUpdate(ctx context.Context, collectionID string) (entity.Collection, error)
 
 	//
 
@@ -36,15 +38,20 @@ type businessClient interface {
 
 type service struct {
 	collectionRepo collectionRepository
+
+	txManager database.TxManager
+
 	businessClient businessClient
 }
 
 func New(
 	collectionRepo collectionRepository,
+	txManager database.TxManager,
 	businessClient businessClient,
 ) *service {
 	return &service{
 		collectionRepo: collectionRepo,
+		txManager:      txManager,
 		businessClient: businessClient,
 	}
 }
