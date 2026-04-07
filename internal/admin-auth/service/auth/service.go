@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -107,7 +108,7 @@ func (s *service) Refresh(_ context.Context, refreshToken string) (*Tokens, erro
 func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code string, slug string) (*Tokens, error) {
 	info, err := provider.ExchangeCode(ctx, code)
 	if err != nil {
-		return nil, apperr.ErrProviderExchangeFail
+		return nil, fmt.Errorf("exchange code: %w", err)
 	}
 
 	existing, err := s.userRepo.FindBySocialProvider(ctx, info.Provider, info.ProviderID)
@@ -142,7 +143,10 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 	}
 
 	role, err := s.userRepo.FindRoleBySlug(ctx, slug)
-	if err != nil || role == nil {
+	if err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to find role by slug", err)
+	}
+	if role == nil {
 		return nil, apperr.ErrRoleNotFound
 	}
 	createUser, err := s.userRepo.CreateWithSocial(ctx, dto.CreateUserWithSocialParams{
@@ -160,7 +164,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 func (s *service) LinkProvider(ctx context.Context, userID string, provider OAuthProvider, code string) error {
 	info, err := provider.ExchangeCode(ctx, code)
 	if err != nil {
-		return apperr.ErrProviderExchangeFail
+		return fmt.Errorf("exchange code: %w", err)
 	}
 
 	existing, err := s.userRepo.FindBySocialProvider(ctx, info.Provider, info.ProviderID)

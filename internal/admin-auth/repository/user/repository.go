@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -164,8 +165,22 @@ func (r *repository) CreateWithSocial(ctx context.Context, params dto.CreateUser
 	row := r.client.DB().QueryRowContext(ctx, q, params.Email, params.RoleID, params.Provider, params.ProviderID)
 	u := new(dto.CreatedUser)
 	if err := row.Scan(&u.ID, &u.Email); err != nil {
-		return nil, fmt.Errorf("create user with social: %w", err)
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+
+			if pgErr.ConstraintName == "uq_provider_account" {
+				return nil, apperr.ErrProviderAlreadyLinked
+			}
+
+			if pgErr.ConstraintName == "users_email_key" {
+				return nil, apperr.ErrUserAlreadyExists
+			}
+		}
+
+		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to create user with social", err)
 	}
+
 	return u, nil
 }
 
@@ -183,11 +198,16 @@ func (r *repository) LinkSocialAccount(ctx context.Context, params dto.CreateSoc
 		params.Email,
 	)
 	if err != nil {
-		var pgErr *pq.Error
+
+		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return apperr.ErrProviderAlreadyLinked
+			if pgErr.ConstraintName == "uq_provider_account" {
+				return apperr.ErrProviderAlreadyLinked
+			}
 		}
-		return fmt.Errorf("link social account: %w", err)
+
+		return apperr.Wrap(http.StatusInternalServerError, "failed to link social account", err)
 	}
+
 	return nil
 }

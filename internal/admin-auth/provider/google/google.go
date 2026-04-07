@@ -51,9 +51,10 @@ func (p *Provider) ExchangeCode(ctx context.Context, code string) (*dto.OAuthUse
 		return nil, apperr.ErrProviderUserInfoFail
 	}
 	return &dto.OAuthUserInfo{
-		Provider:   providerName,
-		ProviderID: info.Sub,
-		Email:      info.Email,
+		Provider:      providerName,
+		ProviderID:    info.Sub,
+		Email:         info.Email,
+		EmailVerified: info.EmailVerified,
 	}, nil
 }
 
