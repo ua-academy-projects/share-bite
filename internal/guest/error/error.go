@@ -11,6 +11,15 @@ var (
 	ErrImageRequired        = newError(code.BadRequest, "image is required")
 	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
 	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type")
+	ErrInvalidJSON       = newError(code.InvalidJSON, "invalid request body format")
+	ErrInvalidParam      = newError(code.InvalidRequest, "invalid path parameter")
+	ErrInvalidQueryParam = newError(code.InvalidRequest, "invalid query parameter")
+	ErrUpstreamError     = newError(code.UpstreamError, "upstream service error")
+	ErrInvalidPostData   = newError(code.InvalidRequest, "invalid post data")
+
+	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
+
+	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
 )
 
 type Error struct {
@@ -33,6 +42,11 @@ func newError(code code.Code, err string) *Error {
 	}
 }
 
+func VenueNotFoundID(venueID string) *Error {
+	msg := fmt.Sprintf("venue with id %q was not found", venueID)
+	return newError(code.NotFound, msg)
+}
+
 func PostNotFoundID(postID string) *Error {
 	msg := fmt.Sprintf("post with id %q was not found", postID)
 	return newError(code.NotFound, msg)
@@ -44,4 +58,23 @@ func BadRequest(msg string) *Error {
 
 func Internal(msg string) *Error {
 	return newError(code.Internal, msg)
+}
+func CustomerNotFoundUserID(userID string) *Error {
+	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundID(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q was not found", customerID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerNotFoundUserName(userName string) *Error {
+	msg := fmt.Sprintf("customer with username %q was not found", userName)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerUserNameTaken(userName string) *Error {
+	msg := fmt.Sprintf("customer with username %q already exists", userName)
+	return newError(code.AlreadyExists, msg)
 }

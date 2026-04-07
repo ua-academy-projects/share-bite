@@ -8,6 +8,11 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+
+	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 type handler struct {
@@ -17,6 +22,12 @@ type handler struct {
 type businessService interface {
 	CreatePost(ctx context.Context, userID string, unitID int, description string, images []*multipart.FileHeader) (*entity.PostWithPhotos, error)
 	CheckOwnership(ctx context.Context, userID string, unitID int) error
+	UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error)
+	DeletePost(ctx context.Context, postID int64, userID string) error
+
+	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
+	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
+	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 }
 
 func RegisterHandlers(
@@ -30,8 +41,9 @@ func RegisterHandlers(
 
 	auth := middleware.Auth(parser)
 
-	r.GET("/:id", h.get)
-	r.GET("/:id/locations", h.list)
+	r.GET("/org-units/:id", h.get)
+	r.GET("/org-units/:id/locations", h.list)
+	r.GET("/posts", h.GetPosts)
 
 	businessOnly := r.Group("/").
 		Use(auth).
@@ -40,6 +52,11 @@ func RegisterHandlers(
 	businessOnly.PUT("/posts/:id", h.UpdatePost)
 	businessOnly.DELETE("/posts/:id", h.DeletePost)
 	businessOnly.POST("/posts/:id", h.CreatePost)
+}
+
+// errorResponse is used for swagger documentation.
+type errorResponse struct {
+	Error string `json:"error" example:"not found"`
 }
 
 func getUserID(c *gin.Context) (string, bool) {

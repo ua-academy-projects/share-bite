@@ -5,12 +5,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
 func (h *handler) list(c *gin.Context) {
-	req := new(listRequest)
-	if err := c.ShouldBindQuery(req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req listRequest
+	if err := request.BindQuery(c, &req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -30,8 +31,8 @@ func (h *handler) list(c *gin.Context) {
 }
 
 type listRequest struct {
-	Limit  int `form:"limit" binding:"required,gte=1,lte=100"`
-	Offset int `form:"offset" binding:"gte=0,lte=1000"`
+	Limit  int `form:"limit,default=20" binding:"gte=1,lte=100"`
+	Offset int `form:"offset,default=0" binding:"gte=0,lte=1000"`
 }
 
 type listResponse struct {

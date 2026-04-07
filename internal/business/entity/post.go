@@ -1,12 +1,10 @@
 package entity
 
-import (
-	"time"
-)
+import "time"
 
 type Post struct {
 	ID        int64
-	OrgId     int
+	OrgID     int
 	Content   string
 	CreatedAt time.Time
 }
@@ -24,4 +22,7 @@ type PostWithPhotos struct {
 	Content   string
 	CreatedAt time.Time
 	Images    []string
+
+	OrgName     string
+	ProfileType string
 }

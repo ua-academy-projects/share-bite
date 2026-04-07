@@ -11,7 +11,10 @@ import (
 	awscred "github.com/aws/aws-sdk-go-v2/credentials"
 	s3sdk "github.com/aws/aws-sdk-go-v2/service/s3"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
@@ -29,6 +32,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// @title			ShareBite Business API
+// @version		1.0
+// @description	API for discovering brand locations (venues).
+//
+// @BasePath		/
 func main() {
 	ctx := context.Background()
 
@@ -36,8 +44,21 @@ func main() {
 		logger.Fatal(ctx, "load config:", err)
 	}
 
+	cfg := config.Config()
+
 	router := gin.New()
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.BusinessHttpServer.AllowedOrigins(),
+		AllowMethods:     cfg.BusinessHttpServer.AllowedMethods(),
+		AllowHeaders:     cfg.BusinessHttpServer.AllowedHeaders(),
+		ExposeHeaders:    cfg.BusinessHttpServer.ExposeHeaders(),
+		AllowCredentials: true,
+	}))
 	router.Use(gin.Recovery())
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),
+	))
 
 	router.Use(ErrorMiddleware())
 
@@ -152,6 +173,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 				return
 			case code.BadRequest:
 				c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Error()})
+				return
+			case code.Forbidden:
+				c.JSON(http.StatusForbidden, gin.H{"error": appErr.Error()})
 				return
 			}
 		}
