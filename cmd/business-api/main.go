@@ -2,34 +2,56 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/ua-academy-projects/share-bite/docs/api"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
 	businessrepo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	businesssvc "github.com/ua-academy-projects/share-bite/internal/business/service/business"
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
 )
 
+// @title			ShareBite Business API
+// @version		1.0
+// @description	API for discovering brand locations (venues).
+//
+// @BasePath		/
 func main() {
 	ctx := context.Background()
 
-	// for local development only
 	if err := config.Load(".env"); err != nil {
 		logger.Fatal(ctx, "load config:", err)
 	}
 
-	// docker variant
-	// if err := config.Load(); err != nil {
-	// 	logger.Fatal(ctx, "load config:", err)
-	// }
+	cfg := config.Config()
 
 	router := gin.New()
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.BusinessHttpServer.AllowedOrigins(),
+		AllowMethods:     cfg.BusinessHttpServer.AllowedMethods(),
+		AllowHeaders:     cfg.BusinessHttpServer.AllowedHeaders(),
+		ExposeHeaders:    cfg.BusinessHttpServer.ExposeHeaders(),
+		AllowCredentials: true,
+	}))
 	router.Use(gin.Recovery())
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),
+	))
+
 	router.Use(ErrorMiddleware())
 
 	if config.Config().App.IsProd() {
@@ -40,7 +62,6 @@ func main() {
 	}
 	closer.SetShutdownTimeout(config.Config().App.GracefulShutdownTimeout())
 
-	// db connection
 	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
@@ -53,14 +74,20 @@ func main() {
 		return nil
 	})
 
-	// repos
+	txManager := txmanager.NewTransactionManager(client.DB())
+
 	businessRepo := businessrepo.New(client)
 
-	// services
-	businessSvc := businesssvc.New(businessRepo)
+	businessSvc := businesssvc.New(businessRepo, txManager)
 
-	// handlers
-	business.RegisterHandlers(router.Group("/business"), businessSvc)
+	tokenManager := jwt.NewTokenManager(
+		config.Config().JwtToken.AccessTokenSecretKey(),
+		config.Config().JwtToken.RefreshTokenSecretKey(),
+		config.Config().JwtToken.AccessTokenTTL(),
+		config.Config().JwtToken.RefreshTokenTTL(),
+	)
+
+	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager)
 
 	go func() {
 		logger.Info(ctx, "business http server is running")
@@ -81,13 +108,24 @@ func ErrorMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
+		ctx := c.Request.Context()
+
+		var appErr *apperror.Error
+		if errors.As(err.Err, &appErr) {
+			switch appErr.Code {
+			case code.NotFound:
+				c.JSON(http.StatusNotFound, gin.H{"error": appErr.Error()})
+				return
+			case code.BadRequest:
+				c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Error()})
+				return
+			case code.Forbidden:
+				c.JSON(http.StatusForbidden, gin.H{"error": appErr.Error()})
+				return
+			}
 		}
 
-		// TODO: handle custom errors
-
-		c.JSON(respCode, resp)
+		logger.ErrorKV(ctx, "internal error", "error", err.Err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 	}
 }
