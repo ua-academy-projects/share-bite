@@ -31,7 +31,7 @@ s3-ui:
 	@echo "web_ui: http://localhost:3909"
 
 -include .env
-DB_DSN="host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD) dbname=$(POSTGRES_DB) sslmode=$(POSTGRES_SSL)"
+DB_DSN="host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password='$(POSTGRES_PASSWORD)' dbname=$(POSTGRES_DB) sslmode=$(POSTGRES_SSL)"
 MIGRATIONS_DIR=migrations
 .PHONY: goose-up goose-down goose-status goose-create
 
