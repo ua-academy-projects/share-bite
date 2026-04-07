@@ -40,7 +40,7 @@ func main() {
 	}
 
 	if err := db.Close(); err != nil {
-		logger.Fatal(ctx, "clode db after migrate up: ", err)
+		logger.Fatal(ctx, "close db after migrate up: ", err)
 	}
 
 	logger.Info(ctx, "migrations applied")

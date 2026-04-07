@@ -1,10 +1,10 @@
 package customer
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 type Customer struct {
@@ -38,13 +38,13 @@ func (e Customer) ToEntity() entity.Customer {
 }
 
 func executeSQLError(err error) error {
-	return errwrap.Wrap("execute sql", err)
+	return fmt.Errorf("execute sql: %w", err)
 }
 
 func scanRowError(err error) error {
-	return errwrap.Wrap("scan row", err)
+	return fmt.Errorf("scan row: %w", err)
 }
 
 func scanRowsError(err error) error {
-	return errwrap.Wrap("scan rows", err)
+	return fmt.Errorf("scan rows: %w", err)
 }
