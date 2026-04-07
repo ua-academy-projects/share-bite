@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 type manager struct {
@@ -32,7 +31,7 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn databa
 
 	tx, err = m.db.BeginTx(ctx, opts)
 	if err != nil {
-		return errwrap.Wrap("can't begin transaction", err)
+		return fmt.Errorf("can't begin transaction: %w", err)
 	}
 
 	ctx = pg.MakeContextTx(ctx, tx)
@@ -44,7 +43,7 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn databa
 
 		if err != nil {
 			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
-				err = errwrap.Wrap("transaction rollback", rollbackErr)
+				err = fmt.Errorf("transaction rollback: %w", rollbackErr)
 			}
 
 			return
@@ -52,13 +51,13 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn databa
 
 		if nil == err {
 			if commitErr := tx.Commit(ctx); commitErr != nil {
-				err = errwrap.Wrap("transaction commit", err)
+				err = fmt.Errorf("transaction commit: %w", err)
 			}
 		}
 	}()
 
 	if err = fn(ctx); err != nil {
-		err = errwrap.Wrap("execute code inside the transaction", err)
+		err = fmt.Errorf("execute code inside the transaction: %w", err)
 	}
 	return err
 }
