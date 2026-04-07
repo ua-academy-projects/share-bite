@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 const (
@@ -92,7 +93,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		if err != nil {
 			return fmt.Errorf("create post: %w", err)
 		}
-		err = s.businessRepo.InsertPostImages(ctxTx, int(post.ID), photoURLs)
+		err = s.businessRepo.InsertPostImages(ctxTx, post.ID, photoURLs)
 		if err != nil {
 			return fmt.Errorf("insert images: %w", err)
 		}
@@ -102,13 +103,20 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 	if err != nil {
 		return nil, fmt.Errorf("business service: %w", err)
 	}
-	
+
+	org, err := s.businessRepo.GetById(ctx, post.OrgID)
+	if err != nil {
+		return nil, fmt.Errorf("get org: %w", err)
+	}
+
 	return &entity.PostWithPhotos{
-		ID:        post.ID,
-		OrgID:     post.OrgId,
-		Content:   post.Content,
-		CreatedAt: post.CreatedAt,
-		Images:    photoURLs,
+		ID:          post.ID,
+		OrgID:       post.OrgID,
+		Content:     post.Content,
+		CreatedAt:   post.CreatedAt,
+		Images:      photoURLs,
+		OrgName:     org.Name,
+		ProfileType: org.ProfileType,
 	}, nil
 }
 

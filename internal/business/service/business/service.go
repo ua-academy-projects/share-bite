@@ -7,9 +7,6 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
-
-	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -40,13 +37,5 @@ func New(businessRepo businessRepository, txManager database.TxManager, st stora
 		txManager:    txManager,
 		storage: st,
 	}
-}
-
-func (s *service) CheckOwnership(ctx context.Context, userID string, unitID int) error { //for handlers
-	err := s.businessRepo.CheckOwnership(ctx, userID, unitID)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 

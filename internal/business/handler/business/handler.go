@@ -8,10 +8,6 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
-
-	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -51,7 +47,7 @@ func RegisterHandlers(
 
 	businessOnly.PUT("/posts/:id", h.UpdatePost)
 	businessOnly.DELETE("/posts/:id", h.DeletePost)
-	businessOnly.POST("/posts/:id", h.CreatePost)
+	businessOnly.POST("/units/:id/posts", h.CreatePost)
 }
 
 // errorResponse is used for swagger documentation.

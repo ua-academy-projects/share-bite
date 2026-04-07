@@ -1,11 +1,5 @@
 package dto
 
-<<<<<<< HEAD
-type PostResponse struct {
-	ID      int64    `json:"id"`
-	Content string   `json:"content"`
-	Images  []string `json:"images"`
-=======
 import "time"
 
 type PostResponse struct {
@@ -20,5 +14,4 @@ type PostResponse struct {
 	} `json:"org"`
 
 	Images []string `json:"images"`
->>>>>>> main
 }
