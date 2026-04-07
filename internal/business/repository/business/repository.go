@@ -1,7 +1,14 @@
 package business
 
 import (
+	"errors"
+
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+)
+
+var (
+	ErrNotFound  = errors.New("not found")
+	ErrForbidden = errors.New("forbidden")
 )
 
 type Repository struct {

@@ -41,6 +41,10 @@ type App interface {
 
 type HttpServer interface {
 	Address() string
+	AllowedOrigins() []string
+	AllowedMethods() []string
+	AllowedHeaders() []string
+	ExposeHeaders() []string
 }
 
 type Postgres interface {
