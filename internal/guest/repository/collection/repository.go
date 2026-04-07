@@ -331,6 +331,10 @@ func (r *repository) GetCollectionVenue(ctx context.Context, collectionID string
 
 	var cv CollectionVenue
 	if err := pgxscan.ScanOne(&cv, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.CollectionVenue{}, apperror.VenueNotFoundInCollection(venueID)
+		}
+
 		return entity.CollectionVenue{}, scanRowError(err)
 	}
 
@@ -457,4 +461,24 @@ func (r *repository) RebalanceCollectionSortOrders(ctx context.Context, collecti
 	}
 
 	return nil
+}
+
+func (r *repository) HasVenuesBetween(ctx context.Context, collectionID string, lower float64, upper float64) (bool, error) {
+	sql := `
+		SELECT EXISTS (
+			SELECT 1 FROM guest.collection_venues
+			WHERE collection_id = $1 AND (sort_order > $2 AND sort_order < $3)
+		)
+	`
+	q := database.Query{
+		Name: "collection_repository.HasVenuesBetween",
+		Sql:  sql,
+	}
+
+	var has bool
+	if err := r.db.DB().QueryRowContext(ctx, q, collectionID, lower, upper).Scan(&has); err != nil {
+		return false, scanRowError(err)
+	}
+
+	return has, nil
 }

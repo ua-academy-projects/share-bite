@@ -30,6 +30,7 @@ type collectionRepository interface {
 	RemoveVenue(ctx context.Context, collectionID string, venueID string) error
 	UpdateVenueSortOrder(ctx context.Context, collectionID string, venueID string, sortOrder float64) error
 	RebalanceCollectionSortOrders(ctx context.Context, collectionID string) error
+	HasVenuesBetween(ctx context.Context, collectionID string, lower float64, upper float64) (bool, error)
 }
 
 type businessClient interface {

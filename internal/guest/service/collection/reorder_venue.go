@@ -15,6 +15,8 @@ const (
 )
 
 func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput) error {
+	var needsReset bool
+
 	if txErr := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
 		collection, err := s.collectionRepo.GetCollectionForUpdate(ctx, in.CollectionID)
 		if err != nil {
@@ -47,24 +49,28 @@ func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput)
 		}
 
 		if gap > 0 && gap < rebalanceGapLimit {
-			go func(collectionID string) {
-				rebalanceCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-				defer cancel()
-
-				logger.Info(rebalanceCtx, "starting async rebalance for collection: ", collectionID)
-
-				if err := s.collectionRepo.RebalanceCollectionSortOrders(rebalanceCtx, collectionID); err != nil {
-					logger.Errorf(rebalanceCtx, "rebalance for collection %q failed: %v", collectionID, err)
-					return
-				}
-
-				logger.Infof(rebalanceCtx, "rebalance for collection %q successfully completed", collectionID)
-			}(in.CollectionID)
+			needsReset = true
 		}
 
 		return nil
 	}); txErr != nil {
 		return txErr
+	}
+
+	if needsReset {
+		go func(collectionID string) {
+			rebalanceCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+
+			logger.Info(rebalanceCtx, "starting async rebalance for collection: ", collectionID)
+
+			if err := s.collectionRepo.RebalanceCollectionSortOrders(rebalanceCtx, collectionID); err != nil {
+				logger.Errorf(rebalanceCtx, "rebalance for collection %q failed: %v", collectionID, err)
+				return
+			}
+
+			logger.Infof(rebalanceCtx, "rebalance for collection %q successfully completed", collectionID)
+		}(in.CollectionID)
 	}
 
 	return nil
@@ -106,16 +112,24 @@ func (s *service) generateNewSortOrder(ctx context.Context, in entity.ReorderVen
 		orderBelow = nextVenue.SortOrder
 	}
 
-	if in.PrevVenueID != nil && in.NextVenueID != nil && orderAbove >= orderBelow {
-		return 0, 0, apperror.ErrInvalidReorderParams
-	}
-
 	var (
 		newSortOrder float64
 		currGap      float64
 	)
 
 	if in.PrevVenueID != nil && in.NextVenueID != nil {
+		if orderAbove >= orderBelow {
+			return 0, 0, apperror.ErrInvalidReorderParams
+		}
+
+		has, err := s.collectionRepo.HasVenuesBetween(ctx, in.CollectionID, orderAbove, orderBelow)
+		if err != nil {
+			return 0, 0, fmt.Errorf("check for venues between: %w", err)
+		}
+		if has {
+			return 0, 0, apperror.ErrInvalidReorderParams
+		}
+
 		// between two venues
 		newSortOrder = (orderAbove + orderBelow) / 2.0
 		currGap = orderBelow - orderAbove
