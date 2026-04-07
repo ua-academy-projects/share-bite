@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
 const (
@@ -31,8 +34,10 @@ type Provider struct {
 
 func New(cfg Config) *Provider {
 	return &Provider{
-		cfg:    cfg,
-		client: &http.Client{},
+		cfg: cfg,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 	}
 }
 
@@ -82,10 +87,14 @@ func (p *Provider) exchangeToken(ctx context.Context, code string) (string, erro
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			fmt.Printf("warning: failed to close response body: %v\n", closeErr)
+			logger.WarnKV(ctx, "failed to close response body", "error", closeErr)
 		}
 	}()
 
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("google returned non-200 status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
 	var t tokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&t); err != nil {
 		return "", fmt.Errorf("decode token response: %w", err)
@@ -109,9 +118,14 @@ func (p *Provider) fetchUserInfo(ctx context.Context, accessToken string) (*goog
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
-			fmt.Printf("warning: failed to close response body: %v\n", closeErr)
+			logger.WarnKV(ctx, "failed to close userinfo response body", "error", closeErr)
 		}
 	}()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("google userinfo returned non-200 status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
 
 	var info googleUserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {

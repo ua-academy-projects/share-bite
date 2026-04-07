@@ -19,9 +19,10 @@ type UserWithRole struct {
 }
 
 type OAuthUserInfo struct {
-	Provider   string
-	ProviderID string
-	Email      string
+	Provider      string
+	ProviderID    string
+	Email         string
+	EmailVerified bool
 }
 
 // CreateUserWithSocialParams — реєстрація нового юзера через OAuth

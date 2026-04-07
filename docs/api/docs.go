@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -47,7 +47,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Помилка валідації: {'message': '...'}",
+                        "description": "Помилка валідації: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -83,7 +83,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Назва провайдера (google, github)",
+                        "description": "Назва провайдера (google)",
                         "name": "provider",
                         "in": "path",
                         "required": true
@@ -94,7 +94,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.OAuthCallbackRequest"
+                            "$ref": "#/definitions/auth.OAuthCallbackRequest"
                         }
                     }
                 ],
@@ -107,6 +107,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Непідтримуваний провайдер: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "422": {
+                        "description": "Роль не знайдена: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -146,7 +152,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.RefreshRequest"
+                            "$ref": "#/definitions/auth.RefreshRequest"
                         }
                     }
                 ],
@@ -158,7 +164,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Помилка валідації: {'message': '...'}",
+                        "description": "Помилка валідації: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -198,7 +204,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.RegisterRequest"
+                            "$ref": "#/definitions/auth.RegisterRequest"
                         }
                     }
                 ],
@@ -210,7 +216,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Помилка валідації: {'message': '...'}",
+                        "description": "Помилка валідації: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -257,7 +263,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Назва провайдера (google, github)",
+                        "description": "Назва провайдера (google)",
                         "name": "provider",
                         "in": "path",
                         "required": true
@@ -268,7 +274,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.OAuthLinkRequest"
+                            "$ref": "#/definitions/auth.OAuthLinkRequest"
                         }
                     }
                 ],
@@ -302,13 +308,19 @@ const docTemplate = `{
                         "schema": {
                             "type": "object"
                         }
+                    },
+                    "502": {
+                        "description": "Помилка обміну коду з провайдером: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
                     }
                 }
             }
         }
     },
     "definitions": {
-        "internal_admin-auth_handler_auth.LoginRequest": {
+        "auth.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -323,7 +335,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_admin-auth_handler_auth.OAuthCallbackRequest": {
+        "auth.OAuthCallbackRequest": {
             "type": "object",
             "required": [
                 "code",
@@ -342,7 +354,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_admin-auth_handler_auth.OAuthLinkRequest": {
+        "auth.OAuthLinkRequest": {
             "type": "object",
             "required": [
                 "code"
@@ -353,7 +365,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_admin-auth_handler_auth.RefreshRequest": {
+        "auth.RefreshRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -364,7 +376,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_admin-auth_handler_auth.RegisterRequest": {
+        "auth.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",

@@ -19,8 +19,4 @@ CREATE TABLE auth.social_accounts
 
 CREATE INDEX idx_social_accounts_user_id ON auth.social_accounts (user_id);
 -- +goose Down
-
-ALTER TABLE auth.users
-    ALTER COLUMN password_hash SET NOT NULL;
-
 DROP TABLE IF EXISTS auth.social_accounts;

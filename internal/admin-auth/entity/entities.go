@@ -27,7 +27,7 @@ type SocialAccount struct {
 	ID         string    `db:"id"`
 	UserID     string    `db:"user_id"`
 	Provider   string    `db:"provider"`
-	ProviderID int       `db:"provider_id"`
+	ProviderID string    `db:"provider_id"`
 	Email      string    `db:"email"`
 	CreatedAt  time.Time `db:"created_at"`
 }

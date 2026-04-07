@@ -29,7 +29,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.LoginRequest"
+                            "$ref": "#/definitions/auth.LoginRequest"
                         }
                     }
                 ],
@@ -41,7 +41,7 @@
                         }
                     },
                     "400": {
-                        "description": "Помилка валідації: {'message': '...'}",
+                        "description": "Помилка валідації: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -77,7 +77,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Назва провайдера (google, github)",
+                        "description": "Назва провайдера (google)",
                         "name": "provider",
                         "in": "path",
                         "required": true
@@ -88,7 +88,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.OAuthCallbackRequest"
+                            "$ref": "#/definitions/auth.OAuthCallbackRequest"
                         }
                     }
                 ],
@@ -101,6 +101,12 @@
                     },
                     "400": {
                         "description": "Непідтримуваний провайдер: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "422": {
+                        "description": "Роль не знайдена: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -140,7 +146,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.RefreshRequest"
+                            "$ref": "#/definitions/auth.RefreshRequest"
                         }
                     }
                 ],
@@ -152,7 +158,7 @@
                         }
                     },
                     "400": {
-                        "description": "Помилка валідації: {'message': '...'}",
+                        "description": "Помилка валідації: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -192,7 +198,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.RegisterRequest"
+                            "$ref": "#/definitions/auth.RegisterRequest"
                         }
                     }
                 ],
@@ -204,7 +210,7 @@
                         }
                     },
                     "400": {
-                        "description": "Помилка валідації: {'message': '...'}",
+                        "description": "Помилка валідації: {'error': '...'}",
                         "schema": {
                             "type": "object"
                         }
@@ -251,7 +257,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Назва провайдера (google, github)",
+                        "description": "Назва провайдера (google)",
                         "name": "provider",
                         "in": "path",
                         "required": true
@@ -262,7 +268,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_admin-auth_handler_auth.OAuthLinkRequest"
+                            "$ref": "#/definitions/auth.OAuthLinkRequest"
                         }
                     }
                 ],
@@ -296,13 +302,19 @@
                         "schema": {
                             "type": "object"
                         }
+                    },
+                    "502": {
+                        "description": "Помилка обміну коду з провайдером: {'error': '...'}",
+                        "schema": {
+                            "type": "object"
+                        }
                     }
                 }
             }
         }
     },
     "definitions": {
-        "internal_admin-auth_handler_auth.LoginRequest": {
+        "auth.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -317,7 +329,7 @@
                 }
             }
         },
-        "internal_admin-auth_handler_auth.OAuthCallbackRequest": {
+        "auth.OAuthCallbackRequest": {
             "type": "object",
             "required": [
                 "code",
@@ -336,7 +348,7 @@
                 }
             }
         },
-        "internal_admin-auth_handler_auth.OAuthLinkRequest": {
+        "auth.OAuthLinkRequest": {
             "type": "object",
             "required": [
                 "code"
@@ -347,7 +359,7 @@
                 }
             }
         },
-        "internal_admin-auth_handler_auth.RefreshRequest": {
+        "auth.RefreshRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -358,7 +370,7 @@
                 }
             }
         },
-        "internal_admin-auth_handler_auth.RegisterRequest": {
+        "auth.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",

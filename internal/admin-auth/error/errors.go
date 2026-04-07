@@ -50,4 +50,5 @@ var (
 	ErrProviderUserInfoFail  = New(http.StatusBadGateway, "failed to fetch user info from provider")
 	ErrProviderAlreadyLinked = New(http.StatusConflict, "social provider already linked to account")
 	ErrUnsupportedProvider   = New(http.StatusBadRequest, "unsupported social provider")
+	ErrEmailNotVerified      = New(http.StatusForbidden, "email not verified by social provider")
 )

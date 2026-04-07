@@ -3,6 +3,7 @@ package business
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -41,7 +42,7 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 			return nil, ErrNotFound
 		}
 
-		return nil, scanRowError(err)
+		return nil, fmt.Errorf("%w", err)
 	}
 
 	result := ou.ToEntity()

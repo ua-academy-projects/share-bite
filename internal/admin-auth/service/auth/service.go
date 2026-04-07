@@ -123,21 +123,26 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 		return nil, fmt.Errorf("find by email: %w", err)
 	}
 	if byEmail != nil {
-		if err := s.userRepo.LinkSocialAccount(ctx, dto.CreateSocialAccountParams{
+		if !info.EmailVerified {
+			return nil, apperr.ErrEmailNotVerified
+		}
+		err := s.userRepo.LinkSocialAccount(ctx, dto.CreateSocialAccountParams{
 			UserID:     byEmail.ID,
 			Provider:   info.Provider,
 			ProviderID: info.ProviderID,
 			Email:      info.Email,
-		}); err != nil {
-			return nil, fmt.Errorf("link social account: %w", err)
+		})
+		if err != nil {
+			return nil, err
 		}
 		return s.issueTokens(byEmail.ID, byEmail.RoleSlug)
 	}
-	role, err := s.userRepo.FindRoleBySlug(ctx, slug)
-	if err != nil {
-		return nil, fmt.Errorf("find role by slug: %w", err)
+	if !info.EmailVerified {
+		return nil, apperr.ErrEmailNotVerified
 	}
-	if role == nil {
+
+	role, err := s.userRepo.FindRoleBySlug(ctx, slug)
+	if err != nil || role == nil {
 		return nil, apperr.ErrRoleNotFound
 	}
 	createUser, err := s.userRepo.CreateWithSocial(ctx, dto.CreateUserWithSocialParams{

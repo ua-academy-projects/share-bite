@@ -1,6 +1,6 @@
 basePath: /
 definitions:
-  internal_admin-auth_handler_auth.LoginRequest:
+  auth.LoginRequest:
     properties:
       email:
         type: string
@@ -10,7 +10,7 @@ definitions:
     - email
     - password
     type: object
-  internal_admin-auth_handler_auth.OAuthCallbackRequest:
+  auth.OAuthCallbackRequest:
     properties:
       code:
         type: string
@@ -23,21 +23,21 @@ definitions:
     - code
     - slug
     type: object
-  internal_admin-auth_handler_auth.OAuthLinkRequest:
+  auth.OAuthLinkRequest:
     properties:
       code:
         type: string
     required:
     - code
     type: object
-  internal_admin-auth_handler_auth.RefreshRequest:
+  auth.RefreshRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  internal_admin-auth_handler_auth.RegisterRequest:
+  auth.RegisterRequest:
     properties:
       email:
         maxLength: 254
@@ -74,7 +74,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_admin-auth_handler_auth.LoginRequest'
+          $ref: '#/definitions/auth.LoginRequest'
       produces:
       - application/json
       responses:
@@ -84,7 +84,7 @@ paths:
           schema:
             type: object
         "400":
-          description: 'Помилка валідації: {''message'': ''...''}'
+          description: 'Помилка валідації: {''error'': ''...''}'
           schema:
             type: object
         "401":
@@ -104,7 +104,7 @@ paths:
       - application/json
       description: Обмінює код від провайдера на токени доступу.
       parameters:
-      - description: Назва провайдера (google, github)
+      - description: Назва провайдера (google)
         in: path
         name: provider
         required: true
@@ -114,7 +114,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_admin-auth_handler_auth.OAuthCallbackRequest'
+          $ref: '#/definitions/auth.OAuthCallbackRequest'
       produces:
       - application/json
       responses:
@@ -125,6 +125,10 @@ paths:
             type: object
         "400":
           description: 'Непідтримуваний провайдер: {''error'': ''...''}'
+          schema:
+            type: object
+        "422":
+          description: 'Роль не знайдена: {''error'': ''...''}'
           schema:
             type: object
         "500":
@@ -149,7 +153,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_admin-auth_handler_auth.RefreshRequest'
+          $ref: '#/definitions/auth.RefreshRequest'
       produces:
       - application/json
       responses:
@@ -159,7 +163,7 @@ paths:
           schema:
             type: object
         "400":
-          description: 'Помилка валідації: {''message'': ''...''}'
+          description: 'Помилка валідації: {''error'': ''...''}'
           schema:
             type: object
         "401":
@@ -184,7 +188,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_admin-auth_handler_auth.RegisterRequest'
+          $ref: '#/definitions/auth.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -194,7 +198,7 @@ paths:
           schema:
             type: object
         "400":
-          description: 'Помилка валідації: {''message'': ''...''}'
+          description: 'Помилка валідації: {''error'': ''...''}'
           schema:
             type: object
         "409":
@@ -218,7 +222,7 @@ paths:
       - application/json
       description: Прив'язує Google або GitHub до вже авторизованого користувача.
       parameters:
-      - description: Назва провайдера (google, github)
+      - description: Назва провайдера (google)
         in: path
         name: provider
         required: true
@@ -228,7 +232,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_admin-auth_handler_auth.OAuthLinkRequest'
+          $ref: '#/definitions/auth.OAuthLinkRequest'
       produces:
       - application/json
       responses:
@@ -251,6 +255,10 @@ paths:
             type: object
         "500":
           description: 'Внутрішня помилка сервера: {''error'': ''...''}'
+          schema:
+            type: object
+        "502":
+          description: 'Помилка обміну коду з провайдером: {''error'': ''...''}'
           schema:
             type: object
       security:

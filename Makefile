@@ -46,7 +46,7 @@ goose-status:
 
 goose-create:
 	@if [ -z "$(name)" ]; then \
-		echo "Помилка: вкажіть назву міграції. Приклад: make migrate-create name=add_users_table"; \
+		echo "Помилка: вкажіть назву міграції. Приклад: make goose-create name=add_users_table"; \
 		exit 1; \
 	fi
 	goose -dir $(MIGRATIONS_DIR) create $(name) sql

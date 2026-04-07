@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
@@ -172,8 +174,7 @@ func (r *repository) LinkSocialAccount(ctx context.Context, params dto.CreateSoc
 		Name: "user.LinkSocialAccount",
 		Sql: `
 		INSERT INTO auth.social_accounts (user_id, provider, provider_id, email)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (provider, provider_id) DO NOTHING`,
+		VALUES ($1, $2, $3, $4)`,
 	}
 	_, err := r.client.DB().ExecContext(ctx, q,
 		params.UserID,
@@ -182,6 +183,10 @@ func (r *repository) LinkSocialAccount(ctx context.Context, params dto.CreateSoc
 		params.Email,
 	)
 	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return apperr.ErrProviderAlreadyLinked
+		}
 		return fmt.Errorf("link social account: %w", err)
 	}
 	return nil

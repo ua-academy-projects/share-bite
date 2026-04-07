@@ -1,11 +1,9 @@
 package auth
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -31,14 +29,14 @@ func NewHandler(service authsvc.Service, providerFactory ProviderFactory) *Handl
 // @Produce      json
 // @Param        request  body      LoginRequest  true  "Дані для входу"
 // @Success      200      {object}  object  "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}"
-// @Failure      400      {object}  object  "Помилка валідації: {'message': '...'}"
+// @Failure      400      {object}  object  "Помилка валідації: {'error': '...'}"
 // @Failure      401      {object}  object  "Невірні облікові дані: {'error': '...'}"
 // @Failure      500      {object}  object  "Внутрішня помилка сервера: {'error': '...'}"
 // @Router       /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -62,7 +60,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Produce      json
 // @Param        request  body      RegisterRequest  true  "Дані для реєстрації"
 // @Success      201      {object}  object  "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}"
-// @Failure      400      {object}  object  "Помилка валідації: {'message': '...'}"
+// @Failure      400      {object}  object  "Помилка валідації: {'error': '...'}"
 // @Failure      409      {object}  object  "Користувач вже існує: {'error': '...'}"
 // @Failure      422      {object}  object  "Роль не знайдена: {'error': '...'}"
 // @Failure      500      {object}  object  "Внутрішня помилка сервера: {'error': '...'}"
@@ -70,7 +68,7 @@ func (h *Handler) Login(c *gin.Context) {
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -99,14 +97,14 @@ func (h *Handler) Register(c *gin.Context) {
 // @Produce      json
 // @Param        request  body      RefreshRequest  true  "Refresh токен"
 // @Success      200      {object}  object  "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}"
-// @Failure      400      {object}  object  "Помилка валідації: {'message': '...'}"
+// @Failure      400      {object}  object  "Помилка валідації: {'error': '...'}"
 // @Failure      401      {object}  object  "Невалідний або прострочений токен: {'error': '...'}"
 // @Failure      500      {object}  object  "Внутрішня помилка сервера: {'error': '...'}"
 // @Router       /auth/refresh [post]
 func (h *Handler) Refresh(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -128,10 +126,11 @@ func (h *Handler) Refresh(c *gin.Context) {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        provider path      string                true  "Назва провайдера (google, github)"
+// @Param        provider path      string                true  "Назва провайдера (google)"
 // @Param        request  body      OAuthCallbackRequest  true  "Код від провайдера та роль"
 // @Success      200      {object}  object  "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}"
 // @Failure      400      {object}  object  "Непідтримуваний провайдер: {'error': '...'}"
+// @Failure      422      {object}  object  "Роль не знайдена: {'error': '...'}"
 // @Failure      502      {object}  object  "Помилка обміну коду з провайдером: {'error': '...'}"
 // @Failure      500      {object}  object  "Внутрішня помилка сервера: {'error': '...'}"
 // @Router       /auth/oauth/{provider}/callback [post]
@@ -141,32 +140,19 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 
 	p, err := h.providerFactory.Get(providerName)
 	if err != nil {
-		logger.WarnKV(ctx, "unsupported provider requested", "provider", providerName, "error", err.Error())
 		_ = c.Error(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported or invalid authentication provider."})
 		return
 	}
 
 	var req OAuthCallbackRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.WarnKV(ctx, "invalid json payload", "error", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request payload."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload."})
 		return
 	}
 
 	tokens, err := h.service.OAuthLogin(ctx, p, req.Code, req.Slug)
 	if err != nil {
 		_ = c.Error(err)
-		var appErr *apperr.AppError
-		if errors.As(err, &appErr) {
-			logger.WarnKV(ctx, "oauth login failed (client/domain error)", "provider", providerName, "slug", req.Slug, "error", appErr.Error())
-			c.JSON(appErr.Code, gin.H{"error": appErr.Message})
-			return
-		}
-		logger.ErrorKV(ctx, "oauth login failed (internal error)", "provider", providerName, "error", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Internal server error. Please try again later.",
-		})
 		return
 	}
 
@@ -185,26 +171,25 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        provider path      string            true  "Назва провайдера (google, github)"
+// @Param        provider path      string            true  "Назва провайдера (google)"
 // @Param        request  body      OAuthLinkRequest  true  "Код від провайдера"
 // @Success      200      {object}  object  "Успіх. Повертає: {'message': 'Social account successfully linked.'}"
 // @Failure      400      {object}  object  "Невалідний запит: {'error': '...'}"
 // @Failure      401      {object}  object  "Неавторизований доступ: {'error': '...'}"
 // @Failure      409      {object}  object  "Провайдер вже прив'язаний: {'error': '...'}"
 // @Failure      500      {object}  object  "Внутрішня помилка сервера: {'error': '...'}"
+// @Failure      502      {object}  object  "Помилка обміну коду з провайдером: {'error': '...'}"
 // @Router       /user/link/{provider} [post]
 func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	userIDVal, exists := c.Get(middleware.CtxUserID)
 	if !exists {
-		logger.WarnKV(ctx, "missing user_id in context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access."})
 		return
 	}
 	userID, ok := userIDVal.(string)
 	if !ok {
-		logger.ErrorKV(ctx, "invalid user id type in context")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error."})
 		return
 	}
@@ -212,15 +197,12 @@ func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 	providerName := c.Param("provider")
 	p, err := h.providerFactory.Get(providerName)
 	if err != nil {
-		logger.WarnKV(ctx, "unsupported provider for linking", "provider", providerName, "error", err.Error())
 		_ = c.Error(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported authentication provider."})
 		return
 	}
 
 	var req OAuthLinkRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.WarnKV(ctx, "invalid json payload during account link", "error", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload. 'code' is required."})
 		return
 	}
@@ -228,17 +210,6 @@ func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 	err = h.service.LinkProvider(ctx, userID, p, req.Code)
 	if err != nil {
 		_ = c.Error(err)
-
-		var appErr *apperr.AppError
-		if errors.As(err, &appErr) {
-			logger.WarnKV(ctx, "failed to link account (domain error)", "user_id", userID, "provider", providerName, "error", appErr.Error())
-			c.JSON(appErr.Code, gin.H{"error": appErr.Message})
-			return
-		}
-		logger.ErrorKV(ctx, "failed to link account (internal error)", "user_id", userID, "provider", providerName, "error", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Internal server error.",
-		})
 		return
 	}
 

@@ -85,6 +85,23 @@ func (m *MockAuthService) LinkProvider(ctx context.Context, userID string, provi
 	return args.Error(0)
 }
 
+func testErrorMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+		err := c.Errors.Last()
+		if err == nil {
+			return
+		}
+
+		var appErr *apperr.AppError
+		if errors.As(err.Err, &appErr) {
+			c.JSON(appErr.HTTPStatus(), gin.H{"error": appErr.Message})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	}
+}
+
 func TestHandler_OAuthCallback(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -94,9 +111,14 @@ func TestHandler_OAuthCallback(t *testing.T) {
 
 		h := auth.NewHandler(mockSvc, mockFactory)
 
-		mockFactory.On("Get", "unknown").Return(nil, errors.New("unsupported provider"))
+		expectedErr := &apperr.AppError{
+			Code:    http.StatusBadRequest,
+			Message: "Unsupported or invalid authentication provider",
+		}
+		mockFactory.On("Get", "unknown").Return(nil, expectedErr)
 
 		r := gin.New()
+		r.Use(testErrorMiddleware())
 		r.POST("/oauth/:provider/callback", h.OAuthCallback)
 
 		w := httptest.NewRecorder()
@@ -149,6 +171,7 @@ func TestHandler_OAuthCallback(t *testing.T) {
 		mockSvc.On("OAuthLogin", mock.Anything, mockProvider, "valid-code", "user").Return(nil, appError)
 
 		r := gin.New()
+		r.Use(testErrorMiddleware())
 		r.POST("/oauth/:provider/callback", h.OAuthCallback)
 
 		reqBody := auth.OAuthCallbackRequest{Code: "valid-code", Slug: "user"}
