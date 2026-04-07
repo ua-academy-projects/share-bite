@@ -10,6 +10,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
@@ -40,7 +41,6 @@ func main() {
 	// }
 
 	router := gin.New()
-	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
@@ -68,6 +68,23 @@ func main() {
 		return nil
 	})
 
+	// clients
+	clientCfg := config.Config().BusinessHttpClient
+	httpClient := &http.Client{
+		Timeout: clientCfg.Timeout(),
+		Transport: &http.Transport{
+			MaxIdleConns:        clientCfg.MaxIdleConns(),
+			MaxIdleConnsPerHost: clientCfg.MaxIdleConnsPerHost(),
+			IdleConnTimeout:     clientCfg.IdleConnTimeout(),
+		},
+	}
+	closer.Add(func(ctx context.Context) error {
+		httpClient.CloseIdleConnections()
+		return nil
+	})
+
+	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
+
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
 		config.Config().JwtToken.RefreshTokenSecretKey(),
@@ -81,12 +98,11 @@ func main() {
 	customerRepo := customerrepo.New(client)
 
 	// services
-	postSvc := postsvc.New(postRepo)
 	customerSvc := customersvc.New(customerRepo)
-
+	postSvc := postsvc.New(postRepo, businessGateway)
 	// handlers
-	post.RegisterHandlers(router.Group("/posts"), postSvc)
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
+	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")
@@ -134,6 +150,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 				code.InvalidRequest,
 				code.EmptyUpdate:
 				respCode = http.StatusBadRequest
+
+			case code.UpstreamError:
+				respCode = http.StatusBadGateway
 
 			case code.AlreadyExists:
 				respCode = http.StatusConflict
