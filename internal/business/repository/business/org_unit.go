@@ -3,6 +3,7 @@ package business
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -11,6 +12,7 @@ import (
 )
 
 func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, error) {
+	const op = "repository.business.GetById"
 	sql := `
 		SELECT id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
 		FROM business.org_units
@@ -38,10 +40,10 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
 		}
 
-		return nil, scanRowError(err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	result := ou.ToEntity()
@@ -49,7 +51,8 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 }
 
 func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error) {
-	return pagination.List(ctx, r.db.DB(), "business_repository.ListByParentID",
+	const op = "repository.business.ListByParentID"
+	units, err := pagination.List(ctx, r.db.DB(), "business_repository.ListByParentID",
 		pagination.Params{
 			Table:   "business.org_units",
 			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
@@ -74,14 +77,20 @@ func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit
 				&ou.Longitude,
 			)
 			if err != nil {
-				return entity.OrgUnit{}, err
+				return entity.OrgUnit{}, fmt.Errorf("%s: %w", op, err)
 			}
 			return ou.ToEntity(), nil
 		},
 	)
+	if err != nil {
+		return pagination.Result[entity.OrgUnit]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return units, nil
 }
 
 func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error) {
+	const op = "repository.business.GetVenuesByIDs"
 	q := database.Query{
 		Name: "business_repository.GetVenuesByIDs",
 		Sql: `
@@ -93,7 +102,7 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 
 	rows, err := r.db.DB().QueryContext(ctx, q, ids)
 	if err != nil {
-		return nil, executeSQLError(err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -108,7 +117,7 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 			&ou.Banner,
 		)
 		if err != nil {
-			return nil, scanRowsError(err)
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		result = append(result, ou.ToEntity())
 	}
