@@ -137,11 +137,6 @@ func (s *service) Refresh(_ context.Context, refreshToken string) (*Tokens, erro
 }
 
 func (s *service) RecoverAccess(ctx context.Context, email string) error {
-	rawToken, tokenHash, err := generatePasswordResetToken()
-	if err != nil {
-		return fmt.Errorf("generate password reset token: %w", err)
-	}
-
 	u, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return fmt.Errorf("find user by email: %w", err)
@@ -149,6 +144,11 @@ func (s *service) RecoverAccess(ctx context.Context, email string) error {
 
 	if u == nil {
 		return fmt.Errorf("find user by email: empty user result")
+	}
+
+	rawToken, tokenHash, err := generatePasswordResetToken()
+	if err != nil {
+		return fmt.Errorf("generate password reset token: %w", err)
 	}
 
 	err = s.txManager.ReadCommited(ctx, func(txCtx context.Context) error {
