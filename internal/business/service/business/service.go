@@ -22,7 +22,7 @@ type businessRepository interface {
 	InsertPostImages(ctx context.Context, postID int64, URLs []string) error
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.Post], error)
 	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
-
+	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 }
 
 type service struct {
