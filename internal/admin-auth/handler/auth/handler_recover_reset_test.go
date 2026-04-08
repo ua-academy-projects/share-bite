@@ -16,6 +16,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -82,8 +83,14 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 	return args.Error(0)
 }
 
+type noopTxManager struct{}
+
+func (noopTxManager) ReadCommited(ctx context.Context, fn database.Handler) error {
+	return fn(ctx)
+}
+
 func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *Handler {
-	service := authsvc.New(repo, stubTokenProvider{}, emailSender)
+	service := authsvc.New(repo, stubTokenProvider{}, emailSender, noopTxManager{})
 	return NewHandler(service)
 }
 

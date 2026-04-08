@@ -21,12 +21,11 @@ type Repository interface {
 }
 
 type repository struct {
-	client    database.Client
-	txManager database.TxManager
+	client database.Client
 }
 
-func New(client database.Client, txManager database.TxManager) Repository {
-	return &repository{client: client, txManager: txManager}
+func New(client database.Client) Repository {
+	return &repository{client: client}
 }
 
 func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error) {
@@ -77,25 +76,18 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.Cr
 		`,
 	}
 
-	err := r.txManager.ReadCommited(ctx, func(ctx context.Context) error {
-		if _, err := r.client.DB().ExecContext(ctx, invalidateQuery, params.UserID); err != nil {
-			return fmt.Errorf("invalidate previous password reset tokens: %w", err)
-		}
+	if _, err := r.client.DB().ExecContext(ctx, invalidateQuery, params.UserID); err != nil {
+		return fmt.Errorf("invalidate previous password reset tokens: %w", err)
+	}
 
-		if _, err := r.client.DB().ExecContext(
-			ctx,
-			insertQuery,
-			params.UserID,
-			params.TokenHash,
-			params.ExpiresAt,
-		); err != nil {
-			return fmt.Errorf("insert password reset token: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("create password reset token: %w", err)
+	if _, err := r.client.DB().ExecContext(
+		ctx,
+		insertQuery,
+		params.UserID,
+		params.TokenHash,
+		params.ExpiresAt,
+	); err != nil {
+		return fmt.Errorf("insert password reset token: %w", err)
 	}
 
 	return nil
@@ -126,27 +118,16 @@ func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash 
 		`,
 	}
 
-	err := r.txManager.ReadCommited(ctx, func(ctx context.Context) error {
-		if err := r.client.DB().QueryRowContext(ctx, consumeTokenQuery, tokenHash).Scan(&userID); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return apperror.ErrInvalidResetToken
-			}
-
-			return fmt.Errorf("consume password reset token: %w", err)
-		}
-
-		if _, err := r.client.DB().ExecContext(ctx, updatePasswordQuery, userID, passwordHash); err != nil {
-			return fmt.Errorf("update password: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		if errors.Is(err, apperror.ErrInvalidResetToken) {
+	if err := r.client.DB().QueryRowContext(ctx, consumeTokenQuery, tokenHash).Scan(&userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, apperror.ErrInvalidResetToken
 		}
 
-		return false, fmt.Errorf("reset password by token hash: %w", err)
+		return false, fmt.Errorf("consume password reset token: %w", err)
+	}
+
+	if _, err := r.client.DB().ExecContext(ctx, updatePasswordQuery, userID, passwordHash); err != nil {
+		return false, fmt.Errorf("update password: %w", err)
 	}
 
 	return true, nil

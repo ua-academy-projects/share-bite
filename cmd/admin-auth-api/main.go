@@ -73,7 +73,7 @@ func main() {
 	)
 
 	txManager := txmanager.NewTransactionManager(client.DB())
-	userRepo := userrepo.New(client, txManager)
+	userRepo := userrepo.New(client)
 
 	provider := strings.ToLower(strings.TrimSpace(cfg.Email.SenderProviderValue()))
 	var emailSender emailsvc.Sender
@@ -93,7 +93,7 @@ func main() {
 		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", provider))
 	}
 
-	authSvc := authsvc.New(userRepo, tokenManager, emailSender)
+	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager)
 
 	authHandler := authhttp.NewHandler(authSvc)
 	limiter := adminmw.NewAuthRecoveryLimiter(

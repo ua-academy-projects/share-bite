@@ -14,6 +14,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -41,13 +42,15 @@ type service struct {
 	userRepo      user.Repository
 	tokenProvider TokenProvider
 	emailSender   emailsvc.Sender
+	txManager     database.TxManager
 }
 
-func New(userRepo user.Repository, tokenProvider TokenProvider, emailSender emailsvc.Sender) Service {
+func New(userRepo user.Repository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager) Service {
 	return &service{
 		userRepo:      userRepo,
 		tokenProvider: tokenProvider,
 		emailSender:   emailSender,
+		txManager:     txManager,
 	}
 }
 
@@ -134,26 +137,34 @@ func (s *service) Refresh(_ context.Context, refreshToken string) (*Tokens, erro
 }
 
 func (s *service) RecoverAccess(ctx context.Context, email string) error {
+	rawToken, tokenHash, err := generatePasswordResetToken()
+	if err != nil {
+		return fmt.Errorf("generate password reset token: %w", err)
+	}
+
 	u, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return fmt.Errorf("find user by email: %w", err)
 	}
 
 	if u == nil {
+		return fmt.Errorf("find user by email: empty user result")
+	}
+
+	err = s.txManager.ReadCommited(ctx, func(txCtx context.Context) error {
+		if err := s.userRepo.CreatePasswordResetToken(txCtx, dto.CreatePasswordResetTokenParams{
+			UserID:    u.ID,
+			TokenHash: tokenHash,
+			ExpiresAt: time.Now().Add(passwordResetTokenTTL),
+		}); err != nil {
+			return fmt.Errorf("create password reset token: %w", err)
+		}
+
 		return nil
-	}
+	})
 
-	rawToken, tokenHash, err := generatePasswordResetToken()
 	if err != nil {
-		return fmt.Errorf("generate password reset token: %w", err)
-	}
-
-	if err := s.userRepo.CreatePasswordResetToken(ctx, dto.CreatePasswordResetTokenParams{
-		UserID:    u.ID,
-		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(passwordResetTokenTTL),
-	}); err != nil {
-		return fmt.Errorf("create password reset token: %w", err)
+		return err
 	}
 
 	if err := s.emailSender.SendPasswordResetToken(ctx, u.Email, rawToken); err != nil {
@@ -169,17 +180,21 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return fmt.Errorf("hash password: %w", err)
 	}
 
-	updated, err := s.userRepo.ResetPassword(ctx, hashToken(token), string(passwordHash))
-	if err != nil {
-		if errors.Is(err, apperror.ErrInvalidResetToken) {
+	err = s.txManager.ReadCommited(ctx, func(txCtx context.Context) error {
+		updated, err := s.userRepo.ResetPassword(txCtx, hashToken(token), string(passwordHash))
+		if err != nil {
+			return fmt.Errorf("reset password: %w", err)
+		}
+
+		if !updated {
 			return apperror.ErrInvalidResetToken
 		}
 
-		return fmt.Errorf("reset password: %w", err)
-	}
+		return nil
+	})
 
-	if !updated {
-		return apperror.ErrInvalidResetToken
+	if err != nil {
+		return err
 	}
 
 	return nil
