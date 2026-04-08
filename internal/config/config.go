@@ -6,7 +6,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 const (
@@ -123,17 +122,17 @@ func Load(paths ...string) error {
 
 	jwtTokenConfig, err := env.NewJwtTokenConfig()
 	if err != nil {
-		return errwrap.Wrap("jwt token config", err)
+		return fmt.Errorf("jwt token config: %w", err)
 	}
 
 	emailConfig, err := env.NewEmailConfig()
 	if err != nil {
-		return errwrap.Wrap("email config", err)
+		return fmt.Errorf("email config: %w", err)
 	}
 
 	rateLimitConfig, err := env.NewRateLimitConfig()
 	if err != nil {
-		return errwrap.Wrap("rate limit config", err)
+		return fmt.Errorf("rate limit config: %w", err)
 	}
 
 	cfg = &config{
