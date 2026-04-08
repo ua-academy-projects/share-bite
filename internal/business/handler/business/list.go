@@ -60,7 +60,7 @@ func (h *handler) list(c *gin.Context) {
 	}
 	if req.Limit > 100 {
 		req.Limit = 100
-	}	
+	}
 
 	ctx := c.Request.Context()
 	logger.InfoKV(ctx, "list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit)

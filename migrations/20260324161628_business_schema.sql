@@ -3,7 +3,7 @@ CREATE SCHEMA IF NOT EXISTS business;
 
 CREATE TABLE business.org_units (
   id SERIAL PRIMARY KEY,
-  org_account_id BIGINT NOT NULL UNIQUE
+  org_account_id UUID NOT NULL UNIQUE
     REFERENCES auth.users(id) ON DELETE CASCADE,
   profile_type TEXT NOT NULL CHECK (profile_type IN ('BRAND', 'VENUE')),
 
@@ -38,13 +38,13 @@ CREATE TABLE business.post_photos (
 
 CREATE TABLE business.comments (
   id BIGSERIAL PRIMARY KEY,
-  
+
   post_id BIGINT NOT NULL
     REFERENCES business.posts(id) ON DELETE CASCADE,
-    
-  author_id BIGINT NOT NULL
+
+  author_id UUID NOT NULL
     REFERENCES auth.users(id),
-  
+
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

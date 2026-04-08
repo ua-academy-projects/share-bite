@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -13,22 +14,34 @@ type handler struct {
 }
 
 type businessService interface {
+	UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error)
+	DeletePost(ctx context.Context, postID int64, userID string) error
+	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
+
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 }
 
-func RegisterHandlers(
-	r *gin.RouterGroup,
-	service businessService,
-) {
+func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {
 	h := &handler{
 		service: service,
 	}
 
-	r.GET("/:id", h.get)
-	r.GET("/:id/locations", h.list)
-	r.POST("/venues", h.getVenuesByIDs)
+	auth := middleware.Auth(parser)
+
+	r.GET("/org-units/:id", h.get)
+	r.GET("/org-units/:id/locations", h.list)
+	r.POST("org-units/venues", h.getVenuesByIDs)
+
+	r.GET("/posts", h.GetPosts)
+
+	businessOnly := r.Group("/").
+		Use(auth).
+		Use(middleware.RequireRoles("business"))
+
+	businessOnly.PUT("/posts/:id", h.UpdatePost)
+	businessOnly.DELETE("/posts/:id", h.DeletePost)
 }
 
 // errorResponse is used for swagger documentation.
