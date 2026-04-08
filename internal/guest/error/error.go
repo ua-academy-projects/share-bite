@@ -96,8 +96,8 @@ func CollectionNotFoundID(collectionID string) *Error {
 	return newError(code.NotFound, msg)
 }
 
-func VenueNotFoundInCollection(venueID string) *Error {
-	msg := fmt.Sprintf("venue with id %q was not found in the collection", venueID)
+func VenueNotFoundInCollection(venueID int64) *Error {
+	msg := fmt.Sprintf("venue with id %d was not found in the collection", venueID)
 	return newError(code.NotFound, msg)
 }
 

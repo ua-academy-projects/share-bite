@@ -11,8 +11,19 @@ func (s *service) RemoveVenue(
 	ctx context.Context,
 	collectionID string,
 	customerID string,
-	venueID string,
+	venueID int64,
 ) error {
+	// TODO: check whether this venue exists
+	// exists, err := s.businessClient.CheckExists(ctx, venueID)
+	// if err != nil {
+	// 	return fmt.Errorf("check venue existence: %w", err)
+	// }
+	// if !exists {
+	// 	// TODO: replace it with return apperror.VenueNotFoundID(venueID)
+	// 	// now this will break another thing
+	// 	return apperror.VenueNotFoundID(fmt.Sprintf("%d", venueID))
+	// }
+
 	collection, err := s.collectionRepo.GetCollection(ctx, collectionID)
 	if err != nil {
 		return fmt.Errorf("get collection from repository: %w", err)

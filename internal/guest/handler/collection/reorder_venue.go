@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 
 	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 )
@@ -21,7 +21,7 @@ import (
 // @Security		BearerAuth
 //
 // @Param			collectionId	path	string				true	"Collection ID (UUID)"
-// @Param			venueId			path	string				true	"Venue ID (UUID)"
+// @Param			venueId			path	int64				true	"Venue ID"
 // @Param			request			body	reorderVenueBody	true	"Reorder details (prevVenueId and/or nextVenueId)"
 //
 // @Success		204				"Venue successfully reordered"
@@ -64,10 +64,10 @@ func (h *handler) reorderVenue(c *gin.Context) {
 
 type reorderVenueUri struct {
 	CollectionID string `uri:"collectionId" binding:"required,uuid"`
-	VenueID      string `uri:"venueId" binding:"required,uuid"`
+	VenueID      int64  `uri:"venueId" binding:"required,gte=1"`
 }
 
 type reorderVenueBody struct {
-	PrevVenueID *string `json:"prevVenueId" binding:"required_without=NextVenueID,omitempty,uuid"`
-	NextVenueID *string `json:"nextVenueId" binding:"required_without=PrevVenueID,omitempty,uuid"`
+	PrevVenueID *int64 `json:"prevVenueId" binding:"required_without=NextVenueID,omitempty,gte=1"`
+	NextVenueID *int64 `json:"nextVenueId" binding:"required_without=PrevVenueID,omitempty,gte=1"`
 }

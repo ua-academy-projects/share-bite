@@ -21,20 +21,20 @@ type collectionRepository interface {
 
 	CountVenues(ctx context.Context, collectionID string) (int, error)
 	GetMaxSortOrder(ctx context.Context, collectionID string) (float64, error)
-	CheckIfVenueInCollection(ctx context.Context, collectionID string, venueID string) (bool, error)
-	GetCollectionVenue(ctx context.Context, collectionID string, venueID string) (entity.CollectionVenue, error)
+	CheckIfVenueInCollection(ctx context.Context, collectionID string, venueID int64) (bool, error)
+	GetCollectionVenue(ctx context.Context, collectionID string, venueID int64) (entity.CollectionVenue, error)
 
 	ListCollectionVenues(ctx context.Context, collectionID string) ([]entity.CollectionVenue, error)
 
-	AddVenue(ctx context.Context, collectionID string, venueID string, sortOrder float64) error
-	RemoveVenue(ctx context.Context, collectionID string, venueID string) error
-	UpdateVenueSortOrder(ctx context.Context, collectionID string, venueID string, sortOrder float64) error
+	AddVenue(ctx context.Context, collectionID string, venueID int64, sortOrder float64) error
+	RemoveVenue(ctx context.Context, collectionID string, venueID int64) error
+	UpdateVenueSortOrder(ctx context.Context, collectionID string, venueID int64, sortOrder float64) error
 	RebalanceCollectionSortOrders(ctx context.Context, collectionID string) error
 	HasVenuesBetween(ctx context.Context, collectionID string, lower float64, upper float64) (bool, error)
 }
 
 type businessClient interface {
-	ListVenues(ctx context.Context, venueIDs []string) (map[string]entity.Venue, error)
+	ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error)
 }
 
 type service struct {

@@ -51,7 +51,7 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn databa
 
 		if err == nil {
 			if commitErr := tx.Commit(ctx); commitErr != nil {
-				err = errwrap.Wrap("transaction commit", commitErr)
+				err = fmt.Errorf("transaction commit: %w", commitErr)
 			}
 		}
 	}()

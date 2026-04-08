@@ -1,3 +1,5 @@
+.PHONY: run-guest run-business run-auth migrate-up run-all build tidy s3-up s3-ui install-tools docs docs-guest docs-business
+
 run-guest: docs-guest
 	go run cmd/guest-api/main.go
 
@@ -51,9 +53,22 @@ goose-create:
 	fi
 	goose -dir $(MIGRATIONS_DIR) create $(name) sql
 
-install-tools:
-	go install github.com/swaggo/swag/cmd/swag@latest
+# can be continued..
+docs: docs-guest docs-business
 
 docs-guest:
 	@echo "generating swagger for guest service api..."
-	swag init -g main.go -d cmd/guest-api,internal/guest -o docs/api/guest --parseInternal --parseDependency
+	go tool swag init -g main.go -d cmd/guest-api,internal/guest -o docs/api/guest --parseInternal --parseDependency
+
+docs-business:
+	@echo "generating swagger for business service api..."
+	go tool swag init -g main.go -d cmd/business-api,internal/business -o docs/api/business --parseInternal --parseDependency
+
+generate-guest-business-client:
+	@echo "generating business client for guest service..."
+	mkdir -p internal/guest/gateway/business/client
+	go tool swagger generate client \
+		-f docs/api/business/swagger.yaml \
+		-t internal/guest/gateway/business/client \
+		-c business_client \
+		-m dto

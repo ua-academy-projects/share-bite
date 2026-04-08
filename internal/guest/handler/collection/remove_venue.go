@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/util/request"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 
 	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 )
@@ -20,7 +20,7 @@ import (
 // @Security		BearerAuth
 //
 // @Param			collectionId	path	string	true	"Collection ID (UUID)"
-// @Param			venueId			path	string	true	"Venue ID (UUID)"
+// @Param			venueId			path	int64	true	"Venue ID"
 //
 // @Success		204				"Venue successfully removed from the collection"
 // @Failure		400				{object}	response.ErrorResponse		"Invalid path parameters"
@@ -55,5 +55,5 @@ func (h *handler) removeVenue(c *gin.Context) {
 
 type removeVenueRequest struct {
 	CollectionID string `uri:"collectionId" binding:"required,uuid"`
-	VenueID      string `uri:"venueId" binding:"required,uuid"`
+	VenueID      int64  `uri:"venueId" binding:"required,gte=1"`
 }

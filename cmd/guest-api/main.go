@@ -106,7 +106,7 @@ func main() {
 		return nil
 	})
 
-	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
+	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), "/", httpClient)
 
 	storageClient, err := newStorageClient(ctx, config.Config().Storage)
 	if err != nil {
@@ -132,7 +132,7 @@ func main() {
 	customerSvc := customersvc.New(customerRepo)
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
-	collectionSvc := collectionsvc.New(collectionRepo, businessGateway)
+	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
 
 	// middlewares
 	authMiddleware := middleware.Auth(tokenManager)

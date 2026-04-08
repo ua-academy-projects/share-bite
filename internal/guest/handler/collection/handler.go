@@ -23,8 +23,8 @@ type collectionService interface {
 	ListCustomerCollections(ctx context.Context, in entity.ListCustomerCollectionsInput) (entity.ListCustomerCollectionsOutput, error)
 
 	// collection venues
-	AddVenue(ctx context.Context, collectionID string, customerID string, venueID string) error
-	RemoveVenue(ctx context.Context, collectionID string, customerID string, venueID string) error
+	AddVenue(ctx context.Context, collectionID string, customerID string, venueID int64) error
+	RemoveVenue(ctx context.Context, collectionID string, customerID string, venueID int64) error
 	ReorderVenue(ctx context.Context, in entity.ReorderVenueInput) error
 
 	ListVenues(ctx context.Context, collectionID string, customerID *string) ([]entity.EnrichedVenueItem, error)
@@ -74,7 +74,7 @@ type collectionResponse struct {
 }
 
 type enrichedVenueItemResponse struct {
-	ID   string `json:"id"`
+	ID   int64  `json:"id"`
 	Name string `json:"name"`
 
 	Description *string `json:"description"`

@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_collections_customer_public ON guest.collections(
 CREATE TABLE IF NOT EXISTS guest.collection_venues
 (
     collection_id UUID NOT NULL REFERENCES guest.collections(id) ON DELETE CASCADE,
-    venue_id UUID NOT NULL,
+    venue_id INT NOT NULL,
     
     sort_order FLOAT8 NOT NULL,
     added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

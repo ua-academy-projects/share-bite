@@ -46,7 +46,7 @@ func (e Collections) ToEntities() []entity.Collection {
 
 type CollectionVenue struct {
 	CollectionID string `db:"collection_id"`
-	VenueID      string `db:"venue_id"`
+	VenueID      int64  `db:"venue_id"`
 
 	SortOrder float64   `db:"sort_order"`
 	AddedAt   time.Time `db:"added_at"`

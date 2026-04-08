@@ -8,24 +8,45 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/venues"
+	business_dto "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/dto"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
+
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
 const maxErrorBodySize = 2048
 
-type BusinessAPIClient struct {
+type businessAPIClient struct {
+	api *business_client.ShareBiteBusinessAPI
+
+	// TODO: remove to use swagger autogen files only
 	client  *http.Client
 	baseURL string
 }
 
-func NewBusinessAPIClient(baseURL string, client *http.Client) *BusinessAPIClient {
-	return &BusinessAPIClient{
-		client:  client,
+func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client) *businessAPIClient {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		panic(fmt.Sprintf("invalid business url: %v", err))
+	}
+
+	transport := client.NewWithClient(u.Host, basePath, []string{"http"}, httpClient)
+	api := business_client.New(transport, strfmt.Default)
+
+	return &businessAPIClient{
+		api:     api,
+		client:  httpClient,
 		baseURL: baseURL,
 	}
 }
 
-func (c *BusinessAPIClient) CheckExists(ctx context.Context, venueID string) (bool, error) {
+func (c *businessAPIClient) CheckExists(ctx context.Context, venueID string) (bool, error) {
 	reqURL, err := url.JoinPath(c.baseURL, "api", "internal", "venues", venueID)
 	if err != nil {
 		return false, fmt.Errorf("join url path: %w", err)
@@ -66,4 +87,81 @@ func (c *BusinessAPIClient) CheckExists(ctx context.Context, venueID string) (bo
 	}
 
 	return false, fmt.Errorf("server error %d: %s: %w", statusCode, string(errBody), apperror.ErrUpstreamError)
+}
+
+func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error) {
+	if len(venueIDs) == 0 {
+		return map[int64]entity.Venue{}, nil
+	}
+	venueIDs = removeDuplicates(venueIDs)
+
+	payload := &business_dto.InternalBusinessHandlerBusinessGetVenuesByIDsRequest{
+		Ids: venueIDs,
+	}
+	params := venues.NewPostBusinessVenuesParamsWithContext(ctx).WithRequest(payload)
+
+	resp, err := c.api.Venues.PostBusinessVenues(params, noClientOption())
+	if err != nil {
+		logger.ErrorKV(ctx, "get venues from business service",
+			"error", err,
+			"venue_ids_count", len(venueIDs),
+		)
+
+		return nil, fmt.Errorf("get venues by IDs: %w", err)
+	}
+
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("get venues by IDs unexpected status code: %d", resp.Code())
+	}
+
+	respPayload := resp.GetPayload()
+	if respPayload == nil {
+		return map[int64]entity.Venue{}, nil
+	}
+
+	out := make(map[int64]entity.Venue, len(respPayload))
+	for _, v := range respPayload {
+		if v == nil {
+			continue
+		}
+
+		out[v.ID] = entity.Venue{
+			ID:          v.ID,
+			Name:        v.Name,
+			Description: toNilStrPtr(v.Description),
+			AvatarURL:   toNilStrPtr(v.Avatar),
+			Banner:      toNilStrPtr(v.Banner),
+		}
+	}
+
+	return out, nil
+}
+
+func toNilStrPtr(v string) *string {
+	if v == "" {
+		return nil
+	}
+
+	val := v
+	return &val
+}
+
+func removeDuplicates(in []int64) []int64 {
+	seen := make(map[int64]struct{}, len(in))
+
+	out := make([]int64, 0, len(in))
+	for _, id := range in {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+
+	return out
+}
+
+func noClientOption() venues.ClientOption {
+	return func(co *runtime.ClientOperation) {}
 }

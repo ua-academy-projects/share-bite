@@ -16,18 +16,19 @@ type Collection struct {
 
 type CollectionVenue struct {
 	CollectionID string
-	VenueID      string
+	VenueID      int64
 	SortOrder    float64
 	AddedAt      time.Time
 }
 
 // Venue describes the venue FROM THE PERSPECTIVE OF the collections module.
 type Venue struct {
-	ID          string
+	ID          int64
 	Name        string
 	Description *string
 
 	AvatarURL *string
+	Banner    *string
 }
 
 type EnrichedVenueItem struct {
@@ -71,10 +72,10 @@ type ListCustomerCollectionsOutput struct {
 
 type ReorderVenueInput struct {
 	CollectionID string
-	VenueID      string
+	VenueID      int64
 
 	CustomerID string
 
-	PrevVenueID *string
-	NextVenueID *string
+	PrevVenueID *int64
+	NextVenueID *int64
 }

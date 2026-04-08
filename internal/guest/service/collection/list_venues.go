@@ -29,12 +29,12 @@ func (s *service) ListVenues(
 		return nil, nil
 	}
 
-	venueIDs := make([]string, 0, len(collectionVenues))
+	venueIDs := make([]int64, 0, len(collectionVenues))
 	for _, v := range collectionVenues {
 		venueIDs = append(venueIDs, v.VenueID)
 	}
 
-	venues, err := s.businessClient.ListVenues(ctx, venueIDs)
+	venues, err := s.businessClient.ListVenuesByIDs(ctx, venueIDs)
 	if err != nil {
 		return nil, fmt.Errorf("get venues from business service: %w", err)
 	}
@@ -54,6 +54,7 @@ func (s *service) ListVenues(
 				Name:        venue.Name,
 				Description: venue.Description,
 				AvatarURL:   venue.AvatarURL,
+				Banner:      venue.Banner,
 			},
 			SortOrder: cv.SortOrder,
 			AddedAt:   cv.AddedAt,

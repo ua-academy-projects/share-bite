@@ -290,7 +290,7 @@ func (r *repository) GetMaxSortOrder(ctx context.Context, collectionID string) (
 	return maxSortOrder, nil
 }
 
-func (r *repository) CheckIfVenueInCollection(ctx context.Context, collectionID string, venueID string) (bool, error) {
+func (r *repository) CheckIfVenueInCollection(ctx context.Context, collectionID string, venueID int64) (bool, error) {
 	sql := `
 		SELECT EXISTS
 		(SELECT 1 FROM guest.collection_venues WHERE collection_id = $1 AND venue_id = $2)
@@ -308,7 +308,7 @@ func (r *repository) CheckIfVenueInCollection(ctx context.Context, collectionID 
 	return exists, nil
 }
 
-func (r *repository) GetCollectionVenue(ctx context.Context, collectionID string, venueID string) (entity.CollectionVenue, error) {
+func (r *repository) GetCollectionVenue(ctx context.Context, collectionID string, venueID int64) (entity.CollectionVenue, error) {
 	sql := `
 		SELECT
 			collection_id,
@@ -371,7 +371,7 @@ func (r *repository) ListCollectionVenues(ctx context.Context, collectionID stri
 	return cvs.ToEntities(), nil
 }
 
-func (r *repository) AddVenue(ctx context.Context, collectionID string, venueID string, sortOrder float64) error {
+func (r *repository) AddVenue(ctx context.Context, collectionID string, venueID int64, sortOrder float64) error {
 	sql := `
 		INSERT INTO guest.collection_venues (collection_id, venue_id, sort_order)
 		VALUES ($1, $2, $3)
@@ -400,7 +400,7 @@ func (r *repository) AddVenue(ctx context.Context, collectionID string, venueID 
 	return nil
 }
 
-func (r *repository) RemoveVenue(ctx context.Context, collectionID string, venueID string) error {
+func (r *repository) RemoveVenue(ctx context.Context, collectionID string, venueID int64) error {
 	sql := `
 		DELETE FROM guest.collection_venues 
 		WHERE collection_id = $1 AND venue_id = $2
@@ -417,7 +417,7 @@ func (r *repository) RemoveVenue(ctx context.Context, collectionID string, venue
 	return nil
 }
 
-func (r *repository) UpdateVenueSortOrder(ctx context.Context, collectionID string, venueID string, sortOrder float64) error {
+func (r *repository) UpdateVenueSortOrder(ctx context.Context, collectionID string, venueID int64, sortOrder float64) error {
 	sql := `
 		UPDATE guest.collection_venues
 		SET sort_order = $1
