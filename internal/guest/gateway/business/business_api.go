@@ -36,7 +36,7 @@ func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Clie
 		panic(fmt.Sprintf("invalid business url: %v", err))
 	}
 
-	transport := client.NewWithClient(u.Host, basePath, []string{"http"}, httpClient)
+	transport := client.NewWithClient(u.Host, basePath, []string{u.Scheme}, httpClient)
 	api := business_client.New(transport, strfmt.Default)
 
 	return &businessAPIClient{

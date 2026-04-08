@@ -62,6 +62,7 @@ func main() {
 	// }
 
 	router := gin.New()
+	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())

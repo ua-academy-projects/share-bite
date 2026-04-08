@@ -19,15 +19,6 @@ func (s *service) AddVenue(
 	venueID int64,
 ) error {
 	// TODO: check whether this venue exists
-	// exists, err := s.businessClient.CheckExists(ctx, venueID)
-	// if err != nil {
-	// 	return fmt.Errorf("check venue existence: %w", err)
-	// }
-	// if !exists {
-	// 	// TODO: replace it with return apperror.VenueNotFoundID(venueID)
-	// 	// now this will break another thing
-	// 	return apperror.VenueNotFoundID(fmt.Sprintf("%d", venueID))
-	// }
 
 	if txErr := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
 		collection, err := s.collectionRepo.GetCollectionForUpdate(ctx, collectionID)
