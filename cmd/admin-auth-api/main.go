@@ -21,6 +21,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 
@@ -40,6 +41,8 @@ func main() {
 	}
 
 	router := gin.New()
+	router.Use(common_middleware.RequestID())
+	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
 
