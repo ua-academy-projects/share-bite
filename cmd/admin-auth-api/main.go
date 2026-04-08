@@ -1,7 +1,3 @@
-// @title Share Bite Admin Auth API
-// @version 1.0
-// @description Admin authentication API documentation.
-// @BasePath /
 package main
 
 import (
@@ -33,6 +29,10 @@ import (
 	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
 )
 
+// @title Share Bite Admin Auth API
+// @version 1.0
+// @description Admin authentication API documentation.
+// @BasePath /
 func main() {
 	ctx := context.Background()
 
