@@ -4,12 +4,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
 func (h *handler) get(c *gin.Context) {
-	req := new(getRequest)
-	if err := c.ShouldBindUri(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post id"})
+	var req getRequest
+	if err := request.BindUri(c, &req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -25,7 +26,7 @@ func (h *handler) get(c *gin.Context) {
 }
 
 type getRequest struct {
-	ID string `uri:"id" binding:"required,uuid"`
+	ID string `uri:"id" binding:"required,numeric"`
 }
 
 type getResponse struct {

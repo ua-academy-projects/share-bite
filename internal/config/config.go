@@ -1,11 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 const (
@@ -20,6 +20,8 @@ type config struct {
 	GuestHttpServer    HttpServer
 	AdminHttpServer    HttpServer
 	BusinessHttpServer HttpServer
+
+	BusinessHttpClient HttpClient
 
 	Postgres Postgres
 
@@ -43,6 +45,18 @@ type App interface {
 
 type HttpServer interface {
 	Address() string
+	AllowedOrigins() []string
+	AllowedMethods() []string
+	AllowedHeaders() []string
+	ExposeHeaders() []string
+}
+
+type HttpClient interface {
+	BaseURL() string
+	Timeout() time.Duration
+	MaxIdleConns() int
+	MaxIdleConnsPerHost() int
+	IdleConnTimeout() time.Duration
 }
 
 type Postgres interface {
@@ -72,33 +86,38 @@ type RateLimit interface {
 func Load(paths ...string) error {
 	if len(paths) > 0 {
 		if err := godotenv.Load(paths...); err != nil {
-			return errwrap.Wrap("load config", err)
+			return fmt.Errorf("load config: %w", err)
 		}
 	}
 
 	appConfig, err := env.NewAppConfig()
 	if err != nil {
-		return errwrap.Wrap("app config", err)
+		return fmt.Errorf("app config: %w", err)
 	}
 
 	guestHttpServerConfig, err := env.NewHttpServerConfig(guestPrefix)
 	if err != nil {
-		return errwrap.Wrap("guest http server config", err)
+		return fmt.Errorf("guest http server config: %w", err)
 	}
 
 	adminHttpServerConfig, err := env.NewHttpServerConfig(adminPrefix)
 	if err != nil {
-		return errwrap.Wrap("admin http server config", err)
+		return fmt.Errorf("admin http server config: %w", err)
 	}
 
 	businessHttpServerConfig, err := env.NewHttpServerConfig(businessPrefix)
 	if err != nil {
-		return errwrap.Wrap("business http server config", err)
+		return fmt.Errorf("business http server config: %w", err)
+	}
+
+	businessHttpClientConfig, err := env.NewHttpClientConfig(businessPrefix)
+	if err != nil {
+		return fmt.Errorf("business http client config: %w", err)
 	}
 
 	postgresConfig, err := env.NewPostgresConfig()
 	if err != nil {
-		return errwrap.Wrap("postgres config", err)
+		return fmt.Errorf("postgres config: %w", err)
 	}
 
 	jwtTokenConfig, err := env.NewJwtTokenConfig()
@@ -122,6 +141,8 @@ func Load(paths ...string) error {
 		GuestHttpServer:    guestHttpServerConfig,
 		AdminHttpServer:    adminHttpServerConfig,
 		BusinessHttpServer: businessHttpServerConfig,
+
+		BusinessHttpClient: businessHttpClientConfig,
 
 		Postgres:  postgresConfig,
 		JwtToken:  jwtTokenConfig,
