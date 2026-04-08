@@ -3,7 +3,6 @@ package business
 import (
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 type OrgUnit struct {
@@ -32,16 +31,4 @@ func (e OrgUnit) ToEntity() entity.OrgUnit {
 		Latitude:     e.Latitude,
 		Longitude:    e.Longitude,
 	}
-}
-
-func executeSQLError(err error) error {
-	return errwrap.Wrap("execute sql", err)
-}
-
-func scanRowError(err error) error {
-	return errwrap.Wrap("scan row", err)
-}
-
-func scanRowsError(err error) error {
-	return errwrap.Wrap("scan rows", err)
 }

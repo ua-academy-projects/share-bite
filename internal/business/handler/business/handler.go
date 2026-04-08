@@ -20,6 +20,8 @@ type businessService interface {
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
+
+	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 }
 
 func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {

@@ -1,0 +1,7 @@
+-- +goose Up
+CREATE EXTENSION IF NOT EXISTS cube;
+CREATE EXTENSION IF NOT EXISTS earthdistance;
+
+-- +goose Down
+DROP EXTENSION IF EXISTS earthdistance;
+DROP EXTENSION IF EXISTS cube;

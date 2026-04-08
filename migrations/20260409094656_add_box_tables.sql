@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS business.box_categories (
 CREATE TABLE IF NOT EXISTS business.boxes (
   id BIGSERIAL PRIMARY KEY,
   venue_id INT REFERENCES business.org_units(id) ON DELETE CASCADE NOT NULL,
-  category_id INT REFERENCES business.box_categories(id),
+  category_id INT REFERENCES business.box_categories(id) NOT NULL,
   image VARCHAR(256) NOT NULL,
   price_full DECIMAL(10, 2) NOT NULL CHECK (price_full >= 0),
   price_discount DECIMAL(10, 2) NOT NULL CHECK (price_discount >=0 AND price_discount <= price_full),
