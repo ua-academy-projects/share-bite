@@ -40,7 +40,7 @@ type listResponse struct {
 //	@Success		200		{object}	listResponse
 //	@Failure		400		{object}	errorResponse
 //	@Failure		500		{object}	errorResponse
-//	@Router			/business/{id}/locations [get]
+//	@Router			/business/org-units/{id}/locations [get]
 func (h *handler) list(c *gin.Context) {
 	req := new(listRequest)
 	if err := c.ShouldBindUri(req); err != nil {

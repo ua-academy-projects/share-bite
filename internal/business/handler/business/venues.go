@@ -31,7 +31,7 @@ type venueResponse struct {
 //	@Success		200		{array}		venueResponse
 //	@Failure		400		{object}	errorResponse
 //	@Failure		500		{object}	errorResponse
-//	@Router			/business/venues [post]
+//	@Router			/business/org-units/venues [post]
 func (h *handler) getVenuesByIDs(c *gin.Context) {
 	var req getVenuesByIDsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
