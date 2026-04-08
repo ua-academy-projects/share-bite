@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	maxLimit     = 100
 	defaultLimit = 20
 )
 
@@ -20,9 +21,13 @@ func (s *service) ListCustomerCollections(
 	if err != nil {
 		return entity.ListCustomerCollectionsOutput{}, apperror.ErrInvalidPageToken
 	}
+
 	limit := in.PageSize
-	if limit <= 0 || limit > 100 {
+	switch {
+	case limit <= 0:
 		limit = defaultLimit
+	case limit > maxLimit:
+		limit = maxLimit
 	}
 
 	// we always ask to return limit + 1
