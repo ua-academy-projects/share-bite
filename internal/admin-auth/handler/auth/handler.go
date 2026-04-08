@@ -48,7 +48,7 @@ func (h *Handler) Login(c *gin.Context) {
 func (h *Handler) RecoverAccess(c *gin.Context) {
 	var req RecoverAccessRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -58,9 +58,7 @@ func (h *Handler) RecoverAccess(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "If the email exists, recovery instructions have been sent",
-	})
+	c.JSON(http.StatusOK, MessageResponse{Message: "If the email exists, recovery instructions have been sent"})
 }
 
 // ResetPassword godoc
@@ -77,7 +75,7 @@ func (h *Handler) RecoverAccess(c *gin.Context) {
 func (h *Handler) ResetPassword(c *gin.Context) {
 	var req ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -87,7 +85,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "password has been reset"})
+	c.JSON(http.StatusOK, MessageResponse{Message: "password has been reset"})
 }
 
 func (h *Handler) Register(c *gin.Context) {

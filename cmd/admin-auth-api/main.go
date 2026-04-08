@@ -128,9 +128,7 @@ func ErrorMiddleware() gin.HandlerFunc {
 		}
 
 		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
-		}
+		resp := authhttp.ErrorResponse{Error: "internal server error"}
 
 		var appErr *apperror.Error
 		if errors.As(err, &appErr) {
@@ -144,9 +142,7 @@ func ErrorMiddleware() gin.HandlerFunc {
 				respCode = http.StatusInternalServerError
 			}
 
-			resp = map[string]any{
-				"message": appErr.Error(),
-			}
+			resp = authhttp.ErrorResponse{Error: appErr.Error()}
 		}
 
 		c.JSON(respCode, resp)
