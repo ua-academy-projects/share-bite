@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS business.post_photos (
       REFERENCES business.posts(id) ON DELETE CASCADE,
     image_url VARCHAR(2048) NOT NULL,
     sort_order INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (image_url)
+    PRIMARY KEY (post_id, image_url)
 );
 
 CREATE TABLE IF NOT EXISTS business.comments (
