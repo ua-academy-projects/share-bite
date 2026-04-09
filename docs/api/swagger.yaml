@@ -1,0 +1,341 @@
+basePath: /
+definitions:
+  business_handler_business.brandResponse:
+    properties:
+      avatar:
+        example: https://cdn.example.com/brand-avatar.png
+        type: string
+      id:
+        example: 1
+        type: integer
+      name:
+        example: ShareBite HQ
+        type: string
+    type: object
+  business_handler_business.createLocationRequest:
+    properties:
+      avatar:
+        type: string
+      banner:
+        type: string
+      description:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+    required:
+    - name
+    type: object
+  business_handler_business.errorResponse:
+    properties:
+      error:
+        example: not found
+        type: string
+    type: object
+  business_handler_business.getResponse:
+    properties:
+      avatar:
+        example: https://cdn.example.com/avatar.png
+        type: string
+      banner:
+        example: https://cdn.example.com/banner.png
+        type: string
+      brand:
+        $ref: '#/definitions/business_handler_business.brandResponse'
+      description:
+        example: A cozy place in the city center.
+        type: string
+      id:
+        example: 42
+        type: integer
+      latitude:
+        example: 50.4501
+        type: number
+      longitude:
+        example: 30.5234
+        type: number
+      name:
+        example: ShareBite Downtown
+        type: string
+    type: object
+  business_handler_business.listItem:
+    properties:
+      avatar:
+        example: https://cdn.example.com/avatar.png
+        type: string
+      description:
+        example: A cozy place in the city center.
+        type: string
+      id:
+        example: 42
+        type: integer
+      latitude:
+        example: 50.4501
+        type: number
+      longitude:
+        example: 30.5234
+        type: number
+      name:
+        example: ShareBite Downtown
+        type: string
+    type: object
+  business_handler_business.listResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/business_handler_business.listItem'
+        type: array
+    type: object
+  business_handler_business.locationResponse:
+    properties:
+      avatar:
+        type: string
+      banner:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      orgAccountId:
+        type: string
+      parentId:
+        type: integer
+      profileType:
+        type: string
+    type: object
+  business_handler_business.updateLocationRequest:
+    properties:
+      avatar:
+        type: string
+      banner:
+        type: string
+      description:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API for discovering brand locations (venues).
+  title: ShareBite Business API
+  version: "1.0"
+paths:
+  /business/{id}:
+    get:
+      description: Returns a single venue/location that belongs to a brand, including
+        the parent brand info.
+      parameters:
+      - description: Location ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/business_handler_business.getResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+      summary: Get location by ID
+      tags:
+      - locations
+  /business/{id}/locations:
+    get:
+      description: Returns a paginated list of venues/locations that belong to the
+        given brand.
+      parameters:
+      - description: Brand ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/business_handler_business.listResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+      summary: List brand locations
+      tags:
+      - locations
+    post:
+      consumes:
+      - application/json
+      description: Creates a venue/location under the specified brand (business owner
+        only).
+      parameters:
+      - description: Brand ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Bearer access token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Create location payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/business_handler_business.createLocationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/business_handler_business.locationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+      summary: Create location
+      tags:
+      - locations
+  /business/locations/{id}:
+    delete:
+      description: Deletes a location under the owner's brand (business owner only).
+      parameters:
+      - description: Location ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Bearer access token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+      summary: Delete location
+      tags:
+      - locations
+    patch:
+      consumes:
+      - application/json
+      description: Updates location fields (business owner only).
+      parameters:
+      - description: Location ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Bearer access token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Update location payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/business_handler_business.updateLocationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/business_handler_business.locationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/business_handler_business.errorResponse'
+      summary: Update location
+      tags:
+      - locations
+swagger: "2.0"

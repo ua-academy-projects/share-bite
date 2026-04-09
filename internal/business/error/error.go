@@ -40,3 +40,11 @@ func LocationNotFoundID(id int) *Error {
 func BadRequest(msg string) *Error {
 	return newError(code.BadRequest, msg)
 }
+
+func Forbidden(msg string) *Error {
+	return newError(code.Forbidden, msg)
+}
+
+func Unauthorized(msg string) *Error {
+	return newError(code.Unauthorized, msg)
+}
