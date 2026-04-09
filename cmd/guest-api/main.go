@@ -3,19 +3,20 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	swaggerfiles "github.com/swaggo/files"
 	ginswagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	commenthandler "github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
+	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
 	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
 	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
@@ -24,7 +25,6 @@ import (
 	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
-	"github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
@@ -65,7 +65,7 @@ func main() {
 	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
-	router.Use(ErrorMiddleware())
+	router.Use(guest_middleware.ErrorMiddleware())
 
 	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 
@@ -161,70 +161,4 @@ func main() {
 	}()
 
 	closer.Wait()
-}
-
-func ErrorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		err := c.Errors.Last()
-		if err == nil {
-			return
-		}
-
-		respCode := http.StatusInternalServerError
-		resp := response.ErrorResponse{
-			Message: "internal server error",
-		}
-
-		var validationErr *validator.ValidationError
-		if errors.As(err, &validationErr) {
-			respCode = http.StatusBadRequest
-
-			details := make([]response.ErrorDetail, 0, len(validationErr.Errors))
-			for _, e := range validationErr.Errors {
-				details = append(details, response.ErrorDetail{
-					Field:   e.Field,
-					Message: e.Message,
-				})
-			}
-			resp = response.ErrorResponse{
-				Message: validationErr.Error(),
-				Details: details,
-			}
-
-			c.JSON(respCode, resp)
-			return
-		}
-
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				respCode = http.StatusNotFound
-
-			case code.InvalidJSON,
-				code.InvalidRequest,
-				code.BadRequest,
-				code.EmptyUpdate:
-				respCode = http.StatusBadRequest
-
-			case code.UpstreamError:
-				respCode = http.StatusBadGateway
-
-			case code.AlreadyExists:
-				respCode = http.StatusConflict
-
-			case code.Forbidden:
-				respCode = http.StatusForbidden
-
-			default:
-				respCode = http.StatusInternalServerError
-			}
-
-			resp.Message = appErr.Error()
-		}
-
-		c.JSON(respCode, resp)
-	}
 }
