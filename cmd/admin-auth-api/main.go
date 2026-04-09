@@ -3,26 +3,36 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
+	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/error/code"
 	"go.uber.org/zap"
 
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
+	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
 )
 
+// @title Share Bite Admin Auth API
+// @version 1.0
+// @description Admin authentication API documentation.
+// @BasePath /
 func main() {
 	ctx := context.Background()
 
@@ -31,6 +41,8 @@ func main() {
 	}
 
 	router := gin.New()
+	router.Use(common_middleware.RequestID())
+	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
 
@@ -63,13 +75,36 @@ func main() {
 		cfg.JwtToken.RefreshTokenTTL(),
 	)
 
+	txManager := txmanager.NewTransactionManager(client.DB())
 	userRepo := userrepo.New(client)
 
-	authSvc := authsvc.New(userRepo, tokenManager)
+	provider := strings.ToLower(strings.TrimSpace(cfg.Email.SenderProviderValue()))
+	var emailSender emailsvc.Sender
+
+	switch provider {
+	case "", "resend":
+		emailSender, err = emailsvc.NewResendSender(
+			cfg.Email.ResendAPIKeyValue(),
+			cfg.Email.ResendFromEmailValue(),
+		)
+		if err != nil {
+			logger.Fatal(ctx, "new resend email sender: ", err)
+		}
+	case "fake":
+		emailSender = emailsvc.NewFakeSender()
+	default:
+		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", provider))
+	}
+
+	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager)
 
 	authHandler := authhttp.NewHandler(authSvc)
+	limiter := adminmw.NewAuthRecoveryLimiter(
+		cfg.RateLimit.AuthRecoverRequests(),
+		cfg.RateLimit.AuthRecoverDuration(),
+	)
 
-	routers.SetupRouter(router.Group("/"), authHandler)
+	routers.SetupRouter(router.Group("/"), authHandler, limiter)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
@@ -93,23 +128,21 @@ func ErrorMiddleware() gin.HandlerFunc {
 		}
 
 		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
-		}
+		resp := authhttp.ErrorResponse{Error: "internal server error"}
 
 		var appErr *apperror.Error
 		if errors.As(err, &appErr) {
 			switch appErr.Code {
 			case code.NotFound:
 				respCode = http.StatusNotFound
+			case code.InvalidRequest:
+				respCode = http.StatusBadRequest
 
 			default:
 				respCode = http.StatusInternalServerError
 			}
 
-			resp = map[string]any{
-				"message": appErr.Error(),
-			}
+			resp = authhttp.ErrorResponse{Error: appErr.Error()}
 		}
 
 		c.JSON(respCode, resp)
