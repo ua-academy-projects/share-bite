@@ -8,6 +8,7 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
@@ -15,6 +16,8 @@ type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error)
 	CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error)
+	CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error
+	ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error)
 }
 
 type repository struct {
@@ -45,10 +48,89 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 		&u.PasswordHash,
 		&u.RoleSlug,
 	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperror.UserNotFoundEmail(email)
+		}
 		return nil, err
 	}
 
 	return u, nil
+}
+
+func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error {
+	invalidateQuery := database.Query{
+		Name: "user.InvalidatePasswordResetTokens",
+		Sql: `
+			UPDATE auth.password_reset_tokens
+			SET used_at = NOW()
+			WHERE user_id = $1
+			  AND used_at IS NULL
+		`,
+	}
+
+	insertQuery := database.Query{
+		Name: "user.InsertPasswordResetToken",
+		Sql: `
+			INSERT INTO auth.password_reset_tokens (user_id, token_hash, expires_at)
+			VALUES ($1, $2, $3)
+		`,
+	}
+
+	if _, err := r.client.DB().ExecContext(ctx, invalidateQuery, params.UserID); err != nil {
+		return fmt.Errorf("invalidate previous password reset tokens: %w", err)
+	}
+
+	if _, err := r.client.DB().ExecContext(
+		ctx,
+		insertQuery,
+		params.UserID,
+		params.TokenHash,
+		params.ExpiresAt,
+	); err != nil {
+		return fmt.Errorf("insert password reset token: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error) {
+	var userID string
+
+	consumeTokenQuery := database.Query{
+		Name: "user.ConsumePasswordResetToken",
+		Sql: `
+			UPDATE auth.password_reset_tokens
+			SET used_at = NOW()
+			WHERE token_hash = $1
+			  AND used_at IS NULL
+			  AND expires_at > NOW()
+			RETURNING user_id
+		`,
+	}
+
+	updatePasswordQuery := database.Query{
+		Name: "user.UpdatePasswordByUserID",
+		Sql: `
+			UPDATE auth.users
+			SET password_hash = $2,
+			    updated_at = NOW()
+			WHERE id = $1
+		`,
+	}
+
+	if err := r.client.DB().QueryRowContext(ctx, consumeTokenQuery, tokenHash).Scan(&userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, apperror.ErrInvalidResetToken
+		}
+
+		return false, fmt.Errorf("consume password reset token: %w", err)
+	}
+
+	if _, err := r.client.DB().ExecContext(ctx, updatePasswordQuery, userID, passwordHash); err != nil {
+		return false, fmt.Errorf("update password: %w", err)
+	}
+
+	return true, nil
 }
 
 func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error) {

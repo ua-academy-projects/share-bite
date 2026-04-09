@@ -34,6 +34,60 @@ func (h *Handler) Login(c *gin.Context) {
 	})
 }
 
+// RecoverAccess godoc
+// @Summary Recover access
+// @Description Sends password reset instructions if account exists
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body RecoverAccessRequest true "Recover access payload"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/recover-access [post]
+func (h *Handler) RecoverAccess(c *gin.Context) {
+	var req RecoverAccessRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	err := h.service.RecoverAccess(c.Request.Context(), req.Email)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, MessageResponse{Message: "If the email exists, recovery instructions have been sent"})
+}
+
+// ResetPassword godoc
+// @Summary Reset password
+// @Description Resets password by token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body ResetPasswordRequest true "Reset password payload"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/reset-password [post]
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	err := h.service.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, MessageResponse{Message: "password has been reset"})
+}
+
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

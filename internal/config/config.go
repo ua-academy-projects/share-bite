@@ -25,7 +25,9 @@ type config struct {
 
 	Postgres Postgres
 
-	JwtToken JwtToken
+	JwtToken  JwtToken
+	Email     Email
+	RateLimit RateLimit
 }
 
 var cfg *config
@@ -70,6 +72,17 @@ type JwtToken interface {
 	RefreshTokenTTL() time.Duration
 }
 
+type Email interface {
+	SenderProviderValue() string
+	ResendAPIKeyValue() string
+	ResendFromEmailValue() string
+}
+
+type RateLimit interface {
+	AuthRecoverRequests() int
+	AuthRecoverDuration() time.Duration
+}
+
 func Load(paths ...string) error {
 	if len(paths) > 0 {
 		if err := godotenv.Load(paths...); err != nil {
@@ -112,6 +125,16 @@ func Load(paths ...string) error {
 		return fmt.Errorf("jwt token config: %w", err)
 	}
 
+	emailConfig, err := env.NewEmailConfig()
+	if err != nil {
+		return fmt.Errorf("email config: %w", err)
+	}
+
+	rateLimitConfig, err := env.NewRateLimitConfig()
+	if err != nil {
+		return fmt.Errorf("rate limit config: %w", err)
+	}
+
 	cfg = &config{
 		App: appConfig,
 
@@ -121,8 +144,10 @@ func Load(paths ...string) error {
 
 		BusinessHttpClient: businessHttpClientConfig,
 
-		Postgres: postgresConfig,
-		JwtToken: jwtTokenConfig,
+		Postgres:  postgresConfig,
+		JwtToken:  jwtTokenConfig,
+		Email:     emailConfig,
+		RateLimit: rateLimitConfig,
 	}
 
 	return nil
