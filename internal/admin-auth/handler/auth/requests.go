@@ -14,3 +14,20 @@ type RegisterRequest struct {
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
+
+type RecoverAccessRequest struct {
+	Email string `json:"email" binding:"required,email,max=254"`
+}
+
+type ResetPasswordRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8,max=72"`
+}
+
+type MessageResponse struct {
+	Message string `json:"message"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
