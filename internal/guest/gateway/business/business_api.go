@@ -30,10 +30,17 @@ type businessAPIClient struct {
 	baseURL string
 }
 
-func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client) *businessAPIClient {
+func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client) (*businessAPIClient, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
-		panic(fmt.Sprintf("invalid business url: %v", err))
+		return nil, fmt.Errorf("parse business baseURL: %w", err)
+	}
+
+	if u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("invalid business baseURL %q: scheme and host are required", baseURL)
+	}
+	if httpClient == nil {
+		return nil, fmt.Errorf("http client should be initialized")
 	}
 
 	transport := client.NewWithClient(u.Host, basePath, []string{u.Scheme}, httpClient)
@@ -43,7 +50,7 @@ func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Clie
 		api:     api,
 		client:  httpClient,
 		baseURL: baseURL,
-	}
+	}, nil
 }
 
 func (c *businessAPIClient) CheckExists(ctx context.Context, venueID string) (bool, error) {

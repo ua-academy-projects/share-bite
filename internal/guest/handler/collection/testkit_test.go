@@ -15,15 +15,17 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 )
 
-var (
+const (
 	internalErrMsg = "internal server error"
 	validationMsg  = "request validation failed"
 )
 
-func newTestRouter() *gin.Engine {
+func init() {
 	gin.SetMode(gin.TestMode)
 	binding.Validator = validator.New("binding")
+}
 
+func newTestRouter() *gin.Engine {
 	r := gin.New()
 	r.Use(guest_middleware.ErrorMiddleware())
 	return r

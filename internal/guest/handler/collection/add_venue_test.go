@@ -16,8 +16,6 @@ import (
 func TestAddVenue(t *testing.T) {
 	t.Parallel()
 
-	gofakeit.Seed(42)
-
 	var (
 		collectionID = gofakeit.UUID()
 		customerID   = gofakeit.UUID()

@@ -107,7 +107,10 @@ func main() {
 		return nil
 	})
 
-	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), "/", httpClient)
+	businessGateway, err := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), "/", httpClient)
+	if err != nil {
+		logger.Fatalf(ctx, "init business gateway: %v", err)
+	}
 
 	storageClient, err := newStorageClient(ctx, config.Config().Storage)
 	if err != nil {

@@ -20,58 +20,59 @@ func ErrorMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		respCode := http.StatusInternalServerError
-		resp := response.ErrorResponse{
-			Message: "internal server error",
-		}
-
-		var validationErr *validator.ValidationError
-		if errors.As(err, &validationErr) {
-			respCode = http.StatusBadRequest
-
-			details := make([]response.ErrorDetail, 0, len(validationErr.Errors))
-			for _, e := range validationErr.Errors {
-				details = append(details, response.ErrorDetail{
-					Field:   e.Field,
-					Message: e.Message,
-				})
-			}
-			resp = response.ErrorResponse{
-				Message: validationErr.Error(),
-				Details: details,
-			}
-
-			c.JSON(respCode, resp)
+		if c.Writer.Written() {
 			return
 		}
 
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				respCode = http.StatusNotFound
+		status, resp := mapErrToResp(err.Err)
+		c.JSON(status, resp)
+	}
+}
 
-			case code.InvalidJSON,
-				code.InvalidRequest,
-				code.EmptyUpdate:
-				respCode = http.StatusBadRequest
+func mapErrToResp(err error) (int, response.ErrorResponse) {
+	status := http.StatusInternalServerError
+	resp := response.ErrorResponse{
+		Message: "internal server error",
+	}
 
-			case code.UpstreamError:
-				respCode = http.StatusBadGateway
-
-			case code.AlreadyExists:
-				respCode = http.StatusConflict
-
-			case code.Forbidden:
-				respCode = http.StatusForbidden
-
-			default:
-				respCode = http.StatusInternalServerError
-			}
-
-			resp.Message = appErr.Error()
+	var validationErr *validator.ValidationError
+	if errors.As(err, &validationErr) {
+		details := make([]response.ErrorDetail, 0, len(validationErr.Errors))
+		for _, e := range validationErr.Errors {
+			details = append(details, response.ErrorDetail{
+				Field:   e.Field,
+				Message: e.Message,
+			})
 		}
+		return http.StatusBadRequest, response.ErrorResponse{
+			Message: validationErr.Error(),
+			Details: details,
+		}
+	}
 
-		c.JSON(respCode, resp)
+	var appErr *apperror.Error
+	if errors.As(err, &appErr) {
+		return appErrStatus(appErr.Code), response.ErrorResponse{
+			Message: appErr.Error(),
+		}
+	}
+
+	return status, resp
+}
+
+func appErrStatus(c code.Code) int {
+	switch c {
+	case code.NotFound:
+		return http.StatusNotFound
+	case code.InvalidJSON, code.InvalidRequest, code.EmptyUpdate:
+		return http.StatusBadRequest
+	case code.UpstreamError:
+		return http.StatusBadGateway
+	case code.AlreadyExists:
+		return http.StatusConflict
+	case code.Forbidden:
+		return http.StatusForbidden
+	default:
+		return http.StatusInternalServerError
 	}
 }
