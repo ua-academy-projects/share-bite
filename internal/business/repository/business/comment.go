@@ -58,7 +58,7 @@ func (r *Repository) GetCommentByID(ctx context.Context, commentID int64) (*enti
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound
 		}
-		return nil, fmt.Errorf("get comment by id: %w", err)//
+		return nil, fmt.Errorf("get comment by id: %w", err) //
 	}
 
 	return &comment, nil
@@ -163,7 +163,7 @@ func (r *Repository) ListCommentsWithAuthorsByPost(ctx context.Context, postID i
 				c.author_id,
 				cu.username, cu.first_name, cu.last_name, cu.avatar_object_key
 			FROM business.comments c
-			JOIN guest.customers cu ON c.author_id = cu.id::text
+			JOIN guest.customers cu ON c.author_id = cu.user_id
 			WHERE c.post_id = $1
 			ORDER BY c.created_at DESC
 			LIMIT $2 OFFSET $3
