@@ -10,7 +10,7 @@ import (
 )
 
 type createRequest struct {
-	VenueID string `json:"venue_id" binding:"required,uuid"`
+	VenueID int64  `json:"venue_id" binding:"required"`
 	Text    string `json:"text" binding:"required,max=2000"`
 	Rating  int16  `json:"rating" binding:"required,min=1,max=5"`
 }

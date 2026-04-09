@@ -11,7 +11,7 @@ import (
 type Post struct {
 	ID         int64             `db:"id"`
 	CustomerID string            `db:"customer_id"`
-	VenueID    string            `db:"venue_id"`
+	VenueID    int64             `db:"venue_id"`
 	Text       string            `db:"text"`
 	Rating     int16             `db:"rating"`
 	Status     entity.PostStatus `db:"status"`

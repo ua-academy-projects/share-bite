@@ -14,7 +14,7 @@ type Post struct {
 	ID string
 
 	CustomerID string
-	VenueID    string
+	VenueID    int64
 	Text       string
 	Rating     int16
 	Status     PostStatus
@@ -25,7 +25,7 @@ type Post struct {
 
 type CreatePostInput struct {
 	CustomerID string
-	VenueID    string
+	VenueID    int64
 	Text       string
 	Rating     int16
 }

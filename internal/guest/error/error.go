@@ -39,8 +39,8 @@ func newError(code code.Code, err string) *Error {
 	}
 }
 
-func VenueNotFoundID(venueID string) *Error {
-	msg := fmt.Sprintf("venue with id %q was not found", venueID)
+func VenueNotFoundID(venueID int64) *Error {
+	msg := fmt.Sprintf("venue with id %d was not found", venueID)
 	return newError(code.NotFound, msg)
 }
 

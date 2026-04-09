@@ -13,7 +13,7 @@ type postRepository interface {
 }
 
 type VenueProvider interface {
-	CheckExists(ctx context.Context, venueID string) (bool, error)
+	CheckExists(ctx context.Context, venueID int64) (bool, error)
 }
 
 type service struct {

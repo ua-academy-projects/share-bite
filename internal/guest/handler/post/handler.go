@@ -44,7 +44,7 @@ func RegisterHandlers(
 type postResponse struct {
 	ID         string            `json:"id"`
 	CustomerID string            `json:"customerId"`
-	VenueID    string            `json:"venueId"`
+	VenueID    int64             `json:"venueId"`
 	Text       string            `json:"text"`
 	Rating     int16             `json:"rating"`
 	Status     entity.PostStatus `json:"status"`

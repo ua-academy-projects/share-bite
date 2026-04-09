@@ -1,6 +1,6 @@
 package entity
 
 type Venue struct {
-	ID     string
+	ID     int64
 	Exists bool
 }
