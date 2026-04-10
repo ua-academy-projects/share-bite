@@ -10,5 +10,5 @@ create table if not exists guest.post_likes (
 
 -- +goose Down
 -- +goose StatementBegin
-    drop table if exists guest.post_likes;
+drop table if exists guest.post_likes;
 -- +goose StatementEnd
