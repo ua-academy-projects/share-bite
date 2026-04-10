@@ -30,12 +30,12 @@ type UpdateCommentInput struct {
 }
 
 type ListCommentsInput struct {
-	PostID    int64
-	PageSize  int
-	PageToken string // Курсор (например, base64)
+	PostID int64
+	Limit  int
+	Offset int
 }
 
 type ListCommentsOutput struct {
-	Comments      []CommentWithCustomer
-	NextPageToken string
+	Total    int
+	Comments []CommentWithCustomer
 }

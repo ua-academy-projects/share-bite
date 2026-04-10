@@ -13,13 +13,13 @@ type listUriRequest struct {
 }
 
 type listQueryRequest struct {
-	PageSize  int    `form:"page_size,default=20" binding:"gte=1,lte=100"`
-	PageToken string `form:"page_token"`
+	Take int `form:"take,default=20" binding:"gte=1,lte=100"`
+	Skip int `form:"skip,default=0" binding:"gte=0"`
 }
 
 type listResponse struct {
-	Comments      []commentResponse `json:"comments"`
-	NextPageToken string            `json:"next_page_token,omitempty"`
+	Total    int               `json:"total"`
+	Entities []commentResponse `json:"entities"`
 }
 
 func (h *handler) list(c *gin.Context) {
@@ -37,9 +37,9 @@ func (h *handler) list(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	in := entity.ListCommentsInput{
-		PostID:    uriReq.PostID,
-		PageSize:  queryReq.PageSize,
-		PageToken: queryReq.PageToken,
+		PostID: uriReq.PostID,
+		Limit:  queryReq.Take,
+		Offset: queryReq.Skip,
 	}
 
 	out, err := h.service.List(ctx, in)
@@ -49,12 +49,12 @@ func (h *handler) list(c *gin.Context) {
 	}
 
 	resp := listResponse{
-		Comments:      make([]commentResponse, 0, len(out.Comments)),
-		NextPageToken: out.NextPageToken,
+		Total:    out.Total,
+		Entities: make([]commentResponse, 0, len(out.Comments)),
 	}
 
 	for _, item := range out.Comments {
-		resp.Comments = append(resp.Comments, commentToResponse(item.Comment, item.Customer))
+		resp.Entities = append(resp.Entities, commentToResponse(item.Comment, item.Customer))
 	}
 
 	c.JSON(http.StatusOK, resp)

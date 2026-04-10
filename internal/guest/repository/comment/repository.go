@@ -3,7 +3,6 @@ package comment
 import (
 	"context"
 	"errors"
-	"strconv"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
@@ -63,16 +62,16 @@ func (r *Repository) GetByID(ctx context.Context, commentID int64) (entity.Comme
 	return comment.ToEntity(), nil
 }
 
-func (r *Repository) Update(ctx context.Context, postID int64, in entity.UpdateCommentInput) (entity.Comment, error) {
+func (r *Repository) Update(ctx context.Context, in entity.UpdateCommentInput) (entity.Comment, error) {
 	sql := `
 		UPDATE guest.comments 
 		SET text = $1, updated_at = NOW() 
-		WHERE id = $2 AND post_id = $3 
+		WHERE id = $2 
 		RETURNING id, post_id, customer_id, text, created_at, updated_at
 	`
 	q := database.Query{Name: "comment_repository.Update", Sql: sql}
 
-	row, err := r.db.DB().QueryContext(ctx, q, in.Text, in.CommentID, postID)
+	row, err := r.db.DB().QueryContext(ctx, q, in.Text, in.CommentID)
 	if err != nil {
 		return entity.Comment{}, err
 	}
@@ -86,21 +85,27 @@ func (r *Repository) Update(ctx context.Context, postID int64, in entity.UpdateC
 	return comment.ToEntity(), nil
 }
 
-func (r *Repository) Delete(ctx context.Context, commentID int64, postID int64) error {
-	sql := `DELETE FROM guest.comments WHERE id = $1 AND post_id = $2`
+func (r *Repository) Delete(ctx context.Context, commentID int64) error {
+	sql := `DELETE FROM guest.comments WHERE id = $1`
 	q := database.Query{Name: "comment_repository.Delete", Sql: sql}
 
-	_, err := r.db.DB().ExecContext(ctx, q, commentID, postID)
+	_, err := r.db.DB().ExecContext(ctx, q, commentID)
 	return err
 }
 
 func (r *Repository) List(ctx context.Context, in entity.ListCommentsInput) (entity.ListCommentsOutput, error) {
-	var cursorID int64
-	if in.PageToken != "" {
-		parsed, err := strconv.ParseInt(in.PageToken, 10, 64)
-		if err == nil {
-			cursorID = parsed
-		}
+	var out entity.ListCommentsOutput
+
+	countSql := `SELECT COUNT(*) FROM guest.comments WHERE post_id = $1`
+	qCount := database.Query{Name: "comment_repository.ListCount", Sql: countSql}
+
+	if err := r.db.DB().QueryRowContext(ctx, qCount, in.PostID).Scan(&out.Total); err != nil {
+		return out, err
+	}
+
+	if out.Total == 0 {
+		out.Comments = make([]entity.CommentWithCustomer, 0)
+		return out, nil
 	}
 
 	sql := `
@@ -112,37 +117,20 @@ func (r *Repository) List(ctx context.Context, in entity.ListCommentsInput) (ent
 		FROM guest.comments c
 		JOIN guest.customers cust ON c.customer_id = cust.id
 		WHERE c.post_id = $1
+		ORDER BY c.id DESC
+		LIMIT $2 OFFSET $3
 	`
+	qData := database.Query{Name: "comment_repository.List", Sql: sql}
 
-	args := []any{in.PostID}
-
-	if cursorID > 0 {
-		sql += ` AND c.id < $2`
-		args = append(args, cursorID)
-	}
-
-	limit := in.PageSize + 1
-	sql += ` ORDER BY c.id DESC LIMIT $` + strconv.Itoa(len(args)+1)
-	args = append(args, limit)
-
-	q := database.Query{Name: "comment_repository.List", Sql: sql}
-	rows, err := r.db.DB().QueryContext(ctx, q, args...)
+	rows, err := r.db.DB().QueryContext(ctx, qData, in.PostID, in.Limit, in.Offset)
 	if err != nil {
-		return entity.ListCommentsOutput{}, err
+		return out, err
 	}
 	defer rows.Close()
 
 	var rowsData []CommentRow
 	if err := pgxscan.ScanAll(&rowsData, rows); err != nil {
-		return entity.ListCommentsOutput{}, err
-	}
-
-	var out entity.ListCommentsOutput
-
-	if len(rowsData) > in.PageSize {
-		nextItem := rowsData[in.PageSize-1]
-		out.NextPageToken = strconv.FormatInt(nextItem.ID, 10)
-		rowsData = rowsData[:in.PageSize]
+		return out, err
 	}
 
 	for _, row := range rowsData {
