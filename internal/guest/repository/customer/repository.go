@@ -215,3 +215,46 @@ func (r *repository) Update(ctx context.Context, in entity.UpdateCustomer) (enti
 
 	return c.ToEntity(), nil
 }
+
+func (r *repository) GetByID(ctx context.Context, customerID string) (entity.Customer, error) {
+	sql := `
+        SELECT
+            id,
+            user_id,
+            username,
+            first_name,
+            last_name,
+            avatar_object_key,
+            bio,
+            created_at
+        FROM guest.customers
+        WHERE id = $1
+    `
+
+	q := database.Query{
+		Name: "customer_repository.GetByID",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, customerID)
+	if err != nil {
+		return entity.Customer{}, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var customer Customer
+	if err := pgxscan.ScanOne(&customer, rows); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Customer{}, apperror.CustomerNotFoundID(customerID)
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
+			return entity.Customer{}, apperror.CustomerNotFoundID(customerID)
+		}
+
+		return entity.Customer{}, scanRowError(err)
+	}
+
+	return customer.ToEntity(), nil
+}

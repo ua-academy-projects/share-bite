@@ -41,7 +41,7 @@ func RegisterHandlers(
 	protected.GET("/", h.getMe)
 }
 
-type customerResponse struct {
+type CustomerResponse struct {
 	ID     string `json:"id"`
 	UserID string `json:"userId"`
 
@@ -55,15 +55,15 @@ type customerResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func customerToResponse(customer entity.Customer) customerResponse {
+func CustomerToResponse(customer entity.Customer) CustomerResponse {
 	var avatarURL *string
 	if customer.AvatarObjectKey != nil {
-		// TODO: replace with real s3 presigned url
+		// TODO: replace with real s3 resigned url
 		url := fmt.Sprintf("https://test.com/%s", *customer.AvatarObjectKey)
 		avatarURL = &url
 	}
 
-	return customerResponse{
+	return CustomerResponse{
 		ID:     customer.ID,
 		UserID: customer.UserID,
 

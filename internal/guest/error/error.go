@@ -17,6 +17,15 @@ var (
 	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
+
+	ErrCannotFollowYourself = newError(
+		code.InvalidRequest,
+		"cannot follow yourself",
+	)
+	ErrCannotUnfollowYourself = newError(
+		code.InvalidRequest,
+		"cannot unfollow yourself",
+	)
 )
 
 type Error struct {
@@ -67,4 +76,11 @@ func CustomerNotFoundUserName(userName string) *Error {
 func CustomerUserNameTaken(userName string) *Error {
 	msg := fmt.Sprintf("customer with username %q already exists", userName)
 	return newError(code.AlreadyExists, msg)
+}
+
+func AlreadyFollowing(current, target string) *Error {
+	return newError(
+		code.AlreadyExists,
+		fmt.Sprintf("current %q is already following target %q", current, target),
+	)
 }

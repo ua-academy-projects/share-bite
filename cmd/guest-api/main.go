@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,8 +15,10 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
+	followrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/follow"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
+	followsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/follow"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
@@ -96,13 +99,17 @@ func main() {
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
+	followRepo := followrepo.New(client)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
 	postSvc := postsvc.New(postRepo, businessGateway)
+	followSvc := followsvc.New(followRepo, customerRepo)
+
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
 	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware)
+	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

@@ -37,6 +37,16 @@ func (e Customer) ToEntity() entity.Customer {
 	}
 }
 
+type Customers []Customer
+
+func (es Customers) ToEntities() []entity.Customer {
+	res := make([]entity.Customer, 0, len(es))
+	for i := range es {
+		res = append(res, es[i].ToEntity())
+	}
+	return res
+}
+
 func executeSQLError(err error) error {
 	return fmt.Errorf("execute sql: %w", err)
 }

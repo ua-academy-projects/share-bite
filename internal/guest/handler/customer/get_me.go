@@ -22,10 +22,10 @@ func (h *handler) getMe(c *gin.Context) {
 		return
 	}
 
-	resp := getMeResponse{Customer: customerToResponse(customer)}
+	resp := getMeResponse{Customer: CustomerToResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 
 type getMeResponse struct {
-	Customer customerResponse `json:"customer"`
+	Customer CustomerResponse `json:"customer"`
 }
