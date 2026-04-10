@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS business.comments (
     REFERENCES business.posts(id) ON DELETE CASCADE,
 
   author_id UUID NOT NULL
-    REFERENCES auth.users(id),
+    REFERENCES auth.users(id) ON DELETE CASCADE,
 
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

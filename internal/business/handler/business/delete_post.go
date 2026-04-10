@@ -30,17 +30,22 @@ func (h *handler) DeletePost(c *gin.Context) {
 		return
 	}
 
-	userID, _ := middleware.GetUserID(c)
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
 	err = h.service.DeletePost(c.Request.Context(), postID, userID)
 	if err != nil {
 		switch {
+		case errors.Is(err, repo.ErrNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
 		case errors.Is(err, repo.ErrForbidden):
 			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		}
-		return
 	}
 
 	c.Status(http.StatusNoContent)

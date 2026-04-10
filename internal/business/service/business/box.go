@@ -3,14 +3,20 @@ package business
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 )
 
 func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error) {
+	const op = "service.box.CreateBox"
+
 	if req.PriceDiscount > req.PriceFull {
-		return nil, errors.New("invalid price")
+		return nil, fmt.Errorf("%s: %w", op, errors.New("invalid price"))
+	}
+	if req.Quantity <= 0 {
+		return nil, fmt.Errorf("%s: %w", op, errors.New("quantity must be at least 1"))
 	}
 
 	var box *entity.Box
@@ -19,7 +25,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 
 		err := s.businessRepo.CheckOwnership(ctxTx, userID, req.VenueID)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		box = &entity.Box{
@@ -33,7 +39,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 
 		boxID, createdAt, err := s.businessRepo.CreateBox(ctxTx, box)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		box.ID = boxID
@@ -44,7 +50,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 
 			err := s.businessRepo.CreateBoxItem(ctxTx, boxID, code)
 			if err != nil {
-				return err
+				return fmt.Errorf("%s: %w", op, err)
 			}
 		}
 
@@ -52,7 +58,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return box, nil

@@ -50,6 +50,17 @@ func (h *handler) CreateBox(c *gin.Context) {
 		return
 	}
 
+	if req.VenueID <= 0 ||
+		(req.CategoryID != nil && *req.CategoryID <= 0) ||
+		req.PriceFull < 0 ||
+		req.PriceDiscount < 0 ||
+		req.PriceDiscount > req.PriceFull ||
+		len(req.Image) > 256 ||
+		!req.ExpiresAt.After(time.Now()) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
 	box, err := h.service.CreateBox(c.Request.Context(), userID, dto.CreateBoxRequest{
 		VenueID:       req.VenueID,
 		CategoryID:    req.CategoryID,

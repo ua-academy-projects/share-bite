@@ -12,14 +12,14 @@ CREATE TABLE IF NOT EXISTS business.boxes (
   price_full DECIMAL(10, 2) NOT NULL CHECK (price_full >= 0),
   price_discount DECIMAL(10, 2) NOT NULL CHECK (price_discount >=0 AND price_discount <= price_full),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMPTZ NOT NULL
+  expires_at TIMESTAMPTZ NOT NULL CHECK (expires_at > created_at)
 );
 
 CREATE TABLE IF NOT EXISTS business.box_items (
   box_id BIGINT NOT NULL REFERENCES business.boxes(id) ON DELETE CASCADE, 
   box_code VARCHAR(12) PRIMARY KEY,
   reserved_by_user_id UUID
-    REFERENCES guest.customers(id)
+    REFERENCES guest.customers(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_free_boxes ON business.box_items (box_id)
