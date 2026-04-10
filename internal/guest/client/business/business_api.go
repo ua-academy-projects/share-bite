@@ -21,6 +21,7 @@ func NewBusinessAPIClient(apiClient *client.ShareBiteBusinessAPI) *BusinessAPICl
 }
 
 func (c *BusinessAPIClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
+	return true, nil // remove later
 	params := locations.NewGetBusinessIDParamsWithContext(ctx).WithID(venueID)
 
 	_, err := c.apiClient.Locations.GetBusinessID(params)

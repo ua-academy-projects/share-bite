@@ -8,6 +8,7 @@ import (
 
 type postRepository interface {
 	Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error)
+	Update(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
 	List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error)
 	Get(ctx context.Context, postID string) (entity.Post, error)
 }

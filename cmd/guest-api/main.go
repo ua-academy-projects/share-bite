@@ -3,14 +3,18 @@ package main
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/ua-academy-projects/share-bite/internal/config"
+	"github.com/ua-academy-projects/share-bite/internal/guest/client/business"
+	businessclient "github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
-	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
@@ -83,7 +87,16 @@ func main() {
 		return nil
 	})
 
-	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
+	businessAPIClient := businessclient.New(
+		httptransport.NewWithClient(
+			businessAPIHost(clientCfg.BaseURL()),
+			"/",
+			[]string{"http"},
+			httpClient,
+		),
+		strfmt.Default,
+	)
+	businessGateway := business.NewBusinessAPIClient(businessAPIClient)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -112,6 +125,19 @@ func main() {
 	}()
 
 	closer.Wait()
+}
+
+func businessAPIHost(baseURL string) string {
+	host, port, err := net.SplitHostPort(baseURL)
+	if err != nil {
+		return baseURL
+	}
+
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		host = "localhost"
+	}
+
+	return net.JoinHostPort(host, port)
 }
 
 func ErrorMiddleware() gin.HandlerFunc {

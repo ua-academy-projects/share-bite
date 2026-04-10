@@ -3,6 +3,7 @@ package post
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -54,6 +55,72 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
 	if err := pgxscan.ScanOne(&post, row); err != nil {
 		if translatedErr := translatePostInsertError(err, in); translatedErr != nil {
 			return entity.Post{}, translatedErr
+		}
+
+		return entity.Post{}, scanRowError(err)
+	}
+
+	return post.ToEntity(), nil
+}
+
+func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error) {
+	sql := `
+		UPDATE guest.posts
+		SET
+	`
+	args := pgx.NamedArgs{}
+	updates := make([]string, 0, 3)
+
+	if in.Text != nil {
+		args["text"] = *in.Text
+		updates = append(updates, "text=@text")
+	}
+
+	if in.VenueID != nil {
+		args["venue_id"] = *in.VenueID
+		updates = append(updates, "venue_id=@venue_id")
+	}
+
+	if in.Rating != nil {
+		args["rating"] = *in.Rating
+		updates = append(updates, "rating=@rating")
+	}
+
+	if len(updates) == 0 {
+		return entity.Post{}, apperror.ErrEmptyUpdate
+	}
+
+	updates = append(updates, "updated_at=NOW()")
+	sql += fmt.Sprintf(
+		" %s WHERE id=@id RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at",
+		strings.Join(updates, ", "),
+	)
+	args["id"] = in.ID
+
+	q := database.Query{
+		Name: "post_repository.Update",
+		Sql:  sql,
+	}
+
+	row, err := r.db.DB().QueryContext(ctx, q, args)
+	if err != nil {
+		if translatedErr := translatePostUpdateError(err, in); translatedErr != nil {
+			return entity.Post{}, translatedErr
+		}
+
+		return entity.Post{}, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var post Post
+	if err := pgxscan.ScanOne(&post, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Post{}, apperror.PostNotFoundID(in.ID)
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
+			return entity.Post{}, apperror.PostNotFoundID(in.ID)
 		}
 
 		return entity.Post{}, scanRowError(err)
@@ -167,6 +234,19 @@ func translatePostInsertError(err error, in entity.CreatePostInput) error {
 			return apperror.CustomerNotFoundID(in.CustomerID)
 		}
 	case pgerrcode.CheckViolation:
+		return apperror.ErrInvalidPostData
+	}
+
+	return nil
+}
+
+func translatePostUpdateError(err error, in entity.UpdatePostInput) error {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return nil
+	}
+
+	if pgErr.Code == pgerrcode.CheckViolation {
 		return apperror.ErrInvalidPostData
 	}
 

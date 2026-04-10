@@ -30,6 +30,14 @@ type CreatePostInput struct {
 	Rating     int16
 }
 
+type UpdatePostInput struct {
+	ID string
+
+	VenueID *int64
+	Text    *string
+	Rating  *int16
+}
+
 type ListPostsInput struct {
 	Limit  int
 	Offset int

@@ -40,6 +40,7 @@ func main() {
 
 	router := gin.New()
 	router.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
 		AllowOrigins:     cfg.BusinessHttpServer.AllowedOrigins(),
 		AllowMethods:     cfg.BusinessHttpServer.AllowedMethods(),
 		AllowHeaders:     cfg.BusinessHttpServer.AllowedHeaders(),
