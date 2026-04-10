@@ -59,14 +59,6 @@ type HttpClient interface {
 	IdleConnTimeout() time.Duration
 }
 
-type HttpClient interface {
-	BaseURL() string
-	Timeout() time.Duration
-	MaxIdleConns() int
-	MaxIdleConnsPerHost() int
-	IdleConnTimeout() time.Duration
-}
-
 type Postgres interface {
 	Dsn() string
 	MigrationsDir() string
