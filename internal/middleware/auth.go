@@ -71,6 +71,10 @@ func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 }
 
 func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
+	if parser == nil {
+		panic("optional auth middleware is not configured: parser cannot be nil")
+	}
+
 	return func(c *gin.Context) {
 		header := c.GetHeader(authorizationHeader)
 		if header == "" {
