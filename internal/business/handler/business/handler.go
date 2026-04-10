@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
@@ -20,6 +21,8 @@ type businessService interface {
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
+
+	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
 }
 
 func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {
@@ -39,6 +42,8 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 
 	businessOnly.PUT("/posts/:id", h.UpdatePost)
 	businessOnly.DELETE("/posts/:id", h.DeletePost)
+	businessOnly.POST("/boxes", h.CreateBox)
+
 }
 
 // errorResponse is used for swagger documentation.

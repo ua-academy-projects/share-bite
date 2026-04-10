@@ -2,7 +2,9 @@ package business
 
 import (
 	"context"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
@@ -20,6 +22,9 @@ type businessRepository interface {
 	InsertPostImages(ctx context.Context, postID int64, URLs []string) error
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.Post], error)
 	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
+
+	CreateBox(ctx context.Context, box *entity.Box) (int64, time.Time, error)
+	CreateBoxItem(ctx context.Context, boxID int64, code string) error
 }
 
 type service struct {
@@ -32,4 +37,8 @@ func New(businessRepo businessRepository, txManager database.TxManager) *service
 		businessRepo: businessRepo,
 		txManager:    txManager,
 	}
+}
+
+func generateCode() string {
+	return uuid.New().String()[:12]
 }
