@@ -9,14 +9,14 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
-	FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error)
+	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
 	CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error)
 	FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error)
 	CreateWithSocial(ctx context.Context, params dto.CreateUserWithSocialParams) (*dto.CreatedUser, error)
@@ -125,7 +125,7 @@ func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash 
 
 	if err := r.client.DB().QueryRowContext(ctx, consumeTokenQuery, tokenHash).Scan(&userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, apperror.ErrInvalidResetToken
+			return false, apperr.ErrInvalidResetToken
 		}
 
 		return false, fmt.Errorf("consume password reset token: %w", err)
@@ -138,7 +138,7 @@ func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash 
 	return true, nil
 }
 
-func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error) {
+func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error) {
 	q := database.Query{
 		Name: "user.FindRoleBySlug",
 		Sql:  `SELECT id, slug, name FROM auth.roles WHERE slug = $1`,
@@ -146,7 +146,7 @@ func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*entity.R
 
 	row := r.client.DB().QueryRowContext(ctx, q, slug)
 
-	role := new(entity.Role)
+	role := new(models.Role)
 	if err := row.Scan(&role.ID, &role.Slug, &role.Name); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

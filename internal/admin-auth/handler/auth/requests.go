@@ -22,6 +22,8 @@ type OAuthCallbackRequest struct {
 
 type OAuthLinkRequest struct {
 	Code string `json:"code" binding:"required"`
+}
+
 type RecoverAccessRequest struct {
 	Email string `json:"email" binding:"required,email,max=254"`
 }

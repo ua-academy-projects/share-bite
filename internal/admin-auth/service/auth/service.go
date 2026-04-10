@@ -2,21 +2,20 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
-	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
+	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
+
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
-	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -263,7 +262,7 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 		}
 
 		if !updated {
-			return apperror.ErrInvalidResetToken
+			return apperr.ErrInvalidResetToken
 		}
 
 		return nil

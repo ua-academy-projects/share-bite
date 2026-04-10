@@ -52,19 +52,6 @@ func (h *Handler) Login(c *gin.Context) {
 	})
 }
 
-// Register godoc
-// @Summary      Реєстрація користувача
-// @Description  Створює нового користувача та одразу повертає пару токенів.
-// @Tags         Auth
-// @Accept       json
-// @Produce      json
-// @Param        request  body      RegisterRequest  true  "Дані для реєстрації"
-// @Success      201      {object}  object  "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}"
-// @Failure      400      {object}  object  "Помилка валідації: {'error': '...'}"
-// @Failure      409      {object}  object  "Користувач вже існує: {'error': '...'}"
-// @Failure      422      {object}  object  "Роль не знайдена: {'error': '...'}"
-// @Failure      500      {object}  object  "Внутрішня помилка сервера: {'error': '...'}"
-// @Router       /auth/register [post]
 // RecoverAccess godoc
 // @Summary Recover access
 // @Description Sends password reset instructions if account exists
@@ -119,6 +106,19 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, MessageResponse{Message: "password has been reset"})
 }
 
+// Register godoc
+// @Summary      Реєстрація користувача
+// @Description  Створює нового користувача та одразу повертає пару токенів.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      RegisterRequest  true  "Дані для реєстрації"
+// @Success      201      {object}  object  "Успіх. Повертає JSON: {'access_token': '...', 'refresh_token': '...'}"
+// @Failure      400      {object}  object  "Помилка валідації: {'error': '...'}"
+// @Failure      409      {object}  object  "Користувач вже існує: {'error': '...'}"
+// @Failure      422      {object}  object  "Роль не знайдена: {'error': '...'}"
+// @Failure      500      {object}  object  "Внутрішня помилка сервера: {'error': '...'}"
+// @Router       /auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

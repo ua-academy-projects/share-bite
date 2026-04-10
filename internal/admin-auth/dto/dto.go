@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 )
 
 type CreateWithRoleParams struct {
@@ -24,7 +24,7 @@ type CreatePasswordResetTokenParams struct {
 }
 
 type UserWithRole struct {
-	entity.User
+	models.User
 	RoleSlug string
 }
 

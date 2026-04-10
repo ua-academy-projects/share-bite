@@ -85,6 +85,16 @@ func (m *MockAuthService) LinkProvider(ctx context.Context, userID string, provi
 	return args.Error(0)
 }
 
+func (m *MockAuthService) RecoverAccess(ctx context.Context, email string) error {
+	args := m.Called(ctx, email)
+	return args.Error(0)
+}
+
+func (m *MockAuthService) ResetPassword(ctx context.Context, token string, newPassword string) error {
+	args := m.Called(ctx, token, newPassword)
+	return args.Error(0)
+}
+
 func testErrorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()

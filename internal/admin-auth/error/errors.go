@@ -51,4 +51,10 @@ var (
 	ErrProviderAlreadyLinked = New(http.StatusConflict, "social provider already linked to account")
 	ErrUnsupportedProvider   = New(http.StatusBadRequest, "unsupported social provider")
 	ErrEmailNotVerified      = New(http.StatusForbidden, "email not verified by social provider")
+	ErrInvalidResetToken     = New(http.StatusBadRequest, "invalid or expired reset token")
 )
+
+func UserNotFoundEmail(email string) *AppError {
+	msg := fmt.Sprintf("user with email %q was not found", email)
+	return New(http.StatusNotFound, msg)
+}

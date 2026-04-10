@@ -8,26 +8,22 @@ import (
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 )
 
-func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc) {
+func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc, limiter gin.HandlerFunc) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-func SetupRouter(
-	r *gin.RouterGroup,
-	authHandler *authhttp.Handler,
-	limiter gin.HandlerFunc,
-) {
-	authGroup := r.Group("/auth")
 	{
-		authGroup.POST("/login", authHandler.Login)
-		authGroup.POST("/register", authHandler.Register)
-		authGroup.POST("/refresh", authHandler.Refresh)
-		authGroup.POST("/oauth/:provider/callback", authHandler.OAuthCallback)
-
-		protectedUserGroup := r.Group("/user").Use(authMiddleware)
+		authGroup := r.Group("/auth")
 		{
-			protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
+			authGroup.POST("/login", authHandler.Login)
+			authGroup.POST("/register", authHandler.Register)
+			authGroup.POST("/refresh", authHandler.Refresh)
+			authGroup.POST("/oauth/:provider/callback", authHandler.OAuthCallback)
+
+			protectedUserGroup := r.Group("/user").Use(authMiddleware)
+			{
+				protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
+			}
+			authGroup.POST("/recover-access", limiter, authHandler.RecoverAccess)
+			authGroup.POST("/reset-password", limiter, authHandler.ResetPassword)
 		}
-		authGroup.POST("/recover-access", limiter, authHandler.RecoverAccess)
-		authGroup.POST("/reset-password", limiter, authHandler.ResetPassword)
 	}
 }
