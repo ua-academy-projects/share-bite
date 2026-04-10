@@ -18,9 +18,11 @@ import (
 // @Produce      json
 // @Param        id   path      int  true  "Post ID"
 // @Success      204  "No Content"
-// @Failure      400  {object}  errorResponse
-// @Failure      403  {object}  errorResponse
-// @Failure      500  {object}  errorResponse
+// @Failure      400  {object}  errorResponse  "invalid id"
+// @Failure      401  {object}  errorResponse  "unauthorized"
+// @Failure      403  {object}  errorResponse  "forbidden"
+// @Failure      404  {object}  errorResponse  "post not found"
+// @Failure      500  {object}  errorResponse  "internal error"
 // @Security     BearerAuth
 // @Router       /business/posts/{id} [delete]
 func (h *handler) DeletePost(c *gin.Context) {
@@ -46,6 +48,7 @@ func (h *handler) DeletePost(c *gin.Context) {
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		}
+		return
 	}
 
 	c.Status(http.StatusNoContent)

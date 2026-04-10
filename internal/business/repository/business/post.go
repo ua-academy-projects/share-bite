@@ -248,7 +248,10 @@ func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (paginatio
 		func(rows pgx.Rows) (entity.Post, error) {
 			var p entity.Post
 			err := rows.Scan(&p.ID, &p.OrgID, &p.Content, &p.CreatedAt)
-			return p, fmt.Errorf("%s: %w", op, err)
+			if err != nil {
+				return p, fmt.Errorf("%s: %w", op, err)
+			}
+			return p, nil
 		},
 	)
 }

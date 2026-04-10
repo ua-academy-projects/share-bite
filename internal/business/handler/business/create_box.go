@@ -29,7 +29,7 @@ type createBoxRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        input body      createBoxRequest  true  "Box data"
-// @Success      201   {object}  gin.H
+// @Success      201   {object}  errorResponse
 // @Failure      400   {object}  errorResponse
 // @Failure      401   {object}  errorResponse
 // @Failure      403   {object}  errorResponse

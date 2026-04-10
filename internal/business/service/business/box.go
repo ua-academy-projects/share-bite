@@ -15,6 +15,9 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	if req.PriceDiscount > req.PriceFull {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("invalid price"))
 	}
+	if req.PriceFull <= 0 || req.PriceDiscount < 0 {
+		return nil, fmt.Errorf("%s: %w", op, errors.New("price values are out of range"))
+	}
 	if req.Quantity <= 0 {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("quantity must be at least 1"))
 	}
