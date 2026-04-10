@@ -22,6 +22,7 @@ func TestListVenues(t *testing.T) {
 		invalidCollectionID = "bad-uuid"
 		customerID          = gofakeit.UUID()
 		avatarURL           = gofakeit.URL()
+		bannerURL           = gofakeit.URL()
 
 		now  = time.Now().UTC()
 		desc = gofakeit.ProductDescription()
@@ -51,6 +52,7 @@ func TestListVenues(t *testing.T) {
 								Name:        "Venue 10",
 								Description: strPtr(desc),
 								AvatarURL:   strPtr(avatarURL),
+								BannerURL:   strPtr(bannerURL),
 							},
 							SortOrder: 100,
 							AddedAt:   now,
@@ -66,6 +68,7 @@ func TestListVenues(t *testing.T) {
 						Name:        "Venue 10",
 						Description: strPtr(desc),
 						AvatarURL:   strPtr(avatarURL),
+						BannerURL:   strPtr(bannerURL),
 						SortOrder:   100,
 						AddedAt:     now,
 					},

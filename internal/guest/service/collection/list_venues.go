@@ -54,7 +54,7 @@ func (s *service) ListVenues(
 				Name:        venue.Name,
 				Description: venue.Description,
 				AvatarURL:   venue.AvatarURL,
-				Banner:      venue.Banner,
+				BannerURL:   venue.BannerURL,
 			},
 			SortOrder: cv.SortOrder,
 			AddedAt:   cv.AddedAt,

@@ -137,7 +137,7 @@ func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int6
 			Name:        v.Name,
 			Description: toNilStrPtr(v.Description),
 			AvatarURL:   toNilStrPtr(v.Avatar),
-			Banner:      toNilStrPtr(v.Banner),
+			BannerURL:   toNilStrPtr(v.Banner),
 		}
 	}
 

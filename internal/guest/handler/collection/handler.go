@@ -79,6 +79,7 @@ type enrichedVenueItemResponse struct {
 
 	Description *string `json:"description"`
 	AvatarURL   *string `json:"avatarUrl"`
+	BannerURL   *string `json:"bannerUrl"`
 
 	SortOrder float64   `json:"sortOrder"`
 	AddedAt   time.Time `json:"addedAt"`
@@ -103,6 +104,7 @@ func enrichedVenueItemToResponse(item entity.EnrichedVenueItem) enrichedVenueIte
 		Name:        item.VenueItem.Name,
 		Description: item.VenueItem.Description,
 		AvatarURL:   item.VenueItem.AvatarURL,
+		BannerURL:   item.VenueItem.BannerURL,
 
 		SortOrder: item.SortOrder,
 		AddedAt:   item.AddedAt,

@@ -1,4 +1,4 @@
-.PHONY: run-guest run-business run-auth migrate-up run-all build tidy s3-up s3-ui install-tools docs docs-guest docs-business
+.PHONY: run-guest run-business run-auth migrate-up run-all build tidy s3-up s3-ui install-tools docs docs-guest docs-business generate-guest-business-client
 
 run-guest: docs-guest
 	go run cmd/guest-api/main.go
@@ -23,6 +23,16 @@ build: docs-guest
 
 tidy:
 	go mod tidy
+
+test:
+	go test -v ./...
+
+test20:
+	go test -v ./... -count=20
+
+test-cover:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out
 
 s3-up:
 	docker compose -f docker/compose.yaml up -d s3

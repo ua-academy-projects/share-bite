@@ -28,7 +28,7 @@ type Venue struct {
 	Description *string
 
 	AvatarURL *string
-	Banner    *string
+	BannerURL *string
 }
 
 type EnrichedVenueItem struct {
