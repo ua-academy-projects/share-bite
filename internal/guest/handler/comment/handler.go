@@ -64,6 +64,7 @@ type commentResponse struct {
 func commentToResponse(comment entity.Comment, customer entity.Customer) commentResponse {
 	var avatarURL *string
 	if customer.AvatarObjectKey != nil {
+		// TODO: replace with real s3 presigned url
 		url := fmt.Sprintf("https://test.com/%s", *customer.AvatarObjectKey)
 		avatarURL = &url
 	}
