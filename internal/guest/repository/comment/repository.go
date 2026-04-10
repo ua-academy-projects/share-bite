@@ -92,11 +92,16 @@ func (r *Repository) Delete(ctx context.Context, commentID int64) error {
 	sql := `DELETE FROM guest.comments WHERE id = $1`
 	q := database.Query{Name: "comment_repository.Delete", Sql: sql}
 
-	_, err := r.db.DB().ExecContext(ctx, q, commentID)
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+	result, err := r.db.DB().ExecContext(ctx, q, commentID)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
 		return apperror.CommentNotFoundID(commentID)
 	}
-	return err
+
+	return nil
 }
 
 func (r *Repository) List(ctx context.Context, in entity.ListCommentsInput) (entity.ListCommentsOutput, error) {
