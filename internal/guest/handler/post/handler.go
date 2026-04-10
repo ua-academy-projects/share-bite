@@ -25,6 +25,10 @@ type customerService interface {
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
 }
 
+type customerService interface {
+	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
+}
+
 func RegisterHandlers(
 	r *gin.RouterGroup,
 	service postService,

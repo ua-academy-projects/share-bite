@@ -18,6 +18,10 @@ type VenueProvider interface {
 	CheckExists(ctx context.Context, venueID string) (bool, error)
 }
 
+type VenueProvider interface {
+	CheckExists(ctx context.Context, venueID string) (bool, error)
+}
+
 type service struct {
 	postRepo      postRepository
 	venueProvider VenueProvider
