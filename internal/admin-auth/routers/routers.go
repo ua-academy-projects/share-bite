@@ -11,6 +11,11 @@ import (
 func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+func SetupRouter(
+	r *gin.RouterGroup,
+	authHandler *authhttp.Handler,
+	limiter gin.HandlerFunc,
+) {
 	authGroup := r.Group("/auth")
 	{
 		authGroup.POST("/login", authHandler.Login)
@@ -22,5 +27,7 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddlewa
 		{
 			protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
 		}
+		authGroup.POST("/recover-access", limiter, authHandler.RecoverAccess)
+		authGroup.POST("/reset-password", limiter, authHandler.ResetPassword)
 	}
 }

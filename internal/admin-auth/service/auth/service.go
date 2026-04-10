@@ -7,9 +7,21 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"time"
+
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
+	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const passwordResetTokenTTL = 30 * time.Minute
 
 type Tokens struct {
 	AccessToken  string
@@ -31,15 +43,24 @@ type Service interface {
 	Refresh(ctx context.Context, refreshToken string) (*Tokens, error)
 	OAuthLogin(ctx context.Context, provider OAuthProvider, code string, slug string) (*Tokens, error)
 	LinkProvider(ctx context.Context, userID string, provider OAuthProvider, code string) error
+	RecoverAccess(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, token, newPassword string) error
 }
 
 type service struct {
 	userRepo      user.Repository
 	tokenProvider TokenProvider
+	emailSender   emailsvc.Sender
+	txManager     database.TxManager
 }
 
-func New(userRepo user.Repository, tokenProvider TokenProvider) Service {
-	return &service{userRepo: userRepo, tokenProvider: tokenProvider}
+func New(userRepo user.Repository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager) Service {
+	return &service{
+		userRepo:      userRepo,
+		tokenProvider: tokenProvider,
+		emailSender:   emailSender,
+		txManager:     txManager,
+	}
 }
 
 func (s *service) Login(ctx context.Context, email, password string) (*Tokens, error) {
@@ -189,4 +210,83 @@ func (s *service) issueTokens(userID, role string) (*Tokens, error) {
 		return nil, fmt.Errorf("generate tokens: %w", err)
 	}
 	return &Tokens{AccessToken: access, RefreshToken: refresh}, nil
+}
+
+func (s *service) RecoverAccess(ctx context.Context, email string) error {
+	u, err := s.userRepo.FindByEmail(ctx, email)
+	if err != nil {
+		return fmt.Errorf("find user by email: %w", err)
+	}
+
+	if u == nil {
+		return fmt.Errorf("find user by email: empty user result")
+	}
+
+	rawToken, tokenHash, err := generatePasswordResetToken()
+	if err != nil {
+		return fmt.Errorf("generate password reset token: %w", err)
+	}
+
+	err = s.txManager.ReadCommited(ctx, func(txCtx context.Context) error {
+		if err := s.userRepo.CreatePasswordResetToken(txCtx, dto.CreatePasswordResetTokenParams{
+			UserID:    u.ID,
+			TokenHash: tokenHash,
+			ExpiresAt: time.Now().Add(passwordResetTokenTTL),
+		}); err != nil {
+			return fmt.Errorf("create password reset token: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	if err := s.emailSender.SendPasswordResetToken(ctx, u.Email, rawToken); err != nil {
+		return fmt.Errorf("send password reset email: %w", err)
+	}
+
+	return nil
+}
+
+func (s *service) ResetPassword(ctx context.Context, token, newPassword string) error {
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	err = s.txManager.ReadCommited(ctx, func(txCtx context.Context) error {
+		updated, err := s.userRepo.ResetPassword(txCtx, hashToken(token), string(passwordHash))
+		if err != nil {
+			return fmt.Errorf("reset password: %w", err)
+		}
+
+		if !updated {
+			return apperror.ErrInvalidResetToken
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generatePasswordResetToken() (string, string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", "", err
+	}
+
+	raw := base64.RawURLEncoding.EncodeToString(b)
+	return raw, hashToken(raw), nil
+}
+
+func hashToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
 }

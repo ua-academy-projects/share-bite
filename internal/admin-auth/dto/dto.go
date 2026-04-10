@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+import (
+	"time"
+
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+)
 
 type CreateWithRoleParams struct {
 	Email        string
@@ -11,6 +15,12 @@ type CreateWithRoleParams struct {
 type CreatedUser struct {
 	ID    string
 	Email string
+}
+
+type CreatePasswordResetTokenParams struct {
+	UserID    string
+	TokenHash string
+	ExpiresAt time.Time
 }
 
 type UserWithRole struct {
