@@ -79,6 +79,9 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdateCommentInput) (
 
 	var comment Comment
 	if err := pgxscan.ScanOne(&comment, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Comment{}, apperror.CommentNotFoundID(in.CommentID)
+		}
 		return entity.Comment{}, err
 	}
 
@@ -90,6 +93,9 @@ func (r *Repository) Delete(ctx context.Context, commentID int64) error {
 	q := database.Query{Name: "comment_repository.Delete", Sql: sql}
 
 	_, err := r.db.DB().ExecContext(ctx, q, commentID)
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return apperror.CommentNotFoundID(commentID)
+	}
 	return err
 }
 
