@@ -92,7 +92,8 @@ func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
 
 		c.Next()
 	}
-  
+}
+
 func GetUserID(c *gin.Context) (string, bool) {
 	val, exists := c.Get(CtxUserID)
 	if !exists {
