@@ -19,7 +19,7 @@ import (
 //	@Failure		400	{object}	errorResponse
 //	@Failure		404	{object}	errorResponse
 //	@Failure		500	{object}	errorResponse
-//	@Router			/business/{id} [get]
+//	@Router			/business/org-units/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	req := new(getRequest)
 	if err := c.ShouldBindUri(req); err != nil || req.ID < 1 {

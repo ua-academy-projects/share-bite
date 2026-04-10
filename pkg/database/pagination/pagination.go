@@ -30,6 +30,8 @@ func List[T any](
 	p Params,
 	scanner func(pgx.Rows) (T, error),
 ) (Result[T], error) {
+	const op = "pkg.database.pagination.List"
+
 	countSQL := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s", p.Table, p.Where)
 	countQ := database.Query{
 		Name: queryName + ".count",
@@ -38,7 +40,7 @@ func List[T any](
 
 	var total int
 	if err := db.QueryRowContext(ctx, countQ, p.Args...).Scan(&total); err != nil {
-		return Result[T]{}, fmt.Errorf("count: %w", err)
+		return Result[T]{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	nArgs := len(p.Args)
@@ -54,7 +56,7 @@ func List[T any](
 	args := append(p.Args, p.Limit, p.Offset)
 	rows, err := db.QueryContext(ctx, itemsQ, args...)
 	if err != nil {
-		return Result[T]{}, fmt.Errorf("query: %w", err)
+		return Result[T]{}, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -62,12 +64,12 @@ func List[T any](
 	for rows.Next() {
 		item, err := scanner(rows)
 		if err != nil {
-			return Result[T]{}, fmt.Errorf("scan: %w", err)
+			return Result[T]{}, fmt.Errorf("%s: %w", op, err)
 		}
 		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
-		return Result[T]{}, fmt.Errorf("rows: %w", err)
+		return Result[T]{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return Result[T]{
