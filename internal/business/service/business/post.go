@@ -86,7 +86,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 
 	var post *entity.Post
 
-	err := s.txManager.ReadCommited(ctx, func(ctxTx context.Context) error {
+	err := s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
 		var err error
 
 		post, err = s.businessRepo.CreatePost(ctxTx, userID, unitID, description)

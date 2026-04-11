@@ -20,10 +20,11 @@ type businessService interface {
 	CheckOwnership(ctx context.Context, userID string, unitID int) error
 	UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error)
 	DeletePost(ctx context.Context, postID int64, userID string) error
+	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
-	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
+	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 }
 
 func RegisterHandlers(
@@ -37,17 +38,24 @@ func RegisterHandlers(
 
 	auth := middleware.Auth(parser)
 
-	r.GET("/org-units/:id", h.get)
-	r.GET("/org-units/:id/locations", h.list)
+	org_units := r.Group("/org-units")
+	{
+		org_units.GET("/:id", h.get)
+		org_units.GET("/:id/locations", h.list)
+		org_units.POST("/venues", h.getVenuesByIDs)
+	}
+
 	r.GET("/posts", h.GetPosts)
 
-	businessOnly := r.Group("/").
+	businessOnly := r.Group("/posts").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
-
-	businessOnly.PUT("/posts/:id", h.UpdatePost)
-	businessOnly.DELETE("/posts/:id", h.DeletePost)
-	businessOnly.POST("/units/:id/posts", h.CreatePost)
+		
+	{
+		businessOnly.PUT("/:id", h.UpdatePost)
+		businessOnly.DELETE("/:id", h.DeletePost)
+		businessOnly.POST("/units/:id/posts", h.CreatePost)
+	}
 }
 
 // errorResponse is used for swagger documentation.

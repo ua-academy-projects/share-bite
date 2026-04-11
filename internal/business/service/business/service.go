@@ -14,14 +14,15 @@ type businessRepository interface {
 	UpdatePost(ctx context.Context, postID int64, orgID int, content string) (*entity.Post, error)
 	DeletePost(ctx context.Context, id int64, orgID int) error
 	GetOrgIDByUserID(ctx context.Context, userID string) (int, error)
-	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
-	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetPostPhotos(ctx context.Context, postID int64) ([]string, error)
 	CheckOwnership(ctx context.Context, userID string, unitID int) error
 	CreatePost(ctx context.Context, userID string, unitID int, description string) (*entity.Post, error)
 	InsertPostImages(ctx context.Context, postID int64, URLs []string) error
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.Post], error)
 	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
+
+	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
+	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 }
 

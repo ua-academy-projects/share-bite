@@ -18,6 +18,10 @@ coverage.html
 .DS_Store
 Thumbs.db
 
+docs/api/docs.go
+docs/api/swagger.json
+docs/api/swagger.yaml
+
 .env*
 !.env.example
 
@@ -25,4 +29,6 @@ Thumbs.db
 
 docs/api/docs.go
 docs/api/swagger.json
-docs/api/swagger.yaml
+docs/api/swagger.yamlmain
+
+main
