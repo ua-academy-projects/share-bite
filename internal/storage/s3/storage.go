@@ -3,7 +3,6 @@ package s3
 import (
 	"context"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 	"io"
 
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -49,7 +48,7 @@ func (s *S3Storage) Upload(
 		ContentType: &contentType,
 	})
 	if err != nil {
-		return "", errwrap.Wrap("failed to upload object to storage", err)
+		return "", fmt.Errorf("failed to upload object to storage: %w", err)
 	}
 
 	return key, nil
@@ -65,7 +64,7 @@ func (s *S3Storage) Delete(ctx context.Context, key string) error {
 		Key:    &key,
 	})
 	if err != nil {
-		return errwrap.Wrap("failed to delete object from storage", err)
+		return fmt.Errorf("failed to delete object from storage: %w", err)
 	}
 
 	return nil
