@@ -1,6 +1,7 @@
 package business
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 )
@@ -31,4 +32,16 @@ func (e OrgUnit) ToEntity() entity.OrgUnit {
 		Latitude:     e.Latitude,
 		Longitude:    e.Longitude,
 	}
+}
+
+func executeSQLError(err error) error {
+	return fmt.Errorf("execute sql: %w", err)
+}
+
+func scanRowError(err error) error {
+	return fmt.Errorf("scan row: %w", err)
+}
+
+func scanRowsError(err error) error {
+	return fmt.Errorf("scan rows: %w", err)
 }

@@ -28,6 +28,8 @@ type config struct {
 	JwtToken  JwtToken
 	Email     Email
 	RateLimit RateLimit
+
+	Storage Storage
 }
 
 var cfg *config
@@ -83,6 +85,15 @@ type RateLimit interface {
 	AuthRecoverDuration() time.Duration
 }
 
+type Storage interface {
+	Endpoint() string
+	Region() string
+	AccessKey() string
+	SecretKey() string
+	Bucket() string
+	UsePathStyle() bool
+}
+
 func Load(paths ...string) error {
 	if len(paths) > 0 {
 		if err := godotenv.Load(paths...); err != nil {
@@ -135,6 +146,11 @@ func Load(paths ...string) error {
 		return fmt.Errorf("rate limit config: %w", err)
 	}
 
+	storageConfig, err := env.NewS3StorageConfig()
+	if err != nil {
+		return fmt.Errorf("storage config: %w", err)
+	}
+
 	cfg = &config{
 		App: appConfig,
 
@@ -148,6 +164,8 @@ func Load(paths ...string) error {
 		JwtToken:  jwtTokenConfig,
 		Email:     emailConfig,
 		RateLimit: rateLimitConfig,
+
+		Storage: storageConfig,
 	}
 
 	return nil

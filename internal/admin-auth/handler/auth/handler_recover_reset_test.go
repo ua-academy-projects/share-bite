@@ -85,7 +85,7 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 
 type noopTxManager struct{}
 
-func (noopTxManager) ReadCommited(ctx context.Context, fn database.Handler) error {
+func (noopTxManager) ReadCommitted(ctx context.Context, fn database.Handler) error {
 	return fn(ctx)
 }
 

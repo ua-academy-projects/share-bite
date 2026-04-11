@@ -45,7 +45,7 @@ type Query struct {
 }
 
 type TxManager interface {
-	ReadCommited(ctx context.Context, fn Handler) error
+	ReadCommitted(ctx context.Context, fn Handler) error
 }
 
 type Handler func(ctx context.Context) error
