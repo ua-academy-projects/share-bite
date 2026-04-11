@@ -96,8 +96,8 @@ func (m *mockCollectionRepository) RebalanceCollectionSortOrders(ctx context.Con
 	return args.Error(0)
 }
 
-func (m *mockCollectionRepository) HasVenuesBetween(ctx context.Context, collectionID string, lower float64, upper float64) (bool, error) {
-	args := m.Called(ctx, collectionID, lower, upper)
+func (m *mockCollectionRepository) HasVenuesBetween(ctx context.Context, collectionID string, venueID int64, lower float64, upper float64) (bool, error) {
+	args := m.Called(ctx, collectionID, venueID, lower, upper)
 	return args.Bool(0), args.Error(1)
 }
 

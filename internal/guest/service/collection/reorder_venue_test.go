@@ -3,6 +3,7 @@ package collection
 import (
 	"context"
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -65,7 +66,7 @@ func TestReorderVenue(t *testing.T) {
 				repo.On("GetCollectionVenue", mock.Anything, collectionID, nextVenueID).
 					Return(entity.CollectionVenue{SortOrder: 200.0}, nil).Once()
 
-				repo.On("HasVenuesBetween", mock.Anything, collectionID, 100.0, 200.0).
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 100.0, 200.0).
 					Return(false, nil).Once()
 
 				repo.On("UpdateVenueSortOrder", mock.Anything, collectionID, venueID, 150.0).
@@ -97,6 +98,10 @@ func TestReorderVenue(t *testing.T) {
 					Return(entity.CollectionVenue{SortOrder: 100.0}, nil).
 					Once()
 
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 0.0, 100.0).
+					Return(false, nil).
+					Once()
+
 				repo.On("UpdateVenueSortOrder", mock.Anything, collectionID, venueID, 50.0).
 					Return(nil).
 					Once()
@@ -125,6 +130,10 @@ func TestReorderVenue(t *testing.T) {
 
 				repo.On("GetCollectionVenue", mock.Anything, collectionID, prevVenueID).
 					Return(entity.CollectionVenue{SortOrder: 100.0}, nil).
+					Once()
+
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 100.0, math.MaxFloat64).
+					Return(false, nil).
 					Once()
 
 				repo.On("UpdateVenueSortOrder", mock.Anything, collectionID, venueID, 200.0).
@@ -161,7 +170,7 @@ func TestReorderVenue(t *testing.T) {
 					Return(entity.CollectionVenue{SortOrder: 100.0000000005}, nil).
 					Once()
 
-				repo.On("HasVenuesBetween", mock.Anything, collectionID, 100.0, 100.0000000005).
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 100.0, 100.0000000005).
 					Return(false, nil).
 					Once()
 
@@ -265,7 +274,7 @@ func TestReorderVenue(t *testing.T) {
 					Return(entity.CollectionVenue{SortOrder: 200.0}, nil).
 					Once()
 
-				repo.On("HasVenuesBetween", mock.Anything, collectionID, 100.0, 200.0).
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 100.0, 200.0).
 					Return(true, nil).
 					Once()
 			},
@@ -485,7 +494,7 @@ func TestReorderVenue(t *testing.T) {
 					Return(entity.CollectionVenue{SortOrder: 200.0}, nil).
 					Once()
 
-				repo.On("HasVenuesBetween", mock.Anything, collectionID, 100.0, 200.0).
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 100.0, 200.0).
 					Return(false, errRepo).
 					Once()
 			},
@@ -513,6 +522,10 @@ func TestReorderVenue(t *testing.T) {
 
 				repo.On("GetCollectionVenue", mock.Anything, collectionID, nextVenueID).
 					Return(entity.CollectionVenue{SortOrder: 100.0}, nil).
+					Once()
+
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 0.0, 100.0).
+					Return(false, nil).
 					Once()
 
 				repo.On("UpdateVenueSortOrder", mock.Anything, collectionID, venueID, 50.0).
@@ -549,7 +562,7 @@ func TestReorderVenue(t *testing.T) {
 					Return(entity.CollectionVenue{SortOrder: 100.0000000005}, nil).
 					Once()
 
-				repo.On("HasVenuesBetween", mock.Anything, collectionID, 100.0, 100.0000000005).
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 100.0, 100.0000000005).
 					Return(false, nil).
 					Once()
 

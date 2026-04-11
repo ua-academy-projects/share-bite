@@ -468,11 +468,11 @@ func (r *repository) RebalanceCollectionSortOrders(ctx context.Context, collecti
 	return nil
 }
 
-func (r *repository) HasVenuesBetween(ctx context.Context, collectionID string, lower float64, upper float64) (bool, error) {
+func (r *repository) HasVenuesBetween(ctx context.Context, collectionID string, venueID int64, lower float64, upper float64) (bool, error) {
 	sql := `
 		SELECT EXISTS (
 			SELECT 1 FROM guest.collection_venues
-			WHERE collection_id = $1 AND (sort_order > $2 AND sort_order < $3)
+			WHERE collection_id = $1 AND (sort_order > $3 AND sort_order < $4) AND venue_id != $2
 		)
 	`
 	q := database.Query{
@@ -481,7 +481,7 @@ func (r *repository) HasVenuesBetween(ctx context.Context, collectionID string, 
 	}
 
 	var has bool
-	if err := r.db.DB().QueryRowContext(ctx, q, collectionID, lower, upper).Scan(&has); err != nil {
+	if err := r.db.DB().QueryRowContext(ctx, q, collectionID, venueID, lower, upper).Scan(&has); err != nil {
 		return false, scanRowError(err)
 	}
 

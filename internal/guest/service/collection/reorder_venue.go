@@ -3,6 +3,7 @@ package collection
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -85,12 +86,10 @@ func (s *service) generateNewSortOrder(ctx context.Context, in entity.ReorderVen
 	if in.PrevVenueID == nil && in.NextVenueID == nil {
 		return 0, 0, apperror.ErrInvalidReorderParams
 	}
-
 	if (in.PrevVenueID != nil && *in.PrevVenueID == in.VenueID) ||
 		(in.NextVenueID != nil && *in.NextVenueID == in.VenueID) {
 		return 0, 0, apperror.ErrInvalidReorderParams
 	}
-
 	if in.PrevVenueID != nil && in.NextVenueID != nil && *in.PrevVenueID == *in.NextVenueID {
 		return 0, 0, apperror.ErrInvalidReorderParams
 	}
@@ -107,6 +106,8 @@ func (s *service) generateNewSortOrder(ctx context.Context, in entity.ReorderVen
 		}
 
 		orderAbove = prevVenue.SortOrder
+	} else {
+		orderAbove = 0.0
 	}
 	if in.NextVenueID != nil {
 		nextVenue, err := s.collectionRepo.GetCollectionVenue(ctx, in.CollectionID, *in.NextVenueID)
@@ -115,6 +116,20 @@ func (s *service) generateNewSortOrder(ctx context.Context, in entity.ReorderVen
 		}
 
 		orderBelow = nextVenue.SortOrder
+	} else {
+		orderBelow = math.MaxFloat64
+	}
+
+	if orderAbove >= orderBelow {
+		return 0, 0, apperror.ErrInvalidReorderParams
+	}
+
+	has, err := s.collectionRepo.HasVenuesBetween(ctx, in.CollectionID, in.VenueID, orderAbove, orderBelow)
+	if err != nil {
+		return 0, 0, fmt.Errorf("check for venues between: %w", err)
+	}
+	if has {
+		return 0, 0, apperror.ErrInvalidReorderParams
 	}
 
 	var (
@@ -123,18 +138,6 @@ func (s *service) generateNewSortOrder(ctx context.Context, in entity.ReorderVen
 	)
 
 	if in.PrevVenueID != nil && in.NextVenueID != nil {
-		if orderAbove >= orderBelow {
-			return 0, 0, apperror.ErrInvalidReorderParams
-		}
-
-		has, err := s.collectionRepo.HasVenuesBetween(ctx, in.CollectionID, orderAbove, orderBelow)
-		if err != nil {
-			return 0, 0, fmt.Errorf("check for venues between: %w", err)
-		}
-		if has {
-			return 0, 0, apperror.ErrInvalidReorderParams
-		}
-
 		// between two venues
 		newSortOrder = (orderAbove + orderBelow) / 2.0
 		currGap = orderBelow - orderAbove
