@@ -29,3 +29,24 @@ s3-up:
 s3-ui:
 	docker compose -f docker/compose.yaml up -d garage_webui
 	@echo "web_ui: http://localhost:3909"
+
+-include .env
+DB_DSN="host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password='$(POSTGRES_PASSWORD)' dbname=$(POSTGRES_DB) sslmode=$(POSTGRES_SSL)"
+MIGRATIONS_DIR=migrations
+.PHONY: goose-up goose-down goose-status goose-create
+
+goose-up:
+	goose -dir $(MIGRATIONS_DIR) postgres $(DB_DSN) up
+
+goose-down:
+	goose -dir $(MIGRATIONS_DIR) postgres $(DB_DSN) down
+
+goose-status:
+	goose -dir $(MIGRATIONS_DIR) postgres $(DB_DSN) status
+
+goose-create:
+	@if [ -z "$(name)" ]; then \
+		echo "Помилка: вкажіть назву міграції. Приклад: make goose-create name=add_users_table"; \
+		exit 1; \
+	fi
+	goose -dir $(MIGRATIONS_DIR) create $(name) sql

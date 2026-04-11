@@ -15,6 +15,15 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+type OAuthCallbackRequest struct {
+	Code string `json:"code" binding:"required"`
+	Slug string `json:"slug" binding:"required,oneof=user business"`
+}
+
+type OAuthLinkRequest struct {
+	Code string `json:"code" binding:"required"`
+}
+
 type RecoverAccessRequest struct {
 	Email string `json:"email" binding:"required,email,max=254"`
 }

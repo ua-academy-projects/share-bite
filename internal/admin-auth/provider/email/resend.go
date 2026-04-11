@@ -18,7 +18,7 @@ import (
 const (
 	resendSendEmailURL        = "https://api.resend.com/emails"
 	resetEmailSubject         = "Reset your Share Bite password"
-	passwordResetTemplatePath = "internal/admin-auth/service/email/templates/password_reset.html"
+	passwordResetTemplatePath = "internal/admin-auth/provider/email/templates/password_reset.html"
 )
 
 type Sender interface {
