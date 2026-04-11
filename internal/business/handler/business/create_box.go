@@ -29,7 +29,7 @@ type createBoxRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        input body      createBoxRequest  true  "Box data"
-// @Success      201   {object}  errorResponse
+// @Success      201   {object}  CreateBoxResponse
 // @Failure      400   {object}  errorResponse
 // @Failure      401   {object}  errorResponse
 // @Failure      403   {object}  errorResponse
@@ -52,7 +52,7 @@ func (h *handler) CreateBox(c *gin.Context) {
 
 	if req.VenueID <= 0 ||
 		(req.CategoryID != nil && *req.CategoryID <= 0) ||
-		req.PriceFull < 0 ||
+		req.PriceFull <= 0 ||
 		req.PriceDiscount < 0 ||
 		req.PriceDiscount > req.PriceFull ||
 		len(req.Image) > 256 ||

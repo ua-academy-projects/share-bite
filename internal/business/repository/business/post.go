@@ -178,7 +178,7 @@ func (r *Repository) CheckOwnership(ctx context.Context, userID string, unitID i
 	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			return ErrForbidden
+			return fmt.Errorf("%s: %w", op, ErrForbidden)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -59,7 +59,11 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 	}
 }
 
-// errorResponse is used for swagger documentation.
+// errorResponse, CreateBoxResponse is used for swagger documentation.
 type errorResponse struct {
 	Error string `json:"error" example:"not found"`
+}
+type CreateBoxResponse struct {
+	ID      int64  `json:"id"`
+	Message string `json:"message"`
 }
