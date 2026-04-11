@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 )
 
 type CreateWithRoleParams struct {
@@ -24,6 +24,29 @@ type CreatePasswordResetTokenParams struct {
 }
 
 type UserWithRole struct {
-	entity.User
+	models.User
 	RoleSlug string
+}
+
+type OAuthUserInfo struct {
+	Provider      string
+	ProviderID    string
+	Email         string
+	EmailVerified bool
+}
+
+// CreateUserWithSocialParams — реєстрація нового юзера через OAuth
+type CreateUserWithSocialParams struct {
+	Email      string
+	Provider   string
+	ProviderID string
+	RoleID     int
+}
+
+// CreateSocialAccountParams — прив'язка провайдера до вже існуючого юзера
+type CreateSocialAccountParams struct {
+	UserID     string
+	Provider   string
+	ProviderID string
+	Email      string
 }
