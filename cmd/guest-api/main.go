@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,7 +33,6 @@ import (
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 // @title						Share Bite - Guest Service API

@@ -53,30 +53,30 @@ type ClientOption func(*runtime.ClientOperation)
 
 // ClientService is the interface for Client methods
 type ClientService interface {
-	PostBusinessVenues(params *PostBusinessVenuesParams, opts ...ClientOption) (*PostBusinessVenuesOK, error)
+	PostBusinessOrgUnitsVenues(params *PostBusinessOrgUnitsVenuesParams, opts ...ClientOption) (*PostBusinessOrgUnitsVenuesOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
 
 /*
-PostBusinessVenues gets venues by IDs
+PostBusinessOrgUnitsVenues gets venues by IDs
 
 Returns a list of venues (org units with a parent) matching the provided IDs.
 */
-func (a *Client) PostBusinessVenues(params *PostBusinessVenuesParams, opts ...ClientOption) (*PostBusinessVenuesOK, error) {
+func (a *Client) PostBusinessOrgUnitsVenues(params *PostBusinessOrgUnitsVenuesParams, opts ...ClientOption) (*PostBusinessOrgUnitsVenuesOK, error) {
 	// NOTE: parameters are not validated before sending
 	if params == nil {
-		params = NewPostBusinessVenuesParams()
+		params = NewPostBusinessOrgUnitsVenuesParams()
 	}
 	op := &runtime.ClientOperation{
-		ID:                 "PostBusinessVenues",
+		ID:                 "PostBusinessOrgUnitsVenues",
 		Method:             "POST",
-		PathPattern:        "/business/venues",
+		PathPattern:        "/business/org-units/venues",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &PostBusinessVenuesReader{formats: a.formats},
+		Reader:             &PostBusinessOrgUnitsVenuesReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	}
@@ -89,7 +89,7 @@ func (a *Client) PostBusinessVenues(params *PostBusinessVenuesParams, opts ...Cl
 	}
 
 	// only one success response has to be checked
-	success, ok := result.(*PostBusinessVenuesOK)
+	success, ok := result.(*PostBusinessOrgUnitsVenuesOK)
 	if ok {
 		return success, nil
 	}
@@ -99,7 +99,7 @@ func (a *Client) PostBusinessVenues(params *PostBusinessVenuesParams, opts ...Cl
 	// no default response is defined.
 	//
 	// safeguard: normally, in the absence of a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for PostBusinessVenues: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	msg := fmt.Sprintf("unexpected success response for PostBusinessOrgUnitsVenues: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 

@@ -11,10 +11,10 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// InternalBusinessHandlerBusinessGetResponse internal business handler business get response
+// HandlerBusinessGetResponse handler business get response
 //
-// swagger:model internal_business_handler_business.getResponse
-type InternalBusinessHandlerBusinessGetResponse struct {
+// swagger:model handler_business.getResponse
+type HandlerBusinessGetResponse struct {
 
 	// avatar
 	// Example: https://cdn.example.com/avatar.png
@@ -25,7 +25,7 @@ type InternalBusinessHandlerBusinessGetResponse struct {
 	Banner string `json:"banner,omitempty"`
 
 	// brand
-	Brand *InternalBusinessHandlerBusinessBrandResponse `json:"brand,omitempty"`
+	Brand *HandlerBusinessBrandResponse `json:"brand,omitempty"`
 
 	// description
 	// Example: A cozy place in the city center.
@@ -48,8 +48,8 @@ type InternalBusinessHandlerBusinessGetResponse struct {
 	Name string `json:"name,omitempty"`
 }
 
-// Validate validates this internal business handler business get response
-func (m *InternalBusinessHandlerBusinessGetResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this handler business get response
+func (m *HandlerBusinessGetResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateBrand(formats); err != nil {
@@ -62,7 +62,7 @@ func (m *InternalBusinessHandlerBusinessGetResponse) Validate(formats strfmt.Reg
 	return nil
 }
 
-func (m *InternalBusinessHandlerBusinessGetResponse) validateBrand(formats strfmt.Registry) error {
+func (m *HandlerBusinessGetResponse) validateBrand(formats strfmt.Registry) error {
 	if swag.IsZero(m.Brand) { // not required
 		return nil
 	}
@@ -85,8 +85,8 @@ func (m *InternalBusinessHandlerBusinessGetResponse) validateBrand(formats strfm
 	return nil
 }
 
-// ContextValidate validate this internal business handler business get response based on the context it is used
-func (m *InternalBusinessHandlerBusinessGetResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this handler business get response based on the context it is used
+func (m *HandlerBusinessGetResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateBrand(ctx, formats); err != nil {
@@ -99,7 +99,7 @@ func (m *InternalBusinessHandlerBusinessGetResponse) ContextValidate(ctx context
 	return nil
 }
 
-func (m *InternalBusinessHandlerBusinessGetResponse) contextValidateBrand(ctx context.Context, formats strfmt.Registry) error {
+func (m *HandlerBusinessGetResponse) contextValidateBrand(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Brand != nil {
 
@@ -125,7 +125,7 @@ func (m *InternalBusinessHandlerBusinessGetResponse) contextValidateBrand(ctx co
 }
 
 // MarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessGetResponse) MarshalBinary() ([]byte, error) {
+func (m *HandlerBusinessGetResponse) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -133,8 +133,8 @@ func (m *InternalBusinessHandlerBusinessGetResponse) MarshalBinary() ([]byte, er
 }
 
 // UnmarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessGetResponse) UnmarshalBinary(b []byte) error {
-	var res InternalBusinessHandlerBusinessGetResponse
+func (m *HandlerBusinessGetResponse) UnmarshalBinary(b []byte) error {
+	var res HandlerBusinessGetResponse
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -123,7 +123,7 @@ func TestAddVenue(t *testing.T) {
 			wantErr: errRepo,
 		},
 		{
-			name:         "error - count collection venues repo fails",
+			name:         "error - get max sort order repo fails",
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
@@ -196,7 +196,7 @@ func TestAddVenue(t *testing.T) {
 
 			tt.mockFn(repo, txManager)
 
-			err := svc.AddVenue(context.Background(), tt.collectionID, customerID, venueID)
+			err := svc.AddVenue(context.Background(), tt.collectionID, tt.customerID, tt.venueID)
 
 			if tt.wantErr != nil {
 				require.Error(t, err)

@@ -1,38 +1,37 @@
-.PHONY: run-guest run-business run-auth migrate-up run-all build tidy s3-up s3-ui install-tools docs docs-guest docs-business generate-guest-business-client
+.PHONY: run-guest run-business run-auth migrate-up run-all build tidy s3-up s3-ui install-tools docs docs-guest docs-business generate-guest-business-client test test-cover
+
+COUNT ?= 1
 
 run-guest: docs-guest
-	go run cmd/guest-api/main.go
+	go run ./cmd/guest-api
 
 run-business:
-	go run cmd/business-api/main.go
+	go run ./cmd/business-api
 
 run-auth:
-	go run cmd/admin-auth-api/main.go
+	go run ./cmd/admin-auth-api
 
 migrate-up:
-	go run cmd/migrator/main.go
+	go run ./cmd/migrator
 
 run-all:
 	make -j 3 run-guest run-business run-auth
 
-build: docs-guest
-	go build -o bin/migrator cmd/migrator/main.go
-	go build -o bin/guest-api cmd/guest-api/main.go
-	go build -o bin/business-api cmd/business-api/main.go
-	go build -o bin/admin-auth-api cmd/admin-auth-api/main.go
+build: docs
+	go build -o bin/migrator ./cmd/migrator
+	go build -o bin/guest-api ./cmd/guest-api
+	go build -o bin/business-api ./cmd/business-api
+	go build -o bin/admin-auth-api ./cmd/admin-auth-api
 
 tidy:
 	go mod tidy
 
 test:
-	go test -v ./...
-
-test20:
-	go test -v ./... -count=20
+	go test -v ./... -count=$(COUNT)
 
 test-cover:
 	go test -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
 
 s3-up:
 	docker compose -f docker/compose.yaml up -d s3

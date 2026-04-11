@@ -50,6 +50,38 @@ func TestGetCollection(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name:         "success - public collection accessed by non-owner",
+			collectionID: collectionID,
+			customerID:   strPtr(gofakeit.UUID()),
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: customerID, IsPublic: true}, nil).
+					Once()
+			},
+			wantCollection: entity.Collection{
+				ID:         collectionID,
+				CustomerID: customerID,
+				IsPublic:   true,
+			},
+			wantErr: nil,
+		},
+		{
+			name:         "success - public collection accessed unauthenticated",
+			collectionID: collectionID,
+			customerID:   nil,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: customerID, IsPublic: true}, nil).
+					Once()
+			},
+			wantCollection: entity.Collection{
+				ID:         collectionID,
+				CustomerID: customerID,
+				IsPublic:   true,
+			},
+			wantErr: nil,
+		},
+		{
 			name:         "error - repository fails",
 			collectionID: collectionID,
 			customerID:   &customerID,

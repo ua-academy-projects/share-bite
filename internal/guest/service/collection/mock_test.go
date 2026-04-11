@@ -107,7 +107,11 @@ type mockBusinessClient struct {
 
 func (m *mockBusinessClient) ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error) {
 	args := m.Called(ctx, venueIDs)
-	return args.Get(0).(map[int64]entity.Venue), args.Error(1)
+	if v := args.Get(0); v != nil {
+		return v.(map[int64]entity.Venue), args.Error(1)
+	}
+
+	return nil, args.Error(1)
 }
 
 type mockTxManager struct {

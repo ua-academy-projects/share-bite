@@ -12,21 +12,20 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// InternalBusinessHandlerBusinessListResponse internal business handler business list response
+// HandlerBusinessGetPostsResponse handler business get posts response
 //
-// swagger:model internal_business_handler_business.listResponse
-type InternalBusinessHandlerBusinessListResponse struct {
+// swagger:model handler_business.getPostsResponse
+type HandlerBusinessGetPostsResponse struct {
 
 	// items
-	Items []*InternalBusinessHandlerBusinessListItem `json:"items"`
+	Items []*DtoPostResponse `json:"items"`
 
 	// total
-	// Example: 42
 	Total int64 `json:"total,omitempty"`
 }
 
-// Validate validates this internal business handler business list response
-func (m *InternalBusinessHandlerBusinessListResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this handler business get posts response
+func (m *HandlerBusinessGetPostsResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateItems(formats); err != nil {
@@ -39,7 +38,7 @@ func (m *InternalBusinessHandlerBusinessListResponse) Validate(formats strfmt.Re
 	return nil
 }
 
-func (m *InternalBusinessHandlerBusinessListResponse) validateItems(formats strfmt.Registry) error {
+func (m *HandlerBusinessGetPostsResponse) validateItems(formats strfmt.Registry) error {
 	if swag.IsZero(m.Items) { // not required
 		return nil
 	}
@@ -69,8 +68,8 @@ func (m *InternalBusinessHandlerBusinessListResponse) validateItems(formats strf
 	return nil
 }
 
-// ContextValidate validate this internal business handler business list response based on the context it is used
-func (m *InternalBusinessHandlerBusinessListResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validate this handler business get posts response based on the context it is used
+func (m *HandlerBusinessGetPostsResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateItems(ctx, formats); err != nil {
@@ -83,7 +82,7 @@ func (m *InternalBusinessHandlerBusinessListResponse) ContextValidate(ctx contex
 	return nil
 }
 
-func (m *InternalBusinessHandlerBusinessListResponse) contextValidateItems(ctx context.Context, formats strfmt.Registry) error {
+func (m *HandlerBusinessGetPostsResponse) contextValidateItems(ctx context.Context, formats strfmt.Registry) error {
 
 	for i := 0; i < len(m.Items); i++ {
 
@@ -113,7 +112,7 @@ func (m *InternalBusinessHandlerBusinessListResponse) contextValidateItems(ctx c
 }
 
 // MarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessListResponse) MarshalBinary() ([]byte, error) {
+func (m *HandlerBusinessGetPostsResponse) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -121,8 +120,8 @@ func (m *InternalBusinessHandlerBusinessListResponse) MarshalBinary() ([]byte, e
 }
 
 // UnmarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessListResponse) UnmarshalBinary(b []byte) error {
-	var res InternalBusinessHandlerBusinessListResponse
+func (m *HandlerBusinessGetPostsResponse) UnmarshalBinary(b []byte) error {
+	var res HandlerBusinessGetPostsResponse
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

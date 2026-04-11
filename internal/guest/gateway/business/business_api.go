@@ -23,7 +23,8 @@ import (
 const maxErrorBodySize = 2048
 
 type businessAPIClient struct {
-	api *business_client.ShareBiteBusinessAPI
+	api    *business_client.ShareBiteBusinessAPI
+	scheme string
 
 	// TODO: remove to use swagger autogen files only
 	client  *http.Client
@@ -48,6 +49,7 @@ func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Clie
 
 	return &businessAPIClient{
 		api:     api,
+		scheme:  u.Scheme,
 		client:  httpClient,
 		baseURL: baseURL,
 	}, nil
@@ -102,12 +104,12 @@ func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int6
 	}
 	venueIDs = removeDuplicates(venueIDs)
 
-	payload := &business_dto.InternalBusinessHandlerBusinessGetVenuesByIDsRequest{
+	payload := &business_dto.HandlerBusinessGetVenuesByIDsRequest{
 		Ids: venueIDs,
 	}
-	params := venues.NewPostBusinessVenuesParamsWithContext(ctx).WithRequest(payload)
+	params := venues.NewPostBusinessOrgUnitsVenuesParamsWithContext(ctx).WithRequest(payload)
 
-	resp, err := c.api.Venues.PostBusinessVenues(params, noClientOption())
+	resp, err := c.api.Venues.PostBusinessOrgUnitsVenues(params, schemeClientOption(c.scheme))
 	if err != nil {
 		logger.ErrorKV(ctx, "get venues from business service",
 			"error", err,
@@ -169,6 +171,8 @@ func removeDuplicates(in []int64) []int64 {
 	return out
 }
 
-func noClientOption() venues.ClientOption {
-	return func(co *runtime.ClientOperation) {}
+func schemeClientOption(scheme string) venues.ClientOption {
+	return func(op *runtime.ClientOperation) {
+		op.Schemes = []string{scheme}
+	}
 }

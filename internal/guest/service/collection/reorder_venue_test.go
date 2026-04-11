@@ -587,7 +587,14 @@ func TestReorderVenue(t *testing.T) {
 			}
 
 			if tt.wait {
-				time.Sleep(time.Millisecond * 100)
+				require.Eventually(t, func() bool {
+					for _, call := range repo.Calls {
+						if call.Method == "RebalanceCollectionSortOrders" {
+							return true
+						}
+					}
+					return false
+				}, time.Second, 10*time.Millisecond, "async rebalance was not called in time")
 			}
 
 			repo.AssertExpectations(t)

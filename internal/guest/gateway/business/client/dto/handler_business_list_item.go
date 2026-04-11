@@ -9,10 +9,10 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// InternalBusinessHandlerBusinessListItem internal business handler business list item
+// HandlerBusinessListItem handler business list item
 //
-// swagger:model internal_business_handler_business.listItem
-type InternalBusinessHandlerBusinessListItem struct {
+// swagger:model handler_business.listItem
+type HandlerBusinessListItem struct {
 
 	// avatar
 	// Example: https://cdn.example.com/avatar.png
@@ -39,18 +39,18 @@ type InternalBusinessHandlerBusinessListItem struct {
 	Name string `json:"name,omitempty"`
 }
 
-// Validate validates this internal business handler business list item
-func (m *InternalBusinessHandlerBusinessListItem) Validate(formats strfmt.Registry) error {
+// Validate validates this handler business list item
+func (m *HandlerBusinessListItem) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this internal business handler business list item based on context it is used
-func (m *InternalBusinessHandlerBusinessListItem) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validates this handler business list item based on context it is used
+func (m *HandlerBusinessListItem) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessListItem) MarshalBinary() ([]byte, error) {
+func (m *HandlerBusinessListItem) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -58,8 +58,8 @@ func (m *InternalBusinessHandlerBusinessListItem) MarshalBinary() ([]byte, error
 }
 
 // UnmarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessListItem) UnmarshalBinary(b []byte) error {
-	var res InternalBusinessHandlerBusinessListItem
+func (m *HandlerBusinessListItem) UnmarshalBinary(b []byte) error {
+	var res HandlerBusinessListItem
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -88,18 +88,15 @@ func updateCollectionRequestToUpdateCollection(body updateCollectionBody, collec
 		if v == "" {
 			valErrors = append(valErrors, validator.ValidationErrorItem{
 				Field:   "name",
-				Message: "This field must be at least 1 characters long",
+				Message: "This field must be at least 1 character long",
 			})
 		} else {
 			body.Name = &v
 		}
 	}
 	if body.Description != nil {
-		if v := strings.TrimSpace(*body.Description); v == "" {
-			body.Description = &v
-		} else {
-			body.Description = &v
-		}
+		v := strings.TrimSpace(*body.Description)
+		body.Description = &v
 	}
 
 	if len(valErrors) > 0 {

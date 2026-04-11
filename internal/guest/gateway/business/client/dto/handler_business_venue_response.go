@@ -9,10 +9,10 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// InternalBusinessHandlerBusinessVenueResponse internal business handler business venue response
+// HandlerBusinessVenueResponse handler business venue response
 //
-// swagger:model internal_business_handler_business.venueResponse
-type InternalBusinessHandlerBusinessVenueResponse struct {
+// swagger:model handler_business.venueResponse
+type HandlerBusinessVenueResponse struct {
 
 	// avatar
 	// Example: https://cdn.example.com/avatar.png
@@ -35,18 +35,18 @@ type InternalBusinessHandlerBusinessVenueResponse struct {
 	Name string `json:"name,omitempty"`
 }
 
-// Validate validates this internal business handler business venue response
-func (m *InternalBusinessHandlerBusinessVenueResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this handler business venue response
+func (m *HandlerBusinessVenueResponse) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this internal business handler business venue response based on context it is used
-func (m *InternalBusinessHandlerBusinessVenueResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+// ContextValidate validates this handler business venue response based on context it is used
+func (m *HandlerBusinessVenueResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessVenueResponse) MarshalBinary() ([]byte, error) {
+func (m *HandlerBusinessVenueResponse) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -54,8 +54,8 @@ func (m *InternalBusinessHandlerBusinessVenueResponse) MarshalBinary() ([]byte, 
 }
 
 // UnmarshalBinary interface implementation
-func (m *InternalBusinessHandlerBusinessVenueResponse) UnmarshalBinary(b []byte) error {
-	var res InternalBusinessHandlerBusinessVenueResponse
+func (m *HandlerBusinessVenueResponse) UnmarshalBinary(b []byte) error {
+	var res HandlerBusinessVenueResponse
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

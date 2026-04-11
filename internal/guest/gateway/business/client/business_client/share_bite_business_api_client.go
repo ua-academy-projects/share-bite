@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/strfmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/locations"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/posts"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/venues"
 )
 
@@ -54,6 +55,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *ShareBiteB
 	cli := new(ShareBiteBusinessAPI)
 	cli.Transport = transport
 	cli.Locations = locations.New(transport, formats)
+	cli.Posts = posts.New(transport, formats)
 	cli.Venues = venues.New(transport, formats)
 	return cli
 }
@@ -101,6 +103,8 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 type ShareBiteBusinessAPI struct {
 	Locations locations.ClientService
 
+	Posts posts.ClientService
+
 	Venues venues.ClientService
 
 	Transport runtime.ClientTransport
@@ -110,5 +114,6 @@ type ShareBiteBusinessAPI struct {
 func (c *ShareBiteBusinessAPI) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
 	c.Locations.SetTransport(transport)
+	c.Posts.SetTransport(transport)
 	c.Venues.SetTransport(transport)
 }

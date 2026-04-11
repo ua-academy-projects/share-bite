@@ -410,8 +410,13 @@ func (r *repository) RemoveVenue(ctx context.Context, collectionID string, venue
 		Sql:  sql,
 	}
 
-	if _, err := r.db.DB().ExecContext(ctx, q, collectionID, venueID); err != nil {
+	cmd, err := r.db.DB().ExecContext(ctx, q, collectionID, venueID)
+	if err != nil {
 		return executeSQLError(err)
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return apperror.VenueNotFoundInCollection(venueID)
 	}
 
 	return nil

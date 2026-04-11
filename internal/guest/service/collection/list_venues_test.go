@@ -78,6 +78,23 @@ func TestListVenues(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name:         "success - public collection, unauthenticated user",
+			collectionID: collectionID,
+			customerID:   nil,
+			mockFn: func(repo *mockCollectionRepository, client *mockBusinessClient) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID(), IsPublic: true}, nil).Once()
+
+				repo.On("ListCollectionVenues", mock.Anything, collectionID).
+					Return([]entity.CollectionVenue{collectionVenue1, collectionVenue2}, nil).Once()
+
+				client.On("ListVenuesByIDs", mock.Anything, []int64{venueID1, venueID2}).
+					Return(map[int64]entity.Venue{venueID1: venue1, venueID2: venue2}, nil).Once()
+			},
+			wantRes: []entity.EnrichedVenueItem{enrichedVenue1, enrichedVenue2},
+			wantErr: nil,
+		},
+		{
 			name:         "success - venue deleted in another service",
 			collectionID: collectionID,
 			customerID:   &customerID,

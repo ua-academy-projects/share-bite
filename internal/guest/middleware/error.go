@@ -64,7 +64,7 @@ func appErrStatus(c code.Code) int {
 	switch c {
 	case code.NotFound:
 		return http.StatusNotFound
-	case code.InvalidJSON, code.InvalidRequest, code.EmptyUpdate:
+	case code.InvalidJSON, code.InvalidRequest, code.BadRequest, code.EmptyUpdate:
 		return http.StatusBadRequest
 	case code.UpstreamError:
 		return http.StatusBadGateway
