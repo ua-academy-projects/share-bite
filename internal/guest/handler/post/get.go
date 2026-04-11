@@ -21,7 +21,7 @@ func (h *handler) get(c *gin.Context) {
 		return
 	}
 
-	resp := getResponse{Post: postToResponse(post)}
+	resp := getResponse{Post: postToResponse(post, h.storage)}
 	c.JSON(http.StatusOK, resp)
 }
 

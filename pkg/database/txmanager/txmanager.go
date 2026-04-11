@@ -19,7 +19,7 @@ func NewTransactionManager(db database.Transactor) database.TxManager {
 	}
 }
 
-func (m *manager) ReadCommited(ctx context.Context, fn database.Handler) error {
+func (m *manager) ReadCommitted(ctx context.Context, fn database.Handler) error {
 	return m.transaction(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted}, fn)
 }
 
