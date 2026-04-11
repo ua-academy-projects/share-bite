@@ -16,7 +16,7 @@ migrate-up:
 	go run ./cmd/migrator
 
 run-all:
-	make -j 3 run-guest run-business run-auth
+	$(MAKE) -j 3 run-guest run-business run-auth
 
 build: docs
 	go build -o bin/migrator ./cmd/migrator
