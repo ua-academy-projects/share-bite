@@ -1,6 +1,9 @@
 package entity
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 type PostStatus string
 
@@ -20,6 +23,8 @@ type Post struct {
 	Rating     int16
 	Status     PostStatus
 
+	Images []PostImage
+
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	PublishedAt *time.Time
@@ -30,6 +35,14 @@ type CreatePostInput struct {
 	VenueID    int64
 	Text       string
 	Rating     int16
+
+	Images []UploadImageInput
+}
+
+type UploadImageInput struct {
+	File        io.Reader
+	ContentType string
+	FileSize    int64
 }
 
 type UpdatePostInput struct {

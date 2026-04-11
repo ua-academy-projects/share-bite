@@ -151,7 +151,7 @@ func (s *service) RecoverAccess(ctx context.Context, email string) error {
 		return fmt.Errorf("generate password reset token: %w", err)
 	}
 
-	err = s.txManager.ReadCommited(ctx, func(txCtx context.Context) error {
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		if err := s.userRepo.CreatePasswordResetToken(txCtx, dto.CreatePasswordResetTokenParams{
 			UserID:    u.ID,
 			TokenHash: tokenHash,
@@ -180,7 +180,7 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return fmt.Errorf("hash password: %w", err)
 	}
 
-	err = s.txManager.ReadCommited(ctx, func(txCtx context.Context) error {
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		updated, err := s.userRepo.ResetPassword(txCtx, hashToken(token), string(passwordHash))
 		if err != nil {
 			return fmt.Errorf("reset password: %w", err)

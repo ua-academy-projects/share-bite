@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -300,5 +301,44 @@ func translatePostUpdateError(err error, in entity.UpdatePostInput) error {
 		return apperror.ErrInvalidPostData
 	}
 
+	return nil
+}
+
+func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage) error {
+	if len(images) == 0 {
+		return nil
+	}
+	createImagesSql := `
+		INSERT INTO guest.post_images(
+			post_id,
+			object_key,
+			content_type,
+			file_size,
+			sort_order
+		) VALUES ($1, $2, $3, $4, $5)
+	`
+	q := database.Query{
+		Name: "post_repository.CreateImages",
+		Sql:  createImagesSql,
+	}
+
+	for _, img := range images {
+		postID, err := strconv.ParseInt(img.PostID, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid post ID: %w", err)
+		}
+		_, err = r.db.DB().ExecContext(
+			ctx,
+			q,
+			postID,
+			img.ObjectKey,
+			img.ContentType,
+			img.FileSize,
+			img.SortOrder,
+		)
+		if err != nil {
+			return executeSQLError(err)
+		}
+	}
 	return nil
 }

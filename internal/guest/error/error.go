@@ -17,6 +17,10 @@ var (
 	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
+
+	ErrImageRequired        = newError(code.BadRequest, "image is required")
+	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
+	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
 )
 
 type Error struct {
@@ -72,4 +76,12 @@ func CustomerUserNameTaken(userName string) *Error {
 func InvalidPostStatusTransition(from, to string) *Error {
 	msg := fmt.Sprintf("invalid post status transition: %s -> %s", from, to)
 	return newError(code.InvalidRequest, msg)
+}
+
+func BadRequest(msg string) *Error {
+	return newError(code.BadRequest, msg)
+}
+
+func Internal(msg string) *Error {
+	return newError(code.Internal, msg)
 }
