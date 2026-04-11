@@ -8,6 +8,7 @@ const (
 	PostStatusDraft     PostStatus = "draft"
 	PostStatusPublished PostStatus = "published"
 	PostStatusArchived  PostStatus = "archived"
+	PostStatusDeleted   PostStatus = "deleted"
 )
 
 type Post struct {
@@ -19,8 +20,9 @@ type Post struct {
 	Rating     int16
 	Status     PostStatus
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	PublishedAt *time.Time
 }
 
 type CreatePostInput struct {
@@ -31,11 +33,13 @@ type CreatePostInput struct {
 }
 
 type UpdatePostInput struct {
-	ID string
+	ID         string
+	CustomerID string
 
 	VenueID *int64
 	Text    *string
 	Rating  *int16
+	Status  *PostStatus
 }
 
 type ListPostsInput struct {

@@ -68,3 +68,8 @@ func CustomerUserNameTaken(userName string) *Error {
 	msg := fmt.Sprintf("customer with username %q already exists", userName)
 	return newError(code.AlreadyExists, msg)
 }
+
+func InvalidPostStatusTransition(from, to string) *Error {
+	msg := fmt.Sprintf("invalid post status transition: %s -> %s", from, to)
+	return newError(code.InvalidRequest, msg)
+}

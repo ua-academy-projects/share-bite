@@ -33,7 +33,7 @@ func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (ent
             text,
             rating
         ) VALUES ($1, $2, $3, $4)
-        RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at
+		RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at, published_at
     `
 
 	q := database.Query{
@@ -69,7 +69,7 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (ent
 		SET
 	`
 	args := pgx.NamedArgs{}
-	updates := make([]string, 0, 3)
+	updates := make([]string, 0, 4)
 
 	if in.Text != nil {
 		args["text"] = *in.Text
@@ -86,16 +86,21 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (ent
 		updates = append(updates, "rating=@rating")
 	}
 
+	if in.Status != nil {
+		args["status"] = *in.Status
+		updates = append(updates, "status=@status")
+	}
+
 	if len(updates) == 0 {
 		return entity.Post{}, apperror.ErrEmptyUpdate
 	}
 
-	updates = append(updates, "updated_at=NOW()")
 	sql += fmt.Sprintf(
-		" %s WHERE id=@id RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at",
+		" %s WHERE id=@id AND customer_id=@customer_id RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at, published_at",
 		strings.Join(updates, ", "),
 	)
 	args["id"] = in.ID
+	args["customer_id"] = in.CustomerID
 
 	q := database.Query{
 		Name: "post_repository.Update",
@@ -151,7 +156,8 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 		       rating,
 		       status,
 		       created_at,
-		       updated_at
+		       updated_at,
+		       published_at
 		FROM guest.posts
 		WHERE status = $1
 		ORDER BY created_at DESC, id DESC
@@ -189,7 +195,8 @@ func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error
 		       rating,
 		       status,
 		       created_at,
-		       updated_at
+		       updated_at,
+		       published_at
 		FROM guest.posts
 		WHERE id = $1
 		  AND status = $2
@@ -200,6 +207,49 @@ func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error
 	}
 
 	row, err := r.db.DB().QueryContext(ctx, q, postID, entity.PostStatusPublished)
+	if err != nil {
+		return entity.Post{}, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var post Post
+	if err := pgxscan.ScanOne(&post, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Post{}, apperror.PostNotFoundID(postID)
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
+			return entity.Post{}, apperror.PostNotFoundID(postID)
+		}
+
+		return entity.Post{}, scanRowError(err)
+	}
+
+	return post.ToEntity(), nil
+}
+
+func (r *Repository) GetByID(ctx context.Context, postID string) (entity.Post, error) {
+	sql := `
+		SELECT
+		       id,
+		       customer_id,
+		       venue_id,
+		       text,
+		       rating,
+		       status,
+		       created_at,
+		       updated_at,
+		       published_at
+		FROM guest.posts
+		WHERE id = $1
+	`
+	q := database.Query{
+		Name: "post_repository.GetByID",
+		Sql:  sql,
+	}
+
+	row, err := r.db.DB().QueryContext(ctx, q, postID)
 	if err != nil {
 		return entity.Post{}, executeSQLError(err)
 	}

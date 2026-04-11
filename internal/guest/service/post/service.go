@@ -11,6 +11,7 @@ type postRepository interface {
 	Update(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
 	List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error)
 	Get(ctx context.Context, postID string) (entity.Post, error)
+	GetByID(ctx context.Context, postID string) (entity.Post, error)
 }
 
 type VenueProvider interface {

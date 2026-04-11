@@ -44,25 +44,27 @@ func RegisterHandlers(
 }
 
 type postResponse struct {
-	ID         string            `json:"id"`
-	CustomerID string            `json:"customerId"`
-	VenueID    int64             `json:"venueId"`
-	Text       string            `json:"text"`
-	Rating     int16             `json:"rating"`
-	Status     entity.PostStatus `json:"status"`
-	CreatedAt  time.Time         `json:"createdAt"`
-	UpdatedAt  time.Time         `json:"updatedAt"`
+	ID          string            `json:"id"`
+	CustomerID  string            `json:"customerId"`
+	VenueID     int64             `json:"venueId"`
+	Text        string            `json:"text"`
+	Rating      int16             `json:"rating"`
+	Status      entity.PostStatus `json:"status"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	UpdatedAt   time.Time         `json:"updatedAt"`
+	PublishedAt *time.Time        `json:"publishedAt,omitempty"`
 }
 
 func postToResponse(post entity.Post) postResponse {
 	return postResponse{
-		ID:         post.ID,
-		CustomerID: post.CustomerID,
-		VenueID:    post.VenueID,
-		Text:       post.Text,
-		Rating:     post.Rating,
-		Status:     post.Status,
-		CreatedAt:  post.CreatedAt,
-		UpdatedAt:  post.UpdatedAt,
+		ID:          post.ID,
+		CustomerID:  post.CustomerID,
+		VenueID:     post.VenueID,
+		Text:        post.Text,
+		Rating:      post.Rating,
+		Status:      post.Status,
+		CreatedAt:   post.CreatedAt,
+		UpdatedAt:   post.UpdatedAt,
+		PublishedAt: post.PublishedAt,
 	}
 }
