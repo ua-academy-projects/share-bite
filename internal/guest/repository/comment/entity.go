@@ -10,7 +10,7 @@ type Comment struct {
 	ID         int64     `db:"id"`
 	PostID     int64     `db:"post_id"`
 	CustomerID string    `db:"customer_id"`
-	Text       string    `db:"text"`
+	Text       string    `db:"comment_text"`
 	CreatedAt  time.Time `db:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at"`
 }
@@ -30,7 +30,7 @@ type CommentRow struct {
 	ID         int64     `db:"id"`
 	PostID     int64     `db:"post_id"`
 	CustomerID string    `db:"customer_id"`
-	Text       string    `db:"text"`
+	Text       string    `db:"comment_text"`
 	CreatedAt  time.Time `db:"created_at"`
 	UpdatedAt  time.Time `db:"updated_at"`
 

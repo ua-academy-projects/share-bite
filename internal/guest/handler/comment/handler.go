@@ -3,6 +3,7 @@ package comment
 import (
 	"context"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,10 +16,10 @@ type handler struct {
 }
 
 type commentService interface {
-	Create(ctx context.Context, in entity.CreateCommentInput) (entity.Comment, error)
-	Update(ctx context.Context, postID int64, in entity.UpdateCommentInput) (entity.Comment, error)
+	Create(ctx context.Context, in dto.CreateCommentInput) (entity.Comment, error)
+	Update(ctx context.Context, postID int64, in dto.UpdateCommentInput) (entity.Comment, error)
 	Delete(ctx context.Context, postID int64, commentID int64, customerID string) error
-	List(ctx context.Context, in entity.ListCommentsInput) (entity.ListCommentsOutput, error)
+	List(ctx context.Context, in dto.ListCommentsInput) (dto.ListCommentsOutput, error)
 }
 
 type customerService interface {

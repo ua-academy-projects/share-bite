@@ -2,13 +2,14 @@ package comment
 
 import (
 	"context"
-	"strconv"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+	"strconv"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 )
 
-func (s *service) Create(ctx context.Context, in entity.CreateCommentInput) (entity.Comment, error) {
+func (s *service) Create(ctx context.Context, in dto.CreateCommentInput) (entity.Comment, error) {
 	postIDStr := strconv.FormatInt(in.PostID, 10)
 
 	_, err := s.postSvc.Get(ctx, postIDStr, "")

@@ -1,10 +1,10 @@
 package comment
 
 import (
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
@@ -47,7 +47,7 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
-	in := entity.CreateCommentInput{
+	in := dto.CreateCommentInput{
 		PostID:     uriReq.ID,
 		CustomerID: customer.ID,
 		Text:       req.Text,

@@ -3,6 +3,7 @@ package comment
 import (
 	"context"
 	"errors"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
@@ -19,11 +20,11 @@ func New(db database.Client) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) Create(ctx context.Context, in entity.CreateCommentInput) (entity.Comment, error) {
+func (r *Repository) Create(ctx context.Context, in dto.CreateCommentInput) (entity.Comment, error) {
 	sql := `
-		INSERT INTO guest.comments (post_id, customer_id, text)
+		INSERT INTO guest.comments (post_id, customer_id, comment_text)
 		VALUES ($1, $2, $3)
-		RETURNING id, post_id, customer_id, text, created_at, updated_at
+		RETURNING id, post_id, customer_id, comment_text, created_at, updated_at
 	`
 	q := database.Query{Name: "comment_repository.Create", Sql: sql}
 
@@ -42,7 +43,7 @@ func (r *Repository) Create(ctx context.Context, in entity.CreateCommentInput) (
 }
 
 func (r *Repository) GetByID(ctx context.Context, commentID int64) (entity.Comment, error) {
-	sql := `SELECT id, post_id, customer_id, text, created_at, updated_at FROM guest.comments WHERE id = $1`
+	sql := `SELECT id, post_id, customer_id, comment_text, created_at, updated_at FROM guest.comments WHERE id = $1`
 	q := database.Query{Name: "comment_repository.GetByID", Sql: sql}
 
 	row, err := r.db.DB().QueryContext(ctx, q, commentID)
@@ -62,12 +63,12 @@ func (r *Repository) GetByID(ctx context.Context, commentID int64) (entity.Comme
 	return comment.ToEntity(), nil
 }
 
-func (r *Repository) Update(ctx context.Context, in entity.UpdateCommentInput) (entity.Comment, error) {
+func (r *Repository) Update(ctx context.Context, in dto.UpdateCommentInput) (entity.Comment, error) {
 	sql := `
 		UPDATE guest.comments 
-		SET text = $1, updated_at = NOW() 
+		SET comment_text = $1, updated_at = NOW() 
 		WHERE id = $2 
-		RETURNING id, post_id, customer_id, text, created_at, updated_at
+		RETURNING id, post_id, customer_id, comment_text, created_at, updated_at
 	`
 	q := database.Query{Name: "comment_repository.Update", Sql: sql}
 
@@ -104,8 +105,8 @@ func (r *Repository) Delete(ctx context.Context, commentID int64) error {
 	return nil
 }
 
-func (r *Repository) List(ctx context.Context, in entity.ListCommentsInput) (entity.ListCommentsOutput, error) {
-	var out entity.ListCommentsOutput
+func (r *Repository) List(ctx context.Context, in dto.ListCommentsInput) (dto.ListCommentsOutput, error) {
+	var out dto.ListCommentsOutput
 
 	countSql := `SELECT COUNT(*) FROM guest.comments WHERE post_id = $1`
 	qCount := database.Query{Name: "comment_repository.ListCount", Sql: countSql}
@@ -121,7 +122,7 @@ func (r *Repository) List(ctx context.Context, in entity.ListCommentsInput) (ent
 
 	sql := `
 		SELECT 
-			c.id, c.post_id, c.customer_id, c.text, c.created_at, c.updated_at,
+			c.id, c.post_id, c.customer_id, c.comment_text, c.created_at, c.updated_at,
 			cust.id AS cust_id, cust.user_id AS cust_user_id, cust.username AS cust_username,
 			cust.first_name AS cust_first_name, cust.last_name AS cust_last_name,
 			cust.avatar_object_key AS cust_avatar, cust.bio AS cust_bio

@@ -1,10 +1,10 @@
 package comment
 
 import (
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
@@ -36,7 +36,7 @@ func (h *handler) list(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	in := entity.ListCommentsInput{
+	in := dto.ListCommentsInput{
 		PostID: uriReq.PostID,
 		Limit:  queryReq.Take,
 		Offset: queryReq.Skip,

@@ -64,5 +64,5 @@ func (h *handler) unlike(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.Status(http.StatusOK)
 }

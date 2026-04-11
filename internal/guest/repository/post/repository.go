@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"strconv"
 	"strings"
 
@@ -26,7 +27,7 @@ func New(db database.Client) *Repository {
 	}
 }
 
-func (r *Repository) Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error) {
+func (r *Repository) Create(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
 	sql := `
         INSERT INTO guest.posts(
             customer_id,
@@ -103,7 +104,7 @@ func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage
 	return nil
 }
 
-func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error) {
+func (r *Repository) List(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error) {
 	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = $1`
 	countQ := database.Query{
 		Name: "post_repository.List.Count",
@@ -112,11 +113,11 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 	var total int
 	err := r.db.DB().QueryRowContext(ctx, countQ, entity.PostStatusPublished).Scan(&total)
 	if err != nil {
-		return entity.ListPostsOutput{}, scanRowError(err)
+		return dto.ListPostsOutput{}, scanRowError(err)
 	}
 
 	// Get paginated posts
-  sql := `
+	sql := `
 		  SELECT
 		        p.id,
 		        p.customer_id,
@@ -138,25 +139,25 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 		Sql:  sql,
 	}
 
-  rows, err := r.db.DB().QueryContext(ctx, q, entity.PostStatusPublished, in.Limit, in.Offset, in.CustomerID)
+	rows, err := r.db.DB().QueryContext(ctx, q, entity.PostStatusPublished, in.Limit, in.Offset, in.CustomerID)
 	if err != nil {
-		return entity.ListPostsOutput{}, executeSQLError(err)
+		return dto.ListPostsOutput{}, executeSQLError(err)
 	}
 	defer rows.Close()
 
 	var posts Posts
 	if err := pgxscan.ScanAll(&posts, rows); err != nil {
-		return entity.ListPostsOutput{}, scanRowsError(err)
+		return dto.ListPostsOutput{}, scanRowsError(err)
 	}
 
-	return entity.ListPostsOutput{
+	return dto.ListPostsOutput{
 		Posts: posts.ToEntities(),
 		Total: total,
 	}, nil
 }
 
 func (r *Repository) Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error) {
-sql := `
+	sql := `
 		SELECT
 		       p.id,
 		       p.customer_id,
@@ -177,7 +178,7 @@ sql := `
 		Sql:  sql,
 	}
 
-  row, err := r.db.DB().QueryContext(ctx, q, postID, entity.PostStatusPublished, reqCustomerID)
+	row, err := r.db.DB().QueryContext(ctx, q, postID, entity.PostStatusPublished, reqCustomerID)
 	if err != nil {
 		return entity.Post{}, executeSQLError(err)
 	}
@@ -200,7 +201,7 @@ sql := `
 	return post.ToEntity(), nil
 }
 
-func translatePostInsertError(err error, in entity.CreatePostInput) error {
+func translatePostInsertError(err error, in dto.CreatePostInput) error {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
 		return nil

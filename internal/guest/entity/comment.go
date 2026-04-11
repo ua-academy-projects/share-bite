@@ -16,26 +16,3 @@ type CommentWithCustomer struct {
 	Comment  Comment
 	Customer Customer
 }
-
-type CreateCommentInput struct {
-	PostID     int64
-	CustomerID string
-	Text       string
-}
-
-type UpdateCommentInput struct {
-	CommentID  int64
-	CustomerID string
-	Text       string
-}
-
-type ListCommentsInput struct {
-	PostID int64
-	Limit  int
-	Offset int
-}
-
-type ListCommentsOutput struct {
-	Total    int
-	Comments []CommentWithCustomer
-}
