@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/ua-academy-projects/share-bite/internal/config"
@@ -23,11 +21,13 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 func main() {
@@ -88,6 +88,11 @@ func main() {
 
 	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
 
+	storageClient, err := newStorageClient(ctx, config.Config().Storage)
+	if err != nil {
+		logger.Fatal(ctx, "init storage client:", err)
+	}
+
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
 		config.Config().JwtToken.RefreshTokenSecretKey(),
@@ -104,11 +109,12 @@ func main() {
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	postSvc := postsvc.New(postRepo, businessGateway)
+	txManager := txmanager.NewTransactionManager(client.DB())
+	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
-	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware)
+	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	commenthandler.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 
 	go func() {
@@ -155,6 +161,7 @@ func ErrorMiddleware() gin.HandlerFunc {
 
 			case code.InvalidJSON,
 				code.InvalidRequest,
+				code.BadRequest,
 				code.EmptyUpdate:
 				respCode = http.StatusBadRequest
 

@@ -2,6 +2,8 @@ package post
 
 import (
 	"context"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 )
@@ -12,6 +14,7 @@ type postRepository interface {
 	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
 	Like(ctx context.Context, postID string, customerID string) error
 	Unlike(ctx context.Context, postID string, customerID string) error
+	CreateImages(ctx context.Context, images []entity.PostImage) error
 }
 
 type VenueProvider interface {
@@ -21,11 +24,15 @@ type VenueProvider interface {
 type service struct {
 	postRepo      postRepository
 	venueProvider VenueProvider
+	storage       storage.ObjectStorage
+	txManager     database.TxManager
 }
 
-func New(postRepo postRepository, venueProvider VenueProvider) *service {
+func New(postRepo postRepository, venueProvider VenueProvider, storage storage.ObjectStorage, txManager database.TxManager) *service {
 	return &service{
 		postRepo:      postRepo,
 		venueProvider: venueProvider,
+		storage:       storage,
+		txManager:     txManager,
 	}
 }

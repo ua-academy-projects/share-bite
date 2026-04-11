@@ -32,11 +32,6 @@ func OrgUnitNotFoundID(id int) *Error {
 	return newError(code.NotFound, msg)
 }
 
-func LocationNotFoundID(id int) *Error {
-	msg := fmt.Sprintf("location with id %d was not found", id)
-	return newError(code.NotFound, msg)
-}
-
 func BadRequest(msg string) *Error {
 	return newError(code.BadRequest, msg)
 }

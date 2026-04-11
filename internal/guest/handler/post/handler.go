@@ -6,11 +6,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 )
 
 type handler struct {
 	service         postService
 	customerService customerService
+	storage         storage.ObjectStorage
 }
 
 type postService interface {
@@ -30,10 +32,12 @@ func RegisterHandlers(
 	service postService,
 	customerService customerService,
 	authMiddleware gin.HandlerFunc,
+	storage storage.ObjectStorage,
 ) {
 	h := &handler{
 		service:         service,
 		customerService: customerService,
+		storage:         storage,
 	}
 
 	r.GET("/", h.list)
@@ -46,29 +50,38 @@ func RegisterHandlers(
 }
 
 type postResponse struct {
-	ID          string            `json:"id"`
-	CustomerID  string            `json:"customerId"`
-	VenueID     string            `json:"venueId"`
-	Text        string            `json:"text"`
-	Rating      int16             `json:"rating"`
-	Status      entity.PostStatus `json:"status"`
+	ID         string            `json:"id"`
+	CustomerID string            `json:"customerId"`
+	VenueID    string            `json:"venueId"`
+	Text       string            `json:"text"`
+	Rating     int16             `json:"rating"`
+	Status     entity.PostStatus `json:"status"`
 	LikesCount  int               `json:"likesCount"`
 	IsLikedByMe bool              `json:"isLikedByMe"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
+	Images     []string          `json:"images"`
+	CreatedAt  time.Time         `json:"createdAt"`
+	UpdatedAt  time.Time         `json:"updatedAt"`
 }
 
-func postToResponse(post entity.Post) postResponse {
+func postToResponse(post entity.Post, storage storage.ObjectStorage) postResponse {
+	imageURLs := make([]string, 0, len(post.Images))
+
+	if storage != nil {
+		for _, img := range post.Images {
+			imageURLs = append(imageURLs, storage.BuildURL(img.ObjectKey))
+		}
+	}
 	return postResponse{
-		ID:          post.ID,
-		CustomerID:  post.CustomerID,
-		VenueID:     post.VenueID,
-		Text:        post.Text,
-		Rating:      post.Rating,
-		Status:      post.Status,
+		ID:         post.ID,
+		CustomerID: post.CustomerID,
+		VenueID:    post.VenueID,
+		Text:       post.Text,
+		Rating:     post.Rating,
+		Status:     post.Status,
 		LikesCount:  post.LikesCount,
 		IsLikedByMe: post.IsLikedByMe,
-		CreatedAt:   post.CreatedAt,
-		UpdatedAt:   post.UpdatedAt,
+		Images:     imageURLs,
+		CreatedAt:  post.CreatedAt,
+		UpdatedAt:  post.UpdatedAt,
 	}
 }

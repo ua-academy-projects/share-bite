@@ -1,6 +1,7 @@
 package post
 
 import (
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,7 +29,7 @@ func (h *handler) list(c *gin.Context) {
 		return
 	}
 
-	resp := listPostsOutToResponse(out)
+	resp := listPostsOutToResponse(out, h.storage)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -42,10 +43,10 @@ type listResponse struct {
 	Total int            `json:"total"`
 }
 
-func listPostsOutToResponse(out entity.ListPostsOutput) listResponse {
+func listPostsOutToResponse(out entity.ListPostsOutput, storage storage.ObjectStorage) listResponse {
 	list := make([]postResponse, 0, len(out.Posts))
 	for _, p := range out.Posts {
-		list = append(list, postToResponse(p))
+		list = append(list, postToResponse(p, storage))
 	}
 
 	return listResponse{
