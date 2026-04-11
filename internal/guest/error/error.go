@@ -114,3 +114,11 @@ func CommentNotFoundID(commentID int64) *Error {
 	msg := fmt.Sprintf("comment with id %d was not found", commentID)
 	return newError(code.NotFound, msg)
 }
+
+func BadRequest(msg string) *Error {
+	return newError(code.BadRequest, msg)
+}
+
+func Internal(msg string) *Error {
+	return newError(code.Internal, msg)
+}
