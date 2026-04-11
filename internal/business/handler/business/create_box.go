@@ -16,9 +16,9 @@ type createBoxRequest struct {
 	CategoryID    *int      `json:"category_id"`
 	Image         string    `json:"image" binding:"required"`
 	PriceFull     float64   `json:"price_full" binding:"required"`
-	PriceDiscount float64   `json:"price_discount" binding:"required"`
+	PriceDiscount float64   `json:"price_discount" binding:"gte=0"`
 	ExpiresAt     time.Time `json:"expires_at" binding:"required"`
-	Quantity      int       `json:"quantity" binding:"required,min=1"`
+	Quantity      int       `json:"quantity" binding:"required,min=1,max=1000"`
 }
 
 // CreateBox creates a limited box for a venue.
@@ -82,8 +82,8 @@ func (h *handler) CreateBox(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"id":      box.ID,
-		"message": "box created",
+	c.JSON(http.StatusCreated, CreateBoxResponse{
+		ID:      box.ID,
+		Message: "box created",
 	})
 }
