@@ -20,7 +20,7 @@ func (s *service) parsePageToken(token string) (time.Time, string, error) {
 
 	decoded, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
-		return time.Time{}, "", fmt.Errorf("invalid token encoding")
+		return time.Time{}, "", fmt.Errorf("invalid token encoding: %w", err)
 	}
 
 	parts := strings.Split(string(decoded), "|")
@@ -30,7 +30,7 @@ func (s *service) parsePageToken(token string) (time.Time, string, error) {
 
 	createdAt, err := time.Parse(time.RFC3339Nano, parts[0])
 	if err != nil {
-		return time.Time{}, "", fmt.Errorf("invalid token time format")
+		return time.Time{}, "", fmt.Errorf("invalid token time format: %w", err)
 	}
 
 	return createdAt, parts[1], nil

@@ -46,6 +46,15 @@ func (e *Error) Unwrap() error {
 	return e.Err
 }
 
+func (e *Error) Is(target error) bool {
+	t, ok := target.(*Error)
+	if !ok {
+		return false
+	}
+
+	return e.Code == t.Code && e.Err.Error() == t.Err.Error()
+}
+
 func newError(code code.Code, err string) *Error {
 	return &Error{
 		Code: code,

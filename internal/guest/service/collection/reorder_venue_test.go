@@ -143,11 +143,11 @@ func TestReorderVenue(t *testing.T) {
 				NextVenueID:  &nextVenueID,
 			},
 			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
-				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Twice()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).
-					Once()
+					Twice()
 
 				repo.On("CheckIfVenueInCollection", mock.Anything, collectionID, venueID).
 					Return(true, nil).
@@ -531,11 +531,11 @@ func TestReorderVenue(t *testing.T) {
 				NextVenueID:  &nextVenueID,
 			},
 			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
-				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Twice()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).
-					Once()
+					Twice()
 
 				repo.On("CheckIfVenueInCollection", mock.Anything, collectionID, venueID).
 					Return(true, nil).
@@ -581,7 +581,7 @@ func TestReorderVenue(t *testing.T) {
 
 			if tt.wantErr != nil {
 				require.Error(t, err)
-				assert.ErrorContains(t, err, tt.wantErr.Error())
+				assert.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 			}

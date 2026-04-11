@@ -64,7 +64,12 @@ func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput)
 
 			logger.Info(rebalanceCtx, "starting async rebalance for collection: ", collectionID)
 
-			if err := s.collectionRepo.RebalanceCollectionSortOrders(rebalanceCtx, collectionID); err != nil {
+			if err := s.txManager.ReadCommitted(rebalanceCtx, func(ctx context.Context) error {
+				if _, err := s.collectionRepo.GetCollectionForUpdate(ctx, collectionID); err != nil {
+					return err
+				}
+				return s.collectionRepo.RebalanceCollectionSortOrders(ctx, collectionID)
+			}); err != nil {
 				logger.Errorf(rebalanceCtx, "rebalance for collection %q failed: %v", collectionID, err)
 				return
 			}

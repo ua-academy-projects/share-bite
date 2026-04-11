@@ -160,7 +160,7 @@ func TestRemoveVenue(t *testing.T) {
 
 			if tt.wantErr != nil {
 				require.Error(t, err)
-				assert.ErrorContains(t, err, tt.wantErr.Error())
+				assert.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 			}

@@ -122,7 +122,7 @@ func TestListVenues(t *testing.T) {
 				repo.On("ListCollectionVenues", mock.Anything, collectionID).
 					Return([]entity.CollectionVenue{}, nil).Once()
 			},
-			wantRes: nil,
+			wantRes: []entity.EnrichedVenueItem{},
 			wantErr: nil,
 		},
 		{
@@ -156,7 +156,7 @@ func TestListVenues(t *testing.T) {
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID, IsPublic: false}, nil).Once()
 
 				repo.On("ListCollectionVenues", mock.Anything, collectionID).
-					Return([]entity.CollectionVenue(nil), errRepo).Once()
+					Return([]entity.CollectionVenue{}, errRepo).Once()
 			},
 			wantRes: nil,
 			wantErr: errRepo,
@@ -173,7 +173,7 @@ func TestListVenues(t *testing.T) {
 					Return([]entity.CollectionVenue{collectionVenue1}, nil).Once()
 
 				client.On("ListVenuesByIDs", mock.Anything, []int64{venueID1}).
-					Return(map[int64]entity.Venue(nil), errRepo).Once()
+					Return(map[int64]entity.Venue{}, errRepo).Once()
 			},
 			wantRes: nil,
 			wantErr: errRepo,
@@ -195,7 +195,7 @@ func TestListVenues(t *testing.T) {
 
 			if tt.wantErr != nil {
 				require.Error(t, err)
-				assert.ErrorContains(t, err, tt.wantErr.Error())
+				assert.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 			}

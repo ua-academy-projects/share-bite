@@ -207,6 +207,7 @@ func TestAddVenue(t *testing.T) {
 
 			repo.AssertExpectations(t)
 			txManager.AssertExpectations(t)
+			businessClient.AssertExpectations(t)
 		})
 	}
 }

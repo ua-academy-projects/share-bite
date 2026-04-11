@@ -26,7 +26,7 @@ func (s *service) ListVenues(
 		return nil, fmt.Errorf("get collection venues from repository: %w", err)
 	}
 	if len(collectionVenues) == 0 {
-		return nil, nil
+		return []entity.EnrichedVenueItem{}, nil
 	}
 
 	venueIDs := make([]int64, 0, len(collectionVenues))

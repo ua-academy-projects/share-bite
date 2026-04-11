@@ -5,7 +5,7 @@ COUNT ?= 1
 run-guest: docs-guest
 	go run ./cmd/guest-api
 
-run-business:
+run-business: docs-business
 	go run ./cmd/business-api
 
 run-auth:
@@ -73,7 +73,7 @@ docs-business:
 	@echo "generating swagger for business service api..."
 	go tool swag init -g main.go -d cmd/business-api,internal/business -o docs/api/business --parseInternal --parseDependency
 
-generate-guest-business-client:
+generate-guest-business-client: docs-business
 	@echo "generating business client for guest service..."
 	mkdir -p internal/guest/gateway/business/client
 	go tool swagger generate client \
