@@ -22,6 +22,7 @@ type businessService interface {
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
+	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 }
 
 func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {
@@ -31,18 +32,25 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 
 	auth := middleware.Auth(parser)
 
-	r.GET("/org-units/:id", h.get)
-	r.GET("/org-units/:id/locations", h.list)
+	org_units := r.Group("/org-units")
+	{
+		org_units.GET("/:id", h.get)
+		org_units.GET("/:id/locations", h.list)
+		org_units.POST("/venues", h.getVenuesByIDs)
+	}
+
 	r.GET("/posts", h.GetPosts)
+
 
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 
-	businessOnly := r.Group("/").
+	businessOnly := r.Group("/posts").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
-
-	businessOnly.PUT("/posts/:id", h.UpdatePost)
-	businessOnly.DELETE("/posts/:id", h.DeletePost)
+	{
+		businessOnly.PUT("/:id", h.UpdatePost)
+		businessOnly.DELETE("/:id", h.DeletePost)
+	}
 }
 
 // errorResponse is used for swagger documentation.

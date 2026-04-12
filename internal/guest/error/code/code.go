@@ -7,9 +7,13 @@ var (
 
 	AlreadyExists Code = "ALREADY_EXISTS"
 	UpstreamError Code = "UPSTREAM_ERROR"
+	Forbidden     Code = "FORBIDDEN"
 
 	InvalidJSON    Code = "INVALID_JSON"
 	InvalidRequest Code = "INVALID_REQUEST"
 
 	EmptyUpdate Code = "EMPTY_UPDATE"
+
+	BadRequest Code = "BAD_REQUEST"
+	Internal   Code = "INTERNAL"
 )

@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "github.com/ua-academy-projects/share-bite/docs/api"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
@@ -27,6 +26,10 @@ import (
 // @title			ShareBite Business API
 // @version		1.0
 // @description	API for discovering brand locations (venues).
+//
+// @securityDefinitions.apikey	BearerAuth
+// @in			header
+// @name		Authorization
 //
 // @BasePath		/
 func main() {
