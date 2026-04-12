@@ -9,10 +9,13 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	commenthandler "github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
+	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
+	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
@@ -97,18 +100,22 @@ func main() {
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
 	authMiddleware := middleware.Auth(tokenManager)
+	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
 
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
+	commentRepo := commentrepo.New(client)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
 	txManager := txmanager.NewTransactionManager(client.DB())
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
+	commentSvc := commentsvc.New(commentRepo, postSvc)
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
-	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware, storageClient)
+	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
+	commenthandler.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")
@@ -163,6 +170,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 
 			case code.AlreadyExists:
 				respCode = http.StatusConflict
+
+			case code.Forbidden:
+				respCode = http.StatusForbidden
 
 			default:
 				respCode = http.StatusInternalServerError

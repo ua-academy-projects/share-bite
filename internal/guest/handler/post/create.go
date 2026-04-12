@@ -2,7 +2,7 @@ package post
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"io"
@@ -73,7 +73,7 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
-	var images []entity.UploadImageInput
+	var images []dto.UploadImageInput
 
 	for _, f := range files {
 		if f.Size > maxAvatarSizeBytes {
@@ -113,14 +113,14 @@ func (h *handler) create(c *gin.Context) {
 			return
 		}
 
-		images = append(images, entity.UploadImageInput{
+		images = append(images, dto.UploadImageInput{
 			File:        file,
 			ContentType: contentType,
 			FileSize:    f.Size,
 		})
 	}
 
-	in := entity.CreatePostInput{
+	in := dto.CreatePostInput{
 		CustomerID: customer.ID,
 		VenueID:    venueID,
 		Text:       text,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"time"
@@ -12,7 +13,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-func (s *service) Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error) {
+func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
 	exists, err := s.venueProvider.CheckExists(ctx, in.VenueID)
 	if err != nil {
 		return entity.Post{}, fmt.Errorf("check venue exists: %w", err)
