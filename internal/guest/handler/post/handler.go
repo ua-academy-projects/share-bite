@@ -2,13 +2,17 @@ package post
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 type handler struct {
@@ -97,4 +101,23 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage) postRespons
 		UpdatedAt:   post.UpdatedAt,
 		PublishedAt: post.PublishedAt,
 	}
+}
+
+func (h *handler) getAuthenticatedCustomer(c *gin.Context) (entity.Customer, error) {
+	userID, err := httpctx.GetUserID(c)
+	if err != nil {
+		return entity.Customer{}, err
+	}
+
+	customer, err := h.customerService.GetByUserID(c.Request.Context(), userID)
+	if err != nil {
+		var appErr *apperror.Error
+		if errors.As(err, &appErr) && appErr.Code == code.NotFound {
+			return entity.Customer{}, apperror.ErrForbidden
+		}
+
+		return entity.Customer{}, err
+	}
+
+	return customer, nil
 }

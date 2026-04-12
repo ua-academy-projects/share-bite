@@ -1,9 +1,10 @@
 package post
 
 import (
+	"net/http"
+
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
@@ -17,9 +18,9 @@ import (
 // @Produce      json
 // @Param        limit   query     int  false  "Max items per page (1..100)" default(20)
 // @Param        offset  query     int  false  "Offset (0..1000)" default(0)
-// @Success      200     {object}  listResponse
-// @Failure      400     {object}  errorResponse
-// @Failure      500     {object}  errorResponse
+// @Success      200     {object}  listResponse   "Successfully retrieved the collection"
+// @Failure      400     {object}  errorResponse  "Invalid query parameters"
+// @Failure      500     {object}  errorResponse  "Internal server error"
 // @Router       /posts/ [get]
 func (h *handler) list(c *gin.Context) {
 	var req listRequest

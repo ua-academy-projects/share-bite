@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
@@ -42,11 +41,13 @@ type updateResponse struct {
 // @Param        rating    formData  int     false  "Rating (1..5)"
 // @Param        status    formData  string  false  "Allowed: draft,published,archived"
 // @Param        images    formData  file    false  "Images field presence triggers rewrite"
-// @Success      200       {object}  updateResponse
-// @Failure      400       {object}  errorResponse
-// @Failure      401       {object}  errorResponse
-// @Failure      404       {object}  errorResponse
-// @Failure      500       {object}  errorResponse
+// @Success      200       {object}  updateResponse  "Successfully updated the post"
+// @Failure      400       {object}  errorResponse    "Invalid path, form, or status transition"
+// @Failure      401       {object}  errorResponse    "Unauthorized: token is missing, invalid, or expired"
+// @Failure      403       {object}  errorResponse    "Forbidden: customer profile was not found"
+// @Failure      404       {object}  errorResponse    "Not found: post does not exist, is private, or does not belong to the user"
+// @Failure      502       {object}  errorResponse    "Bad gateway: venue lookup failed"
+// @Failure      500       {object}  errorResponse    "Internal server error"
 // @Router       /posts/{id} [patch]
 func (h *handler) update(c *gin.Context) {
 	if !strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
@@ -85,13 +86,7 @@ func (h *handler) update(c *gin.Context) {
 	rewriteImages := multipartFieldProvided(c, "images")
 
 	ctx := c.Request.Context()
-	userID, err := httpctx.GetUserID(c)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	customer, err := h.customerService.GetByUserID(ctx, userID)
+	customer, err := h.getAuthenticatedCustomer(c)
 	if err != nil {
 		c.Error(err)
 		return

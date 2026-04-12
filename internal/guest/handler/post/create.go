@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 type createRequest struct {
@@ -36,7 +35,9 @@ type createResponse struct {
 // @Success      201       {object}  createResponse
 // @Failure      400       {object}  errorResponse
 // @Failure      401       {object}  errorResponse
+// @Failure      403       {object}  errorResponse
 // @Failure      404       {object}  errorResponse
+// @Failure      502       {object}  errorResponse
 // @Failure      500       {object}  errorResponse
 // @Router       /posts/ [post]
 func (h *handler) create(c *gin.Context) {
@@ -48,13 +49,7 @@ func (h *handler) create(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	userID, err := httpctx.GetUserID(c)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	customer, err := h.customerService.GetByUserID(ctx, userID)
+	customer, err := h.getAuthenticatedCustomer(c)
 	if err != nil {
 		c.Error(err)
 		return

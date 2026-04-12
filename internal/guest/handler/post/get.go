@@ -1,8 +1,9 @@
 package post
 
 import (
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"net/http"
+
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
@@ -15,10 +16,10 @@ import (
 // @Tags         guest-posts
 // @Produce      json
 // @Param        id   path      int  true  "Post ID"
-// @Success      200  {object}  getResponse
-// @Failure      400  {object}  errorResponse
-// @Failure      404  {object}  errorResponse
-// @Failure      500  {object}  errorResponse
+// @Success      200  {object}  getResponse      "Successfully retrieved the post"
+// @Failure      400  {object}  errorResponse     "Invalid post ID format"
+// @Failure      404  {object}  errorResponse     "Not found: post does not exist, is private, or is not published"
+// @Failure      500  {object}  errorResponse     "Internal server error"
 // @Router       /posts/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	var req getRequest

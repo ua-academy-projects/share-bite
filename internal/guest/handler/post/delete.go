@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
@@ -20,11 +19,12 @@ type deleteURIRequest struct {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path  int  true  "Post ID"
-// @Success      204
-// @Failure      400  {object}  errorResponse
-// @Failure      401  {object}  errorResponse
-// @Failure      404  {object}  errorResponse
-// @Failure      500  {object}  errorResponse
+// @Success      204  "Successfully deleted the post"
+// @Failure      400  {object}  errorResponse  "Invalid post ID format"
+// @Failure      401  {object}  errorResponse  "Unauthorized: token is missing, invalid, or expired"
+// @Failure      403  {object}  errorResponse  "Forbidden: customer profile was not found"
+// @Failure      404  {object}  errorResponse  "Not found: post does not exist, is private, or does not belong to the user"
+// @Failure      500  {object}  errorResponse  "Internal server error"
 // @Router       /posts/{id} [delete]
 func (h *handler) delete(c *gin.Context) {
 	var uriReq deleteURIRequest
@@ -34,13 +34,7 @@ func (h *handler) delete(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	userID, err := httpctx.GetUserID(c)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	customer, err := h.customerService.GetByUserID(ctx, userID)
+	customer, err := h.getAuthenticatedCustomer(c)
 	if err != nil {
 		c.Error(err)
 		return
