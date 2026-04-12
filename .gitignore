@@ -21,14 +21,11 @@ Thumbs.db
 docs/api/docs.go
 docs/api/swagger.json
 docs/api/swagger.yaml
+/internal/guest/client/business/api/client/     # autogen client
 
 .env*
 !.env.example
 
 /tmp/
-
-docs/api/docs.go
-docs/api/swagger.json
-docs/api/swagger.yamlmain
 
 main

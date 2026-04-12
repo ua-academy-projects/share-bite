@@ -132,7 +132,15 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (ent
 		return entity.Post{}, scanRowError(err)
 	}
 
-	return post.ToEntity(), nil
+	result := post.ToEntity()
+	images, err := r.loadImagesByPostID(ctx, result.ID)
+	if err != nil {
+		return entity.Post{}, err
+	}
+
+	result.Images = images
+
+	return result, nil
 }
 
 func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error) {
@@ -180,8 +188,18 @@ func (r *Repository) List(ctx context.Context, in entity.ListPostsInput) (entity
 		return entity.ListPostsOutput{}, scanRowsError(err)
 	}
 
+	result := posts.ToEntities()
+	for i := range result {
+		images, err := r.loadImagesByPostID(ctx, result[i].ID)
+		if err != nil {
+			return entity.ListPostsOutput{}, err
+		}
+
+		result[i].Images = images
+	}
+
 	return entity.ListPostsOutput{
-		Posts: posts.ToEntities(),
+		Posts: result,
 		Total: total,
 	}, nil
 }
@@ -227,7 +245,15 @@ func (r *Repository) Get(ctx context.Context, postID string) (entity.Post, error
 		return entity.Post{}, scanRowError(err)
 	}
 
-	return post.ToEntity(), nil
+	result := post.ToEntity()
+	images, err := r.loadImagesByPostID(ctx, result.ID)
+	if err != nil {
+		return entity.Post{}, err
+	}
+
+	result.Images = images
+
+	return result, nil
 }
 
 func (r *Repository) GetByID(ctx context.Context, postID string) (entity.Post, error) {
@@ -270,7 +296,15 @@ func (r *Repository) GetByID(ctx context.Context, postID string) (entity.Post, e
 		return entity.Post{}, scanRowError(err)
 	}
 
-	return post.ToEntity(), nil
+	result := post.ToEntity()
+	images, err := r.loadImagesByPostID(ctx, result.ID)
+	if err != nil {
+		return entity.Post{}, err
+	}
+
+	result.Images = images
+
+	return result, nil
 }
 
 func translatePostInsertError(err error, in entity.CreatePostInput) error {
@@ -341,4 +375,54 @@ func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage
 		}
 	}
 	return nil
+}
+
+func (r *Repository) DeleteImagesByPostID(ctx context.Context, postID string) error {
+	sql := `
+		DELETE FROM guest.post_images
+		WHERE post_id = $1
+	`
+	q := database.Query{
+		Name: "post_repository.DeleteImagesByPostID",
+		Sql:  sql,
+	}
+
+	if _, err := r.db.DB().ExecContext(ctx, q, postID); err != nil {
+		return executeSQLError(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) loadImagesByPostID(ctx context.Context, postID string) ([]entity.PostImage, error) {
+	sql := `
+		SELECT
+		       id,
+		       post_id,
+		       object_key,
+		       content_type,
+		       file_size,
+		       sort_order,
+		       created_at
+		FROM guest.post_images
+		WHERE post_id = $1
+		ORDER BY sort_order ASC, id ASC
+	`
+	q := database.Query{
+		Name: "post_repository.loadImagesByPostID",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postID)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var images PostImages
+	if err := pgxscan.ScanAll(&images, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	return images.ToEntities(), nil
 }

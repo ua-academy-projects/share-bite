@@ -15,6 +15,7 @@ type postRepository interface {
 	Get(ctx context.Context, postID string) (entity.Post, error)
 	GetByID(ctx context.Context, postID string) (entity.Post, error)
 	CreateImages(ctx context.Context, images []entity.PostImage) error
+	DeleteImagesByPostID(ctx context.Context, postID string) error
 }
 
 type VenueProvider interface {

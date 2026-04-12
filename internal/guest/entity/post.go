@@ -53,6 +53,9 @@ type UpdatePostInput struct {
 	Text    *string
 	Rating  *int16
 	Status  *PostStatus
+
+	Images        []UploadImageInput
+	RewriteImages bool
 }
 
 type ListPostsInput struct {

@@ -6,7 +6,8 @@ import (
 	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client"
-	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client/locations"
+	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client/venues"
+	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/models"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
@@ -21,18 +22,38 @@ func NewBusinessAPIClient(apiClient *client.ShareBiteBusinessAPI) *BusinessAPICl
 }
 
 func (c *BusinessAPIClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
-	return true, nil // remove later
-	params := locations.NewGetBusinessIDParamsWithContext(ctx).WithID(venueID)
+	params := venues.NewPostBusinessOrgUnitsVenuesParamsWithContext(ctx).WithRequest(&models.BusinessGetVenuesByIDsRequest{
+		Ids: []int64{venueID},
+	})
 
-	_, err := c.apiClient.Locations.GetBusinessID(params)
+	resp, err := c.apiClient.Venues.PostBusinessOrgUnitsVenues(params)
 	if err != nil {
-		var notFound *locations.GetBusinessIDNotFound
-		if errors.As(err, &notFound) {
+		var badRequest *venues.PostBusinessOrgUnitsVenuesBadRequest
+		if errors.As(err, &badRequest) {
 			return false, nil
 		}
 
-		return false, fmt.Errorf("get business by id: %w: %w", apperror.ErrUpstreamError, err)
+		type statusCoder interface {
+			Code() int
+		}
+
+		var coder statusCoder
+		if errors.As(err, &coder) && coder.Code() == 404 {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("post business org units venues: %w: %w", apperror.ErrUpstreamError, err)
 	}
 
-	return true, nil
+	if resp == nil || len(resp.Payload) == 0 {
+		return false, nil
+	}
+
+	for _, venue := range resp.Payload {
+		if venue != nil && venue.ID == venueID {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

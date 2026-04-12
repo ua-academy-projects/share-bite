@@ -1,19 +1,23 @@
 package post
 
 import (
+	"mime/multipart"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
 type updateRequest struct {
-	VenueID *int64             `json:"venue_id" binding:"omitempty"`
-	Text    *string            `json:"text" binding:"omitempty,max=2000"`
-	Rating  *int16             `json:"rating" binding:"omitempty,min=1,max=5"`
-	Status  *entity.PostStatus `json:"status" binding:"omitempty,oneof=draft published archived deleted"`
+	VenueID *int64                  `form:"venue_id" binding:"omitempty"`
+	Text    *string                 `form:"text" binding:"omitempty,max=2000"`
+	Rating  *int16                  `form:"rating" binding:"omitempty,min=1,max=5"`
+	Status  *entity.PostStatus      `form:"status" binding:"omitempty,oneof=draft published archived"`
+	Images  []*multipart.FileHeader `form:"images" binding:"omitempty"`
 }
 
 type updateURIRequest struct {
@@ -25,17 +29,40 @@ type updateResponse struct {
 }
 
 func (h *handler) update(c *gin.Context) {
+	if !strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
+		c.Error(apperror.BadRequest("content type must be multipart/form-data"))
+		return
+	}
+
 	var uriReq updateURIRequest
 	if err := request.BindUri(c, &uriReq); err != nil {
 		c.Error(err)
 		return
 	}
 
+	if strings.EqualFold(strings.TrimSpace(c.PostForm("status")), string(entity.PostStatusDeleted)) {
+		c.Error(apperror.BadRequest("status deleted is not allowed in patch"))
+		return
+	}
+
 	var req updateRequest
-	if err := request.BindJSON(c, &req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
+		c.Error(apperror.BadRequest(err.Error()))
+		return
+	}
+
+	if req.Status != nil && *req.Status == entity.PostStatusDeleted {
+		c.Error(apperror.BadRequest("status deleted is not allowed in patch"))
+		return
+	}
+
+	images, err := buildUploadImages(req.Images)
+	if err != nil {
 		c.Error(err)
 		return
 	}
+
+	rewriteImages := multipartFieldProvided(c, "images")
 
 	ctx := c.Request.Context()
 	userID, err := httpctx.GetUserID(c)
@@ -51,12 +78,14 @@ func (h *handler) update(c *gin.Context) {
 	}
 
 	in := entity.UpdatePostInput{
-		ID:         uriReq.ID,
-		CustomerID: customer.ID,
-		VenueID:    req.VenueID,
-		Text:       req.Text,
-		Rating:     req.Rating,
-		Status:     req.Status,
+		ID:            uriReq.ID,
+		CustomerID:    customer.ID,
+		VenueID:       req.VenueID,
+		Text:          req.Text,
+		Rating:        req.Rating,
+		Status:        req.Status,
+		Images:        images,
+		RewriteImages: rewriteImages,
 	}
 
 	post, err := h.service.Update(ctx, in)
@@ -65,6 +94,6 @@ func (h *handler) update(c *gin.Context) {
 		return
 	}
 
-	resp := updateResponse{Post: postToResponse(post)}
+	resp := updateResponse{Post: postToResponse(post, h.storage)}
 	c.JSON(http.StatusOK, resp)
 }

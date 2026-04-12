@@ -30,7 +30,6 @@ import (
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 func main() {
