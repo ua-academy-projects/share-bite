@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS business.boxes (
   price_full DECIMAL(10, 2) NOT NULL CHECK (price_full >= 0),
   price_discount DECIMAL(10, 2) NOT NULL CHECK (price_discount >=0 AND price_discount <= price_full),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMPTZ NOT NULL
+  expires_at TIMESTAMPTZ NOT NULL,
+  CONSTRAINT boxes_expires_after_created_chk CHECK (expires_at > created_at)
 );
 
 CREATE TABLE IF NOT EXISTS business.box_items (

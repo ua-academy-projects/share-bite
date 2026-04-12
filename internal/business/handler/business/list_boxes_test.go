@@ -66,23 +66,23 @@ func TestListNearbyBoxes_Positive_Success(t *testing.T) {
 
 	RegisterHandlers(router.Group("/"), mockService, parser)
 
-	req, _ := http.NewRequest(http.MethodGet, "/nearby-boxes?lat=50.45&lon=30.52&limit=10&offset=0", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/nearby-boxes?lat=50.45&lon=30.52&limit=10&skip=0", nil)
 
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Fatalf("Очікувався статус 200, але отримали %d. Тіло: %s", w.Code, w.Body.String())
+		t.Fatalf("Expected: 200, got: %d. Body: %s", w.Code, w.Body.String())
 	}
 
 	responseBody := w.Body.String()
 
 	if !strings.Contains(responseBody, `"total":1`) {
-		t.Errorf("Очікувалося поле total: 1 у відповіді, отримали: %s", responseBody)
+		t.Errorf("Expected total: 1 in response, got: %s", responseBody)
 	}
 
 	if !strings.Contains(responseBody, `"distance":2.5`) {
-		t.Errorf("Очікувалася дистанція 2.5 у JSON, отримали: %s", responseBody)
+		t.Errorf("Expected distance: 2.5 in JSON, got: %s", responseBody)
 	}
 }

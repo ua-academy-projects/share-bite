@@ -11,7 +11,15 @@ import (
 
 func (r *Repository) ListNearbyBoxes (ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error) {
 	var args []any
-	where := "boxes.expires_at > NOW()"
+	where := `boxes.expires_at > NOW()
+			  AND org_units.latitude IS NOT NULL
+			  AND org_units.longitude IS NOT NULL
+              AND EXISTS (
+                  SELECT 1 
+                  FROM business.box_items bi 
+                  WHERE bi.box_id = boxes.id 
+                    AND bi.reserved_by_user_id IS NULL
+              )`
 
 	if categoryID != nil {
 		args = append(args, *categoryID)
@@ -49,7 +57,7 @@ func (r *Repository) ListNearbyBoxes (ctx context.Context, offset, limit int, la
 		Table: "business.org_units JOIN business.boxes on boxes.venue_id=org_units.id",
 		Columns: dynamicColumns,
 		Where: where,
-		OrderBy: "distance ASC",
+		OrderBy: "distance ASC, boxes.id ASC",
 		Args: args,
 		Offset: offset,
 		Limit: limit,

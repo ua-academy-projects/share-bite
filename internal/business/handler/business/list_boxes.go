@@ -9,20 +9,20 @@ import (
 
 // ListNearbyBoxes returns a paginated list of nearby boxes sorted by distance.
 //
-//  @Summary        List nearby boxes
-//  @Description    Returns a paginated list of boxes within a radius, sorted by distance from the provided coordinates (lat/lon).
-//  @Tags           boxes
-//  @Produce        json
-//  @Param          lat         query       float64 true    "User latitude"
-//  @Param          lon         query       float64 true    "User longitude"
-//  @Param          skip        query       int     false   "Number of items to skip (default: 0)"
-//  @Param          limit       query       int     false   "Items per page (default: 10, max: 100)"
-//  @Param          category_id query       int     false   "Optional Category ID to filter by"
-//  @Success        200         {object}    dto.ListResponse
-//  @Failure        400         {object}    errorResponse
-//  @Failure        500         {object}    errorResponse
-//  @Router         /nearby-boxes [get]
-func (h *handler) ListNearbyBoxes (c *gin.Context) {
+//	@Summary        List nearby boxes
+//	@Description    Returns a paginated list of available boxes sorted by distance from the provided coordinates (lat/lon).
+//	@Tags           boxes
+//	@Produce        json
+//	@Param          lat         query       float64 true    "User latitude"
+//	@Param          lon         query       float64 true    "User longitude"
+//	@Param          skip        query       int     false   "Number of items to skip (default: 0)"
+//	@Param          limit       query       int     false  	"Items per page (default: 10, max: 100)"
+//	@Param          category_id query       int     false   "Optional Category ID to filter by"
+//	@Success        200         {object}    dto.ListResponse
+//	@Failure        400         {object}    errorResponse
+//	@Failure        500         {object}    errorResponse
+//	@Router         /nearby-boxes [get]
+func (h *handler) ListNearbyBoxes(c *gin.Context) {
 	var req dto.GetNearbyBoxesReq
 
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -30,26 +30,30 @@ func (h *handler) ListNearbyBoxes (c *gin.Context) {
 		return
 	}
 
+	if req.Limit == 0 {
+		req.Limit = 10
+	}
+
 	ctx := c.Request.Context()
 
 	res, err := h.service.ListNearbyBoxes(ctx, req.Skip, req.Limit, req.Lat, req.Lon, req.CategoryID)
-	if err != nil{
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
 	items := make([]dto.NearbyBoxesResp, 0, len(res.Items))
-	for _, u := range res.Items{
+	for _, u := range res.Items {
 		items = append(items, dto.NearbyBoxesResp{
-			Id: u.Box.Id,
-			VenueId: u.Box.VenueId,
-			CategoryID: u.Box.CategoryID,
-			Image: u.Box.Image,
-			FullPrice: u.Box.FullPrice,
+			Id:            u.Box.Id,
+			VenueId:       u.Box.VenueId,
+			CategoryID:    u.Box.CategoryID,
+			Image:         u.Box.Image,
+			FullPrice:     u.Box.FullPrice,
 			DiscountPrice: u.Box.DiscountPrice,
-			CreatedAt: u.Box.CreatedAt,
-			ExpiresAt: u.Box.ExpiresAt,
-			Distance: u.Distance,
+			CreatedAt:     u.Box.CreatedAt,
+			ExpiresAt:     u.Box.ExpiresAt,
+			Distance:      u.Distance,
 		})
 	}
 

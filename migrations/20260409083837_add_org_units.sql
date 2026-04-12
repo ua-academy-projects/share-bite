@@ -15,7 +15,13 @@ CREATE TABLE IF NOT EXISTS business.org_units (
   description TEXT,
 
   latitude NUMERIC(9,6) DEFAULT NULL,
-  longitude NUMERIC(9,6) DEFAULT NULL
+  longitude NUMERIC(9,6) DEFAULT NULL,
+
+  CONSTRAINT org_units_coordinates_pair_chk
+    CHECK (
+      (latitude IS NULL AND longitude IS NULL) OR 
+      (latitude IS NOT NULL AND longitude IS NOT NULL)
+    )
 );
 
 -- +goose Down
