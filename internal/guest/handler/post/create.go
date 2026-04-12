@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
@@ -20,6 +21,24 @@ type createResponse struct {
 	Post postResponse `json:"post"`
 }
 
+// create creates a guest post with optional images.
+//
+// @Summary      Create post
+// @Description  Creates a post for the authenticated customer.
+// @Tags         guest-posts
+// @Accept       mpfd
+// @Produce      json
+// @Security     BearerAuth
+// @Param        venue_id  formData  int     true   "Venue ID"
+// @Param        text      formData  string  true   "Post text"
+// @Param        rating    formData  int     true   "Rating (1..5)"
+// @Param        images    formData  file    false  "Post images (jpeg/png, up to 5)"
+// @Success      201       {object}  createResponse
+// @Failure      400       {object}  errorResponse
+// @Failure      401       {object}  errorResponse
+// @Failure      404       {object}  errorResponse
+// @Failure      500       {object}  errorResponse
+// @Router       /posts/ [post]
 func (h *handler) create(c *gin.Context) {
 	var req createRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -47,12 +66,21 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
-	in := entity.CreatePostInput{
+	dtoImages := make([]dto.UploadImageInput, 0, len(images))
+	for _, image := range images {
+		dtoImages = append(dtoImages, dto.UploadImageInput{
+			File:        image.File,
+			ContentType: image.ContentType,
+			FileSize:    image.FileSize,
+		})
+	}
+
+	in := dto.CreatePostInput{
 		CustomerID: customer.ID,
 		VenueID:    req.VenueID,
 		Text:       req.Text,
 		Rating:     req.Rating,
-		Images:     images,
+		Images:     dtoImages,
 	}
 
 	post, err := h.service.Create(ctx, in)

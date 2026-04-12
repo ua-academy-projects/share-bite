@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/internal/guest/client/business"
 	businessclient "github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client"
@@ -33,7 +35,19 @@ import (
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
+
+	_ "github.com/ua-academy-projects/share-bite/docs/api"
 )
+
+// @title			ShareBite Guest API
+// @version		1.0
+// @description	API for guest customer profile, posts and comments.
+//
+// @securityDefinitions.apikey	BearerAuth
+// @in			header
+// @name		Authorization
+//
+// @BasePath		/
 
 func main() {
 	ctx := context.Background()
@@ -52,6 +66,9 @@ func main() {
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(ErrorMiddleware())
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),
+	))
 
 	binding.Validator = validator.New("binding")
 

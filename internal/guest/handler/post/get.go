@@ -8,6 +8,18 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
+// get returns a single published post by ID.
+//
+// @Summary      Get post by ID
+// @Description  Returns a published post by its numeric ID.
+// @Tags         guest-posts
+// @Produce      json
+// @Param        id   path      int  true  "Post ID"
+// @Success      200  {object}  getResponse
+// @Failure      400  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	var req getRequest
 	if err := request.BindUri(c, &req); err != nil {
