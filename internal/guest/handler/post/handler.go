@@ -18,6 +18,7 @@ type handler struct {
 type postService interface {
 	Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error)
 	Update(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
+	Delete(ctx context.Context, postID, customerID string) error
 	List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error)
 	Get(ctx context.Context, postID string) (entity.Post, error)
 }
@@ -45,6 +46,7 @@ func RegisterHandlers(
 	protected := r.Group("/").Use(authMiddleware)
 	protected.POST("/", h.create)
 	protected.PATCH("/:id", h.update)
+	protected.DELETE("/:id", h.delete)
 }
 
 type postResponse struct {
