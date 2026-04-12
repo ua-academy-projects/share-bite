@@ -23,6 +23,9 @@ type Post struct {
 	Rating     int16
 	Status     PostStatus
 
+	LikesCount  int
+	IsLikedByMe bool
+
 	Images []PostImage
 
 	CreatedAt   time.Time

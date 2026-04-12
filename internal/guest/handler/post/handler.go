@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
@@ -16,11 +18,13 @@ type handler struct {
 }
 
 type postService interface {
-	Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error)
+	Create(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
 	Update(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
 	Delete(ctx context.Context, postID, customerID string) error
-	List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error)
-	Get(ctx context.Context, postID string) (entity.Post, error)
+	List(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
+	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
+	Like(ctx context.Context, postID string, customerID string) error
+	Unlike(ctx context.Context, postID string, customerID string) error
 }
 
 type customerService interface {
@@ -47,6 +51,8 @@ func RegisterHandlers(
 	protected.POST("/", h.create)
 	protected.PATCH("/:id", h.update)
 	protected.DELETE("/:id", h.delete)
+	protected.POST("/:id/like", h.like)
+	protected.DELETE("/:id/like", h.unlike)
 }
 
 type postResponse struct {
@@ -56,6 +62,8 @@ type postResponse struct {
 	Text        string            `json:"text"`
 	Rating      int16             `json:"rating"`
 	Status      entity.PostStatus `json:"status"`
+	LikesCount  int               `json:"likesCount"`
+	IsLikedByMe bool              `json:"isLikedByMe"`
 	Images      []string          `json:"images"`
 	CreatedAt   time.Time         `json:"createdAt"`
 	UpdatedAt   time.Time         `json:"updatedAt"`
@@ -77,6 +85,8 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage) postRespons
 		Text:        post.Text,
 		Rating:      post.Rating,
 		Status:      post.Status,
+		LikesCount:  post.LikesCount,
+		IsLikedByMe: post.IsLikedByMe,
 		Images:      imageURLs,
 		CreatedAt:   post.CreatedAt,
 		UpdatedAt:   post.UpdatedAt,

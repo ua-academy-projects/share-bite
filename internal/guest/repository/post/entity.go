@@ -16,6 +16,9 @@ type Post struct {
 	Rating     int16             `db:"rating"`
 	Status     entity.PostStatus `db:"status"`
 
+	LikesCount  int  `db:"likes_count"`
+	IslikedByMe bool `db:"is_liked_by_me"`
+
 	CreatedAt   time.Time  `db:"created_at"`
 	UpdatedAt   time.Time  `db:"updated_at"`
 	PublishedAt *time.Time `db:"published_at"`
@@ -29,6 +32,8 @@ func (p *Post) ToEntity() entity.Post {
 		Text:        p.Text,
 		Rating:      p.Rating,
 		Status:      p.Status,
+		LikesCount:  p.LikesCount,
+		IsLikedByMe: p.IslikedByMe,
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 		PublishedAt: p.PublishedAt,

@@ -27,5 +27,3 @@ docs/api/swagger.yaml
 !.env.example
 
 /tmp/
-
-main
