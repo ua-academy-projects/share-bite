@@ -15,7 +15,7 @@ var (
 	ErrForbidden = newError(code.Forbidden, "forbidden: you are not the owner of this resource")
 
 	ErrCollectionFull       = newError(code.InvalidRequest, "collection has reached the maximum limit of 100 venues")
-	ErrInvalidReorderParams = newError(code.InvalidRequest, "at least one neighbor (prev or next) must be provided for reordering")
+	ErrInvalidReorderParams = newError(code.InvalidRequest, "invalid reorder parameters")
 	ErrInvalidPageToken     = newError(code.InvalidRequest, "invalid page token")
 
 	ErrUpstreamError   = newError(code.UpstreamError, "upstream service error")
