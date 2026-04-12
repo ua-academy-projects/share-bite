@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+
 	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/models"
 )
 

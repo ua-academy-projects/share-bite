@@ -12,6 +12,7 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+
 	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/models"
 )
 

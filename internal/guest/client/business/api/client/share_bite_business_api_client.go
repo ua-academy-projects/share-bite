@@ -6,8 +6,11 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client/auth"
 	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client/locations"
 	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client/posts"
+	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client/venues"
 )
 
 // Default share bite business API HTTP client.
@@ -52,8 +55,10 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *ShareBiteB
 
 	cli := new(ShareBiteBusinessAPI)
 	cli.Transport = transport
+	cli.Auth = auth.New(transport, formats)
 	cli.Locations = locations.New(transport, formats)
 	cli.Posts = posts.New(transport, formats)
+	cli.Venues = venues.New(transport, formats)
 	return cli
 }
 
@@ -98,9 +103,13 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // ShareBiteBusinessAPI is a client for share bite business API
 type ShareBiteBusinessAPI struct {
+	Auth auth.ClientService
+
 	Locations locations.ClientService
 
 	Posts posts.ClientService
+
+	Venues venues.ClientService
 
 	Transport runtime.ClientTransport
 }
@@ -108,6 +117,8 @@ type ShareBiteBusinessAPI struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *ShareBiteBusinessAPI) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
+	c.Auth.SetTransport(transport)
 	c.Locations.SetTransport(transport)
 	c.Posts.SetTransport(transport)
+	c.Venues.SetTransport(transport)
 }

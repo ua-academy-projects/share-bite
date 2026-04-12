@@ -10,7 +10,8 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	models2 "github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/models"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/models"
 )
 
 // PutBusinessPostsIDReader is a Reader for the PutBusinessPostsID structure.
@@ -73,7 +74,7 @@ PutBusinessPostsIDOK describes a response with status code 200, with default hea
 OK
 */
 type PutBusinessPostsIDOK struct {
-	Payload *models2.DtoPostResponse
+	Payload *models.DtoPostResponse
 }
 
 // IsSuccess returns true when this put business posts Id o k response has a 2xx status code
@@ -116,13 +117,13 @@ func (o *PutBusinessPostsIDOK) String() string {
 	return fmt.Sprintf("[PUT /business/posts/{id}][%d] putBusinessPostsIdOK %s", 200, payload)
 }
 
-func (o *PutBusinessPostsIDOK) GetPayload() *models2.DtoPostResponse {
+func (o *PutBusinessPostsIDOK) GetPayload() *models.DtoPostResponse {
 	return o.Payload
 }
 
 func (o *PutBusinessPostsIDOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.DtoPostResponse)
+	o.Payload = new(models.DtoPostResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
@@ -143,7 +144,7 @@ PutBusinessPostsIDBadRequest describes a response with status code 400, with def
 Bad Request
 */
 type PutBusinessPostsIDBadRequest struct {
-	Payload *models2.BusinessErrorResponse
+	Payload *models.BusinessErrorResponse
 }
 
 // IsSuccess returns true when this put business posts Id bad request response has a 2xx status code
@@ -186,13 +187,13 @@ func (o *PutBusinessPostsIDBadRequest) String() string {
 	return fmt.Sprintf("[PUT /business/posts/{id}][%d] putBusinessPostsIdBadRequest %s", 400, payload)
 }
 
-func (o *PutBusinessPostsIDBadRequest) GetPayload() *models2.BusinessErrorResponse {
+func (o *PutBusinessPostsIDBadRequest) GetPayload() *models.BusinessErrorResponse {
 	return o.Payload
 }
 
 func (o *PutBusinessPostsIDBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessErrorResponse)
+	o.Payload = new(models.BusinessErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
@@ -213,7 +214,7 @@ PutBusinessPostsIDUnauthorized describes a response with status code 401, with d
 Unauthorized
 */
 type PutBusinessPostsIDUnauthorized struct {
-	Payload *models2.BusinessErrorResponse
+	Payload *models.BusinessErrorResponse
 }
 
 // IsSuccess returns true when this put business posts Id unauthorized response has a 2xx status code
@@ -256,13 +257,13 @@ func (o *PutBusinessPostsIDUnauthorized) String() string {
 	return fmt.Sprintf("[PUT /business/posts/{id}][%d] putBusinessPostsIdUnauthorized %s", 401, payload)
 }
 
-func (o *PutBusinessPostsIDUnauthorized) GetPayload() *models2.BusinessErrorResponse {
+func (o *PutBusinessPostsIDUnauthorized) GetPayload() *models.BusinessErrorResponse {
 	return o.Payload
 }
 
 func (o *PutBusinessPostsIDUnauthorized) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessErrorResponse)
+	o.Payload = new(models.BusinessErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
@@ -283,7 +284,7 @@ PutBusinessPostsIDForbidden describes a response with status code 403, with defa
 Forbidden
 */
 type PutBusinessPostsIDForbidden struct {
-	Payload *models2.BusinessErrorResponse
+	Payload *models.BusinessErrorResponse
 }
 
 // IsSuccess returns true when this put business posts Id forbidden response has a 2xx status code
@@ -326,13 +327,13 @@ func (o *PutBusinessPostsIDForbidden) String() string {
 	return fmt.Sprintf("[PUT /business/posts/{id}][%d] putBusinessPostsIdForbidden %s", 403, payload)
 }
 
-func (o *PutBusinessPostsIDForbidden) GetPayload() *models2.BusinessErrorResponse {
+func (o *PutBusinessPostsIDForbidden) GetPayload() *models.BusinessErrorResponse {
 	return o.Payload
 }
 
 func (o *PutBusinessPostsIDForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessErrorResponse)
+	o.Payload = new(models.BusinessErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
@@ -353,7 +354,7 @@ PutBusinessPostsIDNotFound describes a response with status code 404, with defau
 Not Found
 */
 type PutBusinessPostsIDNotFound struct {
-	Payload *models2.BusinessErrorResponse
+	Payload *models.BusinessErrorResponse
 }
 
 // IsSuccess returns true when this put business posts Id not found response has a 2xx status code
@@ -396,13 +397,13 @@ func (o *PutBusinessPostsIDNotFound) String() string {
 	return fmt.Sprintf("[PUT /business/posts/{id}][%d] putBusinessPostsIdNotFound %s", 404, payload)
 }
 
-func (o *PutBusinessPostsIDNotFound) GetPayload() *models2.BusinessErrorResponse {
+func (o *PutBusinessPostsIDNotFound) GetPayload() *models.BusinessErrorResponse {
 	return o.Payload
 }
 
 func (o *PutBusinessPostsIDNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessErrorResponse)
+	o.Payload = new(models.BusinessErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
@@ -423,7 +424,7 @@ PutBusinessPostsIDInternalServerError describes a response with status code 500,
 Internal Server Error
 */
 type PutBusinessPostsIDInternalServerError struct {
-	Payload *models2.BusinessErrorResponse
+	Payload *models.BusinessErrorResponse
 }
 
 // IsSuccess returns true when this put business posts Id internal server error response has a 2xx status code
@@ -466,13 +467,13 @@ func (o *PutBusinessPostsIDInternalServerError) String() string {
 	return fmt.Sprintf("[PUT /business/posts/{id}][%d] putBusinessPostsIdInternalServerError %s", 500, payload)
 }
 
-func (o *PutBusinessPostsIDInternalServerError) GetPayload() *models2.BusinessErrorResponse {
+func (o *PutBusinessPostsIDInternalServerError) GetPayload() *models.BusinessErrorResponse {
 	return o.Payload
 }
 
 func (o *PutBusinessPostsIDInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessErrorResponse)
+	o.Payload = new(models.BusinessErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {

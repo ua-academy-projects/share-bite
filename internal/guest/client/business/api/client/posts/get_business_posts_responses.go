@@ -10,7 +10,8 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	models2 "github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/models"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/models"
 )
 
 // GetBusinessPostsReader is a Reader for the GetBusinessPosts structure.
@@ -55,7 +56,7 @@ GetBusinessPostsOK describes a response with status code 200, with default heade
 OK
 */
 type GetBusinessPostsOK struct {
-	Payload *models2.BusinessGetPostsResponse
+	Payload *models.BusinessGetPostsResponse
 }
 
 // IsSuccess returns true when this get business posts o k response has a 2xx status code
@@ -98,13 +99,13 @@ func (o *GetBusinessPostsOK) String() string {
 	return fmt.Sprintf("[GET /business/posts][%d] getBusinessPostsOK %s", 200, payload)
 }
 
-func (o *GetBusinessPostsOK) GetPayload() *models2.BusinessGetPostsResponse {
+func (o *GetBusinessPostsOK) GetPayload() *models.BusinessGetPostsResponse {
 	return o.Payload
 }
 
 func (o *GetBusinessPostsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessGetPostsResponse)
+	o.Payload = new(models.BusinessGetPostsResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
@@ -125,7 +126,7 @@ GetBusinessPostsBadRequest describes a response with status code 400, with defau
 Bad Request
 */
 type GetBusinessPostsBadRequest struct {
-	Payload *models2.BusinessErrorResponse
+	Payload *models.BusinessErrorResponse
 }
 
 // IsSuccess returns true when this get business posts bad request response has a 2xx status code
@@ -168,13 +169,13 @@ func (o *GetBusinessPostsBadRequest) String() string {
 	return fmt.Sprintf("[GET /business/posts][%d] getBusinessPostsBadRequest %s", 400, payload)
 }
 
-func (o *GetBusinessPostsBadRequest) GetPayload() *models2.BusinessErrorResponse {
+func (o *GetBusinessPostsBadRequest) GetPayload() *models.BusinessErrorResponse {
 	return o.Payload
 }
 
 func (o *GetBusinessPostsBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessErrorResponse)
+	o.Payload = new(models.BusinessErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
@@ -195,7 +196,7 @@ GetBusinessPostsInternalServerError describes a response with status code 500, w
 Internal Server Error
 */
 type GetBusinessPostsInternalServerError struct {
-	Payload *models2.BusinessErrorResponse
+	Payload *models.BusinessErrorResponse
 }
 
 // IsSuccess returns true when this get business posts internal server error response has a 2xx status code
@@ -238,13 +239,13 @@ func (o *GetBusinessPostsInternalServerError) String() string {
 	return fmt.Sprintf("[GET /business/posts][%d] getBusinessPostsInternalServerError %s", 500, payload)
 }
 
-func (o *GetBusinessPostsInternalServerError) GetPayload() *models2.BusinessErrorResponse {
+func (o *GetBusinessPostsInternalServerError) GetPayload() *models.BusinessErrorResponse {
 	return o.Payload
 }
 
 func (o *GetBusinessPostsInternalServerError) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(models2.BusinessErrorResponse)
+	o.Payload = new(models.BusinessErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {

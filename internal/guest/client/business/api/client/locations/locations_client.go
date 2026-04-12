@@ -53,32 +53,32 @@ type ClientOption func(*runtime.ClientOperation)
 
 // ClientService is the interface for Client methods
 type ClientService interface {
-	GetBusinessID(params *GetBusinessIDParams, opts ...ClientOption) (*GetBusinessIDOK, error)
+	GetBusinessOrgUnitsID(params *GetBusinessOrgUnitsIDParams, opts ...ClientOption) (*GetBusinessOrgUnitsIDOK, error)
 
-	GetBusinessIDLocations(params *GetBusinessIDLocationsParams, opts ...ClientOption) (*GetBusinessIDLocationsOK, error)
+	GetBusinessOrgUnitsIDLocations(params *GetBusinessOrgUnitsIDLocationsParams, opts ...ClientOption) (*GetBusinessOrgUnitsIDLocationsOK, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
 
 /*
-GetBusinessID gets location by ID
+GetBusinessOrgUnitsID gets location by ID
 
 Returns a single venue/location that belongs to a brand, including the parent brand info.
 */
-func (a *Client) GetBusinessID(params *GetBusinessIDParams, opts ...ClientOption) (*GetBusinessIDOK, error) {
+func (a *Client) GetBusinessOrgUnitsID(params *GetBusinessOrgUnitsIDParams, opts ...ClientOption) (*GetBusinessOrgUnitsIDOK, error) {
 	// NOTE: parameters are not validated before sending
 	if params == nil {
-		params = NewGetBusinessIDParams()
+		params = NewGetBusinessOrgUnitsIDParams()
 	}
 	op := &runtime.ClientOperation{
-		ID:                 "GetBusinessID",
+		ID:                 "GetBusinessOrgUnitsID",
 		Method:             "GET",
-		PathPattern:        "/business/{id}",
+		PathPattern:        "/business/org-units/{id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetBusinessIDReader{formats: a.formats},
+		Reader:             &GetBusinessOrgUnitsIDReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	}
@@ -91,7 +91,7 @@ func (a *Client) GetBusinessID(params *GetBusinessIDParams, opts ...ClientOption
 	}
 
 	// only one success response has to be checked
-	success, ok := result.(*GetBusinessIDOK)
+	success, ok := result.(*GetBusinessOrgUnitsIDOK)
 	if ok {
 		return success, nil
 	}
@@ -101,29 +101,29 @@ func (a *Client) GetBusinessID(params *GetBusinessIDParams, opts ...ClientOption
 	// no default response is defined.
 	//
 	// safeguard: normally, in the absence of a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for GetBusinessID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	msg := fmt.Sprintf("unexpected success response for GetBusinessOrgUnitsID: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 
 /*
-GetBusinessIDLocations lists brand locations
+GetBusinessOrgUnitsIDLocations lists brand locations
 
 Returns a paginated list of venues/locations that belong to the given brand.
 */
-func (a *Client) GetBusinessIDLocations(params *GetBusinessIDLocationsParams, opts ...ClientOption) (*GetBusinessIDLocationsOK, error) {
+func (a *Client) GetBusinessOrgUnitsIDLocations(params *GetBusinessOrgUnitsIDLocationsParams, opts ...ClientOption) (*GetBusinessOrgUnitsIDLocationsOK, error) {
 	// NOTE: parameters are not validated before sending
 	if params == nil {
-		params = NewGetBusinessIDLocationsParams()
+		params = NewGetBusinessOrgUnitsIDLocationsParams()
 	}
 	op := &runtime.ClientOperation{
-		ID:                 "GetBusinessIDLocations",
+		ID:                 "GetBusinessOrgUnitsIDLocations",
 		Method:             "GET",
-		PathPattern:        "/business/{id}/locations",
+		PathPattern:        "/business/org-units/{id}/locations",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &GetBusinessIDLocationsReader{formats: a.formats},
+		Reader:             &GetBusinessOrgUnitsIDLocationsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	}
@@ -136,7 +136,7 @@ func (a *Client) GetBusinessIDLocations(params *GetBusinessIDLocationsParams, op
 	}
 
 	// only one success response has to be checked
-	success, ok := result.(*GetBusinessIDLocationsOK)
+	success, ok := result.(*GetBusinessOrgUnitsIDLocationsOK)
 	if ok {
 		return success, nil
 	}
@@ -146,7 +146,7 @@ func (a *Client) GetBusinessIDLocations(params *GetBusinessIDLocationsParams, op
 	// no default response is defined.
 	//
 	// safeguard: normally, in the absence of a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for GetBusinessIDLocations: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	msg := fmt.Sprintf("unexpected success response for GetBusinessOrgUnitsIDLocations: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 
