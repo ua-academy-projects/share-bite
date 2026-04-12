@@ -27,6 +27,6 @@ type NearbyBoxesResp struct {
 }
 
 type ListResponse struct {
-	Items []NearbyBoxesResp
-	Total int
+	Items []NearbyBoxesResp `json:"items"`
+	Total int               `json:"total"`
 }

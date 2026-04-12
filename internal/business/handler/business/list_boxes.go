@@ -7,6 +7,21 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 )
 
+// ListNearbyBoxes returns a paginated list of nearby boxes sorted by distance.
+//
+//  @Summary        List nearby boxes
+//  @Description    Returns a paginated list of boxes within a radius, sorted by distance from the provided coordinates (lat/lon).
+//  @Tags           boxes
+//  @Produce        json
+//  @Param          lat         query       float64 true    "User latitude"
+//  @Param          lon         query       float64 true    "User longitude"
+//  @Param          skip        query       int     false   "Number of items to skip (default: 0)"
+//  @Param          limit       query       int     false   "Items per page (default: 10, max: 100)"
+//  @Param          category_id query       int     false   "Optional Category ID to filter by"
+//  @Success        200         {object}    dto.ListResponse
+//  @Failure        400         {object}    errorResponse
+//  @Failure        500         {object}    errorResponse
+//  @Router         /nearby-boxes [get]
 func (h *handler) ListNearbyBoxes (c *gin.Context) {
 	var req dto.GetNearbyBoxesReq
 

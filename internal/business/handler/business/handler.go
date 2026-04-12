@@ -35,6 +35,8 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 	r.GET("/org-units/:id/locations", h.list)
 	r.GET("/posts", h.GetPosts)
 
+	r.GET("/nearby-boxes", h.ListNearbyBoxes)
+
 	businessOnly := r.Group("/").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
