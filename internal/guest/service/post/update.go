@@ -30,7 +30,7 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 	if in.VenueID != nil {
 		exists, err := s.venueProvider.CheckExists(ctx, *in.VenueID)
 		if err != nil {
-			return entity.Post{}, fmt.Errorf("check venue existence via venue provider: %w", apperror.ErrUpstreamError)
+			return entity.Post{}, fmt.Errorf("check venue existence via venue provider: %w: %w", apperror.ErrUpstreamError, err)
 		}
 		if !exists {
 			return entity.Post{}, apperror.VenueNotFoundID(*in.VenueID)

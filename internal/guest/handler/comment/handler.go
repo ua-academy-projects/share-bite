@@ -3,8 +3,9 @@ package comment
 import (
 	"context"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"time"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"

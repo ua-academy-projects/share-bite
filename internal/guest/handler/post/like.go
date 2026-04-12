@@ -23,7 +23,7 @@ type likeUriRequest struct {
 // @Failure      400  {object}  errorResponse  "Invalid post ID format"
 // @Failure      401  {object}  errorResponse  "Unauthorized: token is missing, invalid, or expired"
 // @Failure      403  {object}  errorResponse  "Forbidden: customer profile was not found"
-// @Failure      404  {object}  errorResponse  "Not found: post does not exist, is private, or does not belong to the user"
+// @Failure      404  {object}  errorResponse  "Not found: post not found or not accessible"
 // @Failure      500  {object}  errorResponse  "Internal server error"
 // @Router       /posts/{id}/like [post]
 func (h *handler) like(c *gin.Context) {
