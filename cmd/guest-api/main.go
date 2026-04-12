@@ -16,6 +16,7 @@ import (
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
@@ -35,7 +36,7 @@ func main() {
 		logger.Fatal(ctx, "load config:", err)
 	}
 
-	// docker variant
+	// build variant
 	// if err := config.Load(); err != nil {
 	// 	logger.Fatal(ctx, "load config:", err)
 	// }
@@ -85,7 +86,7 @@ func main() {
 
 	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
 
-	storageClient, err := newStorageClient(ctx, config.Config().Storage)
+	storageClient, err := storage.NewStorageClient(ctx, config.Config().Storage)
 	if err != nil {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
