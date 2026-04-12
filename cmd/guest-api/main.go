@@ -36,7 +36,7 @@ func main() {
 		logger.Fatal(ctx, "load config:", err)
 	}
 
-	// build variant
+	// docker variant
 	// if err := config.Load(); err != nil {
 	// 	logger.Fatal(ctx, "load config:", err)
 	// }

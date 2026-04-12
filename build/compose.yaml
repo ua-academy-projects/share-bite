@@ -7,7 +7,7 @@ include:
   - path: compose.s3.yaml
     env_file: ../.env
 
-  # to run applications with build
+  # to run applications with docker
   # - path: compose.apps.yaml
   #  env_file: ../.env
 
