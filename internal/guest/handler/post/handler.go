@@ -70,6 +70,11 @@ type postResponse struct {
 	PublishedAt *time.Time        `json:"publishedAt,omitempty"`
 }
 
+// errorResponse describes guest API error payload.
+type errorResponse struct {
+	Message string `json:"message" example:"invalid request"`
+}
+
 func postToResponse(post entity.Post, storage storage.ObjectStorage) postResponse {
 	imageURLs := make([]string, 0, len(post.Images))
 

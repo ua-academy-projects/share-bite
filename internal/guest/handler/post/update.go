@@ -28,6 +28,26 @@ type updateResponse struct {
 	Post postResponse `json:"post"`
 }
 
+// update updates a guest post owned by the authenticated customer.
+//
+// @Summary      Update post
+// @Description  Updates post fields and optionally rewrites images.
+// @Tags         guest-posts
+// @Accept       mpfd
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id        path      int     true   "Post ID"
+// @Param        venue_id  formData  int     false  "Venue ID"
+// @Param        text      formData  string  false  "Post text"
+// @Param        rating    formData  int     false  "Rating (1..5)"
+// @Param        status    formData  string  false  "Allowed: draft,published,archived"
+// @Param        images    formData  file    false  "Images field presence triggers rewrite"
+// @Success      200       {object}  updateResponse
+// @Failure      400       {object}  errorResponse
+// @Failure      401       {object}  errorResponse
+// @Failure      404       {object}  errorResponse
+// @Failure      500       {object}  errorResponse
+// @Router       /posts/{id} [patch]
 func (h *handler) update(c *gin.Context) {
 	if !strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
 		c.Error(apperror.BadRequest("content type must be multipart/form-data"))

@@ -195,7 +195,7 @@ func (r *Repository) List(ctx context.Context, in dto.ListPostsInput) (dto.ListP
 	for i := range result {
 		images, err := r.loadImagesByPostID(ctx, result[i].ID)
 		if err != nil {
-			return entity.ListPostsOutput{}, err
+			return dto.ListPostsOutput{}, err
 		}
 
 		result[i].Images = images

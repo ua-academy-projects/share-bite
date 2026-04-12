@@ -7,7 +7,7 @@ import (
 
 type CreatePostInput struct {
 	CustomerID string
-	VenueID    string
+	VenueID    int64
 	Text       string
 	Rating     int16
 

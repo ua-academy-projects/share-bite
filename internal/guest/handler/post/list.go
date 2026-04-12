@@ -9,6 +9,18 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
+// list returns paginated published posts.
+//
+// @Summary      List posts
+// @Description  Returns paginated list of published posts.
+// @Tags         guest-posts
+// @Produce      json
+// @Param        limit   query     int  false  "Max items per page (1..100)" default(20)
+// @Param        offset  query     int  false  "Offset (0..1000)" default(0)
+// @Success      200     {object}  listResponse
+// @Failure      400     {object}  errorResponse
+// @Failure      500     {object}  errorResponse
+// @Router       /posts/ [get]
 func (h *handler) list(c *gin.Context) {
 	var req listRequest
 	if err := request.BindQuery(c, &req); err != nil {

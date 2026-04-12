@@ -11,6 +11,20 @@ type likeUriRequest struct {
 	ID string `uri:"id" binding:"required,numeric"`
 }
 
+// like likes a post on behalf of authenticated customer.
+//
+// @Summary      Like post
+// @Description  Adds authenticated customer like to the post.
+// @Tags         guest-posts
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path  int  true  "Post ID"
+// @Success      204
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id}/like [post]
 func (h *handler) like(c *gin.Context) {
 	var uriReq likeUriRequest
 	if err := request.BindUri(c, &uriReq); err != nil {
@@ -39,6 +53,20 @@ func (h *handler) like(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// unlike removes authenticated customer like from a post.
+//
+// @Summary      Unlike post
+// @Description  Removes authenticated customer like from the post.
+// @Tags         guest-posts
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path  int  true  "Post ID"
+// @Success      200
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id}/like [delete]
 func (h *handler) unlike(c *gin.Context) {
 	var uriReq likeUriRequest
 	if err := request.BindUri(c, &uriReq); err != nil {
