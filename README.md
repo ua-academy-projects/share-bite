@@ -11,12 +11,12 @@ cp .env.example .env
 ### 2. Database Infrastructure
 Start the local PostgreSQL database using Docker Compose:
 ```bash
-build compose -f build/compose.yaml up -d
+docker compose -f build/compose.yaml up -d
 ```
 
 ### Optional pgAdmin:
 ```bash
-build compose -f build/compose.yaml --profile tools up -d
+docker compose -f build/compose.yaml --profile tools up -d
 ```
 
 ### 3. Migrations

@@ -2,7 +2,7 @@
 # =============================================================================
 # scripts/bootstrap.sh
 # One-shot bootstrap for the local Garage dev node.
-# Run ONCE after the first `build compose -f build/compose.yaml up -d garage`.
+# Run ONCE after the first `docker compose -f build/compose.yaml up -d garage`.
 # Safe to re-run: bucket/key creation will just print "already exists".
 # =============================================================================
 
