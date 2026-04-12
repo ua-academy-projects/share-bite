@@ -2,20 +2,27 @@ package follow
 
 import (
 	"context"
-	"fmt"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-func (s *service) ListFollowers(ctx context.Context, customerID string) ([]entity.Customer, error) {
-	_, err := s.customerRepo.GetByID(ctx, customerID)
+func (s *service) ListFollowers(ctx context.Context, targetCustomerID, requesterUserID string) ([]entity.Customer, error) {
+	targetCustomer, err := s.customerRepo.GetByUserID(ctx, targetCustomerID)
 	if err != nil {
 		return nil, err
 	}
 
-	follow, err := s.customerFollowRepo.ListFollowers(ctx, customerID)
-	if err != nil {
-		return nil, fmt.Errorf("list followers from repository: %w", err)
+	isOwner := false
+	if requesterUserID != "" {
+		requesterCustomer, err := s.customerRepo.GetByUserID(ctx, requesterUserID)
+		if err == nil && requesterCustomer.ID == targetCustomer.ID {
+			isOwner = true
+		}
 	}
 
-	return follow, nil
+	if !isOwner && !targetCustomer.IsFollowersPublic {
+		return nil, apperror.ErrFollowersListPrivate
+	}
+
+	return s.customerFollowRepo.ListFollowers(ctx, targetCustomer.ID)
 }

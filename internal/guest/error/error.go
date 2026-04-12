@@ -18,14 +18,10 @@ var (
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
 
-	ErrCannotFollowYourself = newError(
-		code.InvalidRequest,
-		"cannot follow yourself",
-	)
-	ErrCannotUnfollowYourself = newError(
-		code.InvalidRequest,
-		"cannot unfollow yourself",
-	)
+	ErrCannotFollowYourself   = newError(code.InvalidRequest, "cannot follow yourself")
+	ErrCannotUnfollowYourself = newError(code.InvalidRequest, "cannot unfollow yourself")
+	ErrFollowersListPrivate   = newError(code.Forbidden, "followers list is private")
+	ErrFollowingListPrivate   = newError(code.Forbidden, "following list is private")
 )
 
 type Error struct {

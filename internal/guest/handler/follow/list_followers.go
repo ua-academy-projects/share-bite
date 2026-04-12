@@ -3,19 +3,22 @@ package follow
 import (
 	"github.com/gin-gonic/gin"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"net/http"
 )
 
 func (h *handler) listFollowers(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	customerID := c.Param("id")
-	if customerID == "" {
+	targetCustomerID := c.Param("id")
+	if targetCustomerID == "" {
 		c.Error(apperror.ErrInvalidParam)
 		return
 	}
 
-	customers, err := h.service.ListFollowers(ctx, customerID)
+	requesterUserID, _ := httpctx.GetUserID(c)
+
+	customers, err := h.service.ListFollowers(ctx, targetCustomerID, requesterUserID)
 	if err != nil {
 		c.Error(err)
 		return

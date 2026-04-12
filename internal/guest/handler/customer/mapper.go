@@ -65,6 +65,9 @@ func updateRequestToUpdateCustomer(req updateRequest, userID string) (entity.Upd
 
 		Bio:             bio,
 		AvatarObjectKey: req.AvatarObjectKey,
+
+		IsFollowersPublic: req.IsFollowersPublic,
+		IsFollowingPublic: req.IsFollowingPublic,
 	}
 
 	var valErrors []validator.ValidationErrorItem

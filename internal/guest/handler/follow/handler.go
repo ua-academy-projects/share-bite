@@ -10,16 +10,20 @@ import (
 )
 
 type handler struct {
-	service customerFollowService
+	service         customerFollowService
+	customerService customerService
 }
 
 type customerFollowService interface {
 	Follow(ctx context.Context, userID, targetCustomerID string) (entity.CustomerFollow, error)
 	Unfollow(ctx context.Context, userID, targetCustomerID string) error
 
-	ListMyFollowing(ctx context.Context, userID string) ([]entity.Customer, error)
-	ListFollowing(ctx context.Context, customerID string) ([]entity.Customer, error)
-	ListFollowers(ctx context.Context, customerID string) ([]entity.Customer, error)
+	ListFollowing(ctx context.Context, targetCustomerID, requesterUserID string) ([]entity.Customer, error)
+	ListFollowers(ctx context.Context, targetCustomerID, requesterUserID string) ([]entity.Customer, error)
+}
+
+type customerService interface {
+	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
 }
 
 func RegisterHandler(
@@ -37,7 +41,6 @@ func RegisterHandler(
 	protected.DELETE("/:id/follow", h.unfollow)
 
 	protected.GET("/following", h.listMyFollowing)
-
 	r.GET("/:id/following", h.listFollowing)
 	r.GET("/:id/followers", h.listFollowers)
 }

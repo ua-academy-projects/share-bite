@@ -52,6 +52,9 @@ type CustomerResponse struct {
 	AvatarURL *string `json:"avatarURL"`
 	Bio       *string `json:"bio"`
 
+	IsFollowersPublic bool `json:"isFollowersPublic"`
+	IsFollowingPublic bool `json:"isFollowingPublic"`
+
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -71,8 +74,10 @@ func CustomerToResponse(customer entity.Customer) CustomerResponse {
 		FirstName: customer.FirstName,
 		LastName:  customer.LastName,
 
-		Bio:       customer.Bio,
-		AvatarURL: avatarURL,
+		Bio:               customer.Bio,
+		AvatarURL:         avatarURL,
+		IsFollowersPublic: customer.IsFollowersPublic,
+		IsFollowingPublic: customer.IsFollowingPublic,
 
 		CreatedAt: customer.CreatedAt,
 	}

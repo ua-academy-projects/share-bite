@@ -12,4 +12,5 @@ var (
 	InvalidRequest Code = "INVALID_REQUEST"
 
 	EmptyUpdate Code = "EMPTY_UPDATE"
+	Forbidden   Code = "FORBIDDEN"
 )
