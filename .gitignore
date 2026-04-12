@@ -25,3 +25,6 @@ Thumbs.db
 
 # swagger docs
 /docs/api/
+
+# generated api clients
+internal/guest/gateway/business/client/

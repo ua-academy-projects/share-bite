@@ -71,15 +71,44 @@ make s3-ui
 
 Open http://localhost:3909
 
-### 6. Testing
+### 6. Code Generation & API Clients
 
-To run all unit tests:
+To prevent excessive git churn, **generated Swagger documentation and API clients are not committed to the repository**. You must generate them locally before building or running tests.
+
+No external binaries (`swag` or `go-swagger`) need to be installed — both are managed as Go tool dependencies.
+
+Run the full generation suite:
+
+```bash
+make generate
+```
+
+This orchestrates the correct execution order:
+
+1. **Generates Swagger specs** for all microservices into `docs/api/`.
+2. **Generates type-safe Go clients** required for inter-service communication.
+
+> Run `make clean` to wipe all generated files and start fresh.
+
+---
+
+### 7. Testing
+
+> Ensure API clients are generated (step 6) before running tests.
+
+Run the full test suite:
 
 ```bash
 make test
 ```
 
-To view test coverage in your browser:
+By default tests run once (`COUNT=1`). To catch flaky behaviour, increase the count:
+
+```bash
+make test COUNT=5
+```
+
+Generate a coverage report and open it in your browser:
 
 ```bash
 make test-cover

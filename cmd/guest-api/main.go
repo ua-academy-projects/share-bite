@@ -12,7 +12,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
-	commenthandler "github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
@@ -144,8 +144,7 @@ func main() {
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
-	commenthandler.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
-
+	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
 		router.Group("/collections"),
 		collectionSvc,

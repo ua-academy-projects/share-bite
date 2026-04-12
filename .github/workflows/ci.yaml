@@ -16,16 +16,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+          cache: true
 
-      - name: Generate Swagger Docs
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Generate code (swagger docs + client)
         run: |
-          make docs
+          make generate
 
       - name: Build
-        run: go build ./...
+        run: make build
+
       - name: Test
-        run: go test -v ./...
+        run: make test
