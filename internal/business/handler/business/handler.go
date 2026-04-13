@@ -21,6 +21,7 @@ type businessService interface {
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
+	Rating(ctx context.Context, id int) (float32, error)
 }
 
 func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middleware.AccessTokenParser) {
@@ -34,6 +35,7 @@ func RegisterHandlers(r *gin.RouterGroup, service businessService, parser middle
 	{
 		org_units.GET("/:id", h.get)
 		org_units.GET("/:id/locations", h.list)
+		org_units.GET("/:id/rating", h.rating)
 		org_units.POST("/venues", h.getVenuesByIDs)
 	}
 
