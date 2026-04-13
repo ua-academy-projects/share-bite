@@ -25,6 +25,7 @@ import (
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
@@ -110,7 +111,7 @@ func main() {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
 	}
 
-	storageClient, err := newStorageClient(ctx, config.Config().Storage)
+	storageClient, err := storage.NewStorageClient(ctx, config.Config().Storage)
 	if err != nil {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
