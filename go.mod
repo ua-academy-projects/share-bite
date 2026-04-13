@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
+	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/caarlos0/env/v11 v11.4.0
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/gin-contrib/cors v1.7.7
@@ -17,6 +18,7 @@ require (
 	github.com/go-openapi/runtime v0.29.3
 	github.com/go-openapi/strfmt v0.26.1
 	github.com/go-openapi/swag v0.25.5
+	github.com/go-openapi/testify/v2 v2.4.1
 	github.com/go-openapi/validate v0.25.2
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
