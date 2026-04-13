@@ -59,25 +59,21 @@ type customerResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func customerToResponse(customer entity.Customer, st storage.ObjectStorage) customerResponse {
+func (h *handler) toResponse(customer entity.Customer) customerResponse {
 	var avatarURL *string
-	if customer.AvatarObjectKey != nil && st != nil {
-		url := st.BuildURL(*customer.AvatarObjectKey)
+	if customer.AvatarObjectKey != nil && h.storage != nil {
+		url := h.storage.BuildURL(*customer.AvatarObjectKey)
 		avatarURL = &url
 	}
 
 	return customerResponse{
-		ID:     customer.ID,
-		UserID: customer.UserID,
-
+		ID:        customer.ID,
+		UserID:    customer.UserID,
 		UserName:  customer.UserName,
 		FirstName: customer.FirstName,
 		LastName:  customer.LastName,
-
 		Bio:       customer.Bio,
 		AvatarURL: avatarURL,
-
 		CreatedAt: customer.CreatedAt,
 	}
-
 }

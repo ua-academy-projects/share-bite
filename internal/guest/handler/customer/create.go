@@ -158,7 +158,7 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 		cleanupDelete(h.storage, *currentCustomer.AvatarObjectKey)
 	}
 
-	c.JSON(http.StatusOK, customerToResponse(customer, h.storage))
+	c.JSON(http.StatusOK, h.toResponse(customer))
 }
 
 func generateAvatarKey(userID string, ext string) string {
