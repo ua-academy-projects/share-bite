@@ -79,8 +79,13 @@ func (r *repository) DeleteCollection(ctx context.Context, collectionID string) 
 		Sql:  sql,
 	}
 
-	if _, err := r.db.DB().ExecContext(ctx, q, collectionID); err != nil {
+	cmd, err := r.db.DB().ExecContext(ctx, q, collectionID)
+	if err != nil {
 		return executeSQLError(err)
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return apperror.CollectionNotFoundID(collectionID)
 	}
 
 	return nil
