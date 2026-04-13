@@ -1,2 +1,2 @@
 // stub
-package auth
+package adminauth
