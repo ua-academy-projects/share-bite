@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "github.com/ua-academy-projects/share-bite/docs/api"
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 )
 
