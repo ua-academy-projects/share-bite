@@ -2,12 +2,12 @@ package business
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/client"
@@ -38,13 +38,18 @@ type businessAPIClient struct {
 }
 
 func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client) (*businessAPIClient, error) {
-	u, err := url.Parse(baseURL)
+	normalizedBaseURL := strings.TrimSpace(baseURL)
+	if !strings.Contains(normalizedBaseURL, "://") {
+		normalizedBaseURL = "http://" + normalizedBaseURL
+	}
+
+	u, err := url.Parse(normalizedBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse business baseURL: %w", err)
 	}
 
 	if u.Scheme == "" || u.Host == "" {
-		return nil, fmt.Errorf("invalid business baseURL %q: scheme and host are required", baseURL)
+		return nil, fmt.Errorf("invalid business baseURL %q: scheme and host are required", normalizedBaseURL)
 	}
 	if httpClient == nil {
 		return nil, fmt.Errorf("http client should be initialized")
@@ -57,12 +62,12 @@ func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Clie
 		api:     api,
 		scheme:  u.Scheme,
 		client:  httpClient,
-		baseURL: baseURL,
+		baseURL: strings.TrimRight(normalizedBaseURL, "/"),
 	}, nil
 }
 
 func (c *businessAPIClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
-	reqURL, err := url.JoinPath(c.baseURL, "api", "internal", "venues", strconv.FormatInt(venueID, 10))
+	reqURL, err := url.JoinPath(c.baseURL, "business", "org-units", strconv.FormatInt(venueID, 10))
 	if err != nil {
 		return false, fmt.Errorf("join url path: %w", err)
 	}
@@ -84,11 +89,7 @@ func (c *businessAPIClient) CheckExists(ctx context.Context, venueID int64) (boo
 	statusCode := resp.StatusCode
 
 	if statusCode == http.StatusOK {
-		var dto businessVenueResponseDTO
-		if err := json.NewDecoder(resp.Body).Decode(&dto); err != nil {
-			return false, fmt.Errorf("decode response: %w: %w", apperror.ErrUpstreamError, err)
-		}
-		return dto.Status == "active", nil
+		return true, nil
 	}
 
 	if statusCode == http.StatusNotFound {
