@@ -1,0 +1,2 @@
+// stub
+package guest

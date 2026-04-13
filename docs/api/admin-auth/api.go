@@ -1,0 +1,2 @@
+// stub
+package auth
