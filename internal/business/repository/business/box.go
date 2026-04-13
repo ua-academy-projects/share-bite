@@ -26,8 +26,8 @@ func (r *Repository) ListNearbyBoxes (ctx context.Context, offset, limit int, la
 		where += fmt.Sprintf(" AND boxes.category_id=$%d", len(args))
 	}
 
-	n := len(args)
-	args = append(args, lon, lat)
+	// n := len(args)
+	// args = append(args, lon, lat)
 
 	scanner := func (rows pgx.Rows) (entity.BoxWithDistance, error) {
 		var item entity.BoxWithDistance
@@ -49,9 +49,10 @@ func (r *Repository) ListNearbyBoxes (ctx context.Context, offset, limit int, la
 		return item, nil
 	}
 
+	// Вставляємо координати (lon, lat) прямо в рядок запиту:
 	dynamicColumns := fmt.Sprintf("boxes.id, boxes.venue_id, boxes.category_id, " +
-		"boxes.image, boxes.price_full, boxes.price_discount, " +
-		"boxes.created_at, boxes.expires_at, point($%d, $%d) <@> point(org_units.longitude, org_units.latitude) AS distance", n+1, n+2)
+	"boxes.image, boxes.price_full, boxes.price_discount, " +
+	"boxes.created_at, boxes.expires_at, point(%f, %f) <@> point(org_units.longitude, org_units.latitude) AS distance", lon, lat)
 
 	p := pagination.Params{
 		Table: "business.org_units JOIN business.boxes on boxes.venue_id=org_units.id",

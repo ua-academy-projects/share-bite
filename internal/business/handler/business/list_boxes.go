@@ -21,7 +21,7 @@ import (
 //	@Success        200         {object}    dto.ListResponse
 //	@Failure        400         {object}    errorResponse
 //	@Failure        500         {object}    errorResponse
-//	@Router         /nearby-boxes [get]
+//  @Router 		/business/nearby-boxes  [get]
 func (h *handler) ListNearbyBoxes(c *gin.Context) {
 	var req dto.GetNearbyBoxesReq
 

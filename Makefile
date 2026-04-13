@@ -1,5 +1,5 @@
 run-guest:
-	go run cmd/guest-api/main.go
+	go run ./cmd/guest-api
 
 run-business:
 	go run cmd/business-api/main.go
