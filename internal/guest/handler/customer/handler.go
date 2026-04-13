@@ -49,7 +49,7 @@ type customerResponse struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 
-	AvatarURL *string `json:"avatarURL"`
+	AvatarURL *string `json:"avatarUrl"`
 	Bio       *string `json:"bio"`
 
 	CreatedAt time.Time `json:"createdAt"`

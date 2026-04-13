@@ -46,21 +46,13 @@ func RegisterHandlers(
 	protected.DELETE("/:comment_id", h.delete)
 }
 
-type customerDTO struct {
-	ID        string  `json:"id"`
-	UserName  string  `json:"userName"`
-	FirstName string  `json:"firstName"`
-	LastName  string  `json:"lastName"`
-	AvatarURL *string `json:"avatarURL"`
-}
-
 type commentResponse struct {
-	ID        int64       `json:"id"`
-	PostID    int64       `json:"postId"`
-	Text      string      `json:"text"`
-	CreatedAt time.Time   `json:"createdAt"`
-	UpdatedAt time.Time   `json:"updatedAt"`
-	Customer  customerDTO `json:"customer"`
+	ID        int64           `json:"id"`
+	PostID    int64           `json:"postId"`
+	Text      string          `json:"text"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt time.Time       `json:"updatedAt"`
+	Customer  dto.CustomerDTO `json:"customer"`
 }
 
 func commentToResponse(comment entity.Comment, customer entity.Customer) commentResponse {
@@ -77,7 +69,7 @@ func commentToResponse(comment entity.Comment, customer entity.Customer) comment
 		Text:      comment.Text,
 		CreatedAt: comment.CreatedAt,
 		UpdatedAt: comment.UpdatedAt,
-		Customer: customerDTO{
+		Customer: dto.CustomerDTO{
 			ID:        customer.ID,
 			UserName:  customer.UserName,
 			FirstName: customer.FirstName,

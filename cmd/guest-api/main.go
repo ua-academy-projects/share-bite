@@ -2,27 +2,25 @@ package main
 
 import (
 	"context"
-	"errors"
-	"net"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/go-openapi/strfmt"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerfiles "github.com/swaggo/files"
+	ginswagger "github.com/swaggo/gin-swagger"
+	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	"github.com/ua-academy-projects/share-bite/internal/guest/client/business"
-	businessclient "github.com/ua-academy-projects/share-bite/internal/guest/client/business/api/client"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
-	commenthandler "github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
+	businessgateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
+	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
+	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
 	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
+	collectionsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/collection"
 	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
@@ -35,20 +33,19 @@ import (
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
-
-	_ "github.com/ua-academy-projects/share-bite/docs/api"
 )
 
-// @title			ShareBite Guest API
-// @version		1.0
-// @description	API for guest customer profile, posts and comments.
+// @title						Share Bite - Guest Service API
+// @version					1.0
+// @description				API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
+//
+// @host						localhost:3800
+// @BasePath					/
 //
 // @securityDefinitions.apikey	BearerAuth
-// @in			header
-// @name		Authorization
-//
-// @BasePath		/
-
+// @in							header
+// @name						Authorization
+// @description				Type "Bearer " followed by your JWT token.
 func main() {
 	ctx := context.Background()
 
@@ -63,12 +60,12 @@ func main() {
 	// }
 
 	router := gin.New()
+	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
-	router.Use(ErrorMiddleware())
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
-		ginSwagger.URL("/swagger/doc.json"),
-	))
+	router.Use(guest_middleware.ErrorMiddleware())
+
+	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 
 	binding.Validator = validator.New("binding")
 
@@ -108,21 +105,17 @@ func main() {
 		return nil
 	})
 
-	businessAPIClient := businessclient.New(
-		httptransport.NewWithClient(
-			businessAPIHost(clientCfg.BaseURL()),
-			"/",
-			[]string{"http"},
-			httpClient,
-		),
-		strfmt.Default,
-	)
-	businessGateway := business.NewBusinessAPIClient(businessAPIClient)
+	businessGateway, err := businessgateway.NewBusinessAPIClient(clientCfg.BaseURL(), "/", httpClient)
+	if err != nil {
+		logger.Fatalf(ctx, "init business gateway: %v", err)
+	}
 
 	storageClient, err := newStorageClient(ctx, config.Config().Storage)
 	if err != nil {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
+
+	txManager := txmanager.NewTransactionManager(client.DB())
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -130,23 +123,33 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-	authMiddleware := middleware.Auth(tokenManager)
-	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
-
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
 	commentRepo := commentrepo.New(client)
+	collectionRepo := collectionrepo.New(client)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	txManager := txmanager.NewTransactionManager(client.DB())
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
+	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
+
+	authMiddleware := middleware.Auth(tokenManager)
+	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
+	customerMiddleware := middleware.CustomerID(customerSvc)
+
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
-	commenthandler.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+	collection.RegisterHandlers(
+		router.Group("/collections"),
+		collectionSvc,
+		authMiddleware,
+		optionalAuthMiddleware,
+		customerMiddleware,
+	)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")
@@ -156,77 +159,4 @@ func main() {
 	}()
 
 	closer.Wait()
-}
-
-func businessAPIHost(baseURL string) string {
-	host, port, err := net.SplitHostPort(baseURL)
-	if err != nil {
-		return baseURL
-	}
-
-	if host == "" || host == "0.0.0.0" || host == "::" {
-		host = "localhost"
-	}
-
-	return net.JoinHostPort(host, port)
-}
-
-func ErrorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		err := c.Errors.Last()
-		if err == nil {
-			return
-		}
-
-		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
-		}
-
-		var valErr *validator.ValidationError
-		if errors.As(err, &valErr) {
-			respCode = http.StatusBadRequest
-			resp = map[string]any{
-				"message": valErr.Error(),
-				"errors":  valErr.Errors,
-			}
-
-			c.JSON(respCode, resp)
-			return
-		}
-
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				respCode = http.StatusNotFound
-
-			case code.InvalidJSON,
-				code.InvalidRequest,
-				code.BadRequest,
-				code.EmptyUpdate:
-				respCode = http.StatusBadRequest
-
-			case code.UpstreamError:
-				respCode = http.StatusBadGateway
-
-			case code.AlreadyExists:
-				respCode = http.StatusConflict
-
-			case code.Forbidden:
-				respCode = http.StatusForbidden
-
-			default:
-				respCode = http.StatusInternalServerError
-			}
-
-			resp = map[string]any{
-				"message": appErr.Error(),
-			}
-		}
-
-		c.JSON(respCode, resp)
-	}
 }
