@@ -22,24 +22,24 @@ const (
 	fileSniffSizeBytes = 512
 )
 
-// @Summary        Upload customer avatar
-// @Description    Uploads an image to be used as the customer's avatar.
-// @Description    Supported formats: JPEG, PNG. Max size: 5MB.
+// @Summary		Upload customer avatar
+// @Description	Uploads an image to be used as the customer's avatar.
+// @Description	Supported formats: JPEG, PNG. Max size: 5MB.
 //
-// @Tags           customers
-// @Accept         multipart/form-data
-// @Produce        json
-// @Security       BearerAuth
+// @Tags			customers
+// @Accept			multipart/form-data
+// @Produce		json
+// @Security		BearerAuth
 //
-// @Param          image    formData    file    true    "Avatar image file (JPEG or PNG, max 5MB)"
+// @Param			image	formData	file						true	"Avatar image file (JPEG or PNG, max 5MB)"
 //
-// @Success        200      {object}    customerResponse            "Successfully uploaded avatar and updated profile"
-// @Failure        400      {object}    response.ErrorResponse      "Bad Request: Missing image, file too large, or unsupported format"
-// @Failure        401      {object}    response.AuthErrorResponse  "Unauthorized: Missing or invalid token"
-// @Failure        404      {object}    response.ErrorResponse      "Not Found: Customer profile does not exist"
-// @Failure        500      {object}    response.ErrorResponse      "Internal server error or storage failure"
+// @Success		200		{object}	customerResponse			"Successfully uploaded avatar and updated profile"
+// @Failure		400		{object}	response.ErrorResponse		"Bad Request: Missing image, file too large, or unsupported format"
+// @Failure		401		{object}	response.AuthErrorResponse	"Unauthorized: Missing or invalid token"
+// @Failure		404		{object}	response.ErrorResponse		"Not Found: Customer profile does not exist"
+// @Failure		500		{object}	response.ErrorResponse		"Internal server error or storage failure"
 //
-// @Router         /customers/avatar [post]
+// @Router			/customers/avatar [post]
 func (h *handler) uploadAvatar(c *gin.Context) {
 	if h.storage == nil {
 		c.Error(apperror.Internal("storage is not configured"))
