@@ -18,9 +18,13 @@ coverage.html
 .DS_Store
 Thumbs.db
 
-/docs
-
 .env*
 !.env.example
 
 /tmp/
+
+# swagger docs
+/docs/api/
+
+# generated api clients
+internal/guest/gateway/business/client/
