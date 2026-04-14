@@ -59,3 +59,4 @@ func (c *httpServerConfig) ExposeHeaders() []string {
 	}
 	return strings.Split(c.ExposeHeadersRaw, ",")
 }
+
