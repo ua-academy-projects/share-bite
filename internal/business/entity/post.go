@@ -9,6 +9,13 @@ type Post struct {
 	CreatedAt time.Time
 }
 
+type PostPhotos struct {
+	PostID    int
+	ImageURL  string
+	SortOrder int
+}
+
+
 type PostWithPhotos struct {
 	ID        int64
 	OrgID     int

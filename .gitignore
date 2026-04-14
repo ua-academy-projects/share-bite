@@ -18,6 +18,8 @@ coverage.html
 .DS_Store
 Thumbs.db
 
+/docs/api/
+
 .env*
 !.env.example
 
