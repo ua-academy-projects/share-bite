@@ -18,7 +18,6 @@ require (
 	github.com/go-openapi/runtime v0.29.3
 	github.com/go-openapi/strfmt v0.26.1
 	github.com/go-openapi/swag v0.25.5
-	github.com/go-openapi/testify/v2 v2.4.1
 	github.com/go-openapi/validate v0.25.2
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/golang-jwt/jwt/v5 v5.3.1

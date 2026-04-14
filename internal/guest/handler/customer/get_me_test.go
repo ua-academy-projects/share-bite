@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/go-openapi/testify/v2/require"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/util/response"
@@ -52,7 +52,7 @@ func TestGetMe(t *testing.T) {
 					}, nil).
 					Once()
 			},
-			wantBody: getByUserNameResponse{
+			wantBody: getMeResponse{
 				Customer: customerToResponse(entity.Customer{
 					ID:              customerID,
 					UserID:          userID,
