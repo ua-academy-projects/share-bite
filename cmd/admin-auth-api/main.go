@@ -13,23 +13,24 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
 	"go.uber.org/zap"
+	"github.com/ua-academy-projects/share-bite/internal/config"
+	"github.com/ua-academy-projects/share-bite/pkg/closer"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 
+	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/ghAuth"
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
-	"github.com/ua-academy-projects/share-bite/internal/config"
 
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	pkgmw "github.com/ua-academy-projects/share-bite/pkg/middleware"
 
-	"github.com/ua-academy-projects/share-bite/pkg/closer"
-	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
-	"github.com/ua-academy-projects/share-bite/pkg/jwt"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	commonmiddleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 
 	// @title           Share Bite Admin Auth API
@@ -130,7 +131,17 @@ func main() {
 		cfg.RateLimit.AuthRecoverDuration(),
 	)
 
-	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter)
+	ghConfig := gh.Config{
+		ClientID:           cfg.GitHub.GetClientID(),
+		ClientSecret:       cfg.GitHub.GetClientSecret(),
+		RedirectURL:        cfg.GitHub.GetRedirectURL(),
+		SuccessRedirectURL: cfg.GitHub.GetSuccessRedirectURL(),
+	}
+	
+	sessionStore := gh.NewJWTSessionStore(tokenManager)
+	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore)
+
+	routers.SetupRouter(router.Group("/"), authHandler,authMw, limiter, ghHandler)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
