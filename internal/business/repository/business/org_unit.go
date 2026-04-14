@@ -124,3 +124,31 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 
 	return result, nil
 }
+
+func (r *Repository) GetVenueRating(ctx context.Context, venueID int) (float32, error) {
+    const op = "repository.business.GetVenueRating"
+
+    sqlQuery := `
+        WITH user_averages AS (
+            SELECT AVG(rating::numeric) AS user_avg
+            FROM guest.posts
+            WHERE venue_id = $1 AND status = 'published'
+            GROUP BY customer_id
+        )
+        SELECT COALESCE(AVG(user_avg), 0)::real
+        FROM user_averages;
+    `
+
+    q := database.Query{
+        Name: "business_repository.GetVenueRating",
+        Sql:  sqlQuery,
+    }
+
+    var rating float32
+    err := r.db.DB().QueryRowContext(ctx, q, venueID).Scan(&rating)
+    if err != nil {
+        return 0, fmt.Errorf("%s: %w", op, err)
+    }
+
+    return rating, nil
+}

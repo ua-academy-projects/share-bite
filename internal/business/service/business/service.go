@@ -22,6 +22,7 @@ type businessRepository interface {
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
+	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 }
 
 type service struct {
