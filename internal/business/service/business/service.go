@@ -21,6 +21,8 @@ type businessRepository interface {
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.Post], error)
 	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
 
+	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
+
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)

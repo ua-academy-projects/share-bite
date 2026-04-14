@@ -20,10 +20,12 @@ type businessService interface {
 	CheckOwnership(ctx context.Context, userID string, unitID int) error
 	UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error)
 	DeletePost(ctx context.Context, postID int64, userID string) error
-	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
+	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
+
+	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 	Rating(ctx context.Context, id int) (float32, error)
 }
@@ -48,6 +50,9 @@ func RegisterHandlers(
 	}
 
 	r.GET("/posts", h.GetPosts)
+
+
+	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 
 	businessOnly := r.Group("/posts").
 		Use(auth).
