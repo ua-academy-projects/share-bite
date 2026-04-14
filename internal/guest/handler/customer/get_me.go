@@ -22,7 +22,7 @@ func (h *handler) getMe(c *gin.Context) {
 		return
 	}
 
-	resp := getMeResponse{Customer: customerToResponse(customer)}
+	resp := getMeResponse{Customer: h.toResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 

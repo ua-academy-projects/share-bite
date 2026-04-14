@@ -1,18 +1,16 @@
-package main
+package storage
 
 import (
 	"context"
-	"github.com/ua-academy-projects/share-bite/internal/config"
-
-	aws "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	awscred "github.com/aws/aws-sdk-go-v2/credentials"
 	s3sdk "github.com/aws/aws-sdk-go-v2/service/s3"
-
+	"github.com/ua-academy-projects/share-bite/internal/config"
 	"github.com/ua-academy-projects/share-bite/internal/storage/s3"
 )
 
-func newStorageClient(ctx context.Context, cfg config.Storage) (*s3.S3Storage, error) {
+func NewStorageClient(ctx context.Context, cfg config.Storage) (*s3.S3Storage, error) {
 	if cfg == nil || cfg.Bucket() == "" {
 		return nil, nil
 	}
