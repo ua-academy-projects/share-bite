@@ -78,14 +78,14 @@ func TestGetByUserName(t *testing.T) {
 			},
 		},
 		{
-			name:     "validation error - username too short",
-			userName: "ab",
+			name:     "validation error - username too long",
+			userName: "thisusernameiswaytoolongtoobevalid04",
 			mockFn:   func(s *mockCustomerService) {},
 			wantCode: http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
 				Details: []response.ErrorDetail{
-					{Field: "username", Message: "This field must be at least 3 characters long"},
+					{Field: "username", Message: "This field must be at most 30 characters long"},
 				},
 			},
 		},
