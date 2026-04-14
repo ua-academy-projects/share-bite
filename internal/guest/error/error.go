@@ -11,12 +11,26 @@ var (
 	ErrInvalidJSON       = newError(code.InvalidJSON, "invalid request body format")
 	ErrInvalidParam      = newError(code.InvalidRequest, "invalid path parameter")
 	ErrInvalidQueryParam = newError(code.InvalidRequest, "invalid query parameter")
-	ErrUpstreamError     = newError(code.UpstreamError, "upstream service error")
-	ErrInvalidPostData   = newError(code.InvalidRequest, "invalid post data")
 
-	ErrCustomerAlreadyExists = newError(code.AlreadyExists, "customer profile already exists")
+	ErrForbidden = newError(code.Forbidden, "forbidden: you are not the owner of this resource")
+
+	ErrCollectionFull       = newError(code.InvalidRequest, "collection has reached the maximum limit of 100 venues")
+	ErrInvalidReorderParams = newError(code.InvalidRequest, "invalid reorder parameters")
+	ErrInvalidPageToken     = newError(code.InvalidRequest, "invalid page token")
+
+	ErrUpstreamError   = newError(code.UpstreamError, "upstream service error")
+	ErrInvalidPostData = newError(code.InvalidRequest, "invalid post data")
+
+	ErrCustomerAlreadyExists    = newError(code.AlreadyExists, "customer profile already exists")
+	ErrVenueAlreadyInCollection = newError(code.AlreadyExists, "this venue is already in the collection")
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
+
+	ErrCollectionAccessDenied = newError(code.Forbidden, "you are not allowed to manage the collection")
+
+	ErrImageRequired        = newError(code.BadRequest, "image is required")
+	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
+	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
 )
 
 type Error struct {
@@ -30,6 +44,15 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error {
 	return e.Err
+}
+
+func (e *Error) Is(target error) bool {
+	t, ok := target.(*Error)
+	if !ok {
+		return false
+	}
+
+	return e.Code == t.Code && e.Err.Error() == t.Err.Error()
 }
 
 func newError(code code.Code, err string) *Error {
@@ -49,6 +72,13 @@ func PostNotFoundID(postID string) *Error {
 	return newError(code.NotFound, msg)
 }
 
+func BadRequest(msg string) *Error {
+	return newError(code.BadRequest, msg)
+}
+
+func Internal(msg string) *Error {
+	return newError(code.Internal, msg)
+}
 func CustomerNotFoundUserID(userID string) *Error {
 	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
 	return newError(code.NotFound, msg)
@@ -67,4 +97,19 @@ func CustomerNotFoundUserName(userName string) *Error {
 func CustomerUserNameTaken(userName string) *Error {
 	msg := fmt.Sprintf("customer with username %q already exists", userName)
 	return newError(code.AlreadyExists, msg)
+}
+
+func CollectionNotFoundID(collectionID string) *Error {
+	msg := fmt.Sprintf("collection with id %q was not found", collectionID)
+	return newError(code.NotFound, msg)
+}
+
+func VenueNotFoundInCollection(venueID int64) *Error {
+	msg := fmt.Sprintf("venue with id %d was not found in the collection", venueID)
+	return newError(code.NotFound, msg)
+}
+
+func CommentNotFoundID(commentID int64) *Error {
+	msg := fmt.Sprintf("comment with id %d was not found", commentID)
+	return newError(code.NotFound, msg)
 }

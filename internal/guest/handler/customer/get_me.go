@@ -1,10 +1,10 @@
 package customer
 
 import (
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 func (h *handler) getMe(c *gin.Context) {
@@ -22,7 +22,7 @@ func (h *handler) getMe(c *gin.Context) {
 		return
 	}
 
-	resp := getMeResponse{Customer: customerToResponse(customer)}
+	resp := getMeResponse{Customer: h.toResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 

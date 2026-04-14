@@ -21,12 +21,12 @@ func (h *handler) getByUserName(c *gin.Context) {
 		return
 	}
 
-	resp := getByUserNameResponse{Customer: customerToResponse(customer)}
+	resp := getByUserNameResponse{Customer: h.toResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 
 type getByUserNameRequest struct {
-	UserName string `uri:"username" binding:"required,min=3,max=30"`
+	UserName string `uri:"username" binding:"required,alphanum,min=3,max=30"`
 }
 
 type getByUserNameResponse struct {

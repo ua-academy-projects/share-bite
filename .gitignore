@@ -18,11 +18,15 @@ coverage.html
 .DS_Store
 Thumbs.db
 
+/docs/api/
+
 .env*
 !.env.example
 
 /tmp/
 
-docs/api/docs.go
-docs/api/swagger.json
-docs/api/swagger.yaml
+# swagger docs
+/docs/api/
+
+# generated api clients
+internal/guest/gateway/business/client/
