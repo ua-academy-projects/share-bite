@@ -24,13 +24,7 @@ Thumbs.db
 /tmp/
 
 # swagger docs
-/docs/api/auth/*
-/docs/api/business/*
-/docs/api/guest/*
-
-!/docs/api/auth/api.go
-!/docs/api/business/api.go
-!/docs/api/guest/api.go
+/docs/api/
 
 # generated api clients
 internal/guest/gateway/business/client/
