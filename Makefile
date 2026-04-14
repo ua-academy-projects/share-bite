@@ -1,14 +1,14 @@
 run-guest:
-	go run cmd/guest-api/main.go
+	go run ./cmd/guest-api
 
 run-business:
-	go run cmd/business-api/main.go
+	go run ./cmd/business-api
 
 run-auth:
-	go run cmd/admin-auth-api/main.go
+	go run ./cmd/admin-auth-api
 
 migrate-up:
-	go run cmd/migrator/main.go
+	go run ./cmd/migrator
 
 run-all:
 	make -j 3 run-guest run-business run-auth

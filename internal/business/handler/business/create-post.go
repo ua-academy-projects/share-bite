@@ -32,7 +32,7 @@ type CreatePostInput struct {
 // @Failure      403     {object}  errorResponse
 // @Failure      500     {object}  errorResponse
 // @Security     BearerAuth
-// @Router       /business/units/{id}/posts [post]
+// @Router       /business/posts/org-units/{id}/posts [post]
 func (h *handler) CreatePost(c *gin.Context) {
 	var input CreatePostInput
 
