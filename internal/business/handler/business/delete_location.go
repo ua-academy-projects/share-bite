@@ -2,6 +2,8 @@ package business
 
 import (
 	"net/http"
+	"crypto/sha256"
+	"encoding/hex"
 
 	"github.com/gin-gonic/gin"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
@@ -24,6 +26,7 @@ type deleteLocationURI struct {
 //	@Success		204				{string}	string	""
 //	@Failure		400				{object}	errorResponse
 //	@Failure		401				{object}	errorResponse
+//	@Failure		404				{object}	errorResponse
 //	@Failure		403				{object}	errorResponse
 //	@Failure		500				{object}	errorResponse
 //	@Router			/business/locations/{id} [delete]
@@ -44,7 +47,9 @@ func (h *handler) deleteLocation(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteLocation(ctx, uri.ID, userID); err != nil {
-		logger.ErrorKV(ctx, "failed to delete location", "locationId", uri.ID, "ownerUserID", userID, "error", err)
+		sum := sha256.Sum256([]byte(userID))
+		actorHash := hex.EncodeToString(sum[:])[:12]
+		logger.ErrorKV(ctx, "failed to delete location", "locationId", uri.ID, "actorHash", actorHash, "error", err)
 		c.Error(err)
 		return
 	}

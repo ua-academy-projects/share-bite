@@ -1,14 +1,16 @@
 package business
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
-	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
 type createLocationURI struct {
@@ -52,7 +54,6 @@ func toLocationResponse(loc *entity.OrgUnit) locationResponse {
 	}
 }
 
-
 // createLocation creates a new venue/location under a brand.
 //
 //	@Summary		Create location
@@ -67,6 +68,7 @@ func toLocationResponse(loc *entity.OrgUnit) locationResponse {
 //	@Failure		400				{object}	errorResponse
 //	@Failure		401				{object}	errorResponse
 //	@Failure		403				{object}	errorResponse
+//	@Failure		404				{object}	errorResponse
 //	@Failure		500				{object}	errorResponse
 //	@Router			/business/{id}/locations [post]
 func (h *handler) createLocation(c *gin.Context) {
@@ -101,7 +103,10 @@ func (h *handler) createLocation(c *gin.Context) {
 		Longitude:   req.Longitude,
 	})
 	if err != nil {
-		logger.ErrorKV(ctx, "failed to create location", "brandId", uri.BrandID, "ownerUserID", userID, "error", err)
+		sum := sha256.Sum256([]byte(userID))
+		actorHash := hex.EncodeToString(sum[:])[:12]
+
+		logger.ErrorKV(ctx, "failed to create location", "brandId", uri.BrandID, "actorHash", actorHash, "error", err)
 		c.Error(err)
 		return
 	}

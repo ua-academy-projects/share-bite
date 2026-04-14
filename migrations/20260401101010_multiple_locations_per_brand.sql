@@ -7,6 +7,19 @@ ON business.org_units (org_account_id)
 WHERE profile_type = 'BRAND';
 
 -- +goose Down
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM business.org_units
+        GROUP BY org_account_id
+        HAVING COUNT(*) > 1
+    ) THEN
+        RAISE EXCEPTION
+            'Rollback blocked: business.org_units has duplicate org_account_id (BRAND/VENUE).';
+    END IF;
+END $$;
+
 DROP INDEX IF EXISTS business.org_units_brand_owner_uidx;
 
 ALTER TABLE business.org_units

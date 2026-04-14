@@ -3,21 +3,23 @@ package business
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
+	const op = "business.service.CreateLocation"
+
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, apperror.Forbidden("business profile not found")
 		}
-		return nil, errwrap.Wrap("get owner brand id", err)
+		return nil, fmt.Errorf("%s: get owner brand id: %w", op, err)
 	}
 
 	if ownerBrandID != brandID {
@@ -29,27 +31,29 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, apperror.OrgUnitNotFoundID(brandID)
 		}
-		return nil, errwrap.Wrap("get brand", err)
+		return nil, fmt.Errorf("%s: get brand: %w", op, err)
 	}
-	if brand.ProfileType != "BRAND" {
+	if brand.ProfileType != entity.ProfileTypeBrand {
 		return nil, apperror.BadRequest("target org unit is not a brand")
 	}
 
 	location, err := s.businessRepo.CreateLocation(ctx, brandID, ownerUserID, in)
 	if err != nil {
-		return nil, errwrap.Wrap("create location", err)
+		return nil, fmt.Errorf("%s: create location: %w", op, err)
 	}
 
 	return location, nil
 }
 
 func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error) {
+	const op = "business.service.UpdateLocation"
+
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, apperror.Forbidden("business profile not found")
 		}
-		return nil, errwrap.Wrap("get owner brand id", err)
+		return nil, fmt.Errorf("%s: get owner brand id: %w", op, err)
 	}
 
 	location, err := s.businessRepo.GetById(ctx, locationID)
@@ -57,10 +61,10 @@ func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserI
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, apperror.LocationNotFoundID(locationID)
 		}
-		return nil, errwrap.Wrap("get location", err)
+		return nil, fmt.Errorf("%s: get location: %w", op, err)
 	}
 
-	if location.ProfileType != "VENUE" {
+	if location.ProfileType != entity.ProfileTypeVenue {
 		return nil, apperror.BadRequest("target org unit is not a location")
 	}
 
@@ -73,19 +77,21 @@ func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserI
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, apperror.LocationNotFoundID(locationID)
 		}
-		return nil, errwrap.Wrap("update location", err)
+		return nil, fmt.Errorf("%s: update location: %w", op, err)
 	}
 
 	return updated, nil
 }
 
 func (s *service) DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error {
+	const op = "business.service.DeleteLocation"
+
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return apperror.Forbidden("business profile not found")
 		}
-		return errwrap.Wrap("get owner brand id", err)
+		return fmt.Errorf("%s: get owner brand id: %w", op, err)
 	}
 
 	location, err := s.businessRepo.GetById(ctx, locationID)
@@ -93,10 +99,10 @@ func (s *service) DeleteLocation(ctx context.Context, locationID int, ownerUserI
 		if errors.Is(err, repository.ErrNotFound) {
 			return apperror.LocationNotFoundID(locationID)
 		}
-		return errwrap.Wrap("get location", err)
+		return fmt.Errorf("%s: get location: %w", op, err)
 	}
 
-	if location.ProfileType != "VENUE" {
+	if location.ProfileType != entity.ProfileTypeVenue {
 		return apperror.BadRequest("target org unit is not a location")
 	}
 
@@ -108,7 +114,7 @@ func (s *service) DeleteLocation(ctx context.Context, locationID int, ownerUserI
 		if errors.Is(err, repository.ErrNotFound) {
 			return apperror.LocationNotFoundID(locationID)
 		}
-		return errwrap.Wrap("delete location", err)
+		return fmt.Errorf("%s: delete location: %w", op, err)
 	}
 
 	return nil

@@ -1,6 +1,8 @@
 package business
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -37,6 +39,7 @@ type updateLocationRequest struct {
 //	@Failure		400				{object}	errorResponse
 //	@Failure		401				{object}	errorResponse
 //	@Failure		403				{object}	errorResponse
+//	@Failure		404				{object}	errorResponse
 //	@Failure		500				{object}	errorResponse
 //	@Router			/business/locations/{id} [patch]
 func (h *handler) updateLocation(c *gin.Context) {
@@ -77,7 +80,10 @@ func (h *handler) updateLocation(c *gin.Context) {
 		Longitude:   req.Longitude,
 	})
 	if err != nil {
-		logger.ErrorKV(ctx, "failed to update location", "locationId", uri.ID, "ownerUserID", userID, "error", err)
+		sum := sha256.Sum256([]byte(userID))
+		actorHash := hex.EncodeToString(sum[:])[:12]
+
+		logger.ErrorKV(ctx, "failed to update location", "locationId", uri.ID, "actorHash", actorHash, "error", err)
 		c.Error(err)
 		return
 	}

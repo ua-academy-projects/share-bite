@@ -87,7 +87,7 @@ func (r *Repository) GetBrandIDByOwnerUserID(ctx context.Context, userID string)
 		SELECT id
 		FROM business.org_units
 		WHERE org_account_id = $1::uuid
-		  AND profile_type = 'BRAND'
+		  AND profile_type = $2
 		LIMIT 1
 	`
 	q := database.Query{
@@ -96,7 +96,7 @@ func (r *Repository) GetBrandIDByOwnerUserID(ctx context.Context, userID string)
 	}
 
 	var brandID int
-	err := r.db.DB().QueryRowContext(ctx, q, userID).Scan(&brandID)
+	err := r.db.DB().QueryRowContext(ctx, q, userID, entity.ProfileTypeBrand).Scan(&brandID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, ErrNotFound
@@ -112,7 +112,7 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 		INSERT INTO business.org_units (
 			org_account_id, profile_type, parent_id, name, avatar, banner, description, latitude, longitude
 		)
-		VALUES ($1::uuid, 'VENUE', $2, $3, $4, $5, $6, $7, $8)
+		VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
 	`
 	q := database.Query{
@@ -124,6 +124,7 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 	err := r.db.DB().QueryRowContext(
 		ctx, q,
 		ownerUserID,
+		entity.ProfileTypeVenue,
 		brandID,
 		in.Name,
 		in.Avatar,
@@ -163,7 +164,7 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 			longitude = COALESCE($6, longitude)
 		WHERE id = $7
 		  AND parent_id = $8
-		  AND profile_type = 'VENUE'
+		  AND profile_type = $9
 		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
 	`
 	q := database.Query{
@@ -182,6 +183,7 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 		in.Longitude,
 		locationID,
 		brandID,
+		entity.ProfileTypeVenue,
 	).Scan(
 		&ou.Id,
 		&ou.OrgAccountId,
@@ -210,14 +212,14 @@ func (r *Repository) DeleteLocation(ctx context.Context, locationID int, brandID
 		DELETE FROM business.org_units
 		WHERE id = $1
 		  AND parent_id = $2
-		  AND profile_type = 'VENUE'
+		  AND profile_type = $3
 	`
 	q := database.Query{
 		Name: "business_repository.DeleteLocation",
 		Sql:  sql,
 	}
 
-	tag, err := r.db.DB().ExecContext(ctx, q, locationID, brandID)
+	tag, err := r.db.DB().ExecContext(ctx, q, locationID, brandID, entity.ProfileTypeVenue)
 	if err != nil {
 		return executeSQLError(err)
 	}
