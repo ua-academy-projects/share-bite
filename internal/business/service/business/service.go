@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
-	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -38,14 +37,13 @@ type businessRepository interface {
 type service struct {
 	businessRepo businessRepository
 	txManager    database.TxManager
-	storage storage.ObjectStorage
+	storage      storage.ObjectStorage
 }
 
 func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
-		storage: st,
+		storage:      st,
 	}
 }
-

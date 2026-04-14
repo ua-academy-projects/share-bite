@@ -21,8 +21,8 @@ type updateLocationRequest struct {
 	Avatar      *string  `json:"avatar"`
 	Banner      *string  `json:"banner"`
 	Description *string  `json:"description"`
-	Latitude    *float32 `json:"latitude"`
-	Longitude   *float32 `json:"longitude"`
+	Latitude    *float32 `json:"latitude" binding:"omitempty,gte=-90,lte=90"`
+	Longitude   *float32 `json:"longitude" binding:"omitempty,gte=-180,lte=180"`
 }
 
 // updateLocation updates an existing venue/location.
