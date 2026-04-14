@@ -63,8 +63,7 @@ type updateRequest struct {
 	FirstName *string `json:"firstName" binding:"omitempty,min=2,max=50"`
 	LastName  *string `json:"lastName" binding:"omitempty,min=2,max=50"`
 
-	Bio             *string `json:"bio" binding:"omitempty,max=500"`
-	AvatarObjectKey *string `json:"avatarObjectKey" binding:"omitempty,max=1024"`
+	Bio *string `json:"bio" binding:"omitempty,max=500"`
 }
 
 type updateResponse struct {

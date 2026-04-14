@@ -25,7 +25,9 @@ func TestUpdate(t *testing.T) {
 		firstName = gofakeit.FirstName()
 		lastName  = gofakeit.LastName()
 		bio       = gofakeit.Bio()
-		avatarKey = gofakeit.Word()
+
+		baseURL         = "https://cdn.com/"
+		avatarObjectKey = gofakeit.Word()
 
 		expectedCustomer = entity.Customer{
 			ID:              customerID,
@@ -34,7 +36,7 @@ func TestUpdate(t *testing.T) {
 			FirstName:       firstName,
 			LastName:        lastName,
 			Bio:             &bio,
-			AvatarObjectKey: &avatarKey,
+			AvatarObjectKey: &avatarObjectKey,
 		}
 	)
 
@@ -44,7 +46,7 @@ func TestUpdate(t *testing.T) {
 		input  any
 		userID any
 
-		mockFn func(s *mockCustomerService)
+		mockFn func(s *mockCustomerService, st *mockObjectStorage)
 
 		wantBody any
 		wantCode int
@@ -53,26 +55,38 @@ func TestUpdate(t *testing.T) {
 			name:   "success",
 			userID: userID,
 			input: updateRequest{
-				UserName:        strPtr(userName),
-				FirstName:       strPtr(firstName),
-				LastName:        strPtr(lastName),
-				Bio:             strPtr(bio),
-				AvatarObjectKey: strPtr(avatarKey),
+				UserName:  strPtr(userName),
+				FirstName: strPtr(firstName),
+				LastName:  strPtr(lastName),
+				Bio:       strPtr(bio),
 			},
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("Update", mock.Anything, entity.UpdateCustomer{
-					UserID:          userID,
-					UserName:        strPtr(userName),
-					FirstName:       strPtr(firstName),
-					LastName:        strPtr(lastName),
-					Bio:             strPtr(bio),
-					AvatarObjectKey: strPtr(avatarKey),
+					UserID:    userID,
+					UserName:  strPtr(userName),
+					FirstName: strPtr(firstName),
+					LastName:  strPtr(lastName),
+					Bio:       strPtr(bio),
 				}).
 					Return(expectedCustomer, nil).
 					Once()
+
+				st.On("BuildURL", avatarObjectKey).
+					Return(baseURL + avatarObjectKey).
+					Once()
 			},
 			wantCode: http.StatusOK,
-			wantBody: updateResponse{Customer: customerToResponse(expectedCustomer)},
+			wantBody: updateResponse{
+				Customer: customerResponse{
+					ID:        expectedCustomer.ID,
+					UserID:    expectedCustomer.UserID,
+					UserName:  expectedCustomer.UserName,
+					FirstName: expectedCustomer.FirstName,
+					LastName:  expectedCustomer.LastName,
+					Bio:       expectedCustomer.Bio,
+					AvatarURL: strPtr(baseURL + avatarObjectKey),
+				},
+			},
 		},
 		{
 			name:   "success with trimming and lowercasing",
@@ -82,26 +96,39 @@ func TestUpdate(t *testing.T) {
 				FirstName: strPtr("  " + firstName + "  "),
 				LastName:  strPtr("  " + lastName + "  "),
 			},
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("Update", mock.Anything, entity.UpdateCustomer{
-					UserID:          userID,
-					UserName:        strPtr("sharebite04"),
-					FirstName:       strPtr(firstName),
-					LastName:        strPtr(lastName),
-					Bio:             nil,
-					AvatarObjectKey: nil,
+					UserID:    userID,
+					UserName:  strPtr("sharebite04"),
+					FirstName: strPtr(firstName),
+					LastName:  strPtr(lastName),
+					Bio:       nil,
 				}).
 					Return(expectedCustomer, nil).
 					Once()
+
+				st.On("BuildURL", avatarObjectKey).
+					Return(baseURL + avatarObjectKey).
+					Once()
 			},
 			wantCode: http.StatusOK,
-			wantBody: updateResponse{Customer: customerToResponse(expectedCustomer)},
+			wantBody: updateResponse{
+				Customer: customerResponse{
+					ID:        expectedCustomer.ID,
+					UserID:    expectedCustomer.UserID,
+					UserName:  expectedCustomer.UserName,
+					FirstName: expectedCustomer.FirstName,
+					LastName:  expectedCustomer.LastName,
+					Bio:       expectedCustomer.Bio,
+					AvatarURL: strPtr(baseURL + avatarObjectKey),
+				},
+			},
 		},
 		{
 			name:     "invalid json",
 			input:    "{broken-json",
 			userID:   userID,
-			mockFn:   func(s *mockCustomerService) {},
+			mockFn:   func(s *mockCustomerService, st *mockObjectStorage) {},
 			wantCode: http.StatusBadRequest,
 			wantBody: response.ErrorResponse{Message: apperror.ErrInvalidJSON.Error()},
 		},
@@ -111,7 +138,7 @@ func TestUpdate(t *testing.T) {
 			input: updateRequest{
 				UserName: strPtr("ab"),
 			},
-			mockFn:   func(s *mockCustomerService) {},
+			mockFn:   func(s *mockCustomerService, st *mockObjectStorage) {},
 			wantCode: http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
@@ -126,7 +153,7 @@ func TestUpdate(t *testing.T) {
 			input: updateRequest{
 				FirstName: strPtr("   "),
 			},
-			mockFn:   func(s *mockCustomerService) {},
+			mockFn:   func(s *mockCustomerService, st *mockObjectStorage) {},
 			wantCode: http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
@@ -139,7 +166,7 @@ func TestUpdate(t *testing.T) {
 			name:   "error - empty update",
 			userID: userID,
 			input:  updateRequest{},
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("Update", mock.Anything, mock.AnythingOfType("entity.UpdateCustomer")).
 					Return(entity.Customer{}, apperror.ErrEmptyUpdate).
 					Once()
@@ -153,7 +180,7 @@ func TestUpdate(t *testing.T) {
 			input: updateRequest{
 				UserName: strPtr(userName),
 			},
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("Update", mock.Anything, mock.AnythingOfType("entity.UpdateCustomer")).
 					Return(entity.Customer{}, apperror.CustomerUserNameTaken(userName)).
 					Once()
@@ -165,7 +192,7 @@ func TestUpdate(t *testing.T) {
 			name:     "unauthorized - no user id in context",
 			userID:   nil,
 			input:    updateRequest{FirstName: strPtr(firstName)},
-			mockFn:   func(s *mockCustomerService) {},
+			mockFn:   func(s *mockCustomerService, st *mockObjectStorage) {},
 			wantCode: http.StatusInternalServerError,
 			wantBody: response.ErrorResponse{Message: internalErrMsg},
 		},
@@ -175,7 +202,7 @@ func TestUpdate(t *testing.T) {
 			input: updateRequest{
 				FirstName: strPtr(firstName),
 			},
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("Update", mock.Anything, mock.AnythingOfType("entity.UpdateCustomer")).
 					Return(entity.Customer{}, errors.New("unexpected db error")).
 					Once()
@@ -190,8 +217,9 @@ func TestUpdate(t *testing.T) {
 			t.Parallel()
 
 			customerService := new(mockCustomerService)
-			h := &handler{service: customerService}
-			tt.mockFn(customerService)
+			storage := new(mockObjectStorage)
+			h := &handler{service: customerService, storage: storage}
+			tt.mockFn(customerService, storage)
 
 			r := newTestRouter()
 			r.PATCH("/customers", withUserID(tt.userID, h.update))
@@ -208,6 +236,7 @@ func TestUpdate(t *testing.T) {
 			assertJSONBody(t, tt.wantBody, w.Body.String())
 
 			customerService.AssertExpectations(t)
+			storage.AssertExpectations(t)
 		})
 	}
 }

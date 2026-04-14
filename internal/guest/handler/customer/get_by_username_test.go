@@ -19,19 +19,21 @@ func TestGetByUserName(t *testing.T) {
 	var (
 		userName = "sharebite04"
 
-		userID          = gofakeit.UUID()
-		customerID      = gofakeit.UUID()
-		firstName       = gofakeit.FirstName()
-		lastName        = gofakeit.LastName()
+		userID     = gofakeit.UUID()
+		customerID = gofakeit.UUID()
+		firstName  = gofakeit.FirstName()
+		lastName   = gofakeit.LastName()
+		bio        = gofakeit.Bio()
+
+		baseURL         = "https://cdn.com/"
 		avatarObjectKey = gofakeit.Word()
-		bio             = gofakeit.Bio()
 	)
 
 	tests := []struct {
 		name string
 
 		userName string
-		mockFn   func(s *mockCustomerService)
+		mockFn   func(s *mockCustomerService, st *mockObjectStorage)
 
 		wantBody any
 		wantCode int
@@ -39,7 +41,7 @@ func TestGetByUserName(t *testing.T) {
 		{
 			name:     "success",
 			userName: userName,
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("GetByUserName", mock.Anything, userName).
 					Return(entity.Customer{
 						ID:              customerID,
@@ -51,24 +53,28 @@ func TestGetByUserName(t *testing.T) {
 						Bio:             &bio,
 					}, nil).
 					Once()
+
+				st.On("BuildURL", avatarObjectKey).
+					Return(baseURL + avatarObjectKey).
+					Once()
 			},
 			wantBody: getByUserNameResponse{
-				Customer: customerToResponse(entity.Customer{
-					ID:              customerID,
-					UserID:          userID,
-					UserName:        userName,
-					FirstName:       firstName,
-					LastName:        lastName,
-					AvatarObjectKey: &avatarObjectKey,
-					Bio:             &bio,
-				}),
+				Customer: customerResponse{
+					ID:        customerID,
+					UserID:    userID,
+					UserName:  userName,
+					FirstName: firstName,
+					LastName:  lastName,
+					Bio:       &bio,
+					AvatarURL: strPtr(baseURL + avatarObjectKey),
+				},
 			},
 			wantCode: http.StatusOK,
 		},
 		{
 			name:     "validation error - username too short",
 			userName: "ab",
-			mockFn:   func(s *mockCustomerService) {},
+			mockFn:   func(s *mockCustomerService, st *mockObjectStorage) {},
 			wantCode: http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
@@ -80,7 +86,7 @@ func TestGetByUserName(t *testing.T) {
 		{
 			name:     "validation error - username too long",
 			userName: "thisusernameiswaytoolongtoobevalid04",
-			mockFn:   func(s *mockCustomerService) {},
+			mockFn:   func(s *mockCustomerService, st *mockObjectStorage) {},
 			wantCode: http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
@@ -92,7 +98,7 @@ func TestGetByUserName(t *testing.T) {
 		{
 			name:     "validation error - invalid characters",
 			userName: "sharebite!",
-			mockFn:   func(s *mockCustomerService) {},
+			mockFn:   func(s *mockCustomerService, st *mockObjectStorage) {},
 			wantCode: http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
@@ -104,7 +110,7 @@ func TestGetByUserName(t *testing.T) {
 		{
 			name:     "error - customer not found",
 			userName: "sharebitefake",
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("GetByUserName", mock.Anything, "sharebitefake").
 					Return(entity.Customer{}, apperror.CustomerNotFoundUserName("sharebitefake")).
 					Once()
@@ -115,7 +121,7 @@ func TestGetByUserName(t *testing.T) {
 		{
 			name:     "service unknown error",
 			userName: userName,
-			mockFn: func(s *mockCustomerService) {
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
 				s.On("GetByUserName", mock.Anything, userName).
 					Return(entity.Customer{}, errors.New("database connection lost")).
 					Once()
@@ -130,8 +136,9 @@ func TestGetByUserName(t *testing.T) {
 			t.Parallel()
 
 			customerService := new(mockCustomerService)
-			h := &handler{service: customerService}
-			tt.mockFn(customerService)
+			storage := new(mockObjectStorage)
+			h := &handler{service: customerService, storage: storage}
+			tt.mockFn(customerService, storage)
 
 			r := newTestRouter()
 			r.GET("/customers/:username", h.getByUserName)
@@ -144,6 +151,7 @@ func TestGetByUserName(t *testing.T) {
 			}
 
 			customerService.AssertExpectations(t)
+			storage.AssertExpectations(t)
 		})
 	}
 }
