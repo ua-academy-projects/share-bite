@@ -10,6 +10,7 @@ import (
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/mapper"
 	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
 type CreatePostInput struct {
@@ -32,18 +33,21 @@ type CreatePostInput struct {
 // @Failure      403     {object}  errorResponse
 // @Failure      500     {object}  errorResponse
 // @Security     BearerAuth
-// @Router       /business/posts/org-units/{id}/posts [post]
+// @Router       /business/posts/{id} [post]
 func (h *handler) CreatePost(c *gin.Context) {
 	var input CreatePostInput
+	ctx := c.Request.Context()
 
 	err := c.ShouldBind(&input)
 	if err != nil {
+		logger.ErrorKV(ctx, "failed to bind input data", "error", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	userID, ok := getUserID(c)
 	if !ok {
+		logger.ErrorKV(ctx, "unauthorized access attempt: user ID not found in gin context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
@@ -55,10 +59,11 @@ func (h *handler) CreatePost(c *gin.Context) {
 		return
 	}
 
-	ctx := c.Request.Context()
+	logger.InfoKV(ctx, "attempting to create post", "unit_id", unitID, "user_id", userID)
 
 	err = h.service.CheckOwnership(ctx, userID, unitID)
 	if err != nil {
+		logger.ErrorKV(ctx, "ownership check failed", "unit_id", unitID, "user_id", userID, "error", err.Error())
 		if errors.Is(err, biserr.ErrForbidden) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied to this unit"})
 			return
@@ -69,7 +74,8 @@ func (h *handler) CreatePost(c *gin.Context) {
 
 	post, err := h.service.CreatePost(ctx, userID, unitID, input.TextData, input.Images)
 	if err != nil {
-		switch{
+		logger.ErrorKV(ctx, "failed to create post in service layer", "unit_id", unitID, "error", err.Error())
+		switch {
 		case errors.Is(err, biserr.WrongFileExtErr) || errors.Is(err, biserr.FileToLargeErr):
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		case errors.Is(err, repo.ErrForbidden):
@@ -79,6 +85,7 @@ func (h *handler) CreatePost(c *gin.Context) {
 		}
 		return
 	}
+	logger.InfoKV(ctx, "post successfully created", "post_id", post.ID, "unit_id", unitID)
 
 	c.JSON(http.StatusCreated, mapper.ToPostResponse(post))
 }

@@ -54,7 +54,7 @@ func RegisterHandlers(
 	{
 		businessOnly.PUT("/:id", h.UpdatePost)
 		businessOnly.DELETE("/:id", h.DeletePost)
-		businessOnly.POST("/org-units/:id/posts", h.CreatePost)
+		businessOnly.POST("/:id", h.CreatePost)
 	}
 }
 
