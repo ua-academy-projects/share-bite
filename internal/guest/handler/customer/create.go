@@ -10,6 +10,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"io"
 	"net/http"
 	"time"
@@ -155,7 +156,7 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 	}
 
 	if currentCustomer.AvatarObjectKey != nil && *currentCustomer.AvatarObjectKey != uploadedKey {
-		cleanupDelete(h.storage, *currentCustomer.AvatarObjectKey)
+		go cleanupDelete(h.storage, *currentCustomer.AvatarObjectKey)
 	}
 
 	c.JSON(http.StatusOK, h.toResponse(customer))
@@ -193,5 +194,10 @@ func cleanupDelete(storage storage.ObjectStorage, key string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_ = storage.Delete(ctx, key)
+	if err := storage.Delete(ctx, key); err != nil {
+		logger.ErrorKV(ctx, "failed to cleanup avatar object",
+			"key", key,
+			"error", err,
+		)
+	}
 }
