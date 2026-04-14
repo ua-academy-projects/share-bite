@@ -25,8 +25,8 @@ Thumbs.db
 
 /tmp/
 
-docs/api/docs.go
-docs/api/swagger.json
-docs/api/swagger.yamlmain
+# swagger docs
+/docs/api/
 
-main
+# generated api clients
+internal/guest/gateway/business/client/
