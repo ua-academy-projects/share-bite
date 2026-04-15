@@ -2,23 +2,30 @@ package main
 
 import (
 	"context"
-	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	swaggerfiles "github.com/swaggo/files"
+	ginswagger "github.com/swaggo/gin-swagger"
+	// _ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
-	commenthandler "github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
+	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
+	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
 	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
+	collectionsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/collection"
 	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
@@ -27,9 +34,19 @@ import (
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
-	"net/http"
 )
 
+// @title						Share Bite - Guest Service API
+// @version					1.0
+// @description				API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
+//
+// @host						localhost:3800
+// @BasePath					/
+//
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Type "Bearer " followed by your JWT token.
 func main() {
 	ctx := context.Background()
 
@@ -44,9 +61,12 @@ func main() {
 	// }
 
 	router := gin.New()
+	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
-	router.Use(ErrorMiddleware())
+	router.Use(guest_middleware.ErrorMiddleware())
+
+	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 
 	binding.Validator = validator.New("binding")
 
@@ -86,12 +106,17 @@ func main() {
 		return nil
 	})
 
-	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
+	businessGateway, err := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), "/", httpClient)
+	if err != nil {
+		logger.Fatalf(ctx, "init business gateway: %v", err)
+	}
 
-	storageClient, err := newStorageClient(ctx, config.Config().Storage)
+	storageClient, err := storage.NewStorageClient(ctx, config.Config().Storage)
 	if err != nil {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
+
+	txManager := txmanager.NewTransactionManager(client.DB())
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -99,23 +124,35 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-	authMiddleware := middleware.Auth(tokenManager)
-	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
 
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
 	commentRepo := commentrepo.New(client)
+	collectionRepo := collectionrepo.New(client)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	txManager := txmanager.NewTransactionManager(client.DB())
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
+	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
+
+	// middlewares
+	authMiddleware := middleware.Auth(tokenManager)
+	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
+	customerMiddleware := middleware.CustomerID(customerSvc)
+
 	// handlers
-	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
+	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
-	commenthandler.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+	collection.RegisterHandlers(
+		router.Group("/collections"),
+		collectionSvc,
+		authMiddleware,
+		optionalAuthMiddleware,
+		customerMiddleware,
+	)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")
@@ -125,64 +162,4 @@ func main() {
 	}()
 
 	closer.Wait()
-}
-
-func ErrorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		err := c.Errors.Last()
-		if err == nil {
-			return
-		}
-
-		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
-		}
-
-		var valErr *validator.ValidationError
-		if errors.As(err, &valErr) {
-			respCode = http.StatusBadRequest
-			resp = map[string]any{
-				"message": valErr.Error(),
-				"errors":  valErr.Errors,
-			}
-
-			c.JSON(respCode, resp)
-			return
-		}
-
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				respCode = http.StatusNotFound
-
-			case code.InvalidJSON,
-				code.InvalidRequest,
-				code.BadRequest,
-				code.EmptyUpdate:
-				respCode = http.StatusBadRequest
-
-			case code.UpstreamError:
-				respCode = http.StatusBadGateway
-
-			case code.AlreadyExists:
-				respCode = http.StatusConflict
-
-			case code.Forbidden:
-				respCode = http.StatusForbidden
-
-			default:
-				respCode = http.StatusInternalServerError
-			}
-
-			resp = map[string]any{
-				"message": appErr.Error(),
-			}
-		}
-
-		c.JSON(respCode, resp)
-	}
 }
