@@ -6,6 +6,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const RunningLowThreshold = 7
+
 type Box struct {
 	Id            int64
 	VenueId       int
@@ -18,6 +20,15 @@ type Box struct {
 }
 
 type BoxWithDistance struct {
-    Box      Box
-    Distance float64
+	Box               Box
+	AvailabilityCount int
+	Distance          float64
+}
+
+func (b BoxWithDistance) AvailabilityStatus() string{
+	if b.AvailabilityCount <= RunningLowThreshold{
+		return "running_low"
+	}else {
+		return "available"
+	}
 }
