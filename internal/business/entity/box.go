@@ -25,10 +25,12 @@ type BoxWithDistance struct {
 	Distance          float64
 }
 
-func (b BoxWithDistance) AvailabilityStatus() string{
-	if b.AvailabilityCount <= RunningLowThreshold{
+func (b BoxWithDistance) AvailabilityStatus() string {
+	if b.AvailabilityCount == 0 {
+		return "sold_out"
+	} else if b.AvailabilityCount <= RunningLowThreshold {
 		return "running_low"
-	}else {
+	} else {
 		return "available"
 	}
 }

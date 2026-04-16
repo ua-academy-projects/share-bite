@@ -87,7 +87,7 @@ func TestListNearbyBoxes_Positive_Success(t *testing.T) {
 
 	var response dto.ListResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		t.Errorf("Failed to Unmarshal resp: %v", err)
+		t.Fatalf("Failed to Unmarshal resp: %v", err)
 	}
 
 	if response.Total != 2 {
