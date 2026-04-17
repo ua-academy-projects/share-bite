@@ -5,7 +5,7 @@ import (
 	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
-
+	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
@@ -25,6 +25,9 @@ type businessService interface {
 	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
+	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
+	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
+	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 	Rating(ctx context.Context, id int) (float32, error)
@@ -57,6 +60,11 @@ func RegisterHandlers(
 	businessOnly := r.Group("/posts").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
+
+
+	businessOnly.POST("/:id/locations", h.createLocation)
+	businessOnly.PATCH("/locations/:id", h.updateLocation)
+	businessOnly.DELETE("/locations/:id", h.deleteLocation)
 		
 	{
 		businessOnly.PUT("/:id", h.UpdatePost)

@@ -49,13 +49,15 @@ func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, 
 		Sql: `
 			SELECT id
 			FROM business.org_units
-			WHERE org_account_id = $1
+			WHERE org_account_id = $1::uuid
+			AND profile_type = $2
+			LIMIT 1
 		`,
 	}
 
 	var orgID int
 
-	err := r.db.DB().QueryRowContext(ctx, q, userID).Scan(&orgID)
+	err := r.db.DB().QueryRowContext(ctx, q, userID, entity.ProfileTypeBrand).Scan(&orgID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrNotFound
