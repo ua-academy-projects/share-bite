@@ -16,7 +16,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
+
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
@@ -31,7 +31,8 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
-	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
+	 _ "github.com/ua-academy-projects/share-bite/docs/api/business"
+
 )
 
 // @title			ShareBite Business API

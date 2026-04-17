@@ -54,23 +54,26 @@ func RegisterHandlers(
 
 	r.GET("/posts", h.GetPosts)
 
-
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 
-	businessOnly := r.Group("/posts").
+	businessPosts := r.Group("/posts").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
-
-
-	businessOnly.POST("/:id/locations", h.createLocation)
-	businessOnly.PATCH("/locations/:id", h.updateLocation)
-	businessOnly.DELETE("/locations/:id", h.deleteLocation)
-		
 	{
-		businessOnly.PUT("/:id", h.UpdatePost)
-		businessOnly.DELETE("/:id", h.DeletePost)
-		businessOnly.POST("/:id", h.CreatePost)
+		businessPosts.PUT("/:id", h.UpdatePost)
+		businessPosts.DELETE("/:id", h.DeletePost)
+		businessPosts.POST("/:id", h.CreatePost)
 	}
+
+	businessLocations := r.Group("").
+		Use(auth).
+		Use(middleware.RequireRoles("business"))
+	{
+		businessLocations.POST("/:id/locations", h.createLocation)
+		businessLocations.PATCH("/locations/:id", h.updateLocation)
+		businessLocations.DELETE("/locations/:id", h.deleteLocation)
+	}
+
 }
 
 // errorResponse is used for swagger documentation.
