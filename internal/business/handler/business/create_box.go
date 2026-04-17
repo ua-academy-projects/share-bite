@@ -9,6 +9,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/shopspring/decimal"
 )
 
 type createBoxRequest struct {

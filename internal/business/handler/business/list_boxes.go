@@ -46,7 +46,7 @@ func (h *handler) ListNearbyBoxes(c *gin.Context) {
 	for _, u := range res.Items {
 		items = append(items, dto.NearbyBoxesResp{
 			Id:            u.Box.Id,
-			VenueId:       u.Box.VenueId,
+			VenueID:       u.Box.VenueID,
 			CategoryID:    u.Box.CategoryID,
 			Image:         u.Box.Image,
 			FullPrice:     u.Box.FullPrice,

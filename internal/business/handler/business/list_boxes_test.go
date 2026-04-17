@@ -27,7 +27,7 @@ func (m *MockBusinessService) ListNearbyBoxes(ctx context.Context, offset, limit
 	fakeBox := entity.BoxWithDistance{
 		Box: entity.Box{
 			Id:      123,
-			VenueId: 1,
+			VenueID: 1,
 		},
 		Distance: 2.5,
 	}
