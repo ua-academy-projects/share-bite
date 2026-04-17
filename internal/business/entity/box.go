@@ -7,17 +7,25 @@ import (
 )
 
 type Box struct {
-	Id            int64
-	VenueId       int
-	CategoryID    int
+	ID            int64
+	VenueID       int
+	CategoryID    *int
+
 	Image         string
 	FullPrice     decimal.Decimal
 	DiscountPrice decimal.Decimal
-	CreatedAt     time.Time
-	ExpiresAt     time.Time
+
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+type BoxItem struct {
+	BoxID            int64
+	BoxCode          string
+	ReservedByUserID *string
 }
 
 type BoxWithDistance struct {
-    Box      Box
-    Distance float64
+	Box      Box
+	Distance float64
 }

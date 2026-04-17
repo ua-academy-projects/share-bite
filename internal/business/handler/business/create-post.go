@@ -11,6 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/mapper"
 	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
 type CreatePostInput struct {
@@ -45,7 +46,7 @@ func (h *handler) CreatePost(c *gin.Context) {
 		return
 	}
 
-	userID, ok := getUserID(c)
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		logger.ErrorKV(ctx, "unauthorized access attempt: user ID not found in gin context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})

@@ -36,10 +36,6 @@ func (h *handler) GetPosts(c *gin.Context) {
 	if req.Skip < 0 {
 		req.Skip = 0
 	}
-
-	if req.Skip < 0 {
-		req.Skip = 0
-	}
 	if req.Limit == 0 {
 		req.Limit = 10
 	}
@@ -54,7 +50,10 @@ func (h *handler) GetPosts(c *gin.Context) {
 
 	posts, err := h.service.GetPosts(ctx, req.Skip, req.Limit)
 	if err != nil {
-		_ = c.Error(err)
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "internal error",
+		})
 		return
 	}
 

@@ -28,8 +28,11 @@ type businessService interface {
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
+
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
+
+	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
 	Rating(ctx context.Context, id int) (float32, error)
 }
 
@@ -44,16 +47,15 @@ func RegisterHandlers(
 
 	auth := middleware.Auth(parser)
 
-	org_units := r.Group("/org-units")
+	orgUnits := r.Group("/org-units")
 	{
-		org_units.GET("/:id", h.get)
-		org_units.GET("/:id/locations", h.list)
-		org_units.GET("/:id/rating", h.rating)
-		org_units.POST("/venues", h.getVenuesByIDs)
+		orgUnits.GET("/:id", h.get)
+		orgUnits.GET("/:id/locations", h.list)
+		orgUnits.GET("/:id/rating", h.rating)
+		orgUnits.POST("/venues", h.getVenuesByIDs)
 	}
 
 	r.GET("/posts", h.GetPosts)
-
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 
 	businessPosts := r.Group("/posts").
@@ -74,24 +76,19 @@ func RegisterHandlers(
 		businessLocations.DELETE("/locations/:id", h.deleteLocation)
 	}
 
+	boxes := r.Group("/boxes").
+		Use(auth).
+		Use(middleware.RequireRoles("business"))
+	{
+		boxes.POST("", h.CreateBox)
+	}
 }
 
-// errorResponse is used for swagger documentation.
 type errorResponse struct {
 	Error string `json:"error" example:"not found"`
 }
 
-func getUserID(c *gin.Context) (string, bool) {
-	val, exists := c.Get(middleware.CtxUserID)
-
-	if !exists {
-		return "", false
-	}
-
-	userIDStr, ok := val.(string)
-	if !ok {
-		return "", false
-	}
-
-	return userIDStr, true
+type CreateBoxResponse struct {
+	ID      int64  `json:"id"`
+	Message string `json:"message"`
 }
