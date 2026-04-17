@@ -1,4 +1,4 @@
-package auth
+package tests
 
 import (
 	"context"
@@ -14,7 +14,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/mock"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/entity"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
@@ -34,24 +36,46 @@ func (m *mockUserRepository) FindByEmail(ctx context.Context, email string) (*dt
 	return userWithRole.(*dto.UserWithRole), args.Error(1)
 }
 
-func (m *mockUserRepository) FindRoleBySlug(ctx context.Context, slug string) (*entity.Role, error) {
+func (m *mockUserRepository) FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error) {
 	args := m.Called(ctx, slug)
 	role := args.Get(0)
 	if role == nil {
 		return nil, args.Error(1)
 	}
 
-	return role.(*entity.Role), args.Error(1)
+	return role.(*models.Role), args.Error(1)
 }
 
-func (m *mockUserRepository) CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error) {
+func (m *mockUserRepository) CreateUser(ctx context.Context, params user.CreateUser) (*user.CreatedUser, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+
+	return args.Get(0).(*user.CreatedUser), args.Error(1)
+}
+
+func (m *mockUserRepository) FindBySocialProvider(ctx context.Context, provider string, providerID string) (*dto.UserWithRole, error) {
+	args := m.Called(ctx, provider, providerID)
+	userWithRole := args.Get(0)
+	if userWithRole == nil {
+		return nil, args.Error(1)
+	}
+	return userWithRole.(*dto.UserWithRole), args.Error(1)
+}
+
+func (m *mockUserRepository) CreateWithSocial(ctx context.Context, params dto.CreateUserWithSocialParams) (*dto.CreatedUser, error) {
 	args := m.Called(ctx, params)
 	createdUser := args.Get(0)
 	if createdUser == nil {
 		return nil, args.Error(1)
 	}
-
 	return createdUser.(*dto.CreatedUser), args.Error(1)
+}
+
+func (m *mockUserRepository) LinkSocialAccount(ctx context.Context, params dto.CreateSocialAccountParams) error {
+	args := m.Called(ctx, params)
+	return args.Error(0)
 }
 
 func (m *mockUserRepository) CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error {
@@ -64,6 +88,10 @@ func (m *mockUserRepository) ResetPassword(ctx context.Context, tokenHash, passw
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *mockUserRepository) AssignRole(ctx context.Context, userID string, roleID int) error {
+	args := m.Called(ctx, userID, roleID)
+	return args.Error(0)
+}
 type stubTokenProvider struct{}
 
 func (s stubTokenProvider) GenerateToken(_ string, _ string) (string, string, error) {
@@ -85,13 +113,13 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 
 type noopTxManager struct{}
 
-func (noopTxManager) ReadCommited(ctx context.Context, fn database.Handler) error {
+func (noopTxManager) ReadCommitted(ctx context.Context, fn database.Handler) error {
 	return fn(ctx)
 }
 
-func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *Handler {
+func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *auth.Handler {
 	service := authsvc.New(repo, stubTokenProvider{}, emailSender, noopTxManager{})
-	return NewHandler(service)
+	return auth.NewHandler(service, nil)
 }
 
 func buildGinContext(t *testing.T, method, target string, body any) (*gin.Context, *httptest.ResponseRecorder) {
@@ -120,7 +148,7 @@ func TestRecoverAccessSuccess(t *testing.T) {
 	emailSender := &mockEmailSender{}
 
 	repo.On("FindByEmail", mock.Anything, userEmail).
-		Return(&dto.UserWithRole{User: entity.User{ID: userID, Email: userEmail}}, nil).
+		Return(&dto.UserWithRole{User: models.User{ID: userID, Email: userEmail}}, nil).
 		Once()
 	repo.On("CreatePasswordResetToken", mock.Anything, mock.MatchedBy(func(params dto.CreatePasswordResetTokenParams) bool {
 		return params.UserID == userID && params.TokenHash != "" && !params.ExpiresAt.IsZero()

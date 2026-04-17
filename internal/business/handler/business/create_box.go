@@ -12,13 +12,13 @@ import (
 )
 
 type createBoxRequest struct {
-	VenueID       int       `json:"venue_id" binding:"required"`
-	CategoryID    *int      `json:"category_id"`
-	Image         string    `json:"image" binding:"required"`
-	PriceFull     float64   `json:"price_full" binding:"required"`
-	PriceDiscount float64   `json:"price_discount" binding:"gte=0"`
-	ExpiresAt     time.Time `json:"expires_at" binding:"required"`
-	Quantity      int       `json:"quantity" binding:"required,min=1,max=1000"`
+	VenueID       int             `json:"venue_id" binding:"required"`
+	CategoryID    *int            `json:"category_id"`
+	Image         string          `json:"image" binding:"required"`
+	PriceFull     decimal.Decimal `json:"price_full" binding:"required"`
+	PriceDiscount decimal.Decimal `json:"price_discount"`
+	ExpiresAt     time.Time       `json:"expires_at" binding:"required"`
+	Quantity      int             `json:"quantity" binding:"required,min=1,max=1000"`
 }
 
 // CreateBox creates a limited box for a venue.
@@ -51,15 +51,15 @@ func (h *handler) CreateBox(c *gin.Context) {
 	}
 
 	if req.VenueID <= 0 ||
-		(req.CategoryID != nil && *req.CategoryID <= 0) ||
-		req.PriceFull <= 0 ||
-		req.PriceDiscount < 0 ||
-		req.PriceDiscount > req.PriceFull ||
-		len(req.Image) > 256 ||
-		!req.ExpiresAt.After(time.Now()) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
+	(req.CategoryID != nil && *req.CategoryID <= 0) ||
+	req.PriceFull.LessThanOrEqual(decimal.Zero) ||
+	req.PriceDiscount.LessThan(decimal.Zero) ||
+	req.PriceDiscount.GreaterThan(req.PriceFull) ||
+	len(req.Image) > 256 ||
+	!req.ExpiresAt.After(time.Now()) {
+	c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+	return
+}
 
 	box, err := h.service.CreateBox(c.Request.Context(), userID, dto.CreateBoxRequest{
 		VenueID:       req.VenueID,
@@ -77,6 +77,7 @@ func (h *handler) CreateBox(c *gin.Context) {
 		case errors.Is(err, repo.ErrNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "venue not found"})
 		default:
+			c.Error(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		}
 		return

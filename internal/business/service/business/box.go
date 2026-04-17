@@ -5,17 +5,23 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/shopspring/decimal"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
+)
+
+const (
+	kilometerIndex = 1.60934
 )
 
 func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error) {
 	const op = "service.box.CreateBox"
 
-	if req.PriceDiscount > req.PriceFull {
+	if req.PriceDiscount.GreaterThan(req.PriceFull) {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("invalid price"))
 	}
-	if req.PriceFull <= 0 || req.PriceDiscount < 0 {
+	if req.PriceFull.LessThanOrEqual(decimal.Zero) || req.PriceDiscount.LessThan(decimal.Zero) {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("price values are out of range"))
 	}
 	if req.Quantity <= 0 {
@@ -65,4 +71,19 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	}
 
 	return box, nil
+}
+
+func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error) {
+	const op = "service.box.ListNearbyBoxes"
+
+	result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID)
+	if err != nil {
+		return pagination.Result[entity.BoxWithDistance]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	for i := range result.Items {
+		result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
+	}
+
+	return result, nil
 }

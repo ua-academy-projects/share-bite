@@ -1,10 +1,11 @@
 package post
 
 import (
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
@@ -16,9 +17,11 @@ func (h *handler) list(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	in := entity.ListPostsInput{
-		Limit:  req.Limit,
-		Offset: req.Offset,
+	customerID := getOptionalCustomerID(c, h.customerService)
+	in := dto.ListPostsInput{
+		Limit:      req.Limit,
+		Offset:     req.Offset,
+		CustomerID: customerID,
 	}
 	out, err := h.service.List(ctx, in)
 	if err != nil {
@@ -26,7 +29,7 @@ func (h *handler) list(c *gin.Context) {
 		return
 	}
 
-	resp := listPostsOutToResponse(out)
+	resp := listPostsOutToResponse(out, h.storage)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -40,10 +43,10 @@ type listResponse struct {
 	Total int            `json:"total"`
 }
 
-func listPostsOutToResponse(out entity.ListPostsOutput) listResponse {
+func listPostsOutToResponse(out dto.ListPostsOutput, storage storage.ObjectStorage) listResponse {
 	list := make([]postResponse, 0, len(out.Posts))
 	for _, p := range out.Posts {
-		list = append(list, postToResponse(p))
+		list = append(list, postToResponse(p, storage))
 	}
 
 	return listResponse{

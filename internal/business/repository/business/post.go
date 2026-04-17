@@ -8,9 +8,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
-	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
 
 func (r *Repository) GetPostByID(ctx context.Context, postID int64) (*entity.Post, error) {
@@ -49,13 +51,15 @@ func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, 
 		Sql: `
 			SELECT id
 			FROM business.org_units
-			WHERE org_account_id = $1
+			WHERE org_account_id = $1::uuid
+			AND profile_type = $2
+			LIMIT 1
 		`,
 	}
 
 	var orgID int
 
-	err := r.db.DB().QueryRowContext(ctx, q, userID).Scan(&orgID)
+	err := r.db.DB().QueryRowContext(ctx, q, userID, entity.ProfileTypeBrand).Scan(&orgID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
 			return 0, fmt.Errorf("%s: %w", op, ErrNotFound)
@@ -204,8 +208,8 @@ func (r *Repository) CreatePost(ctx context.Context, userID string, unitID int, 
 	err := tx.QueryRow(ctx, postQuery, unitID, description, userID).
 		Scan(&post.ID, &post.OrgID, &post.Content, &post.CreatedAt)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("%s: %w", op, ErrForbidden)
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
+			return nil, biserr.ErrForbidden
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
