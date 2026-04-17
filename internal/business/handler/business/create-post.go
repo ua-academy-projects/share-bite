@@ -11,6 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/mapper"
 	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/middleware"
 )
 
 type CreatePostInput struct {
