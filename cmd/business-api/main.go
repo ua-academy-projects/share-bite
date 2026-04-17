@@ -31,7 +31,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
-	 _ "github.com/ua-academy-projects/share-bite/docs/api/business"
+	 _ "github.com/ua-academy-projects/share-bite/docs/api"
 
 )
 

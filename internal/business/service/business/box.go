@@ -30,7 +30,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 
 	var box *entity.Box
 
-	err := s.txManager.ReadCommited(ctx, func(ctxTx context.Context) error {
+	err := s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
 
 		err := s.businessRepo.CheckOwnership(ctxTx, userID, req.VenueID)
 		if err != nil {
