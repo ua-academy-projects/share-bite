@@ -16,8 +16,8 @@ type createBoxRequest struct {
 	VenueID       int             `json:"venue_id" binding:"required"`
 	CategoryID    *int            `json:"category_id"`
 	Image         string          `json:"image" binding:"required"`
-	PriceFull     decimal.Decimal `json:"price_full" binding:"required"`
-	PriceDiscount decimal.Decimal `json:"price_discount"`
+	FullPrice     decimal.Decimal `json:"price_full" binding:"required"`
+	DiscountPrice decimal.Decimal `json:"price_discount"`
 	ExpiresAt     time.Time       `json:"expires_at" binding:"required"`
 	Quantity      int             `json:"quantity" binding:"required,min=1,max=1000"`
 }
@@ -53,9 +53,9 @@ func (h *handler) CreateBox(c *gin.Context) {
 
 	if req.VenueID <= 0 ||
 	(req.CategoryID != nil && *req.CategoryID <= 0) ||
-	req.PriceFull.LessThanOrEqual(decimal.Zero) ||
-	req.PriceDiscount.LessThan(decimal.Zero) ||
-	req.PriceDiscount.GreaterThan(req.PriceFull) ||
+	req.FullPrice.LessThanOrEqual(decimal.Zero) ||
+	req.DiscountPrice.LessThan(decimal.Zero) ||
+	req.DiscountPrice.GreaterThan(req.FullPrice) ||
 	len(req.Image) > 256 ||
 	!req.ExpiresAt.After(time.Now()) {
 	c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -66,8 +66,8 @@ func (h *handler) CreateBox(c *gin.Context) {
 		VenueID:       req.VenueID,
 		CategoryID:    req.CategoryID,
 		Image:         req.Image,
-		PriceFull:     req.PriceFull,
-		PriceDiscount: req.PriceDiscount,
+		FullPrice:     req.FullPrice,
+		DiscountPrice: req.DiscountPrice,
 		ExpiresAt:     req.ExpiresAt,
 		Quantity:      req.Quantity,
 	})

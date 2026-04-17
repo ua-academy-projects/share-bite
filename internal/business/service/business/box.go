@@ -18,10 +18,10 @@ const (
 func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error) {
 	const op = "service.box.CreateBox"
 
-	if req.PriceDiscount.GreaterThan(req.PriceFull) {
+	if req.DiscountPrice.GreaterThan(req.FullPrice) {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("invalid price"))
 	}
-	if req.PriceFull.LessThanOrEqual(decimal.Zero) || req.PriceDiscount.LessThan(decimal.Zero) {
+	if req.FullPrice.LessThanOrEqual(decimal.Zero) || req.DiscountPrice.LessThan(decimal.Zero) {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("price values are out of range"))
 	}
 	if req.Quantity <= 0 {
@@ -41,8 +41,8 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 			VenueID:       req.VenueID,
 			CategoryID:    req.CategoryID,
 			Image:         req.Image,
-			PriceFull:     req.PriceFull,
-			PriceDiscount: req.PriceDiscount,
+			FullPrice:     req.FullPrice,
+			DiscountPrice: req.DiscountPrice,
 			ExpiresAt:     req.ExpiresAt,
 		}
 

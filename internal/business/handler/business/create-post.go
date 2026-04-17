@@ -45,7 +45,7 @@ func (h *handler) CreatePost(c *gin.Context) {
 		return
 	}
 
-	userID, ok := getUserID(c)
+	userID, ok := middleware.getUserID(c)
 	if !ok {
 		logger.ErrorKV(ctx, "unauthorized access attempt: user ID not found in gin context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})

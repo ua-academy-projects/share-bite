@@ -12,8 +12,8 @@ type Box struct {
 	CategoryID    *int
 
 	Image         string
-	PriceFull     decimal.Decimal
-	PriceDiscount decimal.Decimal
+	FullPrice     decimal.Decimal
+	DiscountPrice decimal.Decimal
 
 	CreatedAt time.Time
 	ExpiresAt time.Time

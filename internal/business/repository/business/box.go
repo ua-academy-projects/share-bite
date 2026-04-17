@@ -35,8 +35,8 @@ func (r *Repository) CreateBox(ctx context.Context, box *entity.Box) (int64, tim
 			box.VenueID,
 			box.CategoryID,
 			box.Image,
-			box.PriceFull,
-			box.PriceDiscount,
+			box.FullPrice,
+			box.DiscountPrice,
 			box.ExpiresAt,
 		).Scan(&id, &createdAt)
 
@@ -54,8 +54,8 @@ func (r *Repository) CreateBox(ctx context.Context, box *entity.Box) (int64, tim
 		box.VenueID,
 		box.CategoryID,
 		box.Image,
-		box.PriceFull,
-		box.PriceDiscount,
+		box.FullPrice,
+		box.DiscountPrice,
 		box.ExpiresAt,
 	).Scan(&id, &createdAt)
 
@@ -122,8 +122,8 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 			&item.Box.VenueID,
 			&item.Box.CategoryID,
 			&item.Box.Image,
-			&item.Box.PriceFull,
-			&item.Box.PriceDiscount,
+			&item.Box.FullPrice,
+			&item.Box.DiscountPrice,
 			&item.Box.CreatedAt,
 			&item.Box.ExpiresAt,
 			&item.Distance,

@@ -10,8 +10,8 @@ type CreateBoxRequest struct {
 	VenueID       int             `json:"venue_id" binding:"required,gt=0"`
 	CategoryID    *int            `json:"category_id"`
 	Image         string          `json:"image" binding:"required"`
-	PriceFull     decimal.Decimal `json:"price_full" binding:"required"`
-	PriceDiscount decimal.Decimal `json:"price_discount"`
+	FullPrice     decimal.Decimal `json:"price_full" binding:"required"`
+	DiscountPrice decimal.Decimal `json:"price_discount"`
 	ExpiresAt     time.Time       `json:"expires_at" binding:"required"`
 	Quantity      int             `json:"quantity" binding:"required,gt=0"`
 }
@@ -29,8 +29,8 @@ type NearbyBoxesResp struct {
 	VenueID       int             `json:"venue_id"`
 	CategoryID    int             `json:"category_id"`
 	Image         string          `json:"image"`
-	PriceFull     decimal.Decimal `json:"full_price"`
-	PriceDiscount decimal.Decimal `json:"discount_price"`
+	FullPrice     decimal.Decimal `json:"full_price"`
+	DiscountPrice decimal.Decimal `json:"discount_price"`
 	CreatedAt     time.Time       `json:"created_at"`
 	ExpiresAt     time.Time       `json:"expires_at"`
 	Distance      float64         `json:"distance"`
