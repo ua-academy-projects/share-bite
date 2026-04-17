@@ -28,6 +28,7 @@ type businessService interface {
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
+
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 
@@ -46,47 +47,47 @@ func RegisterHandlers(
 
 	auth := middleware.Auth(parser)
 
-	org_units := r.Group("/org-units")
+	orgUnits := r.Group("/org-units")
 	{
-		org_units.GET("/:id", h.get)
-		org_units.GET("/:id/locations", h.list)
-		org_units.GET("/:id/rating", h.rating)
-		org_units.POST("/venues", h.getVenuesByIDs)
+		orgUnits.GET("/:id", h.get)
+		orgUnits.GET("/:id/locations", h.list)
+		orgUnits.GET("/:id/rating", h.rating)
+		orgUnits.POST("/venues", h.getVenuesByIDs)
 	}
 
 	r.GET("/posts", h.GetPosts)
-
-
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 
-	businessOnly := r.Group("/posts").
+	businessPosts := r.Group("/posts").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
-
-
-	businessOnly.POST("/:id/locations", h.createLocation)
-	businessOnly.PATCH("/locations/:id", h.updateLocation)
-	businessOnly.DELETE("/locations/:id", h.deleteLocation)
-		
 	{
-		businessOnly.PUT("/:id", h.UpdatePost)
-		businessOnly.DELETE("/:id", h.DeletePost)
-		businessOnly.POST("/:id", h.CreatePost)
+		businessPosts.PUT("/:id", h.UpdatePost)
+		businessPosts.DELETE("/:id", h.DeletePost)
+		businessPosts.POST("/:id", h.CreatePost)
+	}
+
+	businessLocations := r.Group("").
+		Use(auth).
+		Use(middleware.RequireRoles("business"))
+	{
+		businessLocations.POST("/:id/locations", h.createLocation)
+		businessLocations.PATCH("/locations/:id", h.updateLocation)
+		businessLocations.DELETE("/locations/:id", h.deleteLocation)
 	}
 
 	boxes := r.Group("/boxes").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
-
 	{
 		boxes.POST("", h.CreateBox)
 	}
 }
 
-// errorResponse, CreateBoxResponse is used for swagger documentation.
 type errorResponse struct {
 	Error string `json:"error" example:"not found"`
 }
+
 type CreateBoxResponse struct {
 	ID      int64  `json:"id"`
 	Message string `json:"message"`
