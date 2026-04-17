@@ -26,7 +26,7 @@ func (d dummyTokenParser) ParseAccessToken(token string) (string, string, error)
 func (m *MockBusinessService) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error) {
 	fakeBox := entity.BoxWithDistance{
 		Box: entity.Box{
-			Id:      123,
+			ID:      123,
 			VenueID: 1,
 		},
 		Distance: 2.5,
