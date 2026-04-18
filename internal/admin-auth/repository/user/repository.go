@@ -17,7 +17,8 @@ import (
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
-	CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error)
+	CreateUser(ctx context.Context, user CreateUser) (*CreatedUser, error)
+	AssignRole(ctx context.Context, userID string, roleID int) error
 	FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error)
 	CreateWithSocial(ctx context.Context, params dto.CreateUserWithSocialParams) (*dto.CreatedUser, error)
 	LinkSocialAccount(ctx context.Context, params dto.CreateSocialAccountParams) error
@@ -157,39 +158,48 @@ func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*models.R
 	return role, nil
 }
 
-func (r *repository) CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error) {
+func (r *repository) CreateUser(ctx context.Context, user CreateUser) (*CreatedUser, error) {
 	q := database.Query{
-		Name: "user.CreateWithRole",
-		Sql: `
-			WITH created_user AS (
-				INSERT INTO auth.users (email, password_hash)
-				VALUES ($1, $2)
-				RETURNING id, email
-			),
-			assigned_role AS (
-				INSERT INTO auth.user_roles (user_id, role_id)
-				SELECT id, $3
-				FROM created_user
-			)
-			SELECT id, email
-			FROM created_user
-		`,
+		Name: "user.CreateUser",
+		Sql: `INSERT INTO auth.users (email, password_hash)
+			  VALUES ($1, $2)
+			  RETURNING id, email`,
 	}
 
 	row := r.client.DB().QueryRowContext(
 		ctx,
 		q,
-		params.Email,
-		params.PasswordHash,
-		params.RoleID,
+		user.Email,
+		user.PasswordHash,
 	)
 
-	u := new(dto.CreatedUser)
+	u := new(CreatedUser)
 	if err := row.Scan(&u.ID, &u.Email); err != nil {
-		return nil, fmt.Errorf("create user with role: %w", err)
+		return nil, fmt.Errorf("create user: %w", err)
 	}
 
 	return u, nil
+}
+
+func (r *repository) AssignRole(ctx context.Context, userID string, roleID int) error {
+	q := database.Query{
+		Name: "user.AssignRole",
+		Sql: `INSERT INTO auth.user_roles (user_id, role_id)
+			  VALUES ($1, $2)`,
+	}
+
+	_, err := r.client.DB().ExecContext(
+		ctx,
+		q,
+		userID,
+		roleID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("assign role to user: %w", err)
+	}
+
+	return nil
 }
 
 func (r *repository) FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error) {

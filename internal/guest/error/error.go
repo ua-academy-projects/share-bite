@@ -62,16 +62,8 @@ func newError(code code.Code, err string) *Error {
 	}
 }
 
-func BadRequest(msg string) *Error {
-	return newError(code.BadRequest, msg)
-}
-
-func Internal(msg string) *Error {
-	return newError(code.Internal, msg)
-}
-
 func VenueNotFoundID(venueID int64) *Error {
-	msg := fmt.Sprintf("venue with id %d was not found", venueID)
+	msg := fmt.Sprintf("venue with id %q was not found", venueID)
 	return newError(code.NotFound, msg)
 }
 
@@ -80,6 +72,13 @@ func PostNotFoundID(postID string) *Error {
 	return newError(code.NotFound, msg)
 }
 
+func BadRequest(msg string) *Error {
+	return newError(code.BadRequest, msg)
+}
+
+func Internal(msg string) *Error {
+	return newError(code.Internal, msg)
+}
 func CustomerNotFoundUserID(userID string) *Error {
 	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
 	return newError(code.NotFound, msg)

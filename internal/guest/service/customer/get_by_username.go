@@ -10,7 +10,7 @@ import (
 func (s *service) GetByUserName(ctx context.Context, userName string) (entity.Customer, error) {
 	customer, err := s.customerRepo.GetByUserName(ctx, userName)
 	if err != nil {
-		return entity.Customer{}, fmt.Errorf("get customer by user name from repo: %w", err)
+		return entity.Customer{}, fmt.Errorf("failed to get customer by username: %w", err)
 	}
 
 	return customer, nil
