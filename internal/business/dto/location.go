@@ -7,6 +7,7 @@ type CreateLocationInput struct {
 	Description *string
 	Latitude    *float32
 	Longitude   *float32
+	TagSlugs    []string
 }
 
 type UpdateLocationInput struct {
@@ -16,4 +17,5 @@ type UpdateLocationInput struct {
 	Description *string
 	Latitude    *float32
 	Longitude   *float32
+	TagSlugs    *[]string
 }

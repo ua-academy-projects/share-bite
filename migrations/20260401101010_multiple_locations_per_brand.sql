@@ -1,14 +1,24 @@
 -- +goose Up
-ALTER TABLE business.org_units
+ALTER TABLE IF EXISTS business.org_units
 DROP CONSTRAINT IF EXISTS org_units_org_account_id_key;
 
-CREATE UNIQUE INDEX IF NOT EXISTS org_units_brand_owner_uidx
-ON business.org_units (org_account_id)
-WHERE profile_type = 'BRAND';
+DO $$
+BEGIN
+    IF to_regclass('business.org_units') IS NULL THEN
+        RETURN;
+    END IF;
+    CREATE UNIQUE INDEX IF NOT EXISTS org_units_brand_owner_uidx
+    ON business.org_units (org_account_id)
+    WHERE profile_type = 'BRAND';
+END $$;
 
 -- +goose Down
 DO $$
 BEGIN
+    IF to_regclass('business.org_units') IS NULL THEN
+        RETURN;
+    END IF;
+
     IF EXISTS (
         SELECT 1
         FROM business.org_units

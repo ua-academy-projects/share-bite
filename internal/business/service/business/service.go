@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
+	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 
 	"github.com/ua-academy-projects/share-bite/internal/storage"
@@ -30,6 +30,10 @@ type businessRepository interface {
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
+	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
+	GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (map[int][]string, error)
+	SetOrgUnitTagsBySlugs(ctx context.Context, orgUnitID int, slugs []string) error
+
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)

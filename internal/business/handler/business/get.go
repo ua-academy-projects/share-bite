@@ -27,6 +27,7 @@ type getResponse struct {
 	Latitude    *float32       `json:"latitude" example:"50.4501"`
 	Longitude   *float32       `json:"longitude" example:"30.5234"`
 	Brand       *brandResponse `json:"brand,omitempty"`
+	Tags        []string       `json:"tags"`
 }
 
 // get returns a single location (venue) with its parent brand.
@@ -74,6 +75,7 @@ func (h *handler) get(c *gin.Context) {
 		Description: location.Description,
 		Latitude:    location.Latitude,
 		Longitude:   location.Longitude,
+		Tags:        location.Tags,
 	}
 
 	if location.ParentId != nil {

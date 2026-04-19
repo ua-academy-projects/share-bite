@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -11,8 +12,15 @@ import (
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 )
 
+const maxLocationTags = 5
+
 func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
 	const op = "business.service.CreateLocation"
+
+	in.TagSlugs = normalizeTagSlugs(in.TagSlugs)
+	if len(in.TagSlugs) > maxLocationTags {
+		return nil, apperror.BadRequest("location can have at most 5 tags")
+	}
 
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
 	if err != nil {
@@ -37,9 +45,32 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 		return nil, apperror.BadRequest("target org unit is not a brand")
 	}
 
-	location, err := s.businessRepo.CreateLocation(ctx, brandID, ownerUserID, in)
+	var location *entity.OrgUnit
+
+	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
+		created, err := s.businessRepo.CreateLocation(ctxTx, brandID, ownerUserID, in)
+		if err != nil {
+			return fmt.Errorf("%s: create location: %w", op, err)
+		}
+
+		if err := s.businessRepo.SetOrgUnitTagsBySlugs(ctxTx, created.Id, in.TagSlugs); err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return apperror.BadRequest("one or more tags are invalid")
+			}
+			return fmt.Errorf("%s: set location tags: %w", op, err)
+		}
+
+		tags, err := s.businessRepo.GetOrgUnitTagSlugs(ctxTx, created.Id)
+		if err != nil {
+			return fmt.Errorf("%s: get location tags: %w", op, err)
+		}
+		created.Tags = tags
+
+		location = created
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: create location: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return location, nil
@@ -47,6 +78,14 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 
 func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error) {
 	const op = "business.service.UpdateLocation"
+
+	if in.TagSlugs != nil {
+		normalized := normalizeTagSlugs(*in.TagSlugs)
+		if len(normalized) > maxLocationTags {
+			return nil, apperror.BadRequest("location can have at most 5 tags")
+		}
+		in.TagSlugs = &normalized
+	}
 
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
 	if err != nil {
@@ -72,12 +111,38 @@ func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserI
 		return nil, apperror.Forbidden("you can manage only your own brand locations")
 	}
 
-	updated, err := s.businessRepo.UpdateLocation(ctx, locationID, ownerBrandID, in)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, apperror.LocationNotFoundID(locationID)
+	var updated *entity.OrgUnit
+
+	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
+		var err error
+
+		updated, err = s.businessRepo.UpdateLocation(ctxTx, locationID, ownerBrandID, in)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return apperror.LocationNotFoundID(locationID)
+			}
+			return fmt.Errorf("%s: update location: %w", op, err)
 		}
-		return nil, fmt.Errorf("%s: update location: %w", op, err)
+
+		if in.TagSlugs != nil {
+			if err := s.businessRepo.SetOrgUnitTagsBySlugs(ctxTx, locationID, *in.TagSlugs); err != nil {
+				if errors.Is(err, repository.ErrNotFound) {
+					return apperror.BadRequest("one or more tags are invalid")
+				}
+				return fmt.Errorf("%s: set location tags: %w", op, err)
+			}
+		}
+
+		tags, err := s.businessRepo.GetOrgUnitTagSlugs(ctxTx, locationID)
+		if err != nil {
+			return fmt.Errorf("%s: get location tags: %w", op, err)
+		}
+		updated.Tags = tags
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return updated, nil
@@ -118,4 +183,27 @@ func (s *service) DeleteLocation(ctx context.Context, locationID int, ownerUserI
 	}
 
 	return nil
+}
+
+func normalizeTagSlugs(slugs []string) []string {
+	if len(slugs) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]struct{}, len(slugs))
+	out := make([]string, 0, len(slugs))
+
+	for _, raw := range slugs {
+		slug := strings.TrimSpace(strings.ToLower(raw))
+		if slug == "" {
+			continue
+		}
+		if _, ok := seen[slug]; ok {
+			continue
+		}
+		seen[slug] = struct{}{}
+		out = append(out, slug)
+	}
+
+	return out
 }
