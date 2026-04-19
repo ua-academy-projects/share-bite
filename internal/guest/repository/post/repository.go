@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"strconv"
 	"strings"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgerrcode"
@@ -19,6 +20,19 @@ import (
 
 type Repository struct {
 	db database.Client
+}
+
+func (r *Repository) UpdateStatus(ctx context.Context, postID, customerID string, status entity.PostStatus) error {
+	sql := `UPDATE guest.posts SET status = $1 WHERE id = $2 AND customer_id = $3`
+	q := database.Query{
+		Name: "post_repository.UpdateStatus",
+		Sql:  sql,
+	}
+	_, err := r.db.DB().ExecContext(ctx, q, status, postID, customerID)
+	if err != nil {
+		return executeSQLError(err)
+	}
+	return nil
 }
 
 func New(db database.Client) *Repository {

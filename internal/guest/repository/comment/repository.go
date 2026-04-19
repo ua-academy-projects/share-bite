@@ -3,6 +3,7 @@ package comment
 import (
 	"context"
 	"errors"
+
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"github.com/georgysavva/scany/v2/pgxscan"

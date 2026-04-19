@@ -116,8 +116,6 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 		cleanupDelete(s.storage, key)
 	}
 
-	post.Images = newImages
-
 	return post, nil
 }
 

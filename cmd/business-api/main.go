@@ -33,15 +33,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// @title			ShareBite Business API
-// @version		1.0
-// @description	API for discovering brand locations (venues).
+// @title						ShareBite Business API
+// @version					1.0
+// @description				API for discovering brand locations (venues).
 //
 // @securityDefinitions.apikey	BearerAuth
-// @in			header
-// @name		Authorization
+// @in							header
+// @name						Authorization
 //
-// @BasePath		/
+// @BasePath					/
 func main() {
 	ctx := context.Background()
 

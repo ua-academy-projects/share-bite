@@ -11,16 +11,16 @@ import (
 
 // get returns a single published post by ID.
 //
-// @Summary      Get post by ID
-// @Description  Returns a published post by its numeric ID.
-// @Tags         guest-posts
-// @Produce      json
-// @Param        id   path      int  true  "Post ID"
-// @Success      200  {object}  getResponse      "Successfully retrieved the post"
-// @Failure      400  {object}  errorResponse     "Invalid post ID format"
-// @Failure      404  {object}  errorResponse     "Not found: post does not exist, is private, or is not published"
-// @Failure      500  {object}  errorResponse     "Internal server error"
-// @Router       /posts/{id} [get]
+//	@Summary		Get post by ID
+//	@Description	Returns a published post by its numeric ID.
+//	@Tags			guest-posts
+//	@Produce		json
+//	@Param			id	path		int				true	"Post ID"
+//	@Success		200	{object}	getResponse		"Successfully retrieved the post"
+//	@Failure		400	{object}	errorResponse	"Invalid post ID format"
+//	@Failure		404	{object}	errorResponse	"Not found: post does not exist, is private, or is not published"
+//	@Failure		500	{object}	errorResponse	"Internal server error"
+//	@Router			/posts/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	var req getRequest
 	if err := request.BindUri(c, &req); err != nil {

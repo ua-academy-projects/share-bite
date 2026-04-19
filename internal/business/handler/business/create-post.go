@@ -21,20 +21,20 @@ type CreatePostInput struct {
 
 // CreatePost creates a new business post with images.
 //
-// @Summary      Create business post
-// @Description  Creates a new post for a specific organizational unit with multiple images
-// @Tags         posts
-// @Accept       multipart/form-data
-// @Produce      json
-// @Param        id      path      int                  true  "Unit ID"
-// @Param        content formData  string               true  "Post content"
-// @Param        photos  formData  file                 true  "Post images"
-// @Success      201     {object}  dto.PostResponse
-// @Failure      400     {object}  errorResponse
-// @Failure      403     {object}  errorResponse
-// @Failure      500     {object}  errorResponse
-// @Security     BearerAuth
-// @Router       /business/posts/{id} [post]
+//	@Summary		Create business post
+//	@Description	Creates a new post for a specific organizational unit with multiple images
+//	@Tags			posts
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			id		path		int		true	"Unit ID"
+//	@Param			content	formData	string	true	"Post content"
+//	@Param			photos	formData	file	true	"Post images"
+//	@Success		201		{object}	dto.PostResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		403		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Security		BearerAuth
+//	@Router			/business/posts/{id} [post]
 func (h *handler) CreatePost(c *gin.Context) {
 	var input CreatePostInput
 	ctx := c.Request.Context()

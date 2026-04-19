@@ -2,6 +2,7 @@ package post
 
 import (
 	"context"
+
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 
@@ -19,6 +20,7 @@ type postRepository interface {
 	Unlike(ctx context.Context, postID string, customerID string) error
 	CreateImages(ctx context.Context, images []entity.PostImage) error
 	DeleteImagesByPostID(ctx context.Context, postID string) error
+	UpdateStatus(ctx context.Context, postID, customerID string, status entity.PostStatus) error
 }
 
 type VenueProvider interface {
@@ -33,6 +35,12 @@ type service struct {
 }
 
 func New(postRepo postRepository, venueProvider VenueProvider, storage storage.ObjectStorage, txManager database.TxManager) *service {
+	if storage == nil {
+		panic("post service: storage is not configured")
+	}
+	if txManager == nil {
+		panic("post service: transaction manager is not configured")
+	}
 	return &service{
 		postRepo:      postRepo,
 		venueProvider: venueProvider,

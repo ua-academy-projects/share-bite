@@ -29,26 +29,26 @@ type updateResponse struct {
 
 // update updates a guest post owned by the authenticated customer.
 //
-// @Summary      Update post
-// @Description  Updates post fields and optionally rewrites images.
-// @Tags         guest-posts
-// @Accept       mpfd
-// @Produce      json
-// @Security     BearerAuth
-// @Param        id        path      int     true   "Post ID"
-// @Param        venue_id  formData  int     false  "Venue ID"
-// @Param        text      formData  string  false  "Post text"
-// @Param        rating    formData  int     false  "Rating (1..5)"
-// @Param        status    formData  string  false  "Allowed: draft,published,archived"
-// @Param        images    formData  file    false  "Images field presence triggers rewrite"
-// @Success      200       {object}  updateResponse  "Successfully updated the post"
-// @Failure      400       {object}  errorResponse    "Invalid path, form, or status transition"
-// @Failure      401       {object}  errorResponse    "Unauthorized: token is missing, invalid, or expired"
-// @Failure      403       {object}  errorResponse    "Forbidden: customer profile was not found"
-// @Failure      404       {object}  errorResponse    "Not found: post does not exist, is private, or does not belong to the user"
-// @Failure      502       {object}  errorResponse    "Bad gateway: venue lookup failed"
-// @Failure      500       {object}  errorResponse    "Internal server error"
-// @Router       /posts/{id} [patch]
+//	@Summary		Update post
+//	@Description	Updates post fields and optionally rewrites images.
+//	@Tags			guest-posts
+//	@Accept			mpfd
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id			path		int				true	"Post ID"
+//	@Param			venue_id	formData	int				false	"Venue ID"
+//	@Param			text		formData	string			false	"Post text"
+//	@Param			rating		formData	int				false	"Rating (1..5)"
+//	@Param			status		formData	string			false	"Allowed: draft,published,archived"
+//	@Param			images		formData	file			false	"Images field presence triggers rewrite"
+//	@Success		200			{object}	updateResponse	"Successfully updated the post"
+//	@Failure		400			{object}	errorResponse	"Invalid path, form, or status transition"
+//	@Failure		401			{object}	errorResponse	"Unauthorized: token is missing, invalid, or expired"
+//	@Failure		403			{object}	errorResponse	"Forbidden: customer profile was not found"
+//	@Failure		404			{object}	errorResponse	"Not found: post does not exist, is private, or does not belong to the user"
+//	@Failure		502			{object}	errorResponse	"Bad gateway: venue lookup failed"
+//	@Failure		500			{object}	errorResponse	"Internal server error"
+//	@Router			/posts/{id} [patch]
 func (h *handler) update(c *gin.Context) {
 	if !strings.HasPrefix(c.GetHeader("Content-Type"), "multipart/form-data") {
 		c.Error(apperror.BadRequest("content type must be multipart/form-data"))

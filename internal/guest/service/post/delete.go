@@ -22,12 +22,7 @@ func (s *service) Delete(ctx context.Context, postID, customerID string) error {
 		return nil
 	}
 
-	deletedStatus := entity.PostStatusDeleted
-	_, err = s.postRepo.Update(ctx, entity.UpdatePostInput{
-		ID:         postID,
-		CustomerID: customerID,
-		Status:     &deletedStatus,
-	})
+	err = s.postRepo.UpdateStatus(ctx, postID, customerID, entity.PostStatusDeleted)
 	if err != nil {
 		return fmt.Errorf("delete post in post repository: %w", err)
 	}

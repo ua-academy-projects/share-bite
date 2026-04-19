@@ -24,20 +24,20 @@ type createBoxRequest struct {
 
 // CreateBox creates a limited box for a venue.
 //
-// @Summary      Create box
-// @Description  Creates a box and its limited box items for a specific venue if the user has permission
-// @Tags         boxes
-// @Accept       json
-// @Produce      json
-// @Param        input body      createBoxRequest  true  "Box data"
-// @Success      201   {object}  CreateBoxResponse
-// @Failure      400   {object}  errorResponse
-// @Failure      401   {object}  errorResponse
-// @Failure      403   {object}  errorResponse
-// @Failure      404   {object}  errorResponse
-// @Failure      500   {object}  errorResponse
-// @Security     BearerAuth
-// @Router       /business/boxes [post]
+//	@Summary		Create box
+//	@Description	Creates a box and its limited box items for a specific venue if the user has permission
+//	@Tags			boxes
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		createBoxRequest	true	"Box data"
+//	@Success		201		{object}	CreateBoxResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		401		{object}	errorResponse
+//	@Failure		403		{object}	errorResponse
+//	@Failure		404		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Security		BearerAuth
+//	@Router			/business/boxes [post]
 func (h *handler) CreateBox(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {

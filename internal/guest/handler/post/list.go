@@ -12,16 +12,16 @@ import (
 
 // list returns paginated published posts.
 //
-// @Summary      List posts
-// @Description  Returns paginated list of published posts.
-// @Tags         guest-posts
-// @Produce      json
-// @Param        limit   query     int  false  "Max items per page (1..100)" default(20)
-// @Param        offset  query     int  false  "Offset (0..1000)" default(0)
-// @Success      200     {object}  listResponse   "Successfully retrieved the collection"
-// @Failure      400     {object}  errorResponse  "Invalid query parameters"
-// @Failure      500     {object}  errorResponse  "Internal server error"
-// @Router       /posts/ [get]
+//	@Summary		List posts
+//	@Description	Returns paginated list of published posts.
+//	@Tags			guest-posts
+//	@Produce		json
+//	@Param			limit	query		int				false	"Max items per page (1..100)"	default(20)
+//	@Param			offset	query		int				false	"Offset (0..1000)"				default(0)
+//	@Success		200		{object}	listResponse	"Successfully retrieved the collection"
+//	@Failure		400		{object}	errorResponse	"Invalid query parameters"
+//	@Failure		500		{object}	errorResponse	"Internal server error"
+//	@Router			/posts/ [get]
 func (h *handler) list(c *gin.Context) {
 	var req listRequest
 	if err := request.BindQuery(c, &req); err != nil {
