@@ -31,4 +31,3 @@ type UpdateOrgResponse struct {
 type UpdatePostRequest struct {
 	Content string `json:"content" binding:"required"`
 }
-

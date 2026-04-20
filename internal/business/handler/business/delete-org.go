@@ -71,4 +71,3 @@ func (h *handler) deleteOrgUnit(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
-
