@@ -2,6 +2,7 @@ package post
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -60,6 +61,7 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 	for i, img := range in.Images {
 		ext := extensionFromContentType(img.ContentType)
 		if ext == "" {
+			rollbackUploadedImages(s.storage, uploadedKeys)
 			return entity.Post{}, apperror.ErrUnsupportedImageType
 		}
 
@@ -85,7 +87,14 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		updatedPost, err := s.postRepo.Update(txCtx, in)
 		if err != nil {
-			return fmt.Errorf("update post in post repository: %w", err)
+			if errors.Is(err, apperror.ErrEmptyUpdate) && in.RewriteImages {
+				updatedPost, err = s.postRepo.GetByID(txCtx, in.ID)
+				if err != nil {
+					return fmt.Errorf("get post by id in post repository: %w", err)
+				}
+			} else {
+				return fmt.Errorf("update post in post repository: %w", err)
+			}
 		}
 
 		if err := s.postRepo.DeleteImagesByPostID(txCtx, updatedPost.ID); err != nil {

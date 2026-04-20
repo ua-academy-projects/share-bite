@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
@@ -28,10 +27,15 @@ func (r *Repository) UpdateStatus(ctx context.Context, postID, customerID string
 		Name: "post_repository.UpdateStatus",
 		Sql:  sql,
 	}
-	_, err := r.db.DB().ExecContext(ctx, q, status, postID, customerID)
+	result, err := r.db.DB().ExecContext(ctx, q, status, postID, customerID)
 	if err != nil {
 		return executeSQLError(err)
 	}
+
+	if result.RowsAffected() == 0 {
+		return apperror.PostNotFoundID(postID)
+	}
+
 	return nil
 }
 
@@ -206,13 +210,18 @@ func (r *Repository) List(ctx context.Context, in dto.ListPostsInput) (dto.ListP
 	}
 
 	result := posts.ToEntities()
+	postIDs := make([]string, 0, len(result))
 	for i := range result {
-		images, err := r.loadImagesByPostID(ctx, result[i].ID)
-		if err != nil {
-			return dto.ListPostsOutput{}, err
-		}
+		postIDs = append(postIDs, result[i].ID)
+	}
 
-		result[i].Images = images
+	imagesByPostID, err := r.loadImagesByPostIDs(ctx, postIDs)
+	if err != nil {
+		return dto.ListPostsOutput{}, err
+	}
+
+	for i := range result {
+		result[i].Images = imagesByPostID[result[i].ID]
 	}
 
 	return dto.ListPostsOutput{
@@ -376,14 +385,10 @@ func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage
 	}
 
 	for _, img := range images {
-		postID, err := strconv.ParseInt(img.PostID, 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid post ID: %w", err)
-		}
-		_, err = r.db.DB().ExecContext(
+		_, err := r.db.DB().ExecContext(
 			ctx,
 			q,
-			postID,
+			img.PostID,
 			img.ObjectKey,
 			img.ContentType,
 			img.FileSize,
@@ -444,6 +449,48 @@ func (r *Repository) loadImagesByPostID(ctx context.Context, postID string) ([]e
 	}
 
 	return images.ToEntities(), nil
+}
+
+func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostImage, error) {
+	if len(postIDs) == 0 {
+		return map[string][]entity.PostImage{}, nil
+	}
+
+	sql := `
+		SELECT
+		       id,
+		       post_id,
+		       object_key,
+		       content_type,
+		       file_size,
+		       sort_order,
+		       created_at
+		FROM guest.post_images
+		WHERE post_id::text = ANY($1)
+		ORDER BY post_id ASC, sort_order ASC, id ASC
+	`
+	q := database.Query{
+		Name: "post_repository.loadImagesByPostIDs",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postIDs)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var images PostImages
+	if err := pgxscan.ScanAll(&images, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	grouped := make(map[string][]entity.PostImage, len(postIDs))
+	for _, image := range images.ToEntities() {
+		grouped[image.PostID] = append(grouped[image.PostID], image)
+	}
+
+	return grouped, nil
 }
 
 func (r *Repository) Like(ctx context.Context, postID string, customerID string) error {
