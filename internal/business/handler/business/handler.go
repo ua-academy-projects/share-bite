@@ -2,13 +2,15 @@ package business
 
 import (
 	"context"
-	"mime/multipart"
+
+	"strconv"
+
+	"github.com/google/uuid"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/business/dto"
+
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/internal/middleware"
-	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 type handler struct {
@@ -16,79 +18,64 @@ type handler struct {
 }
 
 type businessService interface {
-	CreatePost(ctx context.Context, userID string, unitID int, description string, images []*multipart.FileHeader) (*entity.PostWithPhotos, error)
-	CheckOwnership(ctx context.Context, userID string, unitID int) error
-	UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error)
-	DeletePost(ctx context.Context, postID int64, userID string) error
-
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
-	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
-	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
-
-	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
-	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
-	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
-
-	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
-	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
-
-	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
-	Rating(ctx context.Context, id int) (float32, error)
+	List(ctx context.Context, brandId, page, limit int) ([]entity.OrgUnit, error)
+	Create(ctx context.Context, in entity.OrgUnit) (int, error)
+	UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID, in entity.UpdateOrgUnitInput) (*entity.OrgUnit, error)
+	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 }
 
 func RegisterHandlers(
 	r *gin.RouterGroup,
 	service businessService,
-	parser middleware.AccessTokenParser,
 ) {
 	h := &handler{
 		service: service,
 	}
 
-	auth := middleware.Auth(parser)
+	r.GET("/:id", h.get)
+	r.GET("/:id/locations", h.list)
+	r.POST("/", h.createOrgUnit)
+	r.PUT("/:id", h.updateOrgUnit)
+	r.PATCH("/:id", h.updateOrgUnit)
+	r.DELETE("/:id", h.deleteOrgUnit)
 
-	orgUnits := r.Group("/org-units")
-	{
-		orgUnits.GET("/:id", h.get)
-		orgUnits.GET("/:id/locations", h.list)
-		orgUnits.GET("/:id/rating", h.rating)
-		orgUnits.POST("/venues", h.getVenuesByIDs)
-	}
-
-	r.GET("/posts", h.GetPosts)
-	r.GET("/nearby-boxes", h.ListNearbyBoxes)
-
-	businessPosts := r.Group("/posts").
-		Use(auth).
-		Use(middleware.RequireRoles("business"))
-	{
-		businessPosts.PUT("/:id", h.UpdatePost)
-		businessPosts.DELETE("/:id", h.DeletePost)
-		businessPosts.POST("/:id", h.CreatePost)
-	}
-
-	businessLocations := r.Group("").
-		Use(auth).
-		Use(middleware.RequireRoles("business"))
-	{
-		businessLocations.POST("/:id/locations", h.createLocation)
-		businessLocations.PATCH("/locations/:id", h.updateLocation)
-		businessLocations.DELETE("/locations/:id", h.deleteLocation)
-	}
-
-	boxes := r.Group("/boxes").
-		Use(auth).
-		Use(middleware.RequireRoles("business"))
-	{
-		boxes.POST("", h.CreateBox)
-	}
 }
 
+// errorResponse is used for swagger documentation.
 type errorResponse struct {
 	Error string `json:"error" example:"not found"`
 }
 
-type CreateBoxResponse struct {
-	ID      int64  `json:"id"`
-	Message string `json:"message"`
+func getUserID(c *gin.Context) (int64, bool) {
+	val, exists := c.Get(middleware.CtxUserID)
+	if !exists {
+		return 0, false
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		return 0, false
+	}
+
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return userID, true
+}
+
+func checkBusinessRole(c *gin.Context) bool {
+	val, exists := c.Get(middleware.CtxUserRole)
+	if !exists {
+		return false
+	}
+
+	role, ok := val.(string)
+	if !ok {
+		return false
+	}
+
+	return role == "business"
 }

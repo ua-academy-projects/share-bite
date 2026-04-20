@@ -19,3 +19,12 @@ type OrgUnit struct {
 	Latitude     *float32
 	Longitude    *float32
 }
+
+type UpdateOrgUnitInput struct {
+	Name        *string
+	Avatar      *string
+	Banner      *string
+	Description *string
+	Latitude    *float32
+	Longitude   *float32
+}
