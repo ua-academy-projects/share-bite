@@ -62,6 +62,8 @@ func RegisterHandlers(
 type postResponse struct {
 	ID          string            `json:"id"`
 	CustomerID  string            `json:"customerId"`
+	UserName    string            `json:"userName"`
+	AvatarURL   *string           `json:"avatarURL"`
 	VenueID     int64             `json:"venueId"`
 	Text        string            `json:"text"`
 	Rating      int16             `json:"rating"`
@@ -79,17 +81,23 @@ type errorResponse struct {
 	Message string `json:"message" example:"invalid request"`
 }
 
-func postToResponse(post entity.Post, storage storage.ObjectStorage) postResponse {
+func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {
 	imageURLs := make([]string, 0, len(post.Images))
-
 	if storage != nil {
 		for _, img := range post.Images {
 			imageURLs = append(imageURLs, storage.BuildURL(img.ObjectKey))
 		}
 	}
+	var avatarURL *string
+	if customer.AvatarObjectKey != nil && storage != nil {
+		url := storage.BuildURL(*customer.AvatarObjectKey)
+		avatarURL = &url
+	}
 	return postResponse{
 		ID:          post.ID,
 		CustomerID:  post.CustomerID,
+		UserName:    customer.UserName,
+		AvatarURL:   avatarURL,
 		VenueID:     post.VenueID,
 		Text:        post.Text,
 		Rating:      post.Rating,

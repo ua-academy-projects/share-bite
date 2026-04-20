@@ -3,6 +3,7 @@ package post
 import (
 	"net/http"
 
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,11 @@ func (h *handler) get(c *gin.Context) {
 		return
 	}
 
-	resp := getResponse{Post: postToResponse(post, h.storage)}
+	customer, err := h.customerService.GetByUserID(ctx, post.CustomerID)
+	if err != nil {
+		customer = entity.Customer{ID: post.CustomerID}
+	}
+	resp := getResponse{Post: postToResponse(post, h.storage, customer)}
 	c.JSON(http.StatusOK, resp)
 }
 

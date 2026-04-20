@@ -2,11 +2,10 @@ package business
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/go-openapi/runtime"
@@ -14,6 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/locations"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/venues"
 	business_dto "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/dto"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -67,42 +67,61 @@ func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Clie
 }
 
 func (c *businessAPIClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
-	reqURL, err := url.JoinPath(c.baseURL, "business", "org-units", strconv.FormatInt(venueID, 10))
-	if err != nil {
-		return false, fmt.Errorf("join url path: %w", err)
-	}
+	params := locations.NewGetBusinessOrgUnitsIDParamsWithContext(ctx).WithID(venueID)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-	if err != nil {
-		return false, fmt.Errorf("create request: %w", err)
-	}
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return false, fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err)
-	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
-
-	statusCode := resp.StatusCode
-
-	if statusCode == http.StatusOK {
+	_, err := c.api.Locations.GetBusinessOrgUnitsID(params, schemeLocationClientOption(c.scheme))
+	if err == nil {
 		return true, nil
 	}
 
-	if statusCode == http.StatusNotFound {
+	var notFoundErr *locations.GetBusinessOrgUnitsIDNotFound
+	if errors.As(err, &notFoundErr) {
 		return false, nil
 	}
 
-	errBody, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodySize))
-
-	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
-		return false, fmt.Errorf("client error %d: %s: %w", statusCode, string(errBody), apperror.ErrUpstreamError)
+	statusCode := 0
+	type withStatusCode interface {
+		Code() int
+	}
+	var codeErr withStatusCode
+	if errors.As(err, &codeErr) {
+		statusCode = codeErr.Code()
 	}
 
-	return false, fmt.Errorf("server error %d: %s: %w", statusCode, string(errBody), apperror.ErrUpstreamError)
+	if statusCode == 0 {
+		return false, fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err)
+	}
+
+	errMsg := ""
+	var badRequestErr *locations.GetBusinessOrgUnitsIDBadRequest
+	if errors.As(err, &badRequestErr) {
+		if payload := badRequestErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	var internalErr *locations.GetBusinessOrgUnitsIDInternalServerError
+	if errMsg == "" && errors.As(err, &internalErr) {
+		if payload := internalErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	if errMsg == "" {
+		errMsg = strings.TrimSpace(err.Error())
+	}
+	if errMsg == "" {
+		errMsg = apperror.ErrUpstreamError.Error()
+	}
+	if len(errMsg) > maxErrorBodySize {
+		errMsg = errMsg[:maxErrorBodySize]
+	}
+
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		return false, fmt.Errorf("client error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError)
+	}
+
+	return false, fmt.Errorf("server error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError)
 }
 
 func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error) {
@@ -179,6 +198,12 @@ func removeDuplicates(in []int64) []int64 {
 }
 
 func schemeClientOption(scheme string) venues.ClientOption {
+	return func(op *runtime.ClientOperation) {
+		op.Schemes = []string{scheme}
+	}
+}
+
+func schemeLocationClientOption(scheme string) locations.ClientOption {
 	return func(op *runtime.ClientOperation) {
 		op.Schemes = []string{scheme}
 	}

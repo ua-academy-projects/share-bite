@@ -109,6 +109,6 @@ func (h *handler) update(c *gin.Context) {
 		return
 	}
 
-	resp := updateResponse{Post: postToResponse(post, h.storage)}
+	resp := updateResponse{Post: postToResponse(post, h.storage, customer)}
 	c.JSON(http.StatusOK, resp)
 }

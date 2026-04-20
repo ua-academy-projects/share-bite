@@ -1,9 +1,11 @@
 package post
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 
 	"github.com/gin-gonic/gin"
@@ -42,7 +44,7 @@ func (h *handler) list(c *gin.Context) {
 		return
 	}
 
-	resp := listPostsOutToResponse(out, h.storage)
+	resp := listPostsOutToResponse(out, h.storage, h.customerService)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -56,12 +58,15 @@ type listResponse struct {
 	Total int            `json:"total"`
 }
 
-func listPostsOutToResponse(out dto.ListPostsOutput, storage storage.ObjectStorage) listResponse {
+func listPostsOutToResponse(out dto.ListPostsOutput, storage storage.ObjectStorage, customerService customerService) listResponse {
 	list := make([]postResponse, 0, len(out.Posts))
 	for _, p := range out.Posts {
-		list = append(list, postToResponse(p, storage))
+		customer, err := customerService.GetByUserID(context.Background(), p.CustomerID)
+		if err != nil {
+			customer = entity.Customer{ID: p.CustomerID}
+		}
+		list = append(list, postToResponse(p, storage, customer))
 	}
-
 	return listResponse{
 		Posts: list,
 		Total: out.Total,

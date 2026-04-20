@@ -92,6 +92,6 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
-	resp := createResponse{Post: postToResponse(post, h.storage)}
+	resp := createResponse{Post: postToResponse(post, h.storage, customer)}
 	c.JSON(http.StatusCreated, resp)
 }
