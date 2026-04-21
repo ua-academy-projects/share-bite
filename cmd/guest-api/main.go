@@ -269,6 +269,7 @@ func main() {
 		authMiddleware,
 		optionalAuthMiddleware,
 		customerMiddleware,
+		storageClient,
 	)
 	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
 
