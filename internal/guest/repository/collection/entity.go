@@ -73,6 +73,39 @@ func (e CollectionVenues) ToEntities() []entity.CollectionVenue {
 	return list
 }
 
+type Collaborator struct {
+	CollectionID string `db:"collection_id"`
+	CustomerID   string `db:"customer_id"`
+
+	UserName        string  `db:"username"`
+	AvatarObjectKey *string `db:"avatar_object_key"`
+
+	AddedAt time.Time `db:"added_at"`
+}
+
+func (e Collaborator) ToEntity() entity.Collaborator {
+	return entity.Collaborator{
+		CollectionID: e.CollectionID,
+		CustomerID:   e.CustomerID,
+
+		UserName:        e.UserName,
+		AvatarObjectKey: e.AvatarObjectKey,
+
+		AddedAt: e.AddedAt,
+	}
+}
+
+type Collaborators []Collaborator
+
+func (e Collaborators) ToEntities() []entity.Collaborator {
+	list := make([]entity.Collaborator, 0, len(e))
+	for _, c := range e {
+		list = append(list, c.ToEntity())
+	}
+
+	return list
+}
+
 func executeSQLError(err error) error {
 	return fmt.Errorf("execute sql: %w", err)
 }
