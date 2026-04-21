@@ -19,6 +19,8 @@ import (
 const (
 	constraintCollectionVenuesPkey        = "collection_venues_pkey"
 	constraintCollectionCollaboratorsPkey = "collection_collaborators_pkey"
+
+	constraintCollectionCollaboratorsCustomerFkey = "collection_collaborators_customer_id_fkey"
 )
 
 type repository struct {
@@ -531,13 +533,21 @@ func (r *repository) CreateCollaborator(ctx context.Context, collectionID string
 
 	_, err := r.db.DB().ExecContext(ctx, q, args...)
 	if err != nil {
-		// handle if collaborator is already added
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
+			// handle if collaborator is already added
 			if pgErr.Code == pgerrcode.UniqueViolation {
 				switch pgErr.ConstraintName {
 				case constraintCollectionCollaboratorsPkey:
 					return apperror.CustomerAlreadyCollaborator(customerID)
+				}
+			}
+
+			// handle if customer exists
+			if pgErr.Code == pgerrcode.ForeignKeyViolation {
+				switch pgErr.ConstraintName {
+				case constraintCollectionCollaboratorsCustomerFkey:
+					return apperror.TargetCustomerNotFound(customerID)
 				}
 			}
 		}
