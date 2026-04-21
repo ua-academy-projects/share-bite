@@ -14,7 +14,6 @@ var (
 
 	ErrForbidden = newError(code.Forbidden, "forbidden: you are not the owner of this resource")
 
-	ErrCollectionFull       = newError(code.InvalidRequest, "collection has reached the maximum limit of 100 venues")
 	ErrInvalidReorderParams = newError(code.InvalidRequest, "invalid reorder parameters")
 	ErrInvalidPageToken     = newError(code.InvalidRequest, "invalid page token")
 
@@ -26,7 +25,7 @@ var (
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
 
-	ErrCollectionAccessDenied = newError(code.Forbidden, "you are not allowed to manage the collection")
+	ErrCollectionAccessDenied = newError(code.Forbidden, "you are not allowed to do that action in the collection")
 
 	ErrImageRequired        = newError(code.BadRequest, "image is required")
 	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
@@ -117,5 +116,25 @@ func CommentNotFoundID(commentID int64) *Error {
 
 func InvalidPostStatusTransition(from, to string) *Error {
 	msg := fmt.Sprintf("invalid post status transition: %s -> %s", from, to)
+	return newError(code.InvalidRequest, msg)
+}
+
+func CollectionVenuesLimitReached(limit int) *Error {
+	msg := fmt.Sprintf("collection has reached the limit of %d venues", limit)
+	return newError(code.InvalidRequest, msg)
+}
+
+func CollaboratorNotFound(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q is not a collaborator in this collection", customerID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerAlreadyCollaborator(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q is already a collaborator in this collection", customerID)
+	return newError(code.AlreadyExists, msg)
+}
+
+func CollectionCollaboratorsLimitReached(limit int) *Error {
+	msg := fmt.Sprintf("collection has reached the limit of %d collaborators", limit)
 	return newError(code.InvalidRequest, msg)
 }

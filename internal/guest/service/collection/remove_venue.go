@@ -19,8 +19,8 @@ func (s *service) RemoveVenue(
 	if err != nil {
 		return fmt.Errorf("get collection from repository: %w", err)
 	}
-	if collection.CustomerID != customerID {
-		return apperror.ErrCollectionAccessDenied
+	if err := s.requireCollaborator(ctx, collectionID, customerID, collection.CustomerID); err != nil {
+		return err
 	}
 
 	exists, err := s.collectionRepo.CheckIfVenueInCollection(ctx, collectionID, venueID)

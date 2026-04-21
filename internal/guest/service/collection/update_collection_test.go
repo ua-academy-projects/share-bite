@@ -69,6 +69,44 @@ func TestUpdateCollection(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "success - as collaborator",
+			input: entity.UpdateCollectionInput{
+				CollectionID: collectionID,
+				CustomerID:   customerID,
+				Name:         strPtr(name),
+			},
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: "other-owner-id"}, nil).Once()
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).Once()
+				repo.On("UpdateCollection", mock.Anything, entity.UpdateCollectionInput{
+					CollectionID: collectionID,
+					CustomerID:   customerID,
+					Name:         strPtr(name),
+				}).Return(entity.Collection{ID: collectionID, CustomerID: "other-owner-id", Name: name}, nil).Once()
+			},
+			wantCollection: entity.Collection{ID: collectionID, CustomerID: "other-owner-id", Name: name},
+			wantErr:        nil,
+		},
+		{
+			name: "error - check if collaborator repo fails",
+			input: entity.UpdateCollectionInput{
+				CollectionID: collectionID,
+				CustomerID:   customerID,
+				Name:         strPtr(name),
+			},
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, errRepo).Once()
+			},
+			wantCollection: entity.Collection{},
+			wantErr:        errRepo,
+		},
+		{
 			name: "error - get collection fails",
 			input: entity.UpdateCollectionInput{
 				CollectionID: collectionID,
@@ -85,20 +123,21 @@ func TestUpdateCollection(t *testing.T) {
 			wantErr:        errRepo,
 		},
 		{
-			name: "error - access denied",
+			name: "error - collection not found (outsider)",
 			input: entity.UpdateCollectionInput{
 				CollectionID: collectionID,
 				CustomerID:   customerID,
 				Name:         strPtr(name),
-				Description:  strPtr(description),
-				IsPublic:     boolPtr(true),
 			},
 			mockFn: func(repo *mockCollectionRepository) {
 				repo.On("GetCollection", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, nil).Once()
 			},
 			wantCollection: entity.Collection{},
-			wantErr:        apperror.ErrCollectionAccessDenied,
+			wantErr:        apperror.CollectionNotFoundID(collectionID),
 		},
 		{
 			name: "error - update collection repo fails",

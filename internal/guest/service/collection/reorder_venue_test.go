@@ -75,6 +75,40 @@ func TestReorderVenue(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name: "success - as collaborator",
+			input: entity.ReorderVenueInput{
+				CollectionID: collectionID,
+				CustomerID:   customerID,
+				VenueID:      venueID,
+				PrevVenueID:  &prevVenueID,
+				NextVenueID:  &nextVenueID,
+			},
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).Once()
+
+				repo.On("CheckIfVenueInCollection", mock.Anything, collectionID, venueID).
+					Return(true, nil).Once()
+
+				repo.On("GetCollectionVenue", mock.Anything, collectionID, prevVenueID).
+					Return(entity.CollectionVenue{SortOrder: 100.0}, nil).Once()
+
+				repo.On("GetCollectionVenue", mock.Anything, collectionID, nextVenueID).
+					Return(entity.CollectionVenue{SortOrder: 200.0}, nil).Once()
+
+				repo.On("HasVenuesBetween", mock.Anything, collectionID, venueID, 100.0, 200.0).
+					Return(false, nil).Once()
+
+				repo.On("UpdateVenueSortOrder", mock.Anything, collectionID, venueID, 150.0).
+					Return(nil).Once()
+			},
+			wantErr: nil,
+		},
+		{
 			name: "success - at the top",
 			input: entity.ReorderVenueInput{
 				CollectionID: collectionID,
@@ -186,7 +220,7 @@ func TestReorderVenue(t *testing.T) {
 			wait:    true,
 		},
 		{
-			name: "error - access denied",
+			name: "error - collection not found (outsider)",
 			input: entity.ReorderVenueInput{
 				CollectionID: collectionID,
 				CustomerID:   customerID,
@@ -195,12 +229,31 @@ func TestReorderVenue(t *testing.T) {
 			},
 			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
-
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).
 					Once()
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, nil).Once()
 			},
-			wantErr: apperror.ErrCollectionAccessDenied,
+			wantErr: apperror.CollectionNotFoundID(collectionID),
+		},
+		{
+			name: "error - check if collaborator repo fails",
+			input: entity.ReorderVenueInput{
+				CollectionID: collectionID,
+				CustomerID:   customerID,
+				VenueID:      venueID,
+				PrevVenueID:  &prevVenueID,
+			},
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, errRepo).Once()
+			},
+			wantErr: errRepo,
 		},
 		{
 			name: "error - venue not found in collection",
