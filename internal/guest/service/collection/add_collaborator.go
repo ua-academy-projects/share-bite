@@ -21,6 +21,9 @@ func (s *service) AddCollaborator(ctx context.Context, in entity.AddCollaborator
 		if err := s.requireOwner(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
 			return err
 		}
+		if in.TargetCustomerID == collection.CustomerID {
+			return apperror.CustomerAlreadyCollaborator(in.TargetCustomerID)
+		}
 
 		isCollaborator, err := s.collectionRepo.CheckIfCollaborator(ctx, in.CollectionID, in.TargetCustomerID)
 		if err != nil {
