@@ -1,13 +1,14 @@
 package dto
 
 import (
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"io"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 )
 
 type CreatePostInput struct {
 	CustomerID string
-	VenueID    string
+	VenueID    int64
 	Text       string
 	Rating     int16
 

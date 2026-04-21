@@ -2,9 +2,11 @@ package comment
 
 import (
 	"context"
+
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"fmt"
+
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )

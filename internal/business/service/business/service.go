@@ -2,10 +2,13 @@ package business
 
 import (
 	"context"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/ua-academy-projects/share-bite/internal/business/dto"
+	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 
-	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
@@ -21,6 +24,12 @@ type businessRepository interface {
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.Post], error)
 	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
 
+	CreateBox(ctx context.Context, box *entity.Box) (int64, time.Time, error)
+	CreateBoxItem(ctx context.Context, boxID int64, code string) error
+	GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error)
+	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
+	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
+	DeleteLocation(ctx context.Context, locationID int, brandID int) error
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
@@ -32,14 +41,17 @@ type businessRepository interface {
 type service struct {
 	businessRepo businessRepository
 	txManager    database.TxManager
-	storage storage.ObjectStorage
+	storage      storage.ObjectStorage
 }
 
 func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
-		storage: st,
+		storage:      st,
 	}
 }
 
+func generateCode() string {
+	return uuid.New().String()[:12]
+}

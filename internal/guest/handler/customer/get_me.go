@@ -1,8 +1,9 @@
 package customer
 
 import (
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"net/http"
+
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 
 	"github.com/gin-gonic/gin"
 )

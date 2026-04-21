@@ -3,6 +3,7 @@ package comment
 import (
 	"context"
 	"fmt"
+
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 

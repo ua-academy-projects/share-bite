@@ -6,6 +6,16 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type CreateBoxRequest struct {
+	VenueID       int             `json:"venue_id" binding:"required,gt=0"`
+	CategoryID    *int            `json:"category_id"`
+	Image         string          `json:"image" binding:"required"`
+	FullPrice     decimal.Decimal `json:"price_full" binding:"required"`
+	DiscountPrice decimal.Decimal `json:"price_discount"`
+	ExpiresAt     time.Time       `json:"expires_at" binding:"required"`
+	Quantity      int             `json:"quantity" binding:"required,gt=0"`
+}
+
 type GetNearbyBoxesReq struct {
 	Lat        float64 `form:"lat" binding:"required,latitude"`
 	Lon        float64 `form:"lon" binding:"required,longitude"`
@@ -16,8 +26,8 @@ type GetNearbyBoxesReq struct {
 
 type NearbyBoxesResp struct {
 	Id                 int64           `json:"id" example:"123"`
-	VenueId            int             `json:"venue_id" example:"1"`
-	CategoryID         int             `json:"category_id" example:"2"`
+	VenueID            int             `json:"venue_id" example:"1"`
+	CategoryID         *int            `json:"category_id" example:"2"`
 	Image              string          `json:"image" example:"https://example.com/box.jpg"`
 	FullPrice          decimal.Decimal `json:"full_price" example:"300.00"`
 	DiscountPrice      decimal.Decimal `json:"discount_price" example:"150.00"`

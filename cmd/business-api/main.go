@@ -16,7 +16,6 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
@@ -28,21 +27,21 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 
+	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
-	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
 )
 
-// @title			ShareBite Business API
-// @version		1.0
-// @description	API for discovering brand locations (venues).
+// @title						ShareBite Business API
+// @version					1.0
+// @description				API for discovering brand locations (venues).
 //
 // @securityDefinitions.apikey	BearerAuth
-// @in			header
-// @name		Authorization
+// @in							header
+// @name						Authorization
 //
-// @BasePath		/
+// @BasePath					/
 func main() {
 	ctx := context.Background()
 
@@ -98,7 +97,7 @@ func main() {
 		s3SecretKey := os.Getenv("S3_SECRET_KEY")
 		s3Bucket := os.Getenv("S3_BUCKET")
 		if s3Bucket == "" {
-			logger.Fatal(ctx, "S3_BUCKET is required but not set") 
+			logger.Fatal(ctx, "S3_BUCKET is required but not set")
 		}
 		usePathStyle := os.Getenv("S3_USE_PATH_STYLE") == "true"
 
@@ -145,10 +144,8 @@ func main() {
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
 
-
 	// handlers
 	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager)
-
 
 	go func() {
 		logger.Info(ctx, "business http server is running")
@@ -182,6 +179,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 				return
 			case code.Forbidden:
 				c.JSON(http.StatusForbidden, gin.H{"error": appErr.Error()})
+				return
+			case code.Unauthorized:
+				c.JSON(http.StatusUnauthorized, gin.H{"error": appErr.Error()})
 				return
 			}
 		}

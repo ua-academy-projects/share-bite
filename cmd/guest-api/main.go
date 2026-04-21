@@ -8,9 +8,10 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	swaggerfiles "github.com/swaggo/files"
 	ginswagger "github.com/swaggo/gin-swagger"
+
 	// _ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	businessgateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
@@ -106,7 +107,7 @@ func main() {
 		return nil
 	})
 
-	businessGateway, err := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), "/", httpClient)
+	businessGateway, err := businessgateway.NewBusinessAPIClient(clientCfg.BaseURL(), "/", httpClient)
 	if err != nil {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
 	}
@@ -124,7 +125,6 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
@@ -137,7 +137,6 @@ func main() {
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
 
-	// middlewares
 	authMiddleware := middleware.Auth(tokenManager)
 	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
 	customerMiddleware := middleware.CustomerID(customerSvc)

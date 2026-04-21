@@ -3,6 +3,10 @@ package customer
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -11,9 +15,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	"io"
-	"net/http"
-	"time"
 )
 
 const (

@@ -10,6 +10,7 @@ import (
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/mapper"
 	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
@@ -20,20 +21,20 @@ type CreatePostInput struct {
 
 // CreatePost creates a new business post with images.
 //
-// @Summary      Create business post
-// @Description  Creates a new post for a specific organizational unit with multiple images
-// @Tags         posts
-// @Accept       multipart/form-data
-// @Produce      json
-// @Param        id      path      int                  true  "Unit ID"
-// @Param        content formData  string               true  "Post content"
-// @Param        photos  formData  file                 true  "Post images"
-// @Success      201     {object}  dto.PostResponse
-// @Failure      400     {object}  errorResponse
-// @Failure      403     {object}  errorResponse
-// @Failure      500     {object}  errorResponse
-// @Security     BearerAuth
-// @Router       /business/posts/{id} [post]
+//	@Summary		Create business post
+//	@Description	Creates a new post for a specific organizational unit with multiple images
+//	@Tags			posts
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			id		path		int		true	"Unit ID"
+//	@Param			content	formData	string	true	"Post content"
+//	@Param			photos	formData	file	true	"Post images"
+//	@Success		201		{object}	dto.PostResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		403		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Security		BearerAuth
+//	@Router			/business/posts/{id} [post]
 func (h *handler) CreatePost(c *gin.Context) {
 	var input CreatePostInput
 	ctx := c.Request.Context()
@@ -45,7 +46,7 @@ func (h *handler) CreatePost(c *gin.Context) {
 		return
 	}
 
-	userID, ok := getUserID(c)
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		logger.ErrorKV(ctx, "unauthorized access attempt: user ID not found in gin context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
