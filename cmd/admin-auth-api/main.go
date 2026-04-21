@@ -32,20 +32,20 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	commonmiddleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 
-	// @title           Share Bite Admin Auth API
-	// @version         1.0
-	// @description     This is an authentication microservice for Share Bite.
+	//	@title			Share Bite Admin Auth API
+	//	@version		1.0
+	//	@description	This is an authentication microservice for Share Bite.
 
-	// @host            localhost:3850
-	// @BasePath        /
+	//	@host		localhost:3850
+	//	@BasePath	/
 
 	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 )
 
-// @title Share Bite Admin Auth API
-// @version 1.0
-// @description Admin authentication API documentation.
-// @BasePath /
+// @title			Share Bite Admin Auth API
+// @version		1.0
+// @description	Admin authentication API documentation.
+// @BasePath		/
 func main() {
 	ctx := context.Background()
 

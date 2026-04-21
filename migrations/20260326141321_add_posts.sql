@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS guest.posts (
     id BIGSERIAL PRIMARY KEY,
     customer_id UUID NOT NULL REFERENCES guest.customers(id) ON DELETE CASCADE,
 
-    venue_id INT NOT NULL,
+    venue_id BIGINT NOT NULL,
     text TEXT NOT NULL,
     rating SMALLINT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'published',

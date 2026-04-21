@@ -7,9 +7,9 @@ import (
 )
 
 type Box struct {
-	ID            int64
-	VenueID       int
-	CategoryID    *int
+	ID         int64
+	VenueID    int
+	CategoryID *int
 
 	Image         string
 	FullPrice     decimal.Decimal
