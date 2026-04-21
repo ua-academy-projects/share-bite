@@ -23,7 +23,7 @@ func (d dummyTokenParser) ParseAccessToken(token string) (string, string, error)
 	return "", "", nil
 }
 
-func (m *MockBusinessService) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error) {
+func (m *MockBusinessService) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
 	fakeBox1 := entity.BoxWithDistance{
 		Box: entity.Box{
 			ID:      123,
