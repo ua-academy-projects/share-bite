@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
 func (s *service) UpdateCollection(ctx context.Context, in entity.UpdateCollectionInput) (entity.Collection, error) {
@@ -14,6 +15,11 @@ func (s *service) UpdateCollection(ctx context.Context, in entity.UpdateCollecti
 	}
 	if err := s.requireCollaborator(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
 		return entity.Collection{}, err
+	}
+
+	// only owner can have control over collection visibility
+	if in.IsPublic != nil && in.CustomerID != collection.CustomerID {
+		return entity.Collection{}, apperror.ErrCollectionAccessDenied
 	}
 
 	updatedCollection, err := s.collectionRepo.UpdateCollection(ctx, in)

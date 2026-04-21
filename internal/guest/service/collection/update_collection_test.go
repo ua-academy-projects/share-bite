@@ -189,6 +189,23 @@ func TestUpdateCollection(t *testing.T) {
 			wantCollection: entity.Collection{},
 			wantErr:        apperror.ErrEmptyUpdate,
 		},
+		{
+			name: "error - collaborator cannot change visibility",
+			input: entity.UpdateCollectionInput{
+				CollectionID: collectionID,
+				CustomerID:   customerID,
+				IsPublic:     boolPtr(true),
+			},
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).Once()
+			},
+			wantCollection: entity.Collection{},
+			wantErr:        apperror.ErrCollectionAccessDenied,
+		},
 	}
 
 	for _, tt := range tests {

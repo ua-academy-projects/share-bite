@@ -12,11 +12,11 @@ func (s *service) RemoveCollaborator(ctx context.Context, in entity.RemoveCollab
 	if err != nil {
 		return fmt.Errorf("get collection from repository: %w", err)
 	}
-	if err := s.requireOwner(ctx, in.CollectionID, in.CustomerID, collection.ID); err != nil {
+	if err := s.requireOwner(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
 		return err
 	}
 
-	if err := s.collectionRepo.DeleteCollaborator(ctx, in.CollectionID, in.CustomerID); err != nil {
+	if err := s.collectionRepo.DeleteCollaborator(ctx, in.CollectionID, in.TargetCustomerID); err != nil {
 		return fmt.Errorf("delete collaborator in repository: %w", err)
 	}
 

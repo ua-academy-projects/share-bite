@@ -121,21 +121,12 @@ func (r *repository) UpdateCollection(ctx context.Context, in entity.UpdateColle
 
 	sfx := "RETURNING id, customer_id, name, description, is_public, created_at, updated_at"
 	sql += fmt.Sprintf(
-		`%s, updated_at = now() WHERE
-			id=@id 
-				AND
-			EXISTS (
-				SELECT 1 
-				FROM guest.collection_collaborators collaborators 
-				WHERE collections.id = collaborators.collection_id AND customer_id = @customer_id
-			) 
-		%s`,
+		`%s, updated_at = now() WHERE id=@id %s`,
 		strings.Join(updates, ", "),
 		sfx,
 	)
 
 	args["id"] = in.CollectionID
-	args["customer_id"] = in.CustomerID
 
 	q := database.Query{
 		Name: "collection_repository.UpdateCollection",
