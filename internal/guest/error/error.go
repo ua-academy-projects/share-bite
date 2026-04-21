@@ -31,6 +31,7 @@ var (
 	ErrImageRequired        = newError(code.BadRequest, "image is required")
 	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
 	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
+	ErrMultipartFormData    = newError(code.BadRequest, "content type must be multipart/form-data")
 )
 
 type Error struct {

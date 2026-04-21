@@ -43,6 +43,11 @@ type createResponse struct {
 //	@Failure		500			{object}	errorResponse
 //	@Router			/posts/ [post]
 func (h *handler) create(c *gin.Context) {
+	if c.ContentType() != gin.MIMEMultipartPOSTForm {
+		c.Error(apperror.ErrMultipartFormData)
+		return
+	}
+
 	var req createRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.Error(apperror.BadRequest(err.Error()))
