@@ -116,3 +116,21 @@ func updateCollectionRequestToUpdateCollection(body updateCollectionBody, collec
 		IsPublic:    body.IsPublic,
 	}, nil
 }
+
+func addCollaboratorRequestToAddCollaborator(req addCollaboratorBody, collectionID string, customerID string) entity.AddCollaboratorInput {
+	return entity.AddCollaboratorInput{
+		CollectionID: collectionID,
+		CustomerID:   customerID,
+
+		TargetCustomerID: req.TargetCustomerID,
+	}
+}
+
+func removeCollaboratorRequestToRemoveCollaborator(req removeCollaboratorUri, customerID string) entity.RemoveCollaboratorInput {
+	return entity.RemoveCollaboratorInput{
+		CollectionID: req.CollectionID,
+		CustomerID:   customerID,
+
+		TargetCustomerID: req.TargetCustomerID,
+	}
+}

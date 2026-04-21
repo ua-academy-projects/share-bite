@@ -57,3 +57,18 @@ func (m *mockCollectionService) ListVenues(ctx context.Context, collectionID str
 	args := m.Called(ctx, collectionID, customerID)
 	return args.Get(0).([]entity.EnrichedVenueItem), args.Error(1)
 }
+
+func (m *mockCollectionService) ListCollaborators(ctx context.Context, collectionID string, customerID *string) ([]entity.Collaborator, error) {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Get(0).([]entity.Collaborator), args.Error(1)
+}
+
+func (m *mockCollectionService) AddCollaborator(ctx context.Context, in entity.AddCollaboratorInput) error {
+	args := m.Called(ctx, in)
+	return args.Error(0)
+}
+
+func (m *mockCollectionService) RemoveCollaborator(ctx context.Context, in entity.RemoveCollaboratorInput) error {
+	args := m.Called(ctx, in)
+	return args.Error(0)
+}

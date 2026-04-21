@@ -150,6 +150,7 @@ func main() {
 		authMiddleware,
 		optionalAuthMiddleware,
 		customerMiddleware,
+		storageClient,
 	)
 
 	go func() {
