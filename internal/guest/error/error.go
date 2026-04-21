@@ -138,3 +138,8 @@ func CollectionCollaboratorsLimitReached(limit int) *Error {
 	msg := fmt.Sprintf("collection has reached the limit of %d collaborators", limit)
 	return newError(code.InvalidRequest, msg)
 }
+
+func TargetCustomerNotFound(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q does not exist", customerID)
+	return newError(code.NotFound, msg)
+}
