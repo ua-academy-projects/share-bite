@@ -14,9 +14,14 @@ func (s *service) GetCollection(ctx context.Context, collectionID string, custom
 		return entity.Collection{}, fmt.Errorf("get collection from repository: %w", err)
 	}
 
-	// if its not my collection and not public one -> not found
-	if !canAccessCollection(collection, customerID) {
-		return entity.Collection{}, apperror.CollectionNotFoundID(collectionID)
+	if !collection.IsPublic {
+		if customerID == nil {
+			return entity.Collection{}, apperror.CollectionNotFoundID(collectionID)
+		}
+
+		if err := s.requireCollaborator(ctx, collectionID, *customerID, collection.CustomerID); err != nil {
+			return entity.Collection{}, err
+		}
 	}
 
 	return collection, nil

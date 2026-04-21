@@ -126,6 +126,27 @@ func TestListVenues(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name:         "success - private collection accessed by collaborator",
+			collectionID: collectionID,
+			customerID:   &customerID,
+			mockFn: func(repo *mockCollectionRepository, client *mockBusinessClient) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID(), IsPublic: false}, nil).
+					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).Once()
+
+				repo.On("ListCollectionVenues", mock.Anything, collectionID).
+					Return([]entity.CollectionVenue{collectionVenue1}, nil).Once()
+
+				client.On("ListVenuesByIDs", mock.Anything, []int64{venueID1}).
+					Return(map[int64]entity.Venue{venueID1: venue1}, nil).Once()
+			},
+			wantRes: []entity.EnrichedVenueItem{enrichedVenue1},
+			wantErr: nil,
+		},
+		{
 			name:         "error - get collection fails",
 			collectionID: collectionID,
 			customerID:   &customerID,
@@ -137,12 +158,30 @@ func TestListVenues(t *testing.T) {
 			wantErr: errRepo,
 		},
 		{
-			name:         "error - access denied",
+			name:         "error - private collection accessed unauthenticated",
+			collectionID: collectionID,
+			customerID:   nil,
+			mockFn: func(repo *mockCollectionRepository, client *mockBusinessClient) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{
+						ID:         collectionID,
+						CustomerID: gofakeit.UUID(),
+						IsPublic:   false,
+					}, nil).Once()
+			},
+			wantRes: nil,
+			wantErr: apperror.CollectionNotFoundID(collectionID),
+		},
+		{
+			name:         "error - not found for outsider",
 			collectionID: collectionID,
 			customerID:   &customerID,
 			mockFn: func(repo *mockCollectionRepository, client *mockBusinessClient) {
 				repo.On("GetCollection", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID(), IsPublic: false}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, nil).Once()
 			},
 			wantRes: nil,
 			wantErr: apperror.CollectionNotFoundID(collectionID),
@@ -174,6 +213,21 @@ func TestListVenues(t *testing.T) {
 
 				client.On("ListVenuesByIDs", mock.Anything, []int64{venueID1}).
 					Return(map[int64]entity.Venue{}, errRepo).Once()
+			},
+			wantRes: nil,
+			wantErr: errRepo,
+		},
+		{
+			name:         "error - check if collaborator repo fails",
+			collectionID: collectionID,
+			customerID:   &customerID,
+			mockFn: func(repo *mockCollectionRepository, client *mockBusinessClient) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID(), IsPublic: false}, nil).
+					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, errRepo).Once()
 			},
 			wantRes: nil,
 			wantErr: errRepo,

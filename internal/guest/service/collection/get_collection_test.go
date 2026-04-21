@@ -82,6 +82,21 @@ func TestGetCollection(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name:         "success - private collection accessed by collaborator",
+			collectionID: collectionID,
+			customerID:   &customerID,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: "other-customer-id", IsPublic: false}, nil).
+					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).Once()
+			},
+			wantCollection: entity.Collection{ID: collectionID, CustomerID: "other-customer-id", IsPublic: false},
+			wantErr:        nil,
+		},
+		{
 			name:         "error - repository fails",
 			collectionID: collectionID,
 			customerID:   &customerID,
@@ -93,9 +108,9 @@ func TestGetCollection(t *testing.T) {
 			wantErr:        errRepo,
 		},
 		{
-			name:         "error - access denied",
+			name:         "error - private collection accessed unauthenticated",
 			collectionID: collectionID,
-			customerID:   &customerID,
+			customerID:   nil,
 			mockFn: func(repo *mockCollectionRepository) {
 				repo.On("GetCollection", mock.Anything, collectionID).
 					Return(entity.Collection{
@@ -106,6 +121,40 @@ func TestGetCollection(t *testing.T) {
 			},
 			wantCollection: entity.Collection{},
 			wantErr:        apperror.CollectionNotFoundID(collectionID),
+		},
+		{
+			name:         "error - not found for outsider accessing private collection",
+			collectionID: collectionID,
+			customerID:   &customerID,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{
+						ID:         collectionID,
+						CustomerID: gofakeit.UUID(),
+						IsPublic:   false,
+					}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, nil).
+					Once()
+			},
+			wantCollection: entity.Collection{},
+			wantErr:        apperror.CollectionNotFoundID(collectionID),
+		},
+		{
+			name:         "error - check if collaborator repo fails",
+			collectionID: collectionID,
+			customerID:   &customerID,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID(), IsPublic: false}, nil).
+					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, errRepo).Once()
+			},
+			wantCollection: entity.Collection{},
+			wantErr:        errRepo,
 		},
 	}
 

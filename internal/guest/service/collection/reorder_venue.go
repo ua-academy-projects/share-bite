@@ -23,8 +23,8 @@ func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput)
 		if err != nil {
 			return fmt.Errorf("get collection from repository: %w", err)
 		}
-		if collection.CustomerID != in.CustomerID {
-			return apperror.ErrCollectionAccessDenied
+		if err := s.requireCollaborator(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
+			return err
 		}
 
 		exists, err := s.collectionRepo.CheckIfVenueInCollection(ctx, in.CollectionID, in.VenueID)

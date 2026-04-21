@@ -101,6 +101,33 @@ func (m *mockCollectionRepository) HasVenuesBetween(ctx context.Context, collect
 	return args.Bool(0), args.Error(1)
 }
 
+//
+
+func (m *mockCollectionRepository) ListCollaborators(ctx context.Context, collectionID string) ([]entity.Collaborator, error) {
+	args := m.Called(ctx, collectionID)
+	return args.Get(0).([]entity.Collaborator), args.Error(1)
+}
+
+func (m *mockCollectionRepository) CountCollaborators(ctx context.Context, collectionID string) (int, error) {
+	args := m.Called(ctx, collectionID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *mockCollectionRepository) CreateCollaborator(ctx context.Context, collectionID string, customerID string) error {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Error(0)
+}
+
+func (m *mockCollectionRepository) DeleteCollaborator(ctx context.Context, collectionID string, customerID string) error {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Error(0)
+}
+
+func (m *mockCollectionRepository) CheckIfCollaborator(ctx context.Context, collectionID string, customerID string) (bool, error) {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Bool(0), args.Error(1)
+}
+
 type mockBusinessClient struct {
 	mock.Mock
 }

@@ -60,16 +60,17 @@ func TestDeleteCollection(t *testing.T) {
 			wantErr: errRepo,
 		},
 		{
-			name:         "error - collection access denied",
+			name:         "error - collection access denied (collaborator cannot delete)",
 			collectionID: collectionID,
 			customerID:   customerID,
 			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
-					Return(
-						entity.Collection{
-							ID:         collectionID,
-							CustomerID: gofakeit.UUID(),
-						}, nil).Once()
+				repo.On("GetCollection", mock.Anything, collectionID).Return(
+					entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()},
+					nil,
+				).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).Once()
 			},
 			wantErr: apperror.ErrCollectionAccessDenied,
 		},
@@ -86,6 +87,34 @@ func TestDeleteCollection(t *testing.T) {
 
 				repo.On("DeleteCollection", mock.Anything, collectionID).
 					Return(errRepo).Once()
+			},
+			wantErr: errRepo,
+		},
+		{
+			name:         "error - collection not found (outsider cannot delete)",
+			collectionID: collectionID,
+			customerID:   customerID,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).
+					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, nil).Once()
+			},
+			wantErr: apperror.CollectionNotFoundID(collectionID),
+		},
+		{
+			name:         "error - check if collaborator repo fails",
+			collectionID: collectionID,
+			customerID:   customerID,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).
+					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, errRepo).Once()
 			},
 			wantErr: errRepo,
 		},

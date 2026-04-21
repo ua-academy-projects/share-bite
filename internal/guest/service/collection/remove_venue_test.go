@@ -56,6 +56,40 @@ func TestRemoveVenue(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name:         "success - as collaborator",
+			collectionID: collectionID,
+			customerID:   customerID,
+			venueID:      venueID,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).
+					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).Once()
+
+				repo.On("CheckIfVenueInCollection", mock.Anything, collectionID, venueID).
+					Return(true, nil).Once()
+
+				repo.On("RemoveVenue", mock.Anything, collectionID, venueID).
+					Return(nil).Once()
+			},
+			wantErr: nil,
+		},
+		{
+			name:         "error - check if collaborator repo fails",
+			collectionID: collectionID,
+			customerID:   customerID,
+			venueID:      venueID,
+			mockFn: func(repo *mockCollectionRepository) {
+				repo.On("GetCollection", mock.Anything, collectionID).
+					Return(entity.Collection{ID: collectionID, CustomerID: "other-owner-id"}, nil).Once()
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, errRepo).Once()
+			},
+			wantErr: errRepo,
+		},
+		{
 			name:         "error - get collection repository fails",
 			collectionID: collectionID,
 			customerID:   customerID,
@@ -80,7 +114,7 @@ func TestRemoveVenue(t *testing.T) {
 			wantErr: apperror.CollectionNotFoundID(collectionID),
 		},
 		{
-			name:         "error - collection access denied",
+			name:         "error - collection not found (outsider)",
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
@@ -88,8 +122,11 @@ func TestRemoveVenue(t *testing.T) {
 				repo.On("GetCollection", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).
 					Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, nil).Once()
 			},
-			wantErr: apperror.ErrCollectionAccessDenied,
+			wantErr: apperror.CollectionNotFoundID(collectionID),
 		},
 		{
 			name:         "error - collection venue doesn't exist",
