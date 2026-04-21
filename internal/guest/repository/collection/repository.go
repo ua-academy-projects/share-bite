@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	constraintCollectionVenuesPkey = "collection_venues_pkey"
+	constraintCollectionVenuesPkey        = "collection_venues_pkey"
+	constraintCollectionCollaboratorsPkey = "collection_collaborators_pkey"
 )
 
 type repository struct {
@@ -117,7 +118,20 @@ func (r *repository) UpdateCollection(ctx context.Context, in entity.UpdateColle
 	}
 
 	sfx := "RETURNING id, customer_id, name, description, is_public, created_at, updated_at"
-	sql += fmt.Sprintf("%s, updated_at=now() WHERE id=@id AND customer_id=@customer_id %s", strings.Join(updates, ", "), sfx)
+	sql += fmt.Sprintf(
+		`%s, updated_at = now() WHERE
+			id=@id 
+				AND
+			EXISTS (
+				SELECT 1 
+				FROM guest.collection_collaborators collaborators 
+				WHERE collections.id = collaborators.collection_id AND customer_id = @customer_id
+			) 
+		%s`,
+		strings.Join(updates, ", "),
+		sfx,
+	)
+
 	args["id"] = in.CollectionID
 	args["customer_id"] = in.CustomerID
 
@@ -149,8 +163,15 @@ func (r *repository) ListCustomerCollections(
 ) ([]entity.Collection, error) {
 	sql := `
         SELECT id, customer_id, name, description, is_public, created_at, updated_at
-        FROM guest.collections
-        WHERE customer_id = @customer_id
+        FROM guest.collections collections
+        WHERE 
+			customer_id = @customer_id
+				OR
+			EXISTS (
+				SELECT 1 
+				FROM guest.collection_collaborators collaborators 
+				WHERE collections.id = collaborators.collection_id AND customer_id = @customer_id
+			)
     `
 	args := pgx.NamedArgs{
 		"customer_id": customerID,
@@ -491,4 +512,138 @@ func (r *repository) HasVenuesBetween(ctx context.Context, collectionID string, 
 	}
 
 	return has, nil
+}
+
+func (r *repository) CreateCollaborator(ctx context.Context, collectionID string, customerID string) error {
+	sql := `
+		INSERT INTO guest.collection_collaborators(collection_id, customer_id)
+		VALUES($1, $2)
+	`
+
+	q := database.Query{
+		Name: "collection_repository.CreateCollaborator",
+		Sql:  sql,
+	}
+	args := []any{
+		collectionID,
+		customerID,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, args...)
+	if err != nil {
+		// handle if collaborator is already added
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				switch pgErr.ConstraintName {
+				case constraintCollectionCollaboratorsPkey:
+					return apperror.CustomerAlreadyCollaborator(customerID)
+				}
+			}
+		}
+
+		return executeSQLError(err)
+	}
+
+	return nil
+}
+
+func (r *repository) DeleteCollaborator(ctx context.Context, collectionID string, customerID string) error {
+	sql := `
+		DELETE FROM guest.collection_collaborators
+		WHERE collection_id = $1 AND customer_id = $2
+	`
+
+	q := database.Query{
+		Name: "collection_repository.DeleteCollaborator",
+		Sql:  sql,
+	}
+	args := []any{
+		collectionID,
+		customerID,
+	}
+
+	cmd, err := r.db.DB().ExecContext(ctx, q, args...)
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return apperror.CollaboratorNotFound(customerID)
+	}
+
+	return nil
+}
+
+func (r *repository) CheckIfCollaborator(ctx context.Context, collectionID string, customerID string) (bool, error) {
+	sql := `
+		SELECT EXISTS
+			(SELECT 1 FROM guest.collection_collaborators WHERE collection_id = $1 AND customer_id = $2)
+	`
+
+	q := database.Query{
+		Name: "collection_repository.CheckIfCollaborator",
+		Sql:  sql,
+	}
+	args := []any{
+		collectionID,
+		customerID,
+	}
+
+	var exists bool
+	if err := r.db.DB().QueryRowContext(ctx, q, args...).Scan(&exists); err != nil {
+		return false, scanRowError(err)
+	}
+
+	return exists, nil
+}
+
+func (r *repository) CountCollaborators(ctx context.Context, collectionID string) (int, error) {
+	sql := `
+		SELECT COUNT(*) AS count
+		FROM guest.collection_collaborators
+		WHERE collection_id = $1
+	`
+	q := database.Query{
+		Name: "collection_repository.CountCollaborators",
+		Sql:  sql,
+	}
+
+	var count int
+	if err := r.db.DB().QueryRowContext(ctx, q, collectionID).Scan(&count); err != nil {
+		return 0, scanRowError(err)
+	}
+
+	return count, nil
+}
+
+func (r *repository) ListCollaborators(ctx context.Context, collectionID string) ([]entity.Collaborator, error) {
+	sql := `
+		SELECT 
+			collaborators.collection_id AS collection_id,
+			collaborators.customer_id AS customer_id,
+			customers.username AS username,
+			customers.avatar_object_key AS avatar_object_key,
+			collaborators.added_at AS added_at
+		FROM guest.collection_collaborators collaborators
+		JOIN guest.customers customers ON collaborators.customer_id = customers.id
+		WHERE collection_id = $1
+	`
+	q := database.Query{
+		Name: "collection_repository.ListCollaborators",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, collectionID)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var collaborators Collaborators
+	if err := pgxscan.ScanAll(&collaborators, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	return collaborators.ToEntities(), nil
 }
