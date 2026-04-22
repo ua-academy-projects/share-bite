@@ -1,8 +1,9 @@
 package comment
 
 import (
-	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"net/http"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"

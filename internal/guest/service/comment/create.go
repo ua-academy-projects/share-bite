@@ -3,8 +3,9 @@ package comment
 import (
 	"context"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"strconv"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 )

@@ -130,24 +130,25 @@ func isAllowedImageType(contentType string) bool {
 }
 
 func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error) {
+	const op = "service.post.UpdatePost"
 	post, err := s.businessRepo.GetPostByID(ctx, postID)
 	if err != nil {
-		return nil, fmt.Errorf("get post: %w", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.businessRepo.CheckOwnership(ctx, userID, post.OrgID)
 	if err != nil {
-		return nil, fmt.Errorf("check ownership: %w", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	post, err = s.businessRepo.UpdatePost(ctx, postID, post.OrgID, content)
 	if err != nil {
-		return nil, fmt.Errorf("update post: %w", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	photos, err := s.businessRepo.GetPostPhotos(ctx, post.ID)
 	if err != nil {
-		return nil, fmt.Errorf("get photos: %w", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &entity.PostWithPhotos{
@@ -160,25 +161,36 @@ func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, c
 }
 
 func (s *service) DeletePost(ctx context.Context, postID int64, userID string) error {
+	const op = "service.post.DeletePost"
 	post, err := s.businessRepo.GetPostByID(ctx, postID)
 	if err != nil {
-		return fmt.Errorf("get post: %w", err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.businessRepo.CheckOwnership(ctx, userID, post.OrgID)
 	if err != nil {
-		return fmt.Errorf("check ownership: %w", err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	return s.businessRepo.DeletePost(ctx, postID, post.OrgID)
+	err = s.businessRepo.DeletePost(ctx, postID, post.OrgID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }
 
 func (s *service) CheckOwnership(ctx context.Context, userID string, unitID int) error {
-	return s.businessRepo.CheckOwnership(ctx, userID, unitID)
+	const op = "service.post.CheckOwnership"
+
+	err := s.businessRepo.CheckOwnership(ctx, userID, unitID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }
 
 func (s *service) GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error) {
-
+	const op = "service.post.GetPosts"
 	const maxLimit = 100
 
 	if skip < 0 {
@@ -195,7 +207,7 @@ func (s *service) GetPosts(ctx context.Context, skip, limit int) (pagination.Res
 
 	posts, err := s.businessRepo.GetPosts(ctx, limit, skip)
 	if err != nil {
-		return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("get posts: %w", err)
+		return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	orgCache := make(map[int]*entity.OrgUnit)
@@ -205,14 +217,14 @@ func (s *service) GetPosts(ctx context.Context, skip, limit int) (pagination.Res
 
 		photos, err := s.businessRepo.GetPostPhotos(ctx, post.ID)
 		if err != nil {
-			return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("get photos: %w", err)
+			return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("%s: %w", op, err)
 		}
 
 		org, ok := orgCache[post.OrgID]
 		if !ok {
 			org, err = s.businessRepo.GetById(ctx, post.OrgID)
 			if err != nil {
-				return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("get org: %w", err)
+				return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("%s: %w", op, err)
 			}
 			orgCache[post.OrgID] = org
 		}

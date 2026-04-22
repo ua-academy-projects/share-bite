@@ -127,9 +127,9 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 }
 
 func (r *Repository) GetVenueRating(ctx context.Context, venueID int) (float32, error) {
-    const op = "repository.business.GetVenueRating"
+	const op = "repository.business.GetVenueRating"
 
-    sqlQuery := `
+	sqlQuery := `
         WITH user_averages AS (
             SELECT AVG(rating::numeric) AS user_avg
             FROM guest.posts
@@ -140,18 +140,18 @@ func (r *Repository) GetVenueRating(ctx context.Context, venueID int) (float32, 
         FROM user_averages;
     `
 
-    q := database.Query{
-        Name: "business_repository.GetVenueRating",
-        Sql:  sqlQuery,
-    }
+	q := database.Query{
+		Name: "business_repository.GetVenueRating",
+		Sql:  sqlQuery,
+	}
 
-    var rating float32
-    err := r.db.DB().QueryRowContext(ctx, q, venueID).Scan(&rating)
-    if err != nil {
-        return 0, fmt.Errorf("%s: %w", op, err)
-    }
+	var rating float32
+	err := r.db.DB().QueryRowContext(ctx, q, venueID).Scan(&rating)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
 
-    return rating, nil
+	return rating, nil
 }
 
 func (r *Repository) GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error) {

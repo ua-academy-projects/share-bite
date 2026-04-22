@@ -1,4 +1,5 @@
 package user
+
 type CreateUser struct {
 	Email        string
 	PasswordHash string

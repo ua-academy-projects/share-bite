@@ -15,7 +15,6 @@ type PostPhotos struct {
 	SortOrder int
 }
 
-
 type PostWithPhotos struct {
 	ID        int64
 	OrgID     int

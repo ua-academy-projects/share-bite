@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS guest.comments (
     comment_text varchar(1000) NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON guest.comments(post_id);
 -- +goose StatementEnd

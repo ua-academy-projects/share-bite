@@ -92,6 +92,7 @@ func (m *mockUserRepository) AssignRole(ctx context.Context, userID string, role
 	args := m.Called(ctx, userID, roleID)
 	return args.Error(0)
 }
+
 type stubTokenProvider struct{}
 
 func (s stubTokenProvider) GenerateToken(_ string, _ string) (string, string, error) {

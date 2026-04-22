@@ -9,13 +9,13 @@ COPY . .
 
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -o business cmd/business-api/main.go
+RUN go build -o guest ./cmd/guest-api
 
 FROM ubuntu:22.04
 WORKDIR /app
 
-COPY --from=builder /app/business .
+COPY --from=builder /app/guest .
 
-EXPOSE 3900
+EXPOSE 3800
 
-CMD ["./business"]
+CMD ["./guest"]

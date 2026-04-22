@@ -16,6 +16,7 @@ import (
 )
 
 func (r *Repository) GetPostByID(ctx context.Context, postID int64) (*entity.Post, error) {
+	const op = "repository.post.GetPostByID"
 	q := database.Query{
 		Name: "get_post_by_id",
 		Sql: `
@@ -35,15 +36,16 @@ func (r *Repository) GetPostByID(ctx context.Context, postID int64) (*entity.Pos
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
 		}
-		return nil, fmt.Errorf("get post by id: %w", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &post, nil
 }
 
 func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, error) {
+	const op = "repository.post.GetOrgIDByUserID"
 	q := database.Query{
 		Name: "get_org_by_user_id",
 		Sql: `
@@ -60,15 +62,16 @@ func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, 
 	err := r.db.DB().QueryRowContext(ctx, q, userID, entity.ProfileTypeBrand).Scan(&orgID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			return 0, ErrNotFound
+			return 0, fmt.Errorf("%s: %w", op, ErrNotFound)
 		}
-		return 0, err
+		return 0, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return orgID, nil
 }
 
 func (r *Repository) GetPostPhotos(ctx context.Context, postID int64) ([]string, error) {
+	const op = "repository.post.GetPostPhotos"
 	q := database.Query{
 		Name: "get_post_photos",
 		Sql: `
@@ -81,7 +84,7 @@ func (r *Repository) GetPostPhotos(ctx context.Context, postID int64) ([]string,
 
 	rows, err := r.db.DB().QueryContext(ctx, q, postID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -90,20 +93,20 @@ func (r *Repository) GetPostPhotos(ctx context.Context, postID int64) ([]string,
 	for rows.Next() {
 		var url string
 		if err := rows.Scan(&url); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		imageUrls = append(imageUrls, url)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return imageUrls, nil
 }
 
 func (r *Repository) UpdatePost(ctx context.Context, postID int64, orgID int, content string) (*entity.Post, error) {
-
+	const op = "repository.post.UpdatePost"
 	q := database.Query{
 		Name: "update_post",
 		Sql: `
@@ -121,16 +124,16 @@ func (r *Repository) UpdatePost(ctx context.Context, postID int64, orgID int, co
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
 		}
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &post, nil
 }
 
 func (r *Repository) DeletePost(ctx context.Context, id int64, orgID int) error {
-
+	const op = "repository.post.DeletePost"
 	q := database.Query{
 		Name: "delete_post",
 		Sql: `
@@ -141,17 +144,18 @@ func (r *Repository) DeletePost(ctx context.Context, id int64, orgID int) error 
 
 	tag, err := r.db.DB().ExecContext(ctx, q, id, orgID)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	if tag.RowsAffected() == 0 {
-		return ErrNotFound
+		return fmt.Errorf("%s: %w", op, ErrNotFound)
 	}
 
 	return nil
 }
 
 func (r *Repository) CheckOwnership(ctx context.Context, userID string, unitID int) error {
+	const op = "repository.post.CheckOwnership"
 	checkQuery := `SELECT id
 					FROM business.org_units
 					WHERE id = $1
@@ -178,17 +182,18 @@ func (r *Repository) CheckOwnership(ctx context.Context, userID string, unitID i
 	}
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
-			return ErrForbidden
+			return fmt.Errorf("%s: %w", op, ErrForbidden)
 		}
-		return fmt.Errorf("execute check ownership query: %w", err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
 
 func (r *Repository) CreatePost(ctx context.Context, userID string, unitID int, description string) (*entity.Post, error) {
+	const op = "repository.post.CreatePost"
 	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
 	if !ok {
-		return nil, fmt.Errorf("transaction not found in context")
+		return nil, fmt.Errorf("%s: transaction not found in context", op)
 	}
 	var post entity.Post
 	postQuery := `INSERT INTO business.posts (org_id, content)
@@ -206,28 +211,29 @@ func (r *Repository) CreatePost(ctx context.Context, userID string, unitID int, 
 		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 			return nil, biserr.ErrForbidden
 		}
-		return nil, fmt.Errorf("insert post query: %w", err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return &post, nil
 }
 
 func (r *Repository) InsertPostImages(ctx context.Context, postID int64, URLs []string) error {
+	const op = "repository.post.InsertPostImages"
 	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
 	if !ok {
-		return fmt.Errorf("transaction not found in context")
+		return fmt.Errorf("%s: transaction not found in context", op)
 	}
 	imagesQuery := `INSERT INTO business.post_photos (post_id, image_url, sort_order) 
 					VALUES ($1, $2, $3)`
 	for order, url := range URLs {
 		if _, err := tx.Exec(ctx, imagesQuery, postID, url, order); err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 	}
 	return nil
 }
 
 func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (pagination.Result[entity.Post], error) {
-
+	const op = "repository.post.GetPosts"
 	params := pagination.Params{
 		Table:   "business.posts",
 		Columns: "id, org_id, content, created_at",
@@ -246,7 +252,10 @@ func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (paginatio
 		func(rows pgx.Rows) (entity.Post, error) {
 			var p entity.Post
 			err := rows.Scan(&p.ID, &p.OrgID, &p.Content, &p.CreatedAt)
-			return p, err
+			if err != nil {
+				return p, fmt.Errorf("%s: %w", op, err)
+			}
+			return p, nil
 		},
 	)
 }
