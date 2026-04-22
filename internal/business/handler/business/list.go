@@ -17,7 +17,7 @@ type listRequest struct {
 }
 
 type listItem struct {
-	Id          int      `json:"id" example:"42"`
+	ID          int      `json:"id" example:"42"`
 	Name        string   `json:"name" example:"ShareBite Downtown"`
 	Avatar      *string  `json:"avatar" example:"https://cdn.example.com/avatar.png"`
 	Description *string  `json:"description" example:"A cozy place in the city center."`
@@ -88,7 +88,7 @@ func (h *handler) list(c *gin.Context) {
 
 	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit, tags)
 	if err != nil {
-		log.Error("failed to list locations", "brandId", req.BrandId, "error", err)
+		log.Error("failed to list locations", "brandId", req.BrandID, "error", err)
 		c.Error(err)
 		return
 	}
@@ -96,7 +96,7 @@ func (h *handler) list(c *gin.Context) {
 	items := make([]listItem, 0, len(result.Items))
 	for _, u := range result.Items {
 		items = append(items, listItem{
-			Id:          u.Id,
+			ID:          u.Id,
 			Name:        u.Name,
 			Avatar:      u.Avatar,
 			Description: u.Description,
