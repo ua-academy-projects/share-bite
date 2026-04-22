@@ -9,13 +9,13 @@ import (
 )
 
 type listRequest struct {
-	BrandId int `uri:"id" binding:"required"`
+	BrandID int `uri:"id" binding:"required"`
 	Skip    int `form:"skip"`
 	Limit   int `form:"limit"`
 }
 
 type listItem struct {
-	Id          int      `json:"id" example:"42"`
+	ID          int      `json:"id" example:"42"`
 	Name        string   `json:"name" example:"ShareBite Downtown"`
 	Avatar      *string  `json:"avatar" example:"https://cdn.example.com/avatar.png"`
 	Description *string  `json:"description" example:"A cozy place in the city center."`
@@ -65,11 +65,11 @@ func (h *handler) list(c *gin.Context) {
 		req.Limit = 100
 	}
 
-	log.Info("list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit)
+	log.Info("list locations", "brandId", req.BrandID, "skip", req.Skip, "limit", req.Limit)
 
-	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit)
+	result, err := h.service.List(ctx, req.BrandID, req.Skip, req.Limit)
 	if err != nil {
-		log.Error("failed to list locations", "brandId", req.BrandId, "error", err)
+		log.Error("failed to list locations", "brandId", req.BrandID, "error", err)
 		c.Error(err)
 		return
 	}
@@ -77,7 +77,7 @@ func (h *handler) list(c *gin.Context) {
 	items := make([]listItem, 0, len(result.Items))
 	for _, u := range result.Items {
 		items = append(items, listItem{
-			Id:          u.Id,
+			ID:          u.Id,
 			Name:        u.Name,
 			Avatar:      u.Avatar,
 			Description: u.Description,

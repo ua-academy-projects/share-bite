@@ -80,18 +80,3 @@ func RegisterHandlers(
 type errorResponse struct {
 	Error string `json:"error" example:"not found"`
 }
-
-func getUserID(c *gin.Context) (string, bool) {
-	val, exists := c.Get(middleware.CtxUserID)
-
-	if !exists {
-		return "", false
-	}
-
-	userIDStr, ok := val.(string)
-	if !ok {
-		return "", false
-	}
-
-	return userIDStr, true
-}
