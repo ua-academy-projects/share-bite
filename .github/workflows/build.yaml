@@ -33,11 +33,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install swag
-        run: go install github.com/swaggo/swag/cmd/swag@v1.16.6
-
       - name: Generate swagger
-        run: swag init -g cmd/business-api/main.go -o docs/api
+        run: make generate
 
       - name: Log in to the Container registry
         if: github.event_name != 'pull_request'
