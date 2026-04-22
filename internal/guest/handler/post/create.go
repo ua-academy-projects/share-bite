@@ -1,146 +1,102 @@
 package post
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
-	"io"
+	"mime/multipart"
 	"net/http"
-	"strconv"
+
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-const (
-	maxAvatarSizeBytes = 5 * 1024 * 1024
-	fileSniffSizeBytes = 512
-)
+type createRequest struct {
+	VenueID int64                   `form:"venue_id" binding:"required"`
+	Text    string                  `form:"text" binding:"required,max=2000"`
+	Rating  int16                   `form:"rating" binding:"required,min=1,max=5"`
+	Images  []*multipart.FileHeader `form:"images" binding:"omitempty"`
+}
 
 type createResponse struct {
 	Post postResponse `json:"post"`
 }
 
+// create creates a guest post with optional images.
+//
+//	@Summary		Create post
+//	@Description	Creates a post for the authenticated customer.
+//	@Tags			guest-posts
+//	@Accept			mpfd
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			venue_id	formData	int		true	"Venue ID"
+//	@Param			text		formData	string	true	"Post text"
+//	@Param			rating		formData	int		true	"Rating (1..5)"
+//	@Param			images		formData	file	false	"Post images (jpeg/png, up to 5)"
+//	@Success		201			{object}	createResponse
+//	@Failure		400			{object}	errorResponse
+//	@Failure		401			{object}	errorResponse
+//	@Failure		403			{object}	errorResponse
+//	@Failure		404			{object}	errorResponse
+//	@Failure		502			{object}	errorResponse
+//	@Failure		500			{object}	errorResponse
+//	@Router			/posts/ [post]
 func (h *handler) create(c *gin.Context) {
+	if c.ContentType() != gin.MIMEMultipartPOSTForm {
+		c.Error(apperror.ErrMultipartFormData)
+		return
+	}
+
+	var req createRequest
+	if err := c.ShouldBind(&req); err != nil {
+		c.Error(apperror.BadRequest(err.Error()))
+		return
+	}
+
 	ctx := c.Request.Context()
 
-	userID, err := httpctx.GetUserID(c)
+	customer, err := h.getAuthenticatedCustomer(c)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	customer, err := h.customerService.GetByUserID(ctx, userID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	venueID := c.PostForm("venue_id")
-	if venueID == "" {
-		c.Error(apperror.BadRequest("venue_id is required"))
-		return
-	}
-
-	text := c.PostForm("text")
-	if text == "" {
+	req.Text = strings.TrimSpace(req.Text)
+	if req.Text == "" {
 		c.Error(apperror.BadRequest("text is required"))
 		return
 	}
-	if len(text) > 2000 {
-		c.Error(apperror.BadRequest("text is too long"))
-		return
-	}
 
-	ratingStr := c.PostForm("rating")
-	ratingInt, err := strconv.Atoi(ratingStr)
+	images, err := buildUploadImages(req.Images)
 	if err != nil {
-		c.Error(apperror.BadRequest("invalid rating"))
-		return
-	}
-	if ratingInt < 1 || ratingInt > 5 {
-		c.Error(apperror.BadRequest("rating must be between 1 and 5"))
+		c.Error(err)
 		return
 	}
 
-	form, err := c.MultipartForm()
-	if err != nil {
-		c.Error(apperror.BadRequest("invalid multipart form"))
-		return
-	}
-
-	files := form.File["images"]
-	if len(files) > 5 {
-		c.Error(apperror.BadRequest("too many images, maximum is 5"))
-		return
-	}
-
-	var images []entity.UploadImageInput
-
-	for _, f := range files {
-		if f.Size > maxAvatarSizeBytes {
-			c.Error(apperror.BadRequest("image too large"))
-			return
-		}
-		file, err := f.Open()
-		if err != nil {
-			c.Error(err)
-			return
-		}
-
-		buffer := make([]byte, fileSniffSizeBytes)
-		n, err := file.Read(buffer)
-		if err != nil && err != io.EOF {
-			file.Close()
-			c.Error(err)
-			return
-		}
-
-		contentType := http.DetectContentType(buffer[:n])
-		if !isAllowedImageContentType(contentType) {
-			file.Close()
-			c.Error(apperror.ErrUnsupportedImageType)
-			return
-		}
-		seeker, ok := file.(io.Seeker)
-		if !ok {
-			file.Close()
-			c.Error(apperror.Internal("uploaded file is not seekable"))
-			return
-		}
-
-		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
-			file.Close()
-			c.Error(err)
-			return
-		}
-
-		images = append(images, entity.UploadImageInput{
-			File:        file,
-			ContentType: contentType,
-			FileSize:    f.Size,
+	dtoImages := make([]dto.UploadImageInput, 0, len(images))
+	for _, image := range images {
+		dtoImages = append(dtoImages, dto.UploadImageInput{
+			File:        image.File,
+			ContentType: image.ContentType,
+			FileSize:    image.FileSize,
 		})
 	}
 
-	in := entity.CreatePostInput{
+	in := dto.CreatePostInput{
 		CustomerID: customer.ID,
-		VenueID:    venueID,
-		Text:       text,
-		Rating:     int16(ratingInt),
-		Images:     images,
+		VenueID:    req.VenueID,
+		Text:       req.Text,
+		Rating:     req.Rating,
+		Images:     dtoImages,
 	}
+
 	post, err := h.service.Create(ctx, in)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, createResponse{Post: postToResponse(post, h.storage)})
-}
-
-func isAllowedImageContentType(contentType string) bool {
-	switch contentType {
-	case "image/jpeg", "image/png":
-		return true
-	default:
-		return false
-	}
+	resp := createResponse{Post: postToResponse(post, h.storage, customer)}
+	c.JSON(http.StatusCreated, resp)
 }

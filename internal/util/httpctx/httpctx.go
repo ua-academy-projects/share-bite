@@ -30,3 +30,21 @@ func GetUserID(c *gin.Context) (string, error) {
 func GetUserRole(c *gin.Context) (string, error) {
 	return Get[string](c, middleware.CtxUserRole)
 }
+
+func GetCustomerID(c *gin.Context) (string, error) {
+	return Get[string](c, middleware.CtxCustomerID)
+}
+
+func GetOptionalCustomerID(c *gin.Context) (*string, error) {
+	val, ok := c.Get(middleware.CtxCustomerID)
+	if !ok {
+		return nil, nil
+	}
+
+	typedVal, ok := val.(string)
+	if !ok {
+		return nil, fmt.Errorf("%s invalid type in context", middleware.CtxCustomerID)
+	}
+
+	return &typedVal, nil
+}

@@ -3,16 +3,18 @@ package post
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-func (s *service) Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error) {
+func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
 	exists, err := s.venueProvider.CheckExists(ctx, in.VenueID)
 	if err != nil {
 		return entity.Post{}, fmt.Errorf("check venue exists: %w", err)
@@ -25,29 +27,6 @@ func (s *service) Create(ctx context.Context, in entity.CreatePostInput) (entity
 	}
 
 	var uploadedKeys []string
-	var postImages []entity.PostImage
-
-	for i, img := range in.Images {
-		ext := extensionFromContentType(img.ContentType)
-		if ext == "" {
-			return entity.Post{}, apperror.ErrUnsupportedImageType
-		}
-		objectKey := generatePostImageKey(in.CustomerID, ext)
-
-		uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
-		if err != nil {
-			rollbackUploadedImages(s.storage, uploadedKeys)
-			return entity.Post{}, fmt.Errorf("upload post image to storage: %w", err)
-		}
-		uploadedKeys = append(uploadedKeys, uploadedKey)
-
-		postImages = append(postImages, entity.PostImage{
-			ObjectKey:   uploadedKey,
-			ContentType: img.ContentType,
-			FileSize:    img.FileSize,
-			SortOrder:   int16(i),
-		})
-	}
 
 	var post entity.Post
 
@@ -57,11 +36,30 @@ func (s *service) Create(ctx context.Context, in entity.CreatePostInput) (entity
 			return fmt.Errorf("create post in post repository: %w", err)
 		}
 
-		if len(postImages) > 0 {
-			for i := range postImages {
-				postImages[i].PostID = createdPost.ID
+		postImages := make([]entity.PostImage, 0, len(in.Images))
+		for i, img := range in.Images {
+			ext := extensionFromContentType(img.ContentType)
+			if ext == "" {
+				return apperror.ErrUnsupportedImageType
 			}
 
+			objectKey := generatePostImageKey(in.CustomerID, createdPost.ID, ext)
+			uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
+			if err != nil {
+				return fmt.Errorf("upload post image to storage: %w", err)
+			}
+
+			uploadedKeys = append(uploadedKeys, uploadedKey)
+			postImages = append(postImages, entity.PostImage{
+				PostID:      createdPost.ID,
+				ObjectKey:   uploadedKey,
+				ContentType: img.ContentType,
+				FileSize:    img.FileSize,
+				SortOrder:   int16(i),
+			})
+		}
+
+		if len(postImages) > 0 {
 			if err := s.postRepo.CreateImages(txCtx, postImages); err != nil {
 				return fmt.Errorf("create post images in post repository: %w", err)
 			}
@@ -77,7 +75,7 @@ func (s *service) Create(ctx context.Context, in entity.CreatePostInput) (entity
 		rollbackUploadedImages(s.storage, uploadedKeys)
 		return entity.Post{}, fmt.Errorf("execute post creation transaction: %w", err)
 	}
-	post.Images = postImages
+
 	return post, nil
 }
 
@@ -103,8 +101,8 @@ func cleanupDelete(objectStorage storage.ObjectStorage, key string) {
 	}
 }
 
-func generatePostImageKey(id string, ext string) string {
-	return fmt.Sprintf("posts/%s/%s.%s", id, uuid.New().String(), ext)
+func generatePostImageKey(customerID, postID, ext string) string {
+	return fmt.Sprintf("posts/%s/%s/%s.%s", customerID, postID, uuid.New().String(), ext)
 }
 
 func extensionFromContentType(contentType string) string {
