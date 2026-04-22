@@ -9,7 +9,7 @@ COPY . .
 
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -o guest cmd/guest-api/main.go
+RUN go build -o guest ./cmd/guest-api
 
 FROM ubuntu:22.04
 WORKDIR /app
