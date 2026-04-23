@@ -49,6 +49,9 @@ func (m *TokenManager) ParseAccessToken(token string) (string, string, error) {
 func (m *TokenManager) ParseRefreshToken(token string) (string, string, error) {
 	return m.parse(token, m.refreshSecret, "refresh")
 }
+func (m *TokenManager) GetRefreshTTL() time.Duration {
+	return m.refreshTTL
+}
 
 func (m *TokenManager) generate(userID, role, secret string, ttl time.Duration, tokenType string) (string, error) {
 	if secret == "" {
