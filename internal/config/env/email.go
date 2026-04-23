@@ -1,11 +1,16 @@
 package env
 
-import "github.com/caarlos0/env/v11"
+import (
+	"time"
+
+	"github.com/caarlos0/env/v11"
+)
 
 type emailConfig struct {
-	EmailSenderProvider string `env:"EMAIL_SENDER_PROVIDER"`
-	ResendAPIKey        string `env:"RESEND_API_KEY"`
-	ResendFromEmail     string `env:"RESEND_FROM_EMAIL"`
+	EmailSenderProvider string        `env:"EMAIL_SENDER_PROVIDER"`
+	ResendAPIKey        string        `env:"RESEND_API_KEY"`
+	ResendFromEmail     string        `env:"RESEND_FROM_EMAIL"`
+	PasswordResetTTL    time.Duration `env:"PASSWORD_RESET_TTL"`
 }
 
 func NewEmailConfig() (*emailConfig, error) {
@@ -31,4 +36,8 @@ func (c *emailConfig) SenderProviderValue() string {
 	}
 
 	return c.EmailSenderProvider
+}
+
+func (c *emailConfig) PasswordResetTTLValue() time.Duration {
+	return c.PasswordResetTTL
 }
