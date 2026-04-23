@@ -17,8 +17,8 @@ func ToPostResponse(post *entity.PostWithPhotos) dto.PostResponse {
 			Name        string `json:"name"`
 			ProfileType string `json:"profileType"`
 		}{
-			ID: post.OrgID,
-			Name: post.OrgName,
+			ID:          post.OrgID,
+			Name:        post.OrgName,
 			ProfileType: post.ProfileType,
 		},
 	}

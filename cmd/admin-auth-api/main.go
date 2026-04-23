@@ -34,10 +34,10 @@ import (
 	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 )
 
-// @title Share Bite Admin Auth API
-// @version 1.0
-// @description Admin authentication API documentation.
-// @BasePath /
+// @title			Share Bite Admin Auth API
+// @version		1.0
+// @description	Admin authentication API documentation.
+// @BasePath		/
 func main() {
 	ctx := context.Background()
 

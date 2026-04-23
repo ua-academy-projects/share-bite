@@ -11,7 +11,7 @@ import (
 type Post struct {
 	ID         int64             `db:"id"`
 	CustomerID string            `db:"customer_id"`
-	VenueID    string            `db:"venue_id"`
+	VenueID    int64             `db:"venue_id"`
 	Text       string            `db:"text"`
 	Rating     int16             `db:"rating"`
 	Status     entity.PostStatus `db:"status"`
@@ -19,8 +19,9 @@ type Post struct {
 	LikesCount  int  `db:"likes_count"`
 	IslikedByMe bool `db:"is_liked_by_me"`
 
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	CreatedAt   time.Time  `db:"created_at"`
+	UpdatedAt   time.Time  `db:"updated_at"`
+	PublishedAt *time.Time `db:"published_at"`
 }
 
 func (p *Post) ToEntity() entity.Post {
@@ -35,6 +36,7 @@ func (p *Post) ToEntity() entity.Post {
 		IsLikedByMe: p.IslikedByMe,
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
+		PublishedAt: p.PublishedAt,
 	}
 }
 

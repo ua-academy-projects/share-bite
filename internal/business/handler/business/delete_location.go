@@ -1,9 +1,9 @@
 package business
 
 import (
-	"net/http"
 	"crypto/sha256"
 	"encoding/hex"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"

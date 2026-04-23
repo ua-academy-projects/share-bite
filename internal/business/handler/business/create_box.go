@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
-	"github.com/shopspring/decimal"
 )
 
 type createBoxRequest struct {
@@ -24,20 +24,20 @@ type createBoxRequest struct {
 
 // CreateBox creates a limited box for a venue.
 //
-// @Summary      Create box
-// @Description  Creates a box and its limited box items for a specific venue if the user has permission
-// @Tags         boxes
-// @Accept       json
-// @Produce      json
-// @Param        input body      createBoxRequest  true  "Box data"
-// @Success      201   {object}  CreateBoxResponse
-// @Failure      400   {object}  errorResponse
-// @Failure      401   {object}  errorResponse
-// @Failure      403   {object}  errorResponse
-// @Failure      404   {object}  errorResponse
-// @Failure      500   {object}  errorResponse
-// @Security     BearerAuth
-// @Router       /business/boxes [post]
+//	@Summary		Create box
+//	@Description	Creates a box and its limited box items for a specific venue if the user has permission
+//	@Tags			boxes
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		createBoxRequest	true	"Box data"
+//	@Success		201		{object}	CreateBoxResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		401		{object}	errorResponse
+//	@Failure		403		{object}	errorResponse
+//	@Failure		404		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Security		BearerAuth
+//	@Router			/business/boxes [post]
 func (h *handler) CreateBox(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
@@ -52,15 +52,15 @@ func (h *handler) CreateBox(c *gin.Context) {
 	}
 
 	if req.VenueID <= 0 ||
-	(req.CategoryID != nil && *req.CategoryID <= 0) ||
-	req.FullPrice.LessThanOrEqual(decimal.Zero) ||
-	req.DiscountPrice.LessThan(decimal.Zero) ||
-	req.DiscountPrice.GreaterThan(req.FullPrice) ||
-	len(req.Image) > 256 ||
-	!req.ExpiresAt.After(time.Now()) {
-	c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-	return
-}
+		(req.CategoryID != nil && *req.CategoryID <= 0) ||
+		req.FullPrice.LessThanOrEqual(decimal.Zero) ||
+		req.DiscountPrice.LessThan(decimal.Zero) ||
+		req.DiscountPrice.GreaterThan(req.FullPrice) ||
+		len(req.Image) > 256 ||
+		!req.ExpiresAt.After(time.Now()) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
 
 	box, err := h.service.CreateBox(c.Request.Context(), userID, dto.CreateBoxRequest{
 		VenueID:       req.VenueID,

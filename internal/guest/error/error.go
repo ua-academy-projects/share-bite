@@ -31,6 +31,7 @@ var (
 	ErrImageRequired        = newError(code.BadRequest, "image is required")
 	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
 	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
+	ErrMultipartFormData    = newError(code.BadRequest, "content type must be multipart/form-data")
 )
 
 type Error struct {
@@ -62,8 +63,8 @@ func newError(code code.Code, err string) *Error {
 	}
 }
 
-func VenueNotFoundID(venueID string) *Error {
-	msg := fmt.Sprintf("venue with id %q was not found", venueID)
+func VenueNotFoundID(venueID int64) *Error {
+	msg := fmt.Sprintf("venue with id %d was not found", venueID)
 	return newError(code.NotFound, msg)
 }
 
@@ -112,4 +113,9 @@ func VenueNotFoundInCollection(venueID int64) *Error {
 func CommentNotFoundID(commentID int64) *Error {
 	msg := fmt.Sprintf("comment with id %d was not found", commentID)
 	return newError(code.NotFound, msg)
+}
+
+func InvalidPostStatusTransition(from, to string) *Error {
+	msg := fmt.Sprintf("invalid post status transition: %s -> %s", from, to)
+	return newError(code.InvalidRequest, msg)
 }

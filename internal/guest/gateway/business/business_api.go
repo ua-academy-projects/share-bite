@@ -2,17 +2,18 @@ package business
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/locations"
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/venues"
 	business_dto "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/dto"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -21,6 +22,11 @@ import (
 )
 
 const maxErrorBodySize = 2048
+
+type businessVenueResponseDTO struct {
+	VenueID string `json:"venue_id"`
+	Status  string `json:"status"`
+}
 
 type businessAPIClient struct {
 	api    *business_client.ShareBiteBusinessAPI
@@ -32,13 +38,18 @@ type businessAPIClient struct {
 }
 
 func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client) (*businessAPIClient, error) {
-	u, err := url.Parse(baseURL)
+	normalizedBaseURL := strings.TrimSpace(baseURL)
+	if !strings.Contains(normalizedBaseURL, "://") {
+		normalizedBaseURL = "http://" + normalizedBaseURL
+	}
+
+	u, err := url.Parse(normalizedBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse business baseURL: %w", err)
 	}
 
 	if u.Scheme == "" || u.Host == "" {
-		return nil, fmt.Errorf("invalid business baseURL %q: scheme and host are required", baseURL)
+		return nil, fmt.Errorf("invalid business baseURL %q: scheme and host are required", normalizedBaseURL)
 	}
 	if httpClient == nil {
 		return nil, fmt.Errorf("http client should be initialized")
@@ -51,51 +62,66 @@ func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Clie
 		api:     api,
 		scheme:  u.Scheme,
 		client:  httpClient,
-		baseURL: baseURL,
+		baseURL: strings.TrimRight(normalizedBaseURL, "/"),
 	}, nil
 }
 
-func (c *businessAPIClient) CheckExists(ctx context.Context, venueID string) (bool, error) {
-	reqURL, err := url.JoinPath(c.baseURL, "api", "internal", "venues", venueID)
-	if err != nil {
-		return false, fmt.Errorf("join url path: %w", err)
+func (c *businessAPIClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
+	params := locations.NewGetBusinessOrgUnitsIDParamsWithContext(ctx).WithID(venueID)
+
+	_, err := c.api.Locations.GetBusinessOrgUnitsID(params, schemeLocationClientOption(c.scheme))
+	if err == nil {
+		return true, nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-	if err != nil {
-		return false, fmt.Errorf("create request: %w", err)
-	}
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return false, fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err)
-	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
-	}()
-
-	statusCode := resp.StatusCode
-
-	if statusCode == http.StatusOK {
-		var dto businessVenueResponseDTO
-		if err := json.NewDecoder(resp.Body).Decode(&dto); err != nil {
-			return false, fmt.Errorf("decode response: %w: %w", apperror.ErrUpstreamError, err)
-		}
-		return dto.Status == "active", nil
-	}
-
-	if statusCode == http.StatusNotFound {
+	var notFoundErr *locations.GetBusinessOrgUnitsIDNotFound
+	if errors.As(err, &notFoundErr) {
 		return false, nil
 	}
 
-	errBody, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodySize))
-
-	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
-		return false, fmt.Errorf("client error %d: %s: %w", statusCode, string(errBody), apperror.ErrUpstreamError)
+	statusCode := 0
+	type withStatusCode interface {
+		Code() int
+	}
+	var codeErr withStatusCode
+	if errors.As(err, &codeErr) {
+		statusCode = codeErr.Code()
 	}
 
-	return false, fmt.Errorf("server error %d: %s: %w", statusCode, string(errBody), apperror.ErrUpstreamError)
+	if statusCode == 0 {
+		return false, fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err)
+	}
+
+	errMsg := ""
+	var badRequestErr *locations.GetBusinessOrgUnitsIDBadRequest
+	if errors.As(err, &badRequestErr) {
+		if payload := badRequestErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	var internalErr *locations.GetBusinessOrgUnitsIDInternalServerError
+	if errMsg == "" && errors.As(err, &internalErr) {
+		if payload := internalErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	if errMsg == "" {
+		errMsg = strings.TrimSpace(err.Error())
+	}
+	if errMsg == "" {
+		errMsg = apperror.ErrUpstreamError.Error()
+	}
+	if len(errMsg) > maxErrorBodySize {
+		errMsg = errMsg[:maxErrorBodySize]
+	}
+
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		return false, fmt.Errorf("client error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError)
+	}
+
+	return false, fmt.Errorf("server error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError)
 }
 
 func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error) {
@@ -172,6 +198,12 @@ func removeDuplicates(in []int64) []int64 {
 }
 
 func schemeClientOption(scheme string) venues.ClientOption {
+	return func(op *runtime.ClientOperation) {
+		op.Schemes = []string{scheme}
+	}
+}
+
+func schemeLocationClientOption(scheme string) locations.ClientOption {
 	return func(op *runtime.ClientOperation) {
 		op.Schemes = []string{scheme}
 	}
