@@ -23,7 +23,14 @@ type Repository interface {
 	CreateWithSocial(ctx context.Context, params dto.CreateUserWithSocialParams) (*dto.CreatedUser, error)
 	LinkSocialAccount(ctx context.Context, params dto.CreateSocialAccountParams) error
 	CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error
-	ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error)
+	ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error)
+	StoreRefreshToken(ctx context.Context, params dto.StoreRefreshTokenParams) error
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
+	GetUserIDByRefreshToken(ctx context.Context, tokenHash string) (string, error)
+	RevokeAllUserTokens(ctx context.Context, userID string) error
+	CountActiveSessions(ctx context.Context, userID string) (int, error)
+	DeleteOldestSession(ctx context.Context, userID string) error
+	DeleteExpiredTokens(ctx context.Context) error
 }
 
 type repository struct {
@@ -99,7 +106,7 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.Cr
 	return nil
 }
 
-func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error) {
+func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error) {
 	var userID string
 
 	consumeTokenQuery := database.Query{
@@ -126,17 +133,17 @@ func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash 
 
 	if err := r.client.DB().QueryRowContext(ctx, consumeTokenQuery, tokenHash).Scan(&userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, apperr.ErrInvalidResetToken
+			return "", false, apperr.ErrInvalidResetToken
 		}
 
-		return false, fmt.Errorf("consume password reset token: %w", err)
+		return "", false, fmt.Errorf("consume password reset token: %w", err)
 	}
 
 	if _, err := r.client.DB().ExecContext(ctx, updatePasswordQuery, userID, passwordHash); err != nil {
-		return false, fmt.Errorf("update password: %w", err)
+		return "", false, fmt.Errorf("update password: %w", err)
 	}
 
-	return true, nil
+	return userID, true, nil
 }
 
 func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error) {
@@ -295,6 +302,128 @@ func (r *repository) LinkSocialAccount(ctx context.Context, params dto.CreateSoc
 		}
 
 		return apperr.Wrap(http.StatusInternalServerError, "failed to link social account", err)
+	}
+
+	return nil
+}
+
+func (r *repository) StoreRefreshToken(ctx context.Context, params dto.StoreRefreshTokenParams) error {
+	q := database.Query{
+		Name: "user.StoreRefreshToken",
+		Sql: `INSERT INTO auth.refresh_tokens (user_id, token_hash, expires_at)
+			  VALUES ($1, $2, $3)`,
+	}
+	_, err := r.client.DB().ExecContext(ctx, q, params.UserID, params.TokenHash, params.ExpiresAt)
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to store refresh token", err)
+	}
+	return nil
+}
+
+func (r *repository) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
+	q := database.Query{
+		Name: "user.RevokeRefreshToken",
+		Sql:  `UPDATE auth.refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1 AND revoked_at IS NULL RETURNING token_hash`,
+	}
+	var returnedHash string
+	err := r.client.DB().QueryRowContext(ctx, q, tokenHash).Scan(&returnedHash)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return apperr.ErrInvalidToken
+		}
+		return apperr.Wrap(http.StatusInternalServerError, "failed to revoke refresh token", err)
+	}
+
+	return nil
+}
+
+func (r *repository) GetUserIDByRefreshToken(ctx context.Context, tokenHash string) (string, error) {
+	q := database.Query{
+		Name: "user.GetUserIDByRefreshToken",
+		Sql:  `SELECT user_id FROM auth.refresh_tokens WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > NOW()`,
+	}
+	var userID string
+	row := r.client.DB().QueryRowContext(ctx, q, tokenHash)
+	if err := row.Scan(&userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", apperr.ErrInvalidToken
+		}
+		return "", apperr.Wrap(http.StatusInternalServerError, "failed to fetch user id", err)
+	}
+	return userID, nil
+}
+
+func (r *repository) RevokeAllUserTokens(ctx context.Context, userID string) error {
+	q := database.Query{
+		Name: "user.RevokeAllUserTokens",
+		Sql:  `UPDATE auth.refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`,
+	}
+	_, err := r.client.DB().ExecContext(ctx, q, userID)
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to revoke all user tokens", err)
+	}
+	return nil
+}
+
+func (r *repository) CountActiveSessions(ctx context.Context, userID string) (int, error) {
+	q := database.Query{
+		Name: "user.CountActiveSessions",
+		Sql: `
+          SELECT COUNT(*) 
+          FROM auth.refresh_tokens 
+          WHERE user_id = $1 
+            AND revoked_at IS NULL 
+            AND expires_at > NOW()
+       `,
+	}
+
+	var count int
+	err := r.client.DB().QueryRowContext(ctx, q, userID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count active sessions: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *repository) DeleteOldestSession(ctx context.Context, userID string) error {
+	q := database.Query{
+		Name: "user.DeleteOldestSession",
+		Sql: `
+         DELETE FROM auth.refresh_tokens 
+			WHERE id = (
+   			 SELECT id FROM auth.refresh_tokens 
+    		 WHERE user_id = $1 
+      		 AND revoked_at IS NULL 
+      		 AND expires_at > NOW()
+    		 ORDER BY created_at ASC 
+    		 LIMIT 1
+			)
+       `,
+	}
+
+	_, err := r.client.DB().ExecContext(ctx, q, userID)
+	if err != nil {
+		return fmt.Errorf("delete oldest session: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) DeleteExpiredTokens(ctx context.Context) error {
+	q := database.Query{
+		Name: "user.DeleteExpiredTokens",
+		Sql: `
+          DELETE FROM auth.refresh_tokens 
+          WHERE expires_at < NOW() - INTERVAL '3 days' 
+             OR (revoked_at IS NOT NULL AND revoked_at < NOW() - INTERVAL '3 days')
+       `,
+	}
+
+	_, err := r.client.DB().ExecContext(ctx, q)
+	if err != nil {
+		return fmt.Errorf("cleanup expired tokens: %w", err)
 	}
 
 	return nil
