@@ -3,6 +3,7 @@ package follow
 import (
 	"github.com/gin-gonic/gin"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"net/http"
 )

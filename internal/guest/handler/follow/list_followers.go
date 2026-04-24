@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 	"net/http"
@@ -21,7 +22,7 @@ import (
 // @Param			pageSize	query	int		false	"Page size (default 20)"
 // @Param			pageToken	query	string	false	"Cursor for pagination"
 //
-// @Success		200	{object}	dto.ListFollowersResponse
+// @Success		200	{object}	dto.ListCustomersResponse
 // @Failure		400	{object}	response.ErrorResponse		"Invalid request or page token"
 // @Failure		403	{object}	response.ErrorResponse		"Followers list is private"
 // @Failure		404	{object}	response.ErrorResponse		"Customer not found"
@@ -54,6 +55,6 @@ func (h *handler) listFollowers(c *gin.Context) {
 		return
 	}
 
-	resp := listFollowersOutputToResponse(out)
+	resp := h.listCustomersResponse(out.Customers, out.NextPageToken)
 	c.JSON(http.StatusOK, resp)
 }
