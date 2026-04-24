@@ -34,7 +34,7 @@ func (h *handler) update(c *gin.Context) {
 		return
 	}
 
-	resp := updateResponse{Customer: CustomerToResponse(customer)}
+	resp := updateResponse{Customer: h.toResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -50,5 +50,5 @@ type updateRequest struct {
 }
 
 type updateResponse struct {
-	Customer CustomerResponse `json:"customer"`
+	Customer customerResponse `json:"customer"`
 }
