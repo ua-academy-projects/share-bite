@@ -17,6 +17,7 @@ import (
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
+	FindByID(ctx context.Context, id string) (*dto.UserWithRole, error)
 	CreateUser(ctx context.Context, user CreateUser) (*CreatedUser, error)
 	AssignRole(ctx context.Context, userID string, roleID int) error
 	FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error)
@@ -28,8 +29,7 @@ type Repository interface {
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	GetUserIDByRefreshToken(ctx context.Context, tokenHash string) (string, error)
 	RevokeAllUserTokens(ctx context.Context, userID string) error
-	CountActiveSessions(ctx context.Context, userID string) (int, error)
-	DeleteOldestSession(ctx context.Context, userID string) error
+	EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error
 	DeleteExpiredTokens(ctx context.Context) error
 }
 
@@ -65,6 +65,35 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 			return nil, nil
 		}
 		return nil, fmt.Errorf("find by email: %w", err)
+	}
+
+	return u, nil
+}
+
+func (r *repository) FindByID(ctx context.Context, id string) (*dto.UserWithRole, error) {
+	q := database.Query{
+		Name: "user.FindByID",
+		Sql: `
+          SELECT u.id, u.email, u.password_hash, r.slug
+          FROM auth.users u
+          LEFT JOIN auth.user_roles ur ON u.id = ur.user_id
+          LEFT JOIN auth.roles r ON ur.role_id = r.id
+          WHERE u.id = $1
+       `,
+	}
+
+	row := r.client.DB().QueryRowContext(ctx, q, id)
+	u := new(dto.UserWithRole)
+	if err := row.Scan(
+		&u.ID,
+		&u.Email,
+		&u.PasswordHash,
+		&u.RoleSlug,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find by id: %w", err)
 	}
 
 	return u, nil
@@ -323,15 +352,11 @@ func (r *repository) StoreRefreshToken(ctx context.Context, params dto.StoreRefr
 func (r *repository) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
 	q := database.Query{
 		Name: "user.RevokeRefreshToken",
-		Sql:  `UPDATE auth.refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1 AND revoked_at IS NULL RETURNING token_hash`,
+		Sql:  `UPDATE auth.refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1 AND revoked_at IS NULL`,
 	}
-	var returnedHash string
-	err := r.client.DB().QueryRowContext(ctx, q, tokenHash).Scan(&returnedHash)
 
+	_, err := r.client.DB().ExecContext(ctx, q, tokenHash)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return apperr.ErrInvalidToken
-		}
 		return apperr.Wrap(http.StatusInternalServerError, "failed to revoke refresh token", err)
 	}
 
@@ -366,46 +391,32 @@ func (r *repository) RevokeAllUserTokens(ctx context.Context, userID string) err
 	return nil
 }
 
-func (r *repository) CountActiveSessions(ctx context.Context, userID string) (int, error) {
+func (r *repository) EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error {
+	keepCount := maxSessions - 1
+	if keepCount < 0 {
+		keepCount = 0
+	}
+
 	q := database.Query{
-		Name: "user.CountActiveSessions",
+		Name: "user.EnforceMaxSessions",
 		Sql: `
-          SELECT COUNT(*) 
-          FROM auth.refresh_tokens 
-          WHERE user_id = $1 
-            AND revoked_at IS NULL 
-            AND expires_at > NOW()
+          UPDATE auth.refresh_tokens
+          SET revoked_at = NOW()
+          WHERE id IN (
+             SELECT id 
+             FROM auth.refresh_tokens 
+             WHERE user_id = $1 
+               AND revoked_at IS NULL 
+               AND expires_at > NOW()
+             ORDER BY created_at DESC 
+             OFFSET $2
+          )
        `,
 	}
 
-	var count int
-	err := r.client.DB().QueryRowContext(ctx, q, userID).Scan(&count)
+	_, err := r.client.DB().ExecContext(ctx, q, userID, keepCount)
 	if err != nil {
-		return 0, fmt.Errorf("count active sessions: %w", err)
-	}
-
-	return count, nil
-}
-
-func (r *repository) DeleteOldestSession(ctx context.Context, userID string) error {
-	q := database.Query{
-		Name: "user.DeleteOldestSession",
-		Sql: `
-         DELETE FROM auth.refresh_tokens 
-			WHERE id = (
-   			 SELECT id FROM auth.refresh_tokens 
-    		 WHERE user_id = $1 
-      		 AND revoked_at IS NULL 
-      		 AND expires_at > NOW()
-    		 ORDER BY created_at ASC 
-    		 LIMIT 1
-			)
-       `,
-	}
-
-	_, err := r.client.DB().ExecContext(ctx, q, userID)
-	if err != nil {
-		return fmt.Errorf("delete oldest session: %w", err)
+		return fmt.Errorf("enforce max sessions: %w", err)
 	}
 
 	return nil

@@ -48,6 +48,15 @@ func (m *mockUserRepository) FindRoleBySlug(ctx context.Context, slug string) (*
 	return role.(*models.Role), args.Error(1)
 }
 
+func (m *mockUserRepository) FindByID(ctx context.Context, id string) (*dto.UserWithRole, error) {
+	args := m.Called(ctx, id)
+	userWithRole := args.Get(0)
+	if userWithRole == nil {
+		return nil, args.Error(1)
+	}
+	return userWithRole.(*dto.UserWithRole), args.Error(1)
+}
+
 func (m *mockUserRepository) CreateUser(ctx context.Context, params user.CreateUser) (*user.CreatedUser, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -109,13 +118,8 @@ func (m *mockUserRepository) RevokeAllUserTokens(ctx context.Context, userID str
 	return args.Error(0)
 }
 
-func (m *mockUserRepository) CountActiveSessions(ctx context.Context, userID string) (int, error) {
-	args := m.Called(ctx, userID)
-	return args.Int(0), args.Error(1)
-}
-
-func (m *mockUserRepository) DeleteOldestSession(ctx context.Context, userID string) error {
-	args := m.Called(ctx, userID)
+func (m *mockUserRepository) EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error {
+	args := m.Called(ctx, userID, maxSessions)
 	return args.Error(0)
 }
 
@@ -150,8 +154,8 @@ func (m *MockAuthService) Refresh(ctx context.Context, refreshToken string) (*au
 	return nil, args.Error(1)
 }
 
-func (m *MockAuthService) Logout(ctx context.Context, refreshToken string) error {
-	args := m.Called(ctx, refreshToken)
+func (m *MockAuthService) Logout(ctx context.Context, userID string, refreshToken string) error {
+	args := m.Called(ctx, userID, refreshToken)
 	return args.Error(0)
 }
 

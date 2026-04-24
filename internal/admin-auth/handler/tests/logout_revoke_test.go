@@ -23,6 +23,10 @@ func TestHandler_Logout(t *testing.T) {
 		h := auth.NewHandler(mockSvc, nil)
 
 		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, "user-123")
+			c.Next()
+		})
 		r.POST("/auth/logout", h.Logout)
 
 		w := httptest.NewRecorder()
@@ -31,16 +35,20 @@ func TestHandler_Logout(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		mockSvc.AssertNotCalled(t, "Logout", mock.Anything, mock.Anything)
+		mockSvc.AssertNotCalled(t, "Logout", mock.Anything, mock.Anything, mock.Anything)
 	})
 
 	t.Run("Success returns 200", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
 		h := auth.NewHandler(mockSvc, nil)
 
-		mockSvc.On("Logout", mock.Anything, "valid-refresh-token").Return(nil)
+		mockSvc.On("Logout", mock.Anything, "user-123", "valid-refresh-token").Return(nil)
 
 		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, "user-123")
+			c.Next()
+		})
 		r.POST("/auth/logout", h.Logout)
 
 		body, _ := json.Marshal(auth.RefreshRequest{RefreshToken: "valid-refresh-token"})
@@ -58,11 +66,15 @@ func TestHandler_Logout(t *testing.T) {
 		mockSvc := new(MockAuthService)
 		h := auth.NewHandler(mockSvc, nil)
 
-		mockSvc.On("Logout", mock.Anything, "expired-token").
+		mockSvc.On("Logout", mock.Anything, "user-123", "expired-token").
 			Return(apperr.ErrInvalidToken)
 
 		r := gin.New()
 		r.Use(testErrorMiddleware())
+		r.Use(func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, "user-123")
+			c.Next()
+		})
 		r.POST("/auth/logout", h.Logout)
 
 		body, _ := json.Marshal(auth.RefreshRequest{RefreshToken: "expired-token"})
@@ -81,10 +93,14 @@ func TestHandler_Logout(t *testing.T) {
 		h := auth.NewHandler(mockSvc, nil)
 
 		serviceErr := &apperr.AppError{Code: http.StatusInternalServerError, Message: "failed to logout"}
-		mockSvc.On("Logout", mock.Anything, "some-token").Return(serviceErr)
+		mockSvc.On("Logout", mock.Anything, "user-123", "some-token").Return(serviceErr)
 
 		r := gin.New()
 		r.Use(testErrorMiddleware())
+		r.Use(func(c *gin.Context) {
+			c.Set(middleware.CtxUserID, "user-123")
+			c.Next()
+		})
 		r.POST("/auth/logout", h.Logout)
 
 		body, _ := json.Marshal(auth.RefreshRequest{RefreshToken: "some-token"})

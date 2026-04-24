@@ -25,7 +25,7 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddlewa
 
 		protectedUserGroup := r.Group("/user").Use(authMiddleware)
 		{
-			authGroup.POST("/logout", authHandler.Logout)
+			protectedUserGroup.POST("/logout", authHandler.Logout)
 			protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
 			protectedUserGroup.POST("/sessions/revoke-all", authHandler.RevokeAllSessions)
 		}

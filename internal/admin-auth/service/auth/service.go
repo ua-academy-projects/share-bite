@@ -37,7 +37,7 @@ type Service interface {
 	Login(ctx context.Context, email, password string) (*Tokens, error)
 	Register(ctx context.Context, email, password, slug string) (*Tokens, error)
 	Refresh(ctx context.Context, refreshToken string) (*Tokens, error)
-	Logout(ctx context.Context, refreshToken string) error
+	Logout(ctx context.Context, userID, refreshToken string) error
 	RevokeAllSessions(ctx context.Context, userID string) error
 	OAuthLogin(ctx context.Context, provider OAuthProvider, code string, slug string) (*Tokens, error)
 	LinkProvider(ctx context.Context, userID string, provider OAuthProvider, code string) error
@@ -144,31 +144,39 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, er
 		if errors.Is(err, apperr.ErrInvalidToken) {
 			return nil, err
 		}
-
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to verify refresh token in db", err)
+	}
+	u, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to fetch user", err)
+	}
+	if u == nil {
+		return nil, apperr.ErrUserNotFound
 	}
 
 	if err := s.userRepo.RevokeRefreshToken(ctx, hashedToken); err != nil {
-		if errors.Is(err, apperr.ErrInvalidToken) {
-			return nil, err
-		}
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to revoke old token", err)
 	}
 
 	return s.issueTokens(ctx, userID, role)
 }
 
-func (s *service) Logout(ctx context.Context, refreshToken string) error {
-	_, _, err := s.tokenProvider.ParseRefreshToken(refreshToken)
-	if err != nil {
-		return apperr.ErrInvalidToken
-	}
+func (s *service) Logout(ctx context.Context, userID string, refreshToken string) error {
+	tokenHash := pkg.HashToken(refreshToken)
 
-	err = s.userRepo.RevokeRefreshToken(ctx, pkg.HashToken(refreshToken))
+	ownerID, err := s.userRepo.GetUserIDByRefreshToken(ctx, tokenHash)
 	if err != nil {
 		if errors.Is(err, apperr.ErrInvalidToken) {
-			return err
+			return nil
 		}
+		return err
+	}
+	if ownerID != userID {
+		return apperr.ErrForbidden
+	}
+
+	err = s.userRepo.RevokeRefreshToken(ctx, tokenHash)
+	if err != nil {
 		return apperr.Wrap(http.StatusInternalServerError, "failed to logout", err)
 	}
 	return nil
@@ -308,8 +316,6 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 		return apperr.Wrap(http.StatusInternalServerError, "failed to hash new password", err)
 	}
 
-	var userIDToRevoke string
-
 	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		userID, updated, err := s.userRepo.ResetPassword(txCtx, pkg.HashToken(token), string(passwordHash))
 		if err != nil {
@@ -320,7 +326,9 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 			return apperr.ErrInvalidResetToken
 		}
 
-		userIDToRevoke = userID
+		if err := s.userRepo.RevokeAllUserTokens(txCtx, userID); err != nil {
+			return apperr.Wrap(http.StatusInternalServerError, "failed to revoke existing sessions during password reset", err)
+		}
 
 		return nil
 	})
@@ -328,26 +336,13 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 	if err != nil {
 		return err
 	}
-	if userIDToRevoke != "" {
-		err = s.RevokeAllSessions(ctx, userIDToRevoke)
-		if err != nil {
-			logger.ErrorKV(ctx, "failed to revoke sessions...", err.Error())
-		}
-	}
 
 	return nil
 }
 
 func (s *service) issueTokens(ctx context.Context, userID, role string) (*Tokens, error) {
-	count, err := s.userRepo.CountActiveSessions(ctx, userID)
-	if err != nil {
-		logger.ErrorKV(ctx, "failed to count active sessions", err.Error())
-	} else if count >= s.maxSessions {
-		if err := s.userRepo.DeleteOldestSession(ctx, userID); err != nil {
-			logger.ErrorKV(ctx, "failed to delete oldest session", err.Error())
-		} else {
-			logger.InfoKV(ctx, "deleted oldest session to maintain limit", "user_id", userID)
-		}
+	if err := s.userRepo.EnforceMaxSessions(ctx, userID, s.maxSessions); err != nil {
+		logger.ErrorKV(ctx, "failed to enforce max sessions limit", err.Error())
 	}
 	access, refresh, err := s.tokenProvider.GenerateToken(userID, role)
 	if err != nil {

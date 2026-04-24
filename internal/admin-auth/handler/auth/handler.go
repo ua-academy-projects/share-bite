@@ -281,12 +281,17 @@ func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 // @Failure      500      {object}  ErrorResponse    "Internal server error."
 // @Router       /auth/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
+	userID, exists := c.Get(middleware.CtxUserID)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized access."})
+		return
+	}
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
-	err := h.service.Logout(c.Request.Context(), req.RefreshToken)
+	err := h.service.Logout(c.Request.Context(), userID.(string), req.RefreshToken)
 	if err != nil {
 		_ = c.Error(err)
 		return
