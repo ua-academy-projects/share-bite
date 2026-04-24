@@ -21,7 +21,7 @@ func (h *handler) getByUserName(c *gin.Context) {
 		return
 	}
 
-	resp := getByUserNameResponse{Customer: CustomerToResponse(customer)}
+	resp := getByUserNameResponse{Customer: h.toResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -30,5 +30,5 @@ type getByUserNameRequest struct {
 }
 
 type getByUserNameResponse struct {
-	Customer CustomerResponse `json:"customer"`
+	Customer customerResponse `json:"customer"`
 }
