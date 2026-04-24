@@ -9,6 +9,25 @@ import (
 	"net/http"
 )
 
+// @Summary		Get followers
+// @Description	Returns a paginated list of followers for a specific customer.
+// @Description	If the profile is private, only the owner can view followers.
+//
+// @Tags			follow
+// @Accept			json
+// @Produce		json
+//
+// @Param			id			path	string	true	"Customer ID (UUID)"
+// @Param			pageSize	query	int		false	"Page size (default 20)"
+// @Param			pageToken	query	string	false	"Cursor for pagination"
+//
+// @Success		200	{object}	dto.ListFollowersResponse
+// @Failure		400	{object}	response.ErrorResponse		"Invalid request or page token"
+// @Failure		403	{object}	response.ErrorResponse		"Followers list is private"
+// @Failure		404	{object}	response.ErrorResponse		"Customer not found"
+// @Failure		500	{object}	response.ErrorResponse		"Internal server error"
+//
+// @Router			/customers/{id}/followers [get]
 func (h *handler) listFollowers(c *gin.Context) {
 	var req dto.ListFollowersRequest
 	if err := request.BindQuery(c, &req); err != nil {
