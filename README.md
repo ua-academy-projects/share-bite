@@ -63,6 +63,18 @@ S3_USE_PATH_STYLE=true
 
 > Bootstrap runs once. On subsequent starts credentials stay the same.
 
+### 6. Notifications helper and Redis
+
+The repository includes a shared Redis Pub/Sub helper in `pkg/notification` for notification events.
+
+For local development, add Redis connection values to `.env` based on `.env.example`:
+
+```env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=bite
+```
+
 ### Web UI (optional)
 
 ```bash
@@ -71,7 +83,7 @@ make s3-ui
 
 Open http://localhost:3909
 
-### 6. Code Generation & API Clients
+### 7. Code Generation & API Clients
 
 To prevent excessive git churn, **generated Swagger documentation and API clients are not committed to the repository**. You must generate them locally before building or running tests.
 
@@ -92,7 +104,7 @@ This orchestrates the correct execution order:
 
 ---
 
-### 7. Testing
+### 8. Testing
 
 > Ensure API clients are generated (step 6) before running tests.
 

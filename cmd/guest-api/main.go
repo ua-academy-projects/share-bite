@@ -32,6 +32,8 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	redis "github.com/ua-academy-projects/share-bite/pkg/redis"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
 )
@@ -90,6 +92,23 @@ func main() {
 		client.Close()
 		return nil
 	})
+	// redis connection
+	rdb, err := redis.NewClient(config.Config().Redis.Addr(), config.Config().Redis.Password())
+	if err != nil {
+		logger.Fatal(ctx, "new redis client: ", err)
+	}
+	_, err = rdb.Ping(ctx).Result()
+	if err != nil {
+		logger.Fatal(ctx, "ping redis: ", err)
+	}
+	closer.Add(func(ctx context.Context) error {
+		rdb.Close()
+		return nil
+	})
+	// notifications
+	broker := notification.NewBroker(rdb)
+
+	notifHub := notification.NewHub(broker)
 
 	// clients
 	clientCfg := config.Config().BusinessHttpClient
