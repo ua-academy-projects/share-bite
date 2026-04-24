@@ -1,0 +1,46 @@
+name: share-bite-apps
+services:
+  guest:
+    container_name: guest
+    restart: on-failure
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.guest
+    ports:
+      - ${GUEST_HTTP_SERVER_PORT}:${GUEST_HTTP_SERVER_PORT}
+    env_file:
+      - ../.env
+    depends_on:
+      - pg
+    networks:
+      - share-bite-net
+
+  admin:
+    container_name: admin
+    restart: on-failure
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.admin
+    ports:
+      - ${ADMIN_HTTP_SERVER_PORT}:${ADMIN_HTTP_SERVER_PORT}
+    env_file:
+      - ../.env
+    depends_on:
+      - pg
+    networks:
+      - share-bite-net
+
+  business:
+    container_name: business
+    restart: on-failure
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.business
+    ports:
+      - ${BUSINESS_HTTP_SERVER_PORT}:${BUSINESS_HTTP_SERVER_PORT}
+    env_file:
+      - ../.env
+    depends_on:
+      - pg
+    networks:
+      - share-bite-net

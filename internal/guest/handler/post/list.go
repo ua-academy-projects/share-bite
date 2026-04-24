@@ -76,7 +76,7 @@ func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storag
 	}
 
 	customers, err := customerService.GetByIDs(ctx, customerIDs)
-	if err == nil {
+	if err != nil {
 		return listResponse{}, err
 	}
 
