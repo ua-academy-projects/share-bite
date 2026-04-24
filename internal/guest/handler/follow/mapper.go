@@ -30,21 +30,3 @@ func listFollowingRequestToInput(
 		PageToken:           req.PageToken,
 	}
 }
-
-func listFollowersOutputToResponse(
-	out entity.ListFollowersOutput,
-) dto.ListCustomersResponse {
-	return dto.ListCustomersResponse{
-		Customers:     customersToResponse(out.Customers),
-		NextPageToken: out.NextPageToken,
-	}
-}
-
-func listFollowingOutputToResponse(
-	out entity.ListFollowingOutput,
-) dto.ListCustomersResponse {
-	return dto.ListCustomersResponse{
-		Customers:     customersToResponse(out.Customers),
-		NextPageToken: out.NextPageToken,
-	}
-}

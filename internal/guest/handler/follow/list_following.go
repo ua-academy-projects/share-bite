@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 	"net/http"
@@ -20,7 +21,7 @@ import (
 // @Param			pageSize	query	int		false	"Page size (default 20)"
 // @Param			pageToken	query	string	false	"Cursor for pagination"
 //
-// @Success		200	{object}	dto.ListFollowingResponse
+// @Success		200	{object}	dto.ListCustomersResponse
 // @Failure		400	{object}	response.ErrorResponse		"Invalid request"
 // @Failure		401	{object}	response.AuthErrorResponse	"Unauthorized"
 // @Failure		500	{object}	response.ErrorResponse		"Internal server error"
@@ -46,7 +47,7 @@ func (h *handler) listMyFollowing(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, listFollowingOutputToResponse(out))
+	c.JSON(http.StatusOK, h.listCustomersResponse(out.Customers, out.NextPageToken))
 
 }
 
@@ -62,7 +63,7 @@ func (h *handler) listMyFollowing(c *gin.Context) {
 // @Param			pageSize	query	int		false	"Page size (default 20)"
 // @Param			pageToken	query	string	false	"Cursor for pagination"
 //
-// @Success		200	{object}	dto.ListFollowingResponse
+// @Success		200	{object}	dto.ListCustomersResponse
 // @Failure		400	{object}	response.ErrorResponse		"Invalid request or page token"
 // @Failure		403	{object}	response.ErrorResponse		"Following list is private"
 // @Failure		404	{object}	response.ErrorResponse		"Customer not found"
@@ -95,5 +96,5 @@ func (h *handler) listFollowing(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, listFollowingOutputToResponse(out))
+	c.JSON(http.StatusOK, h.listCustomersResponse(out.Customers, out.NextPageToken))
 }

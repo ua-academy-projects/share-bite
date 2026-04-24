@@ -3,13 +3,15 @@ package follow
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	customerResponse "github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 )
 
 type handler struct {
 	service         customerFollowService
 	customerService customerService
+	storage         storage.ObjectStorage
 }
 
 type customerFollowService interface {
@@ -30,9 +32,11 @@ func RegisterHandler(
 	authMiddleware gin.HandlerFunc,
 	optionalAuthMiddleware gin.HandlerFunc,
 	customerMiddleware gin.HandlerFunc,
+	st storage.ObjectStorage,
 ) {
 	h := &handler{
 		service: service,
+		storage: st,
 	}
 
 	protected := r.Group("/").Use(authMiddleware, customerMiddleware)
@@ -48,15 +52,34 @@ func RegisterHandler(
 	protected.GET("/following", h.listMyFollowing)
 }
 
-// errorResponse describes guest API error payload.
-type errorResponse struct {
-	Message string `json:"message" example:"invalid request"`
-}
-
-func customersToResponse(customers []entity.Customer) []customerResponse.CustomerResponse {
-	res := make([]customerResponse.CustomerResponse, 0, len(customers))
+func (h *handler) customersToResponse(customers []entity.Customer) []dto.CustomerResponse {
+	res := make([]dto.CustomerResponse, 0, len(customers))
 	for _, c := range customers {
-		res = append(res, customerResponse.CustomerToResponse(c))
+		res = append(res, h.toResponse(c))
 	}
 	return res
+}
+
+func (h *handler) toResponse(customer entity.Customer) dto.CustomerResponse {
+	var avatarURL *string
+	if customer.AvatarObjectKey != nil && h.storage != nil {
+		url := h.storage.BuildURL(*customer.AvatarObjectKey)
+		avatarURL = &url
+	}
+
+	return dto.CustomerResponse{
+		ID:        customer.ID,
+		UserName:  customer.UserName,
+		AvatarURL: avatarURL,
+	}
+}
+
+func (h *handler) listCustomersResponse(
+	customers []entity.Customer,
+	nextToken string,
+) dto.ListCustomersResponse {
+	return dto.ListCustomersResponse{
+		Customers:     h.customersToResponse(customers),
+		NextPageToken: nextToken,
+	}
 }
