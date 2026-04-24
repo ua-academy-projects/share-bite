@@ -2,10 +2,12 @@ package business
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
 
 func (r *Repository) GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error) {
@@ -88,85 +90,98 @@ func (r *Repository) GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (
 	return result, nil
 }
 
-func (r *Repository) SetOrgUnitTagsBySlugs(ctx context.Context, orgUnitID int, slugs []string) error {
-	const op = "repository.business.SetOrgUnitTagsBySlugs"
+func (r *Repository) SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error {
+	const op = "repository.business.SetOrgUnitTagsByIDs"
 
-	slugs = normalizeAndUniqueSlugs(slugs)
+	tagIDs = uniqueInts(tagIDs)
 
-	if len(slugs) > 0 {
+	tx, ok := ctx.Value(pg.TxKey).(pgx.Tx)
+	ownTx := !ok
+	if ownTx {
+		var err error
+		tx, err = r.db.DB().BeginTx(ctx, pgx.TxOptions{})
+		if err != nil {
+			return fmt.Errorf("%s: begin tx: %w", op, err)
+		}
+		defer func() {
+			if ownTx {
+				_ = tx.Rollback(ctx)
+			}
+		}()
+	}
+
+	lockQ := database.Query{
+		Name: "business_repository.SetOrgUnitTagsByIDs.LockOrgUnit",
+		Sql: `
+			SELECT id
+			FROM business.org_units
+			WHERE id = $1
+			FOR UPDATE
+		`,
+	}
+
+	var lockedID int
+	if err := tx.QueryRow(ctx, lockQ.Sql, orgUnitID).Scan(&lockedID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("%s: %w", op, ErrNotFound)
+		}
+		return fmt.Errorf("%s: lock org unit: %w", op, err)
+	}
+
+	if len(tagIDs) > 0 {
 		validateQ := database.Query{
-			Name: "business_repository.SetOrgUnitTagsBySlugs.Validate",
+			Name: "business_repository.SetOrgUnitTagsByIDs.Validate",
 			Sql: `
 				SELECT COUNT(*)
 				FROM business.location_tags
-				WHERE slug = ANY($1::text[])
+				WHERE id = ANY($1::int[])
 			`,
 		}
 
 		var cnt int
-		if err := r.db.DB().QueryRowContext(ctx, validateQ, slugs).Scan(&cnt); err != nil {
-			return fmt.Errorf("%s: %w", op, err)
+		if err := tx.QueryRow(ctx, validateQ.Sql, tagIDs).Scan(&cnt); err != nil {
+			return fmt.Errorf("%s: validate tag ids: %w", op, err)
 		}
-		if cnt != len(slugs) {
+		if cnt != len(tagIDs) {
 			return fmt.Errorf("%s: %w", op, ErrNotFound)
 		}
 	}
 
 	deleteQ := database.Query{
-		Name: "business_repository.SetOrgUnitTagsBySlugs.Delete",
+		Name: "business_repository.SetOrgUnitTagsByIDs.Delete",
 		Sql: `
 			DELETE FROM business.org_unit_tags
 			WHERE org_unit_id = $1
 		`,
 	}
-
-	if _, err := r.db.DB().ExecContext(ctx, deleteQ, orgUnitID); err != nil {
+	if _, err := tx.Exec(ctx, deleteQ.Sql, orgUnitID); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if len(slugs) == 0 {
-		return nil
+	if len(tagIDs) > 0 {
+		insertQ := database.Query{
+			Name: "business_repository.SetOrgUnitTagsByIDs.Insert",
+			Sql: `
+				INSERT INTO business.org_unit_tags (org_unit_id, tag_id)
+				SELECT $1, lt.id
+				FROM business.location_tags lt
+				WHERE lt.slug = ANY($2::int[])
+				ON CONFLICT (org_unit_id, tag_id) DO NOTHING
+			`,
+		}
+
+		if _, err := tx.Exec(ctx, insertQ.Sql, orgUnitID, tagIDs); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
 	}
 
-	insertQ := database.Query{
-		Name: "business_repository.SetOrgUnitTagsBySlugs.Insert",
-		Sql: `
-			INSERT INTO business.org_unit_tags (org_unit_id, tag_id)
-			SELECT $1, lt.id
-			FROM business.location_tags lt
-			WHERE lt.slug = ANY($2::text[])
-			ON CONFLICT (org_unit_id, tag_id) DO NOTHING
-		`,
+	if ownTx {
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("%s: commit tx: %w", op, err)
+		}
+		ownTx = false
 	}
-
-	if _, err := r.db.DB().ExecContext(ctx, insertQ, orgUnitID, slugs); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
 	return nil
-}
-
-func normalizeAndUniqueSlugs(slugs []string) []string {
-	if len(slugs) == 0 {
-		return nil
-	}
-
-	seen := make(map[string]struct{}, len(slugs))
-	out := make([]string, 0, len(slugs))
-
-	for _, slug := range slugs {
-		s := strings.TrimSpace(strings.ToLower(slug))
-		if s == "" {
-			continue
-		}
-		if _, ok := seen[s]; ok {
-			continue
-		}
-		seen[s] = struct{}{}
-		out = append(out, s)
-	}
-
-	return out
 }
 
 func uniqueInts(ids []int) []int {

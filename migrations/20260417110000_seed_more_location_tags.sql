@@ -38,8 +38,9 @@ VALUES
 ON CONFLICT (slug) DO NOTHING;
 
 -- +goose Down
-DELETE FROM business.location_tags
-WHERE slug IN (
+-- Remove only tags seeded by this migration that are not referenced by org_unit_tags.
+DELETE FROM business.location_tags lt
+WHERE lt.slug IN (
   'coffee',  
   'breakfast', 
   'pet-friendly',
@@ -74,4 +75,9 @@ WHERE slug IN (
   'live-music',
   'events',
   'game-zone'
+)
+AND NOT EXISTS (
+  SELECT 1
+  FROM business.org_unit_tags ot
+  WHERE ot.tag_id = lt.id
 );

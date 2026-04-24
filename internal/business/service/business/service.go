@@ -32,7 +32,7 @@ type businessRepository interface {
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
 	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
 	GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (map[int][]string, error)
-	SetOrgUnitTagsBySlugs(ctx context.Context, orgUnitID int, slugs []string) error
+	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
 
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 

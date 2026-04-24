@@ -28,9 +28,9 @@ BEGIN
         RAISE EXCEPTION
             'Rollback blocked: business.org_units has duplicate org_account_id (BRAND/VENUE).';
     END IF;
+
+    DROP INDEX IF EXISTS business.org_units_brand_owner_uidx;
+
+    ALTER TABLE business.org_units
+    ADD CONSTRAINT org_units_org_account_id_key UNIQUE (org_account_id);
 END $$;
-
-DROP INDEX IF EXISTS business.org_units_brand_owner_uidx;
-
-ALTER TABLE business.org_units
-ADD CONSTRAINT org_units_org_account_id_key UNIQUE (org_account_id);

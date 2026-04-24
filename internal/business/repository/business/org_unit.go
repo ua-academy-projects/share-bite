@@ -10,7 +10,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
-	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
 
 func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, error) {
@@ -194,62 +193,32 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 	}
 
 	var ou OrgUnit
-	if tx, ok := ctx.Value(pg.TxKey).(pgx.Tx); ok {
-		err := tx.QueryRow(
-			ctx,
-			q.Sql,
-			ownerUserID,
-			entity.ProfileTypeVenue,
-			brandID,
-			in.Name,
-			in.Avatar,
-			in.Banner,
-			in.Description,
-			in.Latitude,
-			in.Longitude,
-		).Scan(
-			&ou.Id,
-			&ou.OrgAccountId,
-			&ou.ProfileType,
-			&ou.Name,
-			&ou.Avatar,
-			&ou.Banner,
-			&ou.Description,
-			&ou.ParentId,
-			&ou.Latitude,
-			&ou.Longitude,
-		)
-		if err != nil {
-			return nil, scanRowError(err)
-		}
-
-	} else {
-		err := r.db.DB().QueryRowContext(
-			ctx, q,
-			ownerUserID,
-			entity.ProfileTypeVenue,
-			brandID,
-			in.Name,
-			in.Avatar,
-			in.Banner,
-			in.Description,
-			in.Latitude,
-			in.Longitude,
-		).Scan(
-			&ou.Id,
-			&ou.OrgAccountId,
-			&ou.ProfileType,
-			&ou.Name,
-			&ou.Avatar,
-			&ou.Banner,
-			&ou.Description,
-			&ou.ParentId,
-			&ou.Latitude,
-			&ou.Longitude,
-		)
-		if err != nil {
-			return nil, scanRowError(err)
-		}
+	err := r.db.DB().QueryRowContext(
+		ctx,
+		q,
+		ownerUserID,
+		entity.ProfileTypeVenue,
+		brandID,
+		in.Name,
+		in.Avatar,
+		in.Banner,
+		in.Description,
+		in.Latitude,
+		in.Longitude,
+	).Scan(
+		&ou.Id,
+		&ou.OrgAccountId,
+		&ou.ProfileType,
+		&ou.Name,
+		&ou.Avatar,
+		&ou.Banner,
+		&ou.Description,
+		&ou.ParentId,
+		&ou.Latitude,
+		&ou.Longitude,
+	)
+	if err != nil {
+		return nil, scanRowError(err)
 	}
 
 	result := ou.ToEntity()
@@ -277,67 +246,35 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 	}
 
 	var ou OrgUnit
-	if tx, ok := ctx.Value(pg.TxKey).(pgx.Tx); ok {
-		err := tx.QueryRow(
-			ctx,
-			q.Sql,
-			in.Name,
-			in.Avatar,
-			in.Banner,
-			in.Description,
-			in.Latitude,
-			in.Longitude,
-			locationID,
-			brandID,
-			entity.ProfileTypeVenue,
-		).Scan(
-			&ou.Id,
-			&ou.OrgAccountId,
-			&ou.ProfileType,
-			&ou.Name,
-			&ou.Avatar,
-			&ou.Banner,
-			&ou.Description,
-			&ou.ParentId,
-			&ou.Latitude,
-			&ou.Longitude,
-		)
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return nil, ErrNotFound
-			}
-			return nil, scanRowError(err)
+	err := r.db.DB().QueryRowContext(
+		ctx,
+		q,
+		in.Name,
+		in.Avatar,
+		in.Banner,
+		in.Description,
+		in.Latitude,
+		in.Longitude,
+		locationID,
+		brandID,
+		entity.ProfileTypeVenue,
+	).Scan(
+		&ou.Id,
+		&ou.OrgAccountId,
+		&ou.ProfileType,
+		&ou.Name,
+		&ou.Avatar,
+		&ou.Banner,
+		&ou.Description,
+		&ou.ParentId,
+		&ou.Latitude,
+		&ou.Longitude,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
-	} else {
-		err := r.db.DB().QueryRowContext(
-			ctx, q,
-			in.Name,
-			in.Avatar,
-			in.Banner,
-			in.Description,
-			in.Latitude,
-			in.Longitude,
-			locationID,
-			brandID,
-			entity.ProfileTypeVenue,
-		).Scan(
-			&ou.Id,
-			&ou.OrgAccountId,
-			&ou.ProfileType,
-			&ou.Name,
-			&ou.Avatar,
-			&ou.Banner,
-			&ou.Description,
-			&ou.ParentId,
-			&ou.Latitude,
-			&ou.Longitude,
-		)
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return nil, ErrNotFound
-			}
-			return nil, scanRowError(err)
-		}
+		return nil, scanRowError(err)
 	}
 
 	result := ou.ToEntity()
@@ -354,17 +291,6 @@ func (r *Repository) DeleteLocation(ctx context.Context, locationID int, brandID
 	q := database.Query{
 		Name: "business_repository.DeleteLocation",
 		Sql:  sql,
-	}
-
-	if tx, ok := ctx.Value(pg.TxKey).(pgx.Tx); ok {
-		tag, err := tx.Exec(ctx, q.Sql, locationID, brandID, entity.ProfileTypeVenue)
-		if err != nil {
-			return executeSQLError(err)
-		}
-		if tag.RowsAffected() == 0 {
-			return ErrNotFound
-		}
-		return nil
 	}
 
 	tag, err := r.db.DB().ExecContext(ctx, q, locationID, brandID, entity.ProfileTypeVenue)

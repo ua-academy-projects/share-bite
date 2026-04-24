@@ -75,7 +75,7 @@ func (h *handler) get(c *gin.Context) {
 		Description: location.Description,
 		Latitude:    location.Latitude,
 		Longitude:   location.Longitude,
-		Tags:        location.Tags,
+		Tags:        normalizeTags(location.Tags),
 	}
 
 	if location.ParentId != nil {

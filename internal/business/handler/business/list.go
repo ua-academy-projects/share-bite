@@ -84,7 +84,7 @@ func (h *handler) list(c *gin.Context) {
 			Description: u.Description,
 			Latitude:    u.Latitude,
 			Longitude:   u.Longitude,
-			Tags:        u.Tags,
+			Tags:        normalizeTags(u.Tags),
 		})
 	}
 

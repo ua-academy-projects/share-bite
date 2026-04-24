@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -17,8 +16,7 @@ const maxLocationTags = 5
 func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
 	const op = "business.service.CreateLocation"
 
-	in.TagSlugs = normalizeTagSlugs(in.TagSlugs)
-	if len(in.TagSlugs) > maxLocationTags {
+	if len(in.TagIDs) > maxLocationTags {
 		return nil, apperror.BadRequest("location can have at most 5 tags")
 	}
 
@@ -53,7 +51,7 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 			return fmt.Errorf("%s: create location: %w", op, err)
 		}
 
-		if err := s.businessRepo.SetOrgUnitTagsBySlugs(ctxTx, created.Id, in.TagSlugs); err != nil {
+		if err := s.businessRepo.SetOrgUnitTagsByIDs(ctxTx, created.Id, in.TagIDs); err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return apperror.BadRequest("one or more tags are invalid")
 			}
@@ -79,12 +77,8 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error) {
 	const op = "business.service.UpdateLocation"
 
-	if in.TagSlugs != nil {
-		normalized := normalizeTagSlugs(*in.TagSlugs)
-		if len(normalized) > maxLocationTags {
-			return nil, apperror.BadRequest("location can have at most 5 tags")
-		}
-		in.TagSlugs = &normalized
+	if in.TagIDs != nil && len(*in.TagIDs) > maxLocationTags {
+		return nil, apperror.BadRequest("location can have at most 5 tags")
 	}
 
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
@@ -124,8 +118,8 @@ func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserI
 			return fmt.Errorf("%s: update location: %w", op, err)
 		}
 
-		if in.TagSlugs != nil {
-			if err := s.businessRepo.SetOrgUnitTagsBySlugs(ctxTx, locationID, *in.TagSlugs); err != nil {
+		if in.TagIDs != nil {
+			if err := s.businessRepo.SetOrgUnitTagsByIDs(ctxTx, locationID, *in.TagIDs); err != nil {
 				if errors.Is(err, repository.ErrNotFound) {
 					return apperror.BadRequest("one or more tags are invalid")
 				}
@@ -183,27 +177,4 @@ func (s *service) DeleteLocation(ctx context.Context, locationID int, ownerUserI
 	}
 
 	return nil
-}
-
-func normalizeTagSlugs(slugs []string) []string {
-	if len(slugs) == 0 {
-		return nil
-	}
-
-	seen := make(map[string]struct{}, len(slugs))
-	out := make([]string, 0, len(slugs))
-
-	for _, raw := range slugs {
-		slug := strings.TrimSpace(strings.ToLower(raw))
-		if slug == "" {
-			continue
-		}
-		if _, ok := seen[slug]; ok {
-			continue
-		}
-		seen[slug] = struct{}{}
-		out = append(out, slug)
-	}
-
-	return out
 }
