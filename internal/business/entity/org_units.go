@@ -2,11 +2,6 @@ package entity
 
 import "github.com/google/uuid"
 
-const (
-	ProfileTypeBrand = "BRAND"
-	ProfileTypeVenue = "VENUE"
-)
-
 type OrgUnit struct {
 	Id           int
 	OrgAccountId uuid.UUID
