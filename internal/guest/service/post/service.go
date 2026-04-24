@@ -2,6 +2,8 @@ package post
 
 import (
 	"context"
+	"github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
+	"github.com/ua-academy-projects/share-bite/internal/guest/service/follow"
 
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
@@ -24,6 +26,8 @@ type postRepository interface {
 	DeleteImagesByPostID(ctx context.Context, postID string) error
 	UpdateStatus(ctx context.Context, postID, customerID string, status entity.PostStatus) error
 	GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
+	CreateMentions(ctx context.Context, mentions []entity.PostMention) error
+	ListMentionsByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
 }
 
 type VenueProvider interface {
@@ -33,8 +37,9 @@ type VenueProvider interface {
 
 type service struct {
 	postRepo      postRepository
-	followRepo    followRepository
 	venueProvider VenueProvider
+	followRepo    follow.CustomerFollowRepository
+	customerRepo  customer.CustomerRepository
 	storage       storage.ObjectStorage
 	txManager     database.TxManager
 	publisher     notification.Publisher
@@ -48,21 +53,21 @@ func WithPublisher(publisher notification.Publisher) Option {
 	}
 }
 
-func New(postRepo postRepository, venueProvider VenueProvider, storage storage.ObjectStorage, txManager database.TxManager, opts ...Option) *service {
+func New(postRepo postRepository, venueProvider VenueProvider, followRepo follow.CustomerFollowRepository, customerRepo customer.CustomerRepository, storage storage.ObjectStorage, txManager database.TxManager, opts ...Option) *service {
 	if storage == nil {
 		panic("post service: storage is not configured")
 	}
 	if txManager == nil {
 		panic("post service: transaction manager is not configured")
 	}
-
 	svc := &service{
 		postRepo:      postRepo,
 		venueProvider: venueProvider,
+		followRepo:    followRepo,
+		customerRepo:  customerRepo,
 		storage:       storage,
 		txManager:     txManager,
 	}
-
 	for _, opt := range opts {
 		if opt != nil {
 			opt(svc)
