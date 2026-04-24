@@ -42,9 +42,6 @@ type listResponse struct {
 //	@Failure		500		{object}	errorResponse
 //	@Router			/business/org-units/{id}/locations [get]
 func (h *handler) list(c *gin.Context) {
-	ctx := c.Request.Context()
-	log := logger.FromContext(ctx)
-
 	req := new(listRequest)
 	if err := c.ShouldBindUri(req); err != nil {
 		c.Error(apperror.BadRequest("invalid brand id"))
@@ -65,11 +62,12 @@ func (h *handler) list(c *gin.Context) {
 		req.Limit = 100
 	}
 
-	log.Info("list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit)
+	ctx := c.Request.Context()
+	logger.InfoKV(ctx, "list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit)
 
 	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit)
 	if err != nil {
-		log.Error("failed to list locations", "brandId", req.BrandId, "error", err)
+		logger.ErrorKV(ctx, "failed to list locations", "brandId", req.BrandId, "error", err)
 		c.Error(err)
 		return
 	}

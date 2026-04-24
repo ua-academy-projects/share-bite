@@ -2,7 +2,7 @@
 # =============================================================================
 # scripts/bootstrap.sh
 # One-shot bootstrap for the local Garage dev node.
-# Run ONCE after the first `docker compose -f build/compose.yaml up -d garage`.
+# Run ONCE after the first `docker compose -f docker/compose.yaml up -d garage`.
 # Safe to re-run: bucket/key creation will just print "already exists".
 # =============================================================================
 
@@ -20,10 +20,10 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 # Shortcut: run any garage CLI command inside the container
-garage() { docker compose -f build/compose.yaml exec "$CONTAINER" /garage "$@"; }
+garage() { docker compose -f docker/compose.yaml exec "$CONTAINER" /garage "$@"; }
 
 echo "==> Waiting for Garage to be healthy..."
-until docker compose -f build/compose.yaml ps "$CONTAINER" | grep -q "healthy"; do
+until docker compose -f docker/compose.yaml ps "$CONTAINER" | grep -q "healthy"; do
   sleep 1
 done
 echo -e "${GREEN}    Garage is healthy${RESET}"

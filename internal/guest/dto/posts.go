@@ -1,9 +1,8 @@
 package dto
 
 import (
-	"io"
-
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"io"
 )
 
 type CreatePostInput struct {

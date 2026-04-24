@@ -16,7 +16,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"golang.org/x/crypto/bcrypt"
@@ -46,13 +45,14 @@ func (m *mockUserRepository) FindRoleBySlug(ctx context.Context, slug string) (*
 	return role.(*models.Role), args.Error(1)
 }
 
-func (m *mockUserRepository) CreateUser(ctx context.Context, params user.CreateUser) (*user.CreatedUser, error) {
+func (m *mockUserRepository) CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error) {
 	args := m.Called(ctx, params)
-	if args.Get(0) == nil {
+	createdUser := args.Get(0)
+	if createdUser == nil {
 		return nil, args.Error(1)
 	}
 
-	return args.Get(0).(*user.CreatedUser), args.Error(1)
+	return createdUser.(*dto.CreatedUser), args.Error(1)
 }
 
 func (m *mockUserRepository) FindBySocialProvider(ctx context.Context, provider string, providerID string) (*dto.UserWithRole, error) {
@@ -86,11 +86,6 @@ func (m *mockUserRepository) CreatePasswordResetToken(ctx context.Context, param
 func (m *mockUserRepository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error) {
 	args := m.Called(ctx, tokenHash, passwordHash)
 	return args.Bool(0), args.Error(1)
-}
-
-func (m *mockUserRepository) AssignRole(ctx context.Context, userID string, roleID int) error {
-	args := m.Called(ctx, userID, roleID)
-	return args.Error(0)
 }
 
 type stubTokenProvider struct{}

@@ -1,27 +1,13 @@
 package post
 
 import (
-	"net/http"
-
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
-// get returns a single published post by ID.
-//
-//	@Summary		Get post by ID
-//	@Description	Returns a published post by its numeric ID.
-//	@Tags			guest-posts
-//	@Produce		json
-//	@Param			id	path		int				true	"Post ID"
-//	@Success		200	{object}	getResponse		"Successfully retrieved the post"
-//	@Failure		400	{object}	errorResponse	"Invalid post ID format"
-//	@Failure		404	{object}	errorResponse	"Not found: post does not exist, is private, or is not published"
-//	@Failure		500	{object}	errorResponse	"Internal server error"
-//	@Router			/posts/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	var req getRequest
 	if err := request.BindUri(c, &req); err != nil {
@@ -37,11 +23,7 @@ func (h *handler) get(c *gin.Context) {
 		return
 	}
 
-	customer, err := h.customerService.GetByUserID(ctx, post.CustomerID)
-	if err != nil {
-		customer = entity.Customer{ID: post.CustomerID}
-	}
-	resp := getResponse{Post: postToResponse(post, h.storage, customer)}
+	resp := getResponse{Post: postToResponse(post, h.storage)}
 	c.JSON(http.StatusOK, resp)
 }
 

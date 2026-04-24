@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"crypto/rand"
@@ -97,45 +96,24 @@ func (s *service) Register(ctx context.Context, email, password, slug string) (*
 		return nil, fmt.Errorf("find role by slug: %w", err)
 	}
 	if role == nil {
-		return nil, errors.New("role not found")
+		return nil, apperr.ErrRoleNotFound
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
-	var createdUserId string
-	if txErr := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
-		createdUser, err := s.userRepo.CreateUser(txCtx, user.CreateUser{
-			Email:        email,
-			PasswordHash: string(passwordHash),
-		})
-		if err != nil {
-			return fmt.Errorf("create user: %w", err)
-		}
 
-		if err := s.userRepo.AssignRole(txCtx, createdUser.ID, role.ID); err != nil {
-			return fmt.Errorf("assign role to user: %w", err)
-		}
-		createdUserId = createdUser.ID
-		return nil
-	}); txErr != nil {
-		return nil, txErr
-	}
+	createdUser, err := s.userRepo.CreateWithRole(ctx, dto.CreateWithRoleParams{
+		Email:        email,
+		PasswordHash: string(passwordHash),
+		RoleID:       role.ID,
+	})
 
-	if createdUserId == "" {
-		return nil, errors.New("created user not found")
-	}
-
-	accessToken, refreshToken, err := s.tokenProvider.GenerateToken(createdUserId, role.Slug)
 	if err != nil {
-		return nil, fmt.Errorf("generate token: %w", err)
+		return nil, fmt.Errorf("create user: %w", err)
 	}
-
-	return &Tokens{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}, nil
+	return s.issueTokens(createdUser.ID, role.Slug)
 }
 
 func (s *service) Refresh(_ context.Context, refreshToken string) (*Tokens, error) {

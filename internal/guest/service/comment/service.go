@@ -2,7 +2,6 @@ package comment
 
 import (
 	"context"
-
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 )

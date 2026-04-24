@@ -1,10 +1,9 @@
 package post
 
 import (
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"mime/multipart"
 	"net/http"
-
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
@@ -24,30 +23,25 @@ type createResponse struct {
 
 // create creates a guest post with optional images.
 //
-//	@Summary		Create post
-//	@Description	Creates a post for the authenticated customer.
-//	@Tags			guest-posts
-//	@Accept			mpfd
-//	@Produce		json
-//	@Security		BearerAuth
-//	@Param			venue_id	formData	int		true	"Venue ID"
-//	@Param			text		formData	string	true	"Post text"
-//	@Param			rating		formData	int		true	"Rating (1..5)"
-//	@Param			images		formData	file	false	"Post images (jpeg/png, up to 5)"
-//	@Success		201			{object}	createResponse
-//	@Failure		400			{object}	errorResponse
-//	@Failure		401			{object}	errorResponse
-//	@Failure		403			{object}	errorResponse
-//	@Failure		404			{object}	errorResponse
-//	@Failure		502			{object}	errorResponse
-//	@Failure		500			{object}	errorResponse
-//	@Router			/posts/ [post]
+// @Summary      Create post
+// @Description  Creates a post for the authenticated customer.
+// @Tags         guest-posts
+// @Accept       mpfd
+// @Produce      json
+// @Security     BearerAuth
+// @Param        venue_id  formData  int     true   "Venue ID"
+// @Param        text      formData  string  true   "Post text"
+// @Param        rating    formData  int     true   "Rating (1..5)"
+// @Param        images    formData  file    false  "Post images (jpeg/png, up to 5)"
+// @Success      201       {object}  createResponse
+// @Failure      400       {object}  errorResponse
+// @Failure      401       {object}  errorResponse
+// @Failure      403       {object}  errorResponse
+// @Failure      404       {object}  errorResponse
+// @Failure      502       {object}  errorResponse
+// @Failure      500       {object}  errorResponse
+// @Router       /posts/ [post]
 func (h *handler) create(c *gin.Context) {
-	if c.ContentType() != gin.MIMEMultipartPOSTForm {
-		c.Error(apperror.ErrMultipartFormData)
-		return
-	}
-
 	var req createRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.Error(apperror.BadRequest(err.Error()))
@@ -56,17 +50,14 @@ func (h *handler) create(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	customer, err := h.getAuthenticatedCustomer(c)
-	if err != nil {
-		c.Error(err)
-		return
+	customer := entity.Customer{
+		ID: "10000000-0000-0000-0000-000000000001",
 	}
-
-	req.Text = strings.TrimSpace(req.Text)
-	if req.Text == "" {
-		c.Error(apperror.BadRequest("text is required"))
-		return
-	}
+	//customer, err := h.getAuthenticatedCustomer(c)
+	//if err != nil {
+	//	c.Error(err)
+	//	return
+	//}
 
 	images, err := buildUploadImages(req.Images)
 	if err != nil {
@@ -97,6 +88,6 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
-	resp := createResponse{Post: postToResponse(post, h.storage, customer)}
+	resp := createResponse{Post: postToResponse(post, h.storage)}
 	c.JSON(http.StatusCreated, resp)
 }

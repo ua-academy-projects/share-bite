@@ -46,22 +46,3 @@ func (s *service) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUn
 
 	return venues, nil
 }
-
-func (s *service) Rating(ctx context.Context, id int) (float32, error) {
-	const op = "service.business.Rating"
-
-	_, err := s.businessRepo.GetById(ctx, id)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return 0, fmt.Errorf("%s: %w", op, apperror.OrgUnitNotFoundID(id))
-		}
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-
-	rating, err := s.businessRepo.GetVenueRating(ctx, id)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return rating, nil
-}

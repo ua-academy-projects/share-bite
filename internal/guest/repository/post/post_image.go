@@ -1,9 +1,8 @@
 package post
 
 import (
-	"time"
-
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"time"
 )
 
 type PostImage struct {
