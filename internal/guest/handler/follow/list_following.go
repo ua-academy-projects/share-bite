@@ -9,6 +9,23 @@ import (
 	"net/http"
 )
 
+// @Summary		Get my following
+// @Description	Returns a paginated list of users the current customer is following.
+//
+// @Tags			follow
+// @Accept			json
+// @Produce		json
+// @Security		BearerAuth
+//
+// @Param			pageSize	query	int		false	"Page size (default 20)"
+// @Param			pageToken	query	string	false	"Cursor for pagination"
+//
+// @Success		200	{object}	dto.ListFollowingResponse
+// @Failure		400	{object}	response.ErrorResponse		"Invalid request"
+// @Failure		401	{object}	response.AuthErrorResponse	"Unauthorized"
+// @Failure		500	{object}	response.ErrorResponse		"Internal server error"
+//
+// @Router			/customers/me/following [get]
 func (h *handler) listMyFollowing(c *gin.Context) {
 	var req dto.ListFollowingRequest
 	if err := request.BindQuery(c, &req); err != nil {
@@ -33,6 +50,25 @@ func (h *handler) listMyFollowing(c *gin.Context) {
 
 }
 
+// @Summary		Get following
+// @Description	Returns a paginated list of users the customer is following.
+// @Description	If the profile is private, only the owner can view following.
+//
+// @Tags			follow
+// @Accept			json
+// @Produce		json
+//
+// @Param			id			path	string	true	"Customer ID (UUID)"
+// @Param			pageSize	query	int		false	"Page size (default 20)"
+// @Param			pageToken	query	string	false	"Cursor for pagination"
+//
+// @Success		200	{object}	dto.ListFollowingResponse
+// @Failure		400	{object}	response.ErrorResponse		"Invalid request or page token"
+// @Failure		403	{object}	response.ErrorResponse		"Following list is private"
+// @Failure		404	{object}	response.ErrorResponse		"Customer not found"
+// @Failure		500	{object}	response.ErrorResponse		"Internal server error"
+//
+// @Router			/customers/{id}/following [get]
 func (h *handler) listFollowing(c *gin.Context) {
 	var req dto.ListFollowingRequest
 	if err := request.BindQuery(c, &req); err != nil {

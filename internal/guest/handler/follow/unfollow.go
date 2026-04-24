@@ -7,6 +7,23 @@ import (
 	"net/http"
 )
 
+// @Summary		Unfollow a user
+// @Description	Removes a follow relationship between the current user and another customer.
+//
+// @Tags			follow
+// @Accept			json
+// @Produce		json
+// @Security		BearerAuth
+//
+// @Param			id	path	string	true	"Target customer ID (UUID)"
+//
+// @Success		204	"Successfully unfollowed"
+// @Failure		400	{object}	response.ErrorResponse		"Invalid request"
+// @Failure		401	{object}	response.AuthErrorResponse	"Unauthorized"
+// @Failure		404	{object}	response.ErrorResponse		"Follow relationship not found"
+// @Failure		500	{object}	response.ErrorResponse		"Internal server error"
+//
+// @Router			/customers/{id}/follow [delete]
 func (h *handler) unfollow(c *gin.Context) {
 	customerID, err := httpctx.GetCustomerID(c)
 	if err != nil {

@@ -5,11 +5,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-func (s *service) Unfollow(
-	ctx context.Context,
-	userID, targetCustomerID string,
-) error {
-
+func (s *service) Unfollow(ctx context.Context, userID, targetCustomerID string) error {
 	currentCustomer, err := s.customerRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return err

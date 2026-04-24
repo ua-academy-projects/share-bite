@@ -6,11 +6,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-func (s *service) Follow(
-	ctx context.Context,
-	userID, targetCustomerID string,
-) (entity.CustomerFollow, error) {
-
+func (s *service) Follow(ctx context.Context, userID, targetCustomerID string) (entity.CustomerFollow, error) {
 	currentCustomer, err := s.customerRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return entity.CustomerFollow{}, err
