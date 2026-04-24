@@ -1,6 +1,6 @@
 module github.com/ua-academy-projects/share-bite
 
-go 1.25.0
+go 1.25.1
 
 require (
 	github.com/JGLTechnologies/gin-rate-limit v1.5.8

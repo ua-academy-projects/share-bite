@@ -273,25 +273,35 @@ func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 // @Summary      User logout
 // @Description  Deletes a specific session (refresh token) from the database.
 // @Tags         Auth
+// @Security     BearerAuth
 // @Accept       json
 // @Produce      json
 // @Param        request  body      RefreshRequest   true  "Refresh token to delete"
 // @Success      200      {object}  MessageResponse  "Success message."
 // @Failure      400      {object}  ErrorResponse    "Validation error."
+// @Failure      401      {object}  ErrorResponse    "Unauthorized access."
 // @Failure      500      {object}  ErrorResponse    "Internal server error."
 // @Router       /auth/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
-	userID, exists := c.Get(middleware.CtxUserID)
+	userIDVal, exists := c.Get(middleware.CtxUserID)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized access."})
 		return
 	}
+
+	userIDStr, ok := userIDVal.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal server error."})
+		return
+	}
+
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
-	err := h.service.Logout(c.Request.Context(), userID.(string), req.RefreshToken)
+
+	err := h.service.Logout(c.Request.Context(), userIDStr, req.RefreshToken)
 	if err != nil {
 		_ = c.Error(err)
 		return
