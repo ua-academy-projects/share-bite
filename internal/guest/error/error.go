@@ -3,6 +3,7 @@ package apperror
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 )
@@ -37,6 +38,12 @@ var (
 	ErrFollowersListPrivate   = newError(code.Forbidden, "followers list is private")
 	ErrFollowingListPrivate   = newError(code.Forbidden, "following list is private")
 	ErrFollowNotFound         = newError(code.NotFound, "follow relationship not found")
+
+	ErrCannotListOthersOutboundInvites = newError(code.Forbidden, "you can only view your own outbound invitations")
+	ErrCannotListOthersInboundInvites  = newError(code.Forbidden, "you can only view your own inbound invitations")
+
+	ErrInvitationExpired          = newError(code.BadRequest, "this invitation has expired, please ask for a new one")
+	ErrInvitationAlreadyProcessed = newError(code.AlreadyExists, "this invitation has already been processed")
 )
 
 type Error struct {
@@ -153,7 +160,29 @@ func CollectionCollaboratorsLimitReached(limit int) *Error {
 	return newError(code.InvalidRequest, msg)
 }
 
-func TargetCustomerNotFound(customerID string) *Error {
-	msg := fmt.Sprintf("customer with id %q does not exist", customerID)
+func InviteeCustomerNotFoundID(inviteeID string) *Error {
+	msg := fmt.Sprintf("invitee customer with id %q does not exist", inviteeID)
+	return newError(code.NotFound, msg)
+}
+
+func InvitationAlreadySent(collectionID string, inviteeID string) *Error {
+	msg := fmt.Sprintf("invitation for collection %q has already been sent to customer %q", collectionID, inviteeID)
+	return newError(code.AlreadyExists, msg)
+}
+
+func InvitationCooldown(cooldown time.Duration) *Error {
+	hours := int(cooldown.Hours())
+	msg := fmt.Sprintf("please wait %d hour(s) before resending this invitation", hours)
+
+	return newError(code.TooManyRequests, msg)
+}
+
+func InvitationNotFoundID(invitationID string) *Error {
+	msg := fmt.Sprintf("invitation with id %q does not exist", invitationID)
+	return newError(code.NotFound, msg)
+}
+
+func InvitationNotFoundForInvitee(collectionID string, inviteeID string) *Error {
+	msg := fmt.Sprintf("invitation for collection %q and invitee %q was not found", collectionID, inviteeID)
 	return newError(code.NotFound, msg)
 }
