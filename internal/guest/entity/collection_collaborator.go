@@ -12,13 +12,6 @@ type Collaborator struct {
 	AddedAt time.Time
 }
 
-type AddCollaboratorInput struct {
-	CollectionID string
-
-	CustomerID       string
-	TargetCustomerID string
-}
-
 type RemoveCollaboratorInput struct {
 	CollectionID string
 
