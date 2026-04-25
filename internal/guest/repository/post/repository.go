@@ -9,6 +9,8 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
