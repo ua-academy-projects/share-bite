@@ -15,10 +15,10 @@ const (
 )
 
 type CustomerFollowRepository interface {
-	Follow(ctx context.Context, followerID, followedID string) (entity.CustomerFollow, error)
+	Follow(ctx context.Context, followerID, followedID string) error
 	Unfollow(ctx context.Context, followerID, followedID string) error
-	ListFollowing(ctx context.Context, customerID string, cursorTime time.Time, cursorID string, limit int) ([]entity.Follower, error)
-	ListFollowers(ctx context.Context, customerID string, cursorTime time.Time, cursorID string, limit int) ([]entity.Follower, error)
+	ListFollowingEnriched(ctx context.Context, requesterID string, customerID string, cursorTime time.Time, cursorID string, limit int) ([]entity.Follower, error)
+	ListFollowersEnriched(ctx context.Context, requesterID string, customerID string, cursorTime time.Time, cursorID string, limit int) ([]entity.Follower, error)
 	IsFollowing(ctx context.Context, followerID, followedID string) (bool, error)
 }
 
@@ -88,12 +88,4 @@ func (s *service) generatePageToken(createdAt time.Time, id string) string {
 	}
 	data, _ := json.Marshal(pt)
 	return base64.StdEncoding.EncodeToString(data)
-}
-
-func followersToCustomers(rows []entity.Follower) []entity.Customer {
-	customers := make([]entity.Customer, 0, len(rows))
-	for _, f := range rows {
-		customers = append(customers, f.Customer)
-	}
-	return customers
 }

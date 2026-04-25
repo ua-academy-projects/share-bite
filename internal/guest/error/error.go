@@ -31,28 +31,13 @@ var (
 	ErrImageRequired        = newError(code.BadRequest, "image is required")
 	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
 	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
+	ErrMultipartFormData    = newError(code.BadRequest, "content type must be multipart/form-data")
 
-	ErrCannotFollowYourself = newError(
-		code.InvalidRequest,
-		"cannot follow yourself",
-	)
-	ErrCannotUnfollowYourself = newError(
-		code.InvalidRequest,
-		"cannot unfollow yourself",
-	)
-	ErrFollowersListPrivate = newError(
-		code.Forbidden,
-		"followers list is private",
-	)
-	ErrFollowingListPrivate = newError(
-		code.Forbidden,
-		"following list is private",
-	)
-
-	ErrFollowNotFound = newError(
-		code.NotFound,
-		"follow relationship not found",
-	)
+	ErrCannotFollowYourself   = newError(code.InvalidRequest, "cannot follow yourself")
+	ErrCannotUnfollowYourself = newError(code.InvalidRequest, "cannot unfollow yourself")
+	ErrFollowersListPrivate   = newError(code.Forbidden, "followers list is private")
+	ErrFollowingListPrivate   = newError(code.Forbidden, "following list is private")
+	ErrFollowNotFound         = newError(code.NotFound, "follow relationship not found")
 )
 
 type Error struct {
@@ -142,4 +127,9 @@ func AlreadyFollowing(current, target string) *Error {
 		code.AlreadyExists,
 		fmt.Sprintf("current %q is already following target %q", current, target),
 	)
+}
+
+func InvalidPostStatusTransition(from, to string) *Error {
+	msg := fmt.Sprintf("invalid post status transition: %s -> %s", from, to)
+	return newError(code.InvalidRequest, msg)
 }

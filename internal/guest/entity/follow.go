@@ -15,6 +15,10 @@ type Follower struct {
 	Customer
 	FollowCreatedAt time.Time
 	FollowID        string
+
+	IsFollowing  bool
+	IsFollowedBy bool
+	IsMutual     bool
 }
 
 type ListFollowersInput struct {
@@ -25,7 +29,7 @@ type ListFollowersInput struct {
 }
 
 type ListFollowersOutput struct {
-	Customers     []Customer
+	Followers     []Follower
 	NextPageToken string
 }
 
@@ -37,6 +41,6 @@ type ListFollowingInput struct {
 }
 
 type ListFollowingOutput struct {
-	Customers     []Customer
+	Followers     []Follower
 	NextPageToken string
 }

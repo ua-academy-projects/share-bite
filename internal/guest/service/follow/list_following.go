@@ -20,12 +20,18 @@ func (s *service) ListFollowing(ctx context.Context, in entity.ListFollowingInpu
 	}
 
 	isOwner := in.RequesterCustomerID != nil && *in.RequesterCustomerID == targetCustomer.ID
-	if !isOwner && !targetCustomer.IsFollowersPublic {
-		return entity.ListFollowingOutput{}, apperror.ErrFollowersListPrivate
+	if !isOwner && !targetCustomer.IsFollowingPublic {
+		return entity.ListFollowingOutput{}, apperror.ErrFollowingListPrivate
 	}
 
-	rows, err := s.customerFollowRepo.ListFollowing(
+	requesterID := ""
+	if in.RequesterCustomerID != nil {
+		requesterID = *in.RequesterCustomerID
+	}
+
+	rows, err := s.customerFollowRepo.ListFollowingEnriched(
 		ctx,
+		requesterID,
 		in.TargetCustomerID,
 		cursorTime,
 		cursorID,
@@ -48,7 +54,7 @@ func (s *service) ListFollowing(ctx context.Context, in entity.ListFollowingInpu
 	}
 
 	return entity.ListFollowingOutput{
-		Customers:     followersToCustomers(rows),
+		Followers:     rows,
 		NextPageToken: nextPageToken,
 	}, nil
 }
