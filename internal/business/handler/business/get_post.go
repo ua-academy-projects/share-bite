@@ -19,23 +19,19 @@ type getPostsResponse struct {
 
 // GetPosts returns a paginated list of posts.
 //
-// @Summary      Get posts
-// @Description  Returns paginated posts with images and organization info
-// @Tags         posts
-// @Produce      json
-// @Param        skip   query     int  false  "Number of items to skip (default: 0)"
-// @Param        limit  query     int  false  "Number of items to return (default: 10, max: 100)"
-// @Success      200    {object}  getPostsResponse
-// @Failure      400    {object}  errorResponse
-// @Failure      500    {object}  errorResponse
-// @Router       /business/posts [get]
+//	@Summary		Get posts
+//	@Description	Returns paginated posts with images and organization info
+//	@Tags			posts
+//	@Produce		json
+//	@Param			skip	query		int	false	"Number of items to skip (default: 0)"
+//	@Param			limit	query		int	false	"Number of items to return (default: 10, max: 100)"
+//	@Success		200		{object}	getPostsResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Router			/business/posts [get]
 func (h *handler) GetPosts(c *gin.Context) {
 	req := new(getPostsRequest)
 	c.ShouldBindQuery(req)
-
-	if req.Skip < 0 {
-		req.Skip = 0
-	}
 
 	if req.Skip < 0 {
 		req.Skip = 0
@@ -54,7 +50,10 @@ func (h *handler) GetPosts(c *gin.Context) {
 
 	posts, err := h.service.GetPosts(ctx, req.Skip, req.Limit)
 	if err != nil {
-		_ = c.Error(err)
+		c.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "internal error",
+		})
 		return
 	}
 
