@@ -10,6 +10,18 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
+const (
+	maxVenuesPerCollection = 100
+	sortOrderGap           = 100.0
+
+	rebalanceGapLimit = 1e-9
+
+	maxCollaboratorsPerCollection = 20
+
+	resendInvitationCooldown = time.Hour * 1
+	invitationTTL            = time.Hour * 24 * 7 // 7 days
+)
+
 type collectionRepository interface {
 	CreateCollection(ctx context.Context, in entity.CreateCollectionInput) (entity.Collection, error)
 	DeleteCollection(ctx context.Context, collectionID string) error
@@ -38,6 +50,15 @@ type collectionRepository interface {
 	CheckIfCollaborator(ctx context.Context, collectionID string, customerID string) (bool, error)
 
 	ListCollaborators(ctx context.Context, collectionID string) ([]entity.Collaborator, error)
+
+	CreateInvitation(ctx context.Context, in entity.InviteCollaboratorInput) (string, error)
+	UpdateInvitationStatus(ctx context.Context, invitationID string, status entity.InvitationStatus) error
+	RefreshInvitation(ctx context.Context, invitationID string, newExpiry time.Time) error
+
+	GetInvitation(ctx context.Context, invitationID string) (entity.Invitation, error)
+	GetInvitationForUpdate(ctx context.Context, invitationID string) (entity.Invitation, error)
+	GetInvitationByInvitee(ctx context.Context, collectionID string, inviteeID string) (entity.Invitation, error)
+	ListInvitations(ctx context.Context, in entity.ListInvitationsInput) ([]entity.EnrichedInvitation, error)
 }
 
 type businessClient interface {

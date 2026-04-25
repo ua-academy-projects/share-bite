@@ -27,13 +27,18 @@ type collectionService interface {
 	RemoveVenue(ctx context.Context, collectionID string, customerID string, venueID int64) error
 	ReorderVenue(ctx context.Context, in entity.ReorderVenueInput) error
 
-	AddCollaborator(ctx context.Context, in entity.AddCollaboratorInput) error
-	RemoveCollaborator(ctx context.Context, in entity.RemoveCollaboratorInput) error
-
 	GetCollection(ctx context.Context, collectionID string, customerID *string) (entity.Collection, error)
 	ListCustomerCollections(ctx context.Context, in entity.ListCustomerCollectionsInput) (entity.ListCustomerCollectionsOutput, error)
 	ListVenues(ctx context.Context, collectionID string, customerID *string) ([]entity.EnrichedVenueItem, error)
 	ListCollaborators(ctx context.Context, collectionID string, customerID *string) ([]entity.Collaborator, error)
+
+	InviteCollaborator(ctx context.Context, in entity.InviteCollaboratorInput) error
+	AcceptInvitation(ctx context.Context, invitationID string, customerID string) error
+	DeclineInvitation(ctx context.Context, invitationID string, customerID string) error
+
+	ListInvitations(ctx context.Context, in entity.ListInvitationsInput) (entity.ListInvitationsOutput, error)
+
+	RemoveCollaborator(ctx context.Context, in entity.RemoveCollaboratorInput) error
 }
 
 func RegisterHandlers(
@@ -48,30 +53,35 @@ func RegisterHandlers(
 		service: service,
 		storage: st,
 	}
-
-	// OPTIONAL PROTECTION:
 	optional := r.Group("/").Use(optionalAuthMiddleware, customerMiddleware)
 
 	optional.GET("/:collectionId", h.getCollection)
 	optional.GET("/:collectionId/venues", h.listVenues)
+
 	optional.GET("/:collectionId/collaborators", h.listCollaborators)
 
-	// TODO: add search for collections
-
-	// PROTECTED:
 	protected := r.Group("/").Use(authMiddleware, middleware.RequireRoles("user"), customerMiddleware)
 
+	// collections
 	protected.POST("/", h.createCollection)
 	protected.GET("/me", h.listMyCollections)
 	protected.PATCH("/:collectionId", h.updateCollection)
 	protected.DELETE("/:collectionId", h.deleteCollection)
 
+	// TODO: add search for collections
+
+	// venues
 	protected.POST("/:collectionId/venues/:venueId", h.addVenue)
 	protected.DELETE("/:collectionId/venues/:venueId", h.removeVenue)
 	protected.POST("/:collectionId/venues/:venueId/reorder", h.reorderVenue)
 
-	protected.POST("/:collectionId/collaborators", h.addCollaborator)
+	// invitations and collaborators
+	protected.POST("/:collectionId/invitations", h.inviteCollaborator)
 	protected.DELETE("/:collectionId/collaborators/:customerId", h.removeCollaborator)
+
+	protected.GET("/invitations", h.listInvitations)
+	protected.POST("/invitations/:invitationId/accept", h.acceptInvitation)
+	protected.POST("/invitations/:invitationId/decline", h.declineInvitation)
 }
 
 type collectionResponse struct {
@@ -143,5 +153,63 @@ func (h *handler) collaboratorToResponse(collaborator entity.Collaborator) colla
 		UserName:   collaborator.UserName,
 		AvatarURL:  avatarURL,
 		AddedAt:    collaborator.AddedAt,
+	}
+}
+
+type invitationResponse struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+
+	CollectionID   string `json:"collectionId"`
+	CollectionName string `json:"collectionName"`
+
+	Inviter customerInfoResponse `json:"inviter"`
+	Invitee customerInfoResponse `json:"invitee"`
+
+	ExpiresAt time.Time `db:"expires_at"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type customerInfoResponse struct {
+	ID        string  `json:"id"`
+	UserName  string  `json:"userName"`
+	AvatarURL *string `json:"avatarUrl"`
+}
+
+func (h *handler) invitationToResponse(invitation entity.EnrichedInvitation) invitationResponse {
+	var (
+		inviterAvatarURL *string
+		inviteeAvatarURL *string
+	)
+
+	if invitation.InviterAvatarObjectKey != nil {
+		url := h.storage.BuildURL(*invitation.InviterAvatarObjectKey)
+		inviterAvatarURL = &url
+	}
+	if invitation.InviteeAvatarObjectKey != nil {
+		url := h.storage.BuildURL(*invitation.InviteeAvatarObjectKey)
+		inviteeAvatarURL = &url
+	}
+
+	return invitationResponse{
+		ID:     invitation.ID,
+		Status: string(invitation.Status),
+
+		CollectionID:   invitation.CollectionID,
+		CollectionName: invitation.CollectionName,
+
+		Inviter: customerInfoResponse{
+			ID:        invitation.InviterID,
+			UserName:  invitation.InviterUserName,
+			AvatarURL: inviterAvatarURL,
+		},
+		Invitee: customerInfoResponse{
+			ID:        invitation.InviteeID,
+			UserName:  invitation.InviteeUserName,
+			AvatarURL: inviteeAvatarURL,
+		},
+
+		CreatedAt: invitation.CreatedAt,
+		ExpiresAt: invitation.ExpiresAt,
 	}
 }

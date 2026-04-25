@@ -106,6 +106,86 @@ func (e Collaborators) ToEntities() []entity.Collaborator {
 	return list
 }
 
+type Invitation struct {
+	ID           string `db:"id"`
+	CollectionID string `db:"collection_id"`
+
+	Status entity.InvitationStatus `db:"status"`
+
+	InviterID string `db:"inviter_id"`
+	InviteeID string `db:"invitee_id"`
+
+	ExpiresAt  time.Time `db:"expires_at"`
+	LastSentAt time.Time `db:"last_sent_at"`
+	CreatedAt  time.Time `db:"created_at"`
+}
+
+func (e Invitation) ToEntity() entity.Invitation {
+	return entity.Invitation{
+		ID:           e.ID,
+		CollectionID: e.CollectionID,
+
+		Status: e.Status,
+
+		InviterID: e.InviterID,
+		InviteeID: e.InviteeID,
+
+		ExpiresAt:  e.ExpiresAt,
+		LastSentAt: e.LastSentAt,
+
+		CreatedAt: e.CreatedAt,
+	}
+}
+
+type EnrichedInvitation struct {
+	ID        string                  `db:"id"`
+	Status    entity.InvitationStatus `db:"status"`
+	CreatedAt time.Time               `db:"created_at"`
+	ExpiresAt time.Time               `db:"expires_at"`
+
+	CollectionID   string `db:"collection_id"`
+	CollectionName string `db:"collection_name"`
+
+	InviterID              string  `db:"inviter_id"`
+	InviterUserName        string  `db:"inviter_username"`
+	InviterAvatarObjectKey *string `db:"inviter_avatar_object_key"`
+
+	InviteeID              string  `db:"invitee_id"`
+	InviteeUserName        string  `db:"invitee_username"`
+	InviteeAvatarObjectKey *string `db:"invitee_avatar_object_key"`
+}
+
+func (e EnrichedInvitation) ToEntity() entity.EnrichedInvitation {
+	return entity.EnrichedInvitation{
+		ID:        e.ID,
+		Status:    e.Status,
+		CreatedAt: e.CreatedAt,
+		ExpiresAt: e.ExpiresAt,
+
+		CollectionID:   e.CollectionID,
+		CollectionName: e.CollectionName,
+
+		InviterID:              e.InviterID,
+		InviterUserName:        e.InviterUserName,
+		InviterAvatarObjectKey: e.InviterAvatarObjectKey,
+
+		InviteeID:              e.InviteeID,
+		InviteeUserName:        e.InviteeUserName,
+		InviteeAvatarObjectKey: e.InviteeAvatarObjectKey,
+	}
+}
+
+type EnrichedInvitations []EnrichedInvitation
+
+func (e EnrichedInvitations) ToEntities() []entity.EnrichedInvitation {
+	list := make([]entity.EnrichedInvitation, 0, len(e))
+	for _, ei := range e {
+		list = append(list, ei.ToEntity())
+	}
+
+	return list
+}
+
 func executeSQLError(err error) error {
 	return fmt.Errorf("execute sql: %w", err)
 }

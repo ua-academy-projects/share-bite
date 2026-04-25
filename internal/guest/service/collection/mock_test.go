@@ -128,6 +128,41 @@ func (m *mockCollectionRepository) CheckIfCollaborator(ctx context.Context, coll
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *mockCollectionRepository) GetInvitation(ctx context.Context, invitationID string) (entity.Invitation, error) {
+	args := m.Called(ctx, invitationID)
+	return args.Get(0).(entity.Invitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) GetInvitationForUpdate(ctx context.Context, invitationID string) (entity.Invitation, error) {
+	args := m.Called(ctx, invitationID)
+	return args.Get(0).(entity.Invitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) GetInvitationByInvitee(ctx context.Context, collectionID string, inviteeID string) (entity.Invitation, error) {
+	args := m.Called(ctx, collectionID, inviteeID)
+	return args.Get(0).(entity.Invitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) ListInvitations(ctx context.Context, in entity.ListInvitationsInput) ([]entity.EnrichedInvitation, error) {
+	args := m.Called(ctx, in)
+	return args.Get(0).([]entity.EnrichedInvitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) CreateInvitation(ctx context.Context, in entity.InviteCollaboratorInput) (string, error) {
+	args := m.Called(ctx, in)
+	return args.String(0), args.Error(1)
+}
+
+func (m *mockCollectionRepository) UpdateInvitationStatus(ctx context.Context, invitationID string, status entity.InvitationStatus) error {
+	args := m.Called(ctx, invitationID, status)
+	return args.Error(0)
+}
+
+func (m *mockCollectionRepository) RefreshInvitation(ctx context.Context, invitationID string, newExpiry time.Time) error {
+	args := m.Called(ctx, invitationID, newExpiry)
+	return args.Error(0)
+}
+
 type mockBusinessClient struct {
 	mock.Mock
 }
