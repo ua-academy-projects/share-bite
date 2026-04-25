@@ -10,8 +10,8 @@ import (
 )
 
 func (h *handler) listCollaborators(c *gin.Context) {
-	var uri listCollaboratorsUri
-	if err := request.BindUri(c, &uri); err != nil {
+	var params listCollaboratorsParams
+	if err := request.BindUri(c, &params); err != nil {
 		c.Error(err)
 		return
 	}
@@ -23,7 +23,7 @@ func (h *handler) listCollaborators(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	collaborators, err := h.service.ListCollaborators(ctx, uri.CollectionID, customerID)
+	collaborators, err := h.service.ListCollaborators(ctx, params.CollectionID, customerID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -33,7 +33,7 @@ func (h *handler) listCollaborators(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-type listCollaboratorsUri struct {
+type listCollaboratorsParams struct {
 	CollectionID string `uri:"collectionId" binding:"required,uuid"`
 }
 

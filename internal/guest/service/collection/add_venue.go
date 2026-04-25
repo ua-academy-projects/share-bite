@@ -7,11 +7,6 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-const (
-	maxVenuesPerCollection = 100
-	sortOrderGap           = 100.0
-)
-
 func (s *service) AddVenue(
 	ctx context.Context,
 	collectionID string,

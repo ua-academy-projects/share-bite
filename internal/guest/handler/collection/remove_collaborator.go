@@ -9,8 +9,8 @@ import (
 )
 
 func (h *handler) removeCollaborator(c *gin.Context) {
-	var uri removeCollaboratorUri
-	if err := request.BindUri(c, &uri); err != nil {
+	var params removeCollaboratorParams
+	if err := request.BindUri(c, &params); err != nil {
 		c.Error(err)
 		return
 	}
@@ -22,7 +22,7 @@ func (h *handler) removeCollaborator(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	in := removeCollaboratorRequestToRemoveCollaborator(uri, customerID)
+	in := removeCollaboratorRequestToRemoveCollaborator(params, customerID)
 
 	if err := h.service.RemoveCollaborator(ctx, in); err != nil {
 		c.Error(err)
@@ -32,7 +32,7 @@ func (h *handler) removeCollaborator(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-type removeCollaboratorUri struct {
+type removeCollaboratorParams struct {
 	CollectionID     string `uri:"collectionId" binding:"required,uuid"`
 	TargetCustomerID string `uri:"customerId" binding:"required,uuid"`
 }
