@@ -2,6 +2,7 @@ package business
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 )
