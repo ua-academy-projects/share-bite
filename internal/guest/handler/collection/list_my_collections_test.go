@@ -20,6 +20,8 @@ func TestListMyCollections(t *testing.T) {
 		customerID   = gofakeit.UUID()
 		collectionID = gofakeit.UUID()
 		now          = time.Now().UTC()
+
+		validToken = generatePageToken(now, collectionID)
 	)
 
 	tests := []struct {
@@ -39,8 +41,9 @@ func TestListMyCollections(t *testing.T) {
 			mockFn: func(s *mockCollectionService) {
 				s.On("ListCustomerCollections", mock.Anything, entity.ListCustomerCollectionsInput{
 					CustomerID: customerID,
-					PageSize:   20,
-					PageToken:  "",
+					CursorTime: time.Time{},
+					CursorID:   "",
+					Limit:      21,
 				}).Return(entity.ListCustomerCollectionsOutput{
 					Collections: []entity.Collection{
 						{
@@ -52,7 +55,8 @@ func TestListMyCollections(t *testing.T) {
 							UpdatedAt:  now,
 						},
 					},
-					NextPageToken: "next-token",
+					NextCursorTime: &now,
+					NextCursorID:   &collectionID,
 				}, nil).Once()
 			},
 			wantCode: http.StatusOK,
@@ -66,19 +70,20 @@ func TestListMyCollections(t *testing.T) {
 						UpdatedAt: now,
 					},
 				},
-				NextPageToken: "next-token",
+				// Очікуємо вже закодований рядок
+				NextPageToken: validToken,
 			},
 		},
 		{
 			name:       "validation error",
-			query:      "?page_size=101",
+			query:      "?pageSize=101",
 			customerID: customerID,
 			mockFn:     func(s *mockCollectionService) {},
 			wantCode:   http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
 				Details: []response.ErrorDetail{
-					{Field: "page_size", Message: "This field must be less than or equal to 100"},
+					{Field: "pageSize", Message: "This field must be less than or equal to 100"},
 				},
 			},
 		},
@@ -100,13 +105,14 @@ func TestListMyCollections(t *testing.T) {
 		},
 		{
 			name:       "service unknown error",
-			query:      "?page_size=10&page_token=abc",
+			query:      "?pageSize=10&pageToken=" + validToken,
 			customerID: customerID,
 			mockFn: func(s *mockCollectionService) {
 				s.On("ListCustomerCollections", mock.Anything, entity.ListCustomerCollectionsInput{
 					CustomerID: customerID,
-					PageSize:   10,
-					PageToken:  "abc",
+					CursorTime: now,
+					CursorID:   collectionID,
+					Limit:      11,
 				}).Return(entity.ListCustomerCollectionsOutput{}, errors.New("db down")).Once()
 			},
 			wantCode: http.StatusInternalServerError,

@@ -47,7 +47,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: collectionID,
 			venueIDPath:  venueIDStr,
 			customerID:   customerID,
-			body: reorderVenueBody{
+			body: reorderVenueRequest{
 				PrevVenueID: &prevVenueID,
 			},
 			mockFn: func(s *mockCollectionService) {
@@ -67,7 +67,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: collectionID,
 			venueIDPath:  venueIDStr,
 			customerID:   customerID,
-			body: reorderVenueBody{
+			body: reorderVenueRequest{
 				NextVenueID: &nextVenueID,
 			},
 			mockFn: func(s *mockCollectionService) {
@@ -87,7 +87,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: invalidCollectionID,
 			venueIDPath:  venueIDStr,
 			customerID:   customerID,
-			body: reorderVenueBody{
+			body: reorderVenueRequest{
 				PrevVenueID: &prevVenueID,
 			},
 			mockFn:   func(s *mockCollectionService) {},
@@ -104,7 +104,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: collectionID,
 			venueIDPath:  "0",
 			customerID:   customerID,
-			body: reorderVenueBody{
+			body: reorderVenueRequest{
 				PrevVenueID: &prevVenueID,
 			},
 			mockFn:   func(s *mockCollectionService) {},
@@ -121,7 +121,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: collectionID,
 			venueIDPath:  venueIDStr,
 			customerID:   customerID,
-			body:         reorderVenueBody{},
+			body:         reorderVenueRequest{},
 			mockFn:       func(s *mockCollectionService) {},
 			wantCode:     http.StatusBadRequest,
 			wantBody: response.ErrorResponse{
@@ -137,7 +137,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: collectionID,
 			venueIDPath:  venueIDStr,
 			customerID:   nil,
-			body: reorderVenueBody{
+			body: reorderVenueRequest{
 				PrevVenueID: &prevVenueID,
 			},
 			mockFn:   func(s *mockCollectionService) {},
@@ -149,7 +149,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: collectionID,
 			venueIDPath:  venueIDStr,
 			customerID:   customerID,
-			body: reorderVenueBody{
+			body: reorderVenueRequest{
 				PrevVenueID: &prevVenueID,
 			},
 			mockFn: func(s *mockCollectionService) {
@@ -165,7 +165,7 @@ func TestReorderVenue(t *testing.T) {
 			collectionID: collectionID,
 			venueIDPath:  venueIDStr,
 			customerID:   customerID,
-			body: reorderVenueBody{
+			body: reorderVenueRequest{
 				PrevVenueID: &prevVenueID,
 			},
 			mockFn: func(s *mockCollectionService) {

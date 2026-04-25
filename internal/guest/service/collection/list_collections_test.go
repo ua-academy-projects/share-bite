@@ -2,9 +2,7 @@ package collection
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
 func TestListCollections(t *testing.T) {
@@ -26,15 +23,12 @@ func TestListCollections(t *testing.T) {
 		baseTime = time.Now().UTC().Truncate(time.Millisecond)
 	)
 
-	generateToken := func(createdAt time.Time, id string) string {
-		timeStr := createdAt.Format(time.RFC3339Nano)
-		raw := fmt.Sprintf("%s|%s", timeStr, id)
-		return base64.URLEncoding.EncodeToString([]byte(raw))
-	}
-
 	col1 := entity.Collection{ID: gofakeit.UUID(), CustomerID: customerID, CreatedAt: baseTime}
 	col2 := entity.Collection{ID: gofakeit.UUID(), CustomerID: customerID, CreatedAt: baseTime.Add(-time.Hour)}
 	col3 := entity.Collection{ID: gofakeit.UUID(), CustomerID: customerID, CreatedAt: baseTime.Add(-2 * time.Hour)}
+
+	col2Time := col2.CreatedAt
+	col2ID := col2.ID
 
 	tests := []struct {
 		name string
@@ -47,73 +41,69 @@ func TestListCollections(t *testing.T) {
 		wantErr    error
 	}{
 		{
-			name: "success - default limit, no next page",
+			name: "success - no next page (mapper passed default limit + 1)",
 			input: entity.ListCustomerCollectionsInput{
 				CustomerID: customerID,
-				PageSize:   0,
-				PageToken:  "",
+				CursorTime: time.Time{},
+				CursorID:   "",
+				Limit:      21,
 			},
 			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("ListCustomerCollections", mock.Anything, customerID, time.Time{}, "", defaultLimit+1).
+				repo.On("ListCustomerCollections", mock.Anything, customerID, time.Time{}, "", 21).
 					Return([]entity.Collection{col1, col2}, nil).Once()
 			},
 			wantOutput: entity.ListCustomerCollectionsOutput{
-				Collections:   []entity.Collection{col1, col2},
-				NextPageToken: "",
+				Collections:    []entity.Collection{col1, col2},
+				NextCursorTime: nil,
+				NextCursorID:   nil,
 			},
 			wantErr: nil,
 		},
 		{
-			name: "success - exact limit, has next page",
+			name: "success - has next page (mapper passed limit + 1)",
 			input: entity.ListCustomerCollectionsInput{
 				CustomerID: customerID,
-				PageSize:   2,
-				PageToken:  "",
+				CursorTime: time.Time{},
+				CursorID:   "",
+				Limit:      3,
 			},
 			mockFn: func(repo *mockCollectionRepository) {
 				repo.On("ListCustomerCollections", mock.Anything, customerID, time.Time{}, "", 3).
 					Return([]entity.Collection{col1, col2, col3}, nil).Once()
 			},
 			wantOutput: entity.ListCustomerCollectionsOutput{
-				Collections:   []entity.Collection{col1, col2},
-				NextPageToken: generateToken(col2.CreatedAt, col2.ID),
+				Collections:    []entity.Collection{col1, col2},
+				NextCursorTime: &col2Time,
+				NextCursorID:   &col2ID,
 			},
 			wantErr: nil,
 		},
 		{
-			name: "success - with token, max limit cap",
+			name: "success - with cursors, max limit cap",
 			input: entity.ListCustomerCollectionsInput{
 				CustomerID: customerID,
-				PageSize:   150,
-				PageToken:  generateToken(col1.CreatedAt, col1.ID),
+				CursorTime: col1.CreatedAt,
+				CursorID:   col1.ID,
+				Limit:      101,
 			},
 			mockFn: func(repo *mockCollectionRepository) {
 				repo.On("ListCustomerCollections", mock.Anything, customerID, col1.CreatedAt, col1.ID, 101).
 					Return([]entity.Collection{col2}, nil).Once()
 			},
 			wantOutput: entity.ListCustomerCollectionsOutput{
-				Collections:   []entity.Collection{col2},
-				NextPageToken: "",
+				Collections:    []entity.Collection{col2},
+				NextCursorTime: nil,
+				NextCursorID:   nil,
 			},
 			wantErr: nil,
-		},
-		{
-			name: "error - invalid token",
-			input: entity.ListCustomerCollectionsInput{
-				CustomerID: customerID,
-				PageSize:   10,
-				PageToken:  "invalid-token",
-			},
-			mockFn:     func(repo *mockCollectionRepository) {},
-			wantOutput: entity.ListCustomerCollectionsOutput{},
-			wantErr:    apperror.ErrInvalidPageToken,
 		},
 		{
 			name: "error - repository fails",
 			input: entity.ListCustomerCollectionsInput{
 				CustomerID: customerID,
-				PageSize:   10,
-				PageToken:  "",
+				CursorTime: time.Time{},
+				CursorID:   "",
+				Limit:      11,
 			},
 			mockFn: func(repo *mockCollectionRepository) {
 				repo.On("ListCustomerCollections", mock.Anything, customerID, time.Time{}, "", 11).
