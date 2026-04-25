@@ -55,6 +55,6 @@ func (h *handler) listFollowers(c *gin.Context) {
 		return
 	}
 
-	resp := h.listCustomersResponse(out.Customers, out.NextPageToken)
+	resp := h.listCustomersResponse(out.Followers, out.NextPageToken)
 	c.JSON(http.StatusOK, resp)
 }

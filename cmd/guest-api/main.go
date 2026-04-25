@@ -148,7 +148,7 @@ func main() {
 	customerMiddleware := middleware.CustomerID(customerSvc)
 
 	// handlers
-	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
+	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
@@ -158,7 +158,7 @@ func main() {
 		optionalAuthMiddleware,
 		customerMiddleware,
 	)
-	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware)
+	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

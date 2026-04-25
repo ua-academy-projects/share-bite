@@ -47,7 +47,7 @@ func (h *handler) listMyFollowing(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, h.listCustomersResponse(out.Customers, out.NextPageToken))
+	c.JSON(http.StatusOK, h.listCustomersResponse(out.Followers, out.NextPageToken))
 
 }
 
@@ -96,5 +96,5 @@ func (h *handler) listFollowing(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, h.listCustomersResponse(out.Customers, out.NextPageToken))
+	c.JSON(http.StatusOK, h.listCustomersResponse(out.Followers, out.NextPageToken))
 }

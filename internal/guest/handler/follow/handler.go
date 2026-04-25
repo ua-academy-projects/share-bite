@@ -15,7 +15,7 @@ type handler struct {
 }
 
 type customerFollowService interface {
-	Follow(ctx context.Context, customerID, targetCustomerID string) (entity.CustomerFollow, error)
+	Follow(ctx context.Context, customerID, targetCustomerID string) error
 	Unfollow(ctx context.Context, customerID, targetCustomerID string) error
 
 	ListFollowers(ctx context.Context, in entity.ListFollowersInput) (entity.ListFollowersOutput, error)
@@ -39,47 +39,50 @@ func RegisterHandler(
 		storage: st,
 	}
 
-	protected := r.Group("/").Use(authMiddleware, customerMiddleware)
+	//protected := r.Group("/").Use(authMiddleware, customerMiddleware)
 
-	protected.POST("/:id/follow", h.follow)
-	protected.DELETE("/:id/follow", h.unfollow)
+	r.POST("/id/:id/follow", h.follow)
+	r.DELETE("/id/:id/follow", h.unfollow)
 
 	optional := r.Group("/").Use(optionalAuthMiddleware, customerMiddleware)
 
-	optional.GET("/:id/followers", h.listFollowers)
-	optional.GET("/:id/following", h.listFollowing)
+	optional.GET("/id/:id/followers", h.listFollowers)
+	optional.GET("/id/:id/following", h.listFollowing)
 
-	protected.GET("/following", h.listMyFollowing)
+	r.GET("/following", h.listMyFollowing)
 }
 
-func (h *handler) customersToResponse(customers []entity.Customer) []dto.CustomerResponse {
-	res := make([]dto.CustomerResponse, 0, len(customers))
+func (h *handler) followersToResponse(customers []entity.Follower) []dto.FollowerResponse {
+	res := make([]dto.FollowerResponse, 0, len(customers))
 	for _, c := range customers {
 		res = append(res, h.toResponse(c))
 	}
 	return res
 }
 
-func (h *handler) toResponse(customer entity.Customer) dto.CustomerResponse {
+func (h *handler) toResponse(f entity.Follower) dto.FollowerResponse {
 	var avatarURL *string
-	if customer.AvatarObjectKey != nil && h.storage != nil {
-		url := h.storage.BuildURL(*customer.AvatarObjectKey)
+	if f.AvatarObjectKey != nil && h.storage != nil {
+		url := h.storage.BuildURL(*f.AvatarObjectKey)
 		avatarURL = &url
 	}
 
-	return dto.CustomerResponse{
-		ID:        customer.ID,
-		UserName:  customer.UserName,
-		AvatarURL: avatarURL,
+	return dto.FollowerResponse{
+		ID:           f.ID,
+		UserName:     f.UserName,
+		AvatarURL:    avatarURL,
+		IsFollowing:  f.IsFollowing,
+		IsFollowedBy: f.IsFollowedBy,
+		IsMutual:     f.IsMutual,
 	}
 }
 
 func (h *handler) listCustomersResponse(
-	customers []entity.Customer,
+	followers []entity.Follower,
 	nextToken string,
 ) dto.ListCustomersResponse {
 	return dto.ListCustomersResponse{
-		Customers:     h.customersToResponse(customers),
+		Customers:     h.followersToResponse(followers),
 		NextPageToken: nextToken,
 	}
 }

@@ -2,7 +2,6 @@ package follow
 
 import (
 	"context"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
@@ -15,11 +14,7 @@ func New(db database.Client) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) Follow(
-	ctx context.Context,
-	followerID, followedID string,
-) (entity.CustomerFollow, error) {
-
+func (r *Repository) Follow(ctx context.Context, followerID, followedID string) error {
 	sql := `
 		INSERT INTO guest.customer_follows(
 			follower_customer_id,
@@ -42,10 +37,10 @@ func (r *Repository) Follow(
 		&follow.FollowedCustomerID,
 		&follow.CreatedAt,
 	); err != nil {
-		return entity.CustomerFollow{}, executeSQLError(err)
+		return executeSQLError(err)
 	}
 
-	return follow.ToEntity(), nil
+	return nil
 }
 
 func (r *Repository) Unfollow(

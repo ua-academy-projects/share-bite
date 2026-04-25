@@ -11,13 +11,18 @@ type ListFollowingRequest struct {
 }
 
 type ListCustomersResponse struct {
-	Customers     []CustomerResponse `json:"customers"`
+	Customers     []FollowerResponse `json:"customers"`
 	NextPageToken string             `json:"next_page_token,omitempty"`
 }
 
-type CustomerResponse struct {
+type FollowerResponse struct {
 	ID string `json:"id"`
 
 	UserName  string  `json:"userName"`
 	AvatarURL *string `json:"avatarUrl"`
+
+	IsFollowing  bool `json:"isFollowing"`
+	IsFollowedBy bool `json:"isFollowedBy"`
+	IsMutual     bool `json:"isMutual"`
+	IsMe         bool `json:"isMe"`
 }

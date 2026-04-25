@@ -24,8 +24,14 @@ func (s *service) ListFollowers(ctx context.Context, in entity.ListFollowersInpu
 		return entity.ListFollowersOutput{}, apperror.ErrFollowersListPrivate
 	}
 
-	rows, err := s.customerFollowRepo.ListFollowers(
+	requesterID := ""
+	if in.RequesterCustomerID != nil {
+		requesterID = *in.RequesterCustomerID
+	}
+
+	rows, err := s.customerFollowRepo.ListFollowersEnriched(
 		ctx,
+		requesterID,
 		in.TargetCustomerID,
 		cursorTime,
 		cursorID,
@@ -48,7 +54,7 @@ func (s *service) ListFollowers(ctx context.Context, in entity.ListFollowersInpu
 	}
 
 	return entity.ListFollowersOutput{
-		Customers:     followersToCustomers(rows),
+		Followers:     rows,
 		NextPageToken: nextPageToken,
 	}, nil
 }

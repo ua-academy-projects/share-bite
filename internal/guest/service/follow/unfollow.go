@@ -6,7 +6,7 @@ import (
 )
 
 func (s *service) Unfollow(ctx context.Context, userID, targetCustomerID string) error {
-	currentCustomer, err := s.customerRepo.GetByUserID(ctx, userID)
+	currentCustomer, err := s.customerRepo.GetByID(ctx, userID)
 	if err != nil {
 		return err
 	}

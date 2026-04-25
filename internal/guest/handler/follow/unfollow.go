@@ -31,6 +31,7 @@ func (h *handler) unfollow(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	targetCustomerID := c.Param("id")
 	if targetCustomerID == "" {
 		c.Error(apperror.ErrInvalidParam)

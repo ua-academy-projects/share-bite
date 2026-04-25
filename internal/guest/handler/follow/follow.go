@@ -33,15 +33,16 @@ func (h *handler) follow(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	targetCustomerID := c.Param("id")
 	if targetCustomerID == "" {
 		c.Error(apperror.ErrInvalidParam)
 		return
 	}
-	follow, err := h.service.Follow(c.Request.Context(), customerID, targetCustomerID)
+	err = h.service.Follow(c.Request.Context(), customerID, targetCustomerID)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusCreated, follow)
+	c.Status(http.StatusCreated)
 }
