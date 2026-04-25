@@ -37,7 +37,7 @@ func NewPostgresConfig() (*postgresConfig, error) {
 
 func (c *postgresConfig) Dsn() string {
 	connString := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s search_path=public",
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.PostgresHost,
 		c.PostgresPort,
 		c.PostgresUser,
