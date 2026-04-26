@@ -23,14 +23,6 @@ func (s *service) AcceptInvitation(ctx context.Context, invitationID string, cus
 			return fmt.Errorf("get collection from repository: %w", err)
 		}
 
-		count, err := s.collectionRepo.CountCollaborators(ctx, collection.ID)
-		if err != nil {
-			return fmt.Errorf("get collaborators count from repository: %w", err)
-		}
-		if count >= maxCollaboratorsPerCollection {
-			return apperror.CollectionCollaboratorsLimitReached(maxCollaboratorsPerCollection)
-		}
-
 		invitation, err := s.collectionRepo.GetInvitationForUpdate(ctx, invitationID)
 		if err != nil {
 			return fmt.Errorf("get invitation for update from repository: %w", err)
@@ -41,6 +33,14 @@ func (s *service) AcceptInvitation(ctx context.Context, invitationID string, cus
 			}
 
 			return apperror.ErrInvitationAlreadyProcessed
+		}
+
+		count, err := s.collectionRepo.CountCollaborators(ctx, collection.ID)
+		if err != nil {
+			return fmt.Errorf("get collaborators count from repository: %w", err)
+		}
+		if count >= maxCollaboratorsPerCollection {
+			return apperror.CollectionCollaboratorsLimitReached(maxCollaboratorsPerCollection)
 		}
 
 		if err := s.collectionRepo.CreateCollaborator(ctx, invitation.CollectionID, invitation.InviteeID); err != nil {
