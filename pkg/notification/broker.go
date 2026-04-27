@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
-	"github.com/redis/go-redis/v9"
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	redisclient "github.com/ua-academy-projects/share-bite/pkg/redis"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 )
 
 type client struct {
-	rdb *redis.Client
+	rdb           *goredis.Client
+	publishPolicy resilience.Policy
 }
+
+type Option func(*client)
 
 type Publisher interface {
 	Publish(ctx context.Context, ch string, msg Message) error
@@ -23,8 +27,33 @@ type Subscriber interface {
 	Subscribe(ctx context.Context, ch string) (<-chan Message, error)
 }
 
-func NewBroker(rdb *redis.Client) *client {
-	return &client{rdb: rdb}
+func WithPublishPolicy(policy resilience.Policy) Option {
+	return func(c *client) {
+		c.publishPolicy = policy
+	}
+}
+
+func NewBroker(rdb *goredis.Client, opts ...Option) *client {
+	out := &client{
+		rdb: rdb,
+		publishPolicy: resilience.Policy{
+			RetryConfig: resilience.RetryConfig{
+				InitialInterval:     50 * time.Millisecond,
+				RandomizationFactor: 0.2,
+				Multiplier:          2,
+				MaxInterval:         1 * time.Second,
+				MaxElapsedTime:      5 * time.Second,
+			},
+		},
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(out)
+		}
+	}
+
+	return out
 }
 
 func (c *client) Publish(ctx context.Context, ch string, msg Message) error {
@@ -32,28 +61,28 @@ func (c *client) Publish(ctx context.Context, ch string, msg Message) error {
 	if err != nil {
 		return fmt.Errorf("json marshal: %w", err)
 	}
+
 	operation := func() error {
 		err := c.rdb.Publish(ctx, ch, msgBytes).Err()
-		if err != nil {
-			return err
+		if redisclient.IsPermanentRedisError(err) {
+			return resilience.Permanent(err)
 		}
-		return nil
+
+		return err
 	}
 
-	notify := func(err error, delay time.Duration) {
+	policy := c.publishPolicy
+	configuredNotify := policy.RetryNotify
+	policy.RetryNotify = func(err error, delay time.Duration) {
+		if configuredNotify != nil {
+			configuredNotify(err, delay)
+			return
+		}
+
 		logger.Warnf(ctx, "Redis publish failed, retrying in %v: %v", delay, err)
 	}
 
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = 50 * time.Millisecond
-	b.MaxInterval = 1 * time.Second
-	b.MaxElapsedTime = 5 * time.Second
-	err = backoff.RetryNotify(
-		operation,
-		backoff.WithContext(b, ctx),
-		notify,
-	)
-
+	err = policy.Execute(ctx, operation)
 	if err != nil {
 		return fmt.Errorf("redis publish with retry: %w", err)
 	}

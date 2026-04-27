@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,27 +18,32 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/venues"
 	business_dto "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/dto"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
 const maxErrorBodySize = 2048
 
-type businessVenueResponseDTO struct {
-	VenueID string `json:"venue_id"`
-	Status  string `json:"status"`
-}
-
 type businessAPIClient struct {
 	api    *business_client.ShareBiteBusinessAPI
 	scheme string
+	policy *resilience.Policy
 
 	// TODO: remove to use swagger autogen files only
 	client  *http.Client
 	baseURL string
 }
 
-func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client) (*businessAPIClient, error) {
+type Option func(*businessAPIClient)
+
+func WithResiliencePolicy(policy resilience.Policy) Option {
+	return func(c *businessAPIClient) {
+		c.policy = &policy
+	}
+}
+
+func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client, opts ...Option) (*businessAPIClient, error) {
 	normalizedBaseURL := strings.TrimSpace(baseURL)
 	if !strings.Contains(normalizedBaseURL, "://") {
 		normalizedBaseURL = "http://" + normalizedBaseURL
@@ -58,70 +64,51 @@ func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Clie
 	transport := client.NewWithClient(u.Host, basePath, []string{u.Scheme}, httpClient)
 	api := business_client.New(transport, strfmt.Default)
 
-	return &businessAPIClient{
+	out := &businessAPIClient{
 		api:     api,
 		scheme:  u.Scheme,
 		client:  httpClient,
 		baseURL: strings.TrimRight(normalizedBaseURL, "/"),
-	}, nil
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(out)
+		}
+	}
+
+	return out, nil
 }
 
 func (c *businessAPIClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
 	params := locations.NewGetBusinessOrgUnitsIDParamsWithContext(ctx).WithID(venueID)
 
-	_, err := c.api.Locations.GetBusinessOrgUnitsID(params, schemeLocationClientOption(c.scheme))
-	if err == nil {
-		return true, nil
-	}
-
-	var notFoundErr *locations.GetBusinessOrgUnitsIDNotFound
-	if errors.As(err, &notFoundErr) {
-		return false, nil
-	}
-
-	statusCode := 0
-	type withStatusCode interface {
-		Code() int
-	}
-	var codeErr withStatusCode
-	if errors.As(err, &codeErr) {
-		statusCode = codeErr.Code()
-	}
-
-	if statusCode == 0 {
-		return false, fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err)
-	}
-
-	errMsg := ""
-	var badRequestErr *locations.GetBusinessOrgUnitsIDBadRequest
-	if errors.As(err, &badRequestErr) {
-		if payload := badRequestErr.GetPayload(); payload != nil {
-			errMsg = strings.TrimSpace(payload.Error)
+	exists := false
+	err := c.executeWithResilience(ctx, func() error {
+		_, opErr := c.api.Locations.GetBusinessOrgUnitsID(params, schemeLocationClientOption(c.scheme))
+		if opErr == nil {
+			exists = true
+			return nil
 		}
-	}
 
-	var internalErr *locations.GetBusinessOrgUnitsIDInternalServerError
-	if errMsg == "" && errors.As(err, &internalErr) {
-		if payload := internalErr.GetPayload(); payload != nil {
-			errMsg = strings.TrimSpace(payload.Error)
+		var notFoundErr *locations.GetBusinessOrgUnitsIDNotFound
+		if errors.As(opErr, &notFoundErr) {
+			exists = false
+			return nil
 		}
+
+		mappedErr, retryable := mapCheckExistsError(opErr)
+		if !retryable {
+			return resilience.Permanent(mappedErr)
+		}
+
+		return mappedErr
+	})
+	if err != nil {
+		return false, err
 	}
 
-	if errMsg == "" {
-		errMsg = strings.TrimSpace(err.Error())
-	}
-	if errMsg == "" {
-		errMsg = apperror.ErrUpstreamError.Error()
-	}
-	if len(errMsg) > maxErrorBodySize {
-		errMsg = errMsg[:maxErrorBodySize]
-	}
-
-	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
-		return false, fmt.Errorf("client error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError)
-	}
-
-	return false, fmt.Errorf("server error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError)
+	return exists, nil
 }
 
 func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error) {
@@ -135,18 +122,37 @@ func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int6
 	}
 	params := venues.NewPostBusinessOrgUnitsVenuesParamsWithContext(ctx).WithRequest(payload)
 
-	resp, err := c.api.Venues.PostBusinessOrgUnitsVenues(params, schemeClientOption(c.scheme))
+	var resp *venues.PostBusinessOrgUnitsVenuesOK
+	err := c.executeWithResilience(ctx, func() error {
+		apiResp, opErr := c.api.Venues.PostBusinessOrgUnitsVenues(params, schemeClientOption(c.scheme))
+		if opErr != nil {
+			logger.ErrorKV(ctx, "get venues from business service",
+				"error", opErr,
+				"venue_ids_count", len(venueIDs),
+			)
+
+			wrappedErr := fmt.Errorf("get venues by IDs: %w", opErr)
+			if !isRetryableError(opErr) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		if !apiResp.IsSuccess() {
+			wrappedErr := fmt.Errorf("get venues by IDs unexpected status code: %d", apiResp.Code())
+			if !isRetryableStatus(apiResp.Code()) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		resp = apiResp
+		return nil
+	})
 	if err != nil {
-		logger.ErrorKV(ctx, "get venues from business service",
-			"error", err,
-			"venue_ids_count", len(venueIDs),
-		)
-
-		return nil, fmt.Errorf("get venues by IDs: %w", err)
-	}
-
-	if !resp.IsSuccess() {
-		return nil, fmt.Errorf("get venues by IDs unexpected status code: %d", resp.Code())
+		return nil, err
 	}
 
 	respPayload := resp.GetPayload()
@@ -207,4 +213,95 @@ func schemeLocationClientOption(scheme string) locations.ClientOption {
 	return func(op *runtime.ClientOperation) {
 		op.Schemes = []string{scheme}
 	}
+}
+
+func (c *businessAPIClient) executeWithResilience(ctx context.Context, operation func() error) error {
+	if c.policy == nil {
+		return operation()
+	}
+
+	return c.policy.Execute(ctx, operation)
+}
+
+func mapCheckExistsError(err error) (error, bool) {
+	statusCode := extractStatusCode(err)
+	if statusCode == 0 {
+		return fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err), true
+	}
+
+	errMsg := ""
+	var badRequestErr *locations.GetBusinessOrgUnitsIDBadRequest
+	if errors.As(err, &badRequestErr) {
+		if payload := badRequestErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	var internalErr *locations.GetBusinessOrgUnitsIDInternalServerError
+	if errMsg == "" && errors.As(err, &internalErr) {
+		if payload := internalErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	if errMsg == "" {
+		errMsg = strings.TrimSpace(err.Error())
+	}
+	if errMsg == "" {
+		errMsg = apperror.ErrUpstreamError.Error()
+	}
+	if len(errMsg) > maxErrorBodySize {
+		errMsg = errMsg[:maxErrorBodySize]
+	}
+
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		return fmt.Errorf("client error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError), isRetryableStatus(statusCode)
+	}
+
+	return fmt.Errorf("server error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError), true
+}
+
+func extractStatusCode(err error) int {
+	type withStatusCode interface {
+		Code() int
+	}
+
+	var codeErr withStatusCode
+	if errors.As(err, &codeErr) {
+		return codeErr.Code()
+	}
+
+	return 0
+}
+
+func isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if errors.Is(err, context.Canceled) {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return netErr.Timeout()
+	}
+	statusCode := extractStatusCode(err)
+	if statusCode == 0 {
+		return true
+	}
+
+	return isRetryableStatus(statusCode)
+}
+
+func isRetryableStatus(statusCode int) bool {
+	if statusCode == http.StatusRequestTimeout || statusCode == http.StatusTooManyRequests {
+		return true
+	}
+
+	return statusCode >= http.StatusInternalServerError
 }

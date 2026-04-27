@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/sony/gobreaker"
 	swaggerfiles "github.com/swaggo/files"
 	ginswagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
@@ -14,6 +17,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
+	notif_handler "github.com/ua-academy-projects/share-bite/internal/guest/handler/notification"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
 	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
@@ -34,6 +38,7 @@ import (
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
 	redis "github.com/ua-academy-projects/share-bite/pkg/redis"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
 )
@@ -69,6 +74,7 @@ func main() {
 	router.Use(guest_middleware.ErrorMiddleware())
 
 	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
+	router.StaticFile("/notification-test", "./scripts/notification-test.html")
 
 	binding.Validator = validator.New("binding")
 
@@ -106,7 +112,49 @@ func main() {
 		return nil
 	})
 	// notifications
-	broker := notification.NewBroker(rdb)
+	notificationResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			// Очень быстрые первые попытки (10мс -> 20мс -> 40мс)
+			InitialInterval:     10 * time.Millisecond,
+			RandomizationFactor: 0.2,
+			Multiplier:          2.0,
+			MaxInterval:         200 * time.Millisecond,
+			// Общий таймаут блокировки горутины не превышает 1.5 секунды
+			MaxElapsedTime: 1500 * time.Millisecond,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "guest-notification-redis-publish",
+			MaxRequests: 1,                // Достаточно 1 тестового запроса (пинга) для проверки
+			Interval:    10 * time.Second, // Сбрасываем счетчик ошибок каждые 10 сек
+			Timeout:     5 * time.Second,  // Даем Redis 5 секунд на восстановление (failover)
+
+			// Размыкаем предохранитель после 20 подряд ошибок publish.
+			// Этого достаточно для защиты Redis без чрезмерно ранних срабатываний.
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures >= 20
+			},
+
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "redis circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil || errors.Is(err, context.Canceled) {
+					return true
+				}
+				// Для Redis перманентными ошибками будут: неверный пароль (Auth),
+				// команда не найдена, попытка записи в Read-Only реплику (если перепутали порты).
+				return resilience.IsPermanent(err)
+			},
+		}),
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.Debugf(ctx, "redis publish retry scheduled in %v: %v", nextRetryIn, err)
+		},
+	}
+	broker := notification.NewBroker(rdb, notification.WithPublishPolicy(notificationResiliencePolicy))
 
 	notifHub := notification.NewHub(broker)
 
@@ -125,7 +173,49 @@ func main() {
 		return nil
 	})
 
-	businessGateway, err := businessgateway.NewBusinessAPIClient(clientCfg.BaseURL(), "/", httpClient)
+	businessResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     250 * time.Millisecond,
+			RandomizationFactor: 0.25,
+			Multiplier:          2,
+			MaxInterval:         3 * time.Second,
+			MaxElapsedTime:      12 * time.Second,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "guest-business-api",
+			MaxRequests: 3,
+			Interval:    30 * time.Second,
+			Timeout:     10 * time.Second,
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+
+				if errors.Is(err, context.Canceled) {
+					return true
+				}
+
+				return resilience.IsPermanent(err)
+			},
+		}),
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.Warnf(ctx, "business API retry scheduled in %v: %v", nextRetryIn, err)
+		},
+	}
+
+	businessGateway, err := businessgateway.NewBusinessAPIClient(
+		clientCfg.BaseURL(),
+		"/",
+		httpClient,
+		businessgateway.WithResiliencePolicy(businessResiliencePolicy),
+	)
 	if err != nil {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
 	}
@@ -151,7 +241,7 @@ func main() {
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
+	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager, broker)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
 
@@ -163,6 +253,7 @@ func main() {
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+	notif_handler.RegisterHandlers(router.Group("/notification", optionalAuthMiddleware), notifHub, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
 		router.Group("/collections"),
 		collectionSvc,
