@@ -114,22 +114,17 @@ func main() {
 	// notifications
 	notificationResiliencePolicy := resilience.Policy{
 		RetryConfig: resilience.RetryConfig{
-			// Очень быстрые первые попытки (10мс -> 20мс -> 40мс)
 			InitialInterval:     10 * time.Millisecond,
 			RandomizationFactor: 0.2,
 			Multiplier:          2.0,
 			MaxInterval:         200 * time.Millisecond,
-			// Общий таймаут блокировки горутины не превышает 1.5 секунды
-			MaxElapsedTime: 1500 * time.Millisecond,
+			MaxElapsedTime:      1500 * time.Millisecond,
 		},
 		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
 			Name:        "guest-notification-redis-publish",
-			MaxRequests: 1,                // Достаточно 1 тестового запроса (пинга) для проверки
-			Interval:    10 * time.Second, // Сбрасываем счетчик ошибок каждые 10 сек
-			Timeout:     5 * time.Second,  // Даем Redis 5 секунд на восстановление (failover)
-
-			// Размыкаем предохранитель после 20 подряд ошибок publish.
-			// Этого достаточно для защиты Redis без чрезмерно ранних срабатываний.
+			MaxRequests: 1,
+			Interval:    10 * time.Second,
+			Timeout:     5 * time.Second,
 			ReadyToTrip: func(counts gobreaker.Counts) bool {
 				return counts.ConsecutiveFailures >= 20
 			},
@@ -145,8 +140,6 @@ func main() {
 				if err == nil || errors.Is(err, context.Canceled) {
 					return true
 				}
-				// Для Redis перманентными ошибками будут: неверный пароль (Auth),
-				// команда не найдена, попытка записи в Read-Only реплику (если перепутали порты).
 				return resilience.IsPermanent(err)
 			},
 		}),
