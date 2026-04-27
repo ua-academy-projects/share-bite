@@ -2,14 +2,16 @@ package env
 
 import "github.com/caarlos0/env/v11"
 
-type redisConfig struct {
+type RedisConfig struct {
 	RedisHost     string `env:"REDIS_HOST" envDefault:"localhost"`
 	RedisPort     string `env:"REDIS_PORT" envDefault:"6379"`
 	RedisPassword string `env:"REDIS_PASSWORD" envDefault:""`
+	RedisTLS      bool   `env:"REDIS_TLS_ENABLED" envDefault:"false"`
+	RedisDB       int    `env:"REDIS_DB" envDefault:"0"`
 }
 
-func NewRedisConfig() (*redisConfig, error) {
-	cfg := new(redisConfig)
+func NewRedisConfig() (*RedisConfig, error) {
+	cfg := new(RedisConfig)
 	if err := env.Parse(cfg); err != nil {
 		return nil, err
 	}
@@ -17,10 +19,18 @@ func NewRedisConfig() (*redisConfig, error) {
 	return cfg, nil
 }
 
-func (c *redisConfig) Addr() string {
+func (c *RedisConfig) Addr() string {
 	return c.RedisHost + ":" + c.RedisPort
 }
 
-func (c *redisConfig) Password() string {
+func (c *RedisConfig) Password() string {
 	return c.RedisPassword
+}
+
+func (c *RedisConfig) TLS() bool {
+	return c.RedisTLS
+}
+
+func (c *RedisConfig) DB() int {
+	return c.RedisDB
 }

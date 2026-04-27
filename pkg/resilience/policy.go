@@ -30,7 +30,11 @@ func (p Policy) Execute(ctx context.Context, operation func() error) error {
 	}
 
 	if p.DisableRetry {
-		return wrapped()
+		err := wrapped()
+		if err != nil {
+			return unwrapPermanentError(err)
+		}
+		return nil
 	}
 
 	return Retry(ctx, p.RetryConfig, wrapped, p.RetryNotify)
@@ -55,7 +59,11 @@ func ExecuteValue[T any](ctx context.Context, policy Policy, operation func() (T
 	}
 
 	if policy.DisableRetry {
-		return wrapped()
+		res, err := wrapped()
+		if err != nil {
+			return res, unwrapPermanentError(err)
+		}
+		return res, nil
 	}
 
 	return RetryValue(ctx, policy.RetryConfig, wrapped, policy.RetryNotify)

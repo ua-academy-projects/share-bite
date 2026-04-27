@@ -3,6 +3,8 @@ package notification
 import (
 	"context"
 	"sync"
+
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
 type Client struct {
@@ -34,28 +36,31 @@ func (h *Hub) Register(c *Client) {
 func (h *Hub) Unregister(c *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if _, ok := h.clients[c.UserID]; ok {
-		delete(h.clients[c.UserID], c)
-		close(c.Send)
-		if len(h.clients[c.UserID]) == 0 {
-			delete(h.clients, c.UserID)
+	if userClients, ok := h.clients[c.UserID]; ok {
+		if _, exists := userClients[c]; exists {
+			delete(userClients, c)
+			close(c.Send)
+			if len(userClients) == 0 {
+				delete(h.clients, c.UserID)
+			}
 		}
 	}
 }
 
-func (h *Hub) Run(ctx context.Context, channelName string) {
+func (h *Hub) Run(ctx context.Context, channelName string) error {
 	msgChan, err := h.subscription.Subscribe(ctx, channelName)
 	if err != nil {
-		return
+		logger.ErrorKV(ctx, "failed to subscribe to notification channel", "channel", channelName, "error", err)
+		return err
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case msg, ok := <-msgChan:
 			if !ok {
-				return
+				return nil
 			}
 
 			h.mu.RLock()
@@ -65,6 +70,7 @@ func (h *Hub) Run(ctx context.Context, channelName string) {
 					select {
 					case client.Send <- msg:
 					default:
+						logger.DebugKV(ctx, "dropped notification", "user_id", msg.UserID, "client", client)
 					}
 				}
 			}

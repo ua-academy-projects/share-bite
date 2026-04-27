@@ -57,15 +57,9 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// for local development only
 	if err := config.Load(".env"); err != nil {
 		logger.Fatal(ctx, "load config:", err)
 	}
-
-	// docker variant
-	// if err := config.Load(); err != nil {
-	// 	logger.Fatal(ctx, "load config:", err)
-	// }
 
 	router := gin.New()
 	router.Use(common_middleware.RequestID())
@@ -86,7 +80,6 @@ func main() {
 	}
 	closer.SetShutdownTimeout(config.Config().App.GracefulShutdownTimeout())
 
-	// db connection
 	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
@@ -98,12 +91,19 @@ func main() {
 		client.Close()
 		return nil
 	})
-	// redis connection
-	rdb, err := redis.NewClient(config.Config().Redis.Addr(), config.Config().Redis.Password())
+
+	rdb, err := redis.NewClient(
+		config.Config().Redis.Addr(),
+		config.Config().Redis.Password(),
+		config.Config().Redis.DB(),
+		config.Config().Redis.TLS(),
+	)
 	if err != nil {
 		logger.Fatal(ctx, "new redis client: ", err)
 	}
-	_, err = rdb.Ping(ctx).Result()
+	ctxPing, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = rdb.Ping(ctxPing).Result()
 	if err != nil {
 		logger.Fatal(ctx, "ping redis: ", err)
 	}
@@ -111,9 +111,9 @@ func main() {
 		rdb.Close()
 		return nil
 	})
-	// notifications
 	notificationResiliencePolicy := resilience.Policy{
 		RetryConfig: resilience.RetryConfig{
+			// Very fast initial attempts (10ms -> 20ms -> 40ms) and overall goroutine lock timeout 1.5s
 			InitialInterval:     10 * time.Millisecond,
 			RandomizationFactor: 0.2,
 			Multiplier:          2.0,
@@ -121,11 +121,12 @@ func main() {
 			MaxElapsedTime:      1500 * time.Millisecond,
 		},
 		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
-			Name:        "guest-notification-redis-publish",
-			MaxRequests: 1,
-			Interval:    10 * time.Second,
-			Timeout:     5 * time.Second,
+			Name:        "redis-pub",
+			MaxRequests: 1,                // Use 1 probe request
+			Interval:    10 * time.Second, // reset error counter every 10s
+			Timeout:     5 * time.Second,  // allow 5s for Redis recovery
 			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				// Open circuit after 20 consecutive publish errors to protect Redis
 				return counts.ConsecutiveFailures >= 20
 			},
 
@@ -137,6 +138,7 @@ func main() {
 				)
 			},
 			IsSuccessful: func(err error) bool {
+				// Treat context.Canceled as success; mark Redis-specific permanent errors via resilience.IsPermanent
 				if err == nil || errors.Is(err, context.Canceled) {
 					return true
 				}
@@ -151,7 +153,6 @@ func main() {
 
 	notifHub := notification.NewHub(broker)
 
-	// clients
 	clientCfg := config.Config().BusinessHttpClient
 	httpClient := &http.Client{
 		Timeout: clientCfg.Timeout(),
@@ -226,15 +227,14 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-	// repos
+
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
 	commentRepo := commentrepo.New(client)
 	collectionRepo := collectionrepo.New(client)
 
-	// services
 	customerSvc := customersvc.New(customerRepo)
-	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager, broker)
+	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager, postsvc.WithPublisher(broker))
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
 
@@ -242,7 +242,6 @@ func main() {
 	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
 	customerMiddleware := middleware.CustomerID(customerSvc)
 
-	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)

@@ -64,6 +64,9 @@ func TestPostService_Update_AllowsEditingArchivedPost(t *testing.T) {
 		getByIDFn: func(ctx context.Context, postID string) (entity.Post, error) {
 			return entity.Post{ID: postID, CustomerID: "customer-1", Status: entity.PostStatusArchived}, nil
 		},
+		updateFn: func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error) {
+			return entity.Post{ID: in.ID, CustomerID: in.CustomerID, Text: *in.Text}, nil
+		},
 	}
 	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
 
@@ -74,6 +77,8 @@ func TestPostService_Update_AllowsEditingArchivedPost(t *testing.T) {
 		Text:       &text,
 	})
 	require.NoError(t, err)
+	require.NotNil(t, repo.lastUpdateInput.Text)
+	assert.Equal(t, "updated text", *repo.lastUpdateInput.Text)
 }
 
 func TestPostService_Update_AllowsUnarchiveArchivedToPublished(t *testing.T) {

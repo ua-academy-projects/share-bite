@@ -106,8 +106,8 @@ func cleanupDelete(objectStorage storage.ObjectStorage, key string) {
 	}
 }
 
-func generatePostImageKey(customerID, postID, ext string) string {
-	return fmt.Sprintf("posts/%s/%s/%s.%s", customerID, postID, uuid.New().String(), ext)
+func generatePostImageKey(customerID, uploadSessionID, ext string) string {
+	return fmt.Sprintf("posts/%s/%s/%s.%s", customerID, uploadSessionID, uuid.New().String(), ext)
 }
 
 func extensionFromContentType(contentType string) string {

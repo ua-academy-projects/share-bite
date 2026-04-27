@@ -16,7 +16,7 @@ func TestPostService_Like_Succeeds(t *testing.T) {
 	t.Parallel()
 
 	liked := false
-	published := false
+	published := make(chan bool, 1)
 	now := time.Now()
 
 	repo := &postRepositoryMock{
@@ -34,19 +34,25 @@ func TestPostService_Like_Succeeds(t *testing.T) {
 
 	publisher := &publisherMock{
 		publishFn: func(ctx context.Context, target string, msg notification.Message) error {
-			published = true
 			assert.Equal(t, "user-1", target)
 			assert.Equal(t, notification.PostLiked, msg.Type)
+			published <- true
 			return nil
 		},
 	}
 
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{}, publisher)
+	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{}, WithPublisher(publisher))
 
 	err := svc.Like(context.Background(), "42", "customer-1")
 	require.NoError(t, err)
 	assert.True(t, liked)
-	assert.True(t, published)
+
+	select {
+	case <-published:
+		// success
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for publish")
+	}
 }
 
 func TestPostService_Like_NoNotificationForSelfLike(t *testing.T) {
@@ -54,10 +60,12 @@ func TestPostService_Like_NoNotificationForSelfLike(t *testing.T) {
 
 	liked := false
 	published := false
+	fetched := false
 	now := time.Now()
 
 	repo := &postRepositoryMock{
 		getFn: func(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error) {
+			fetched = true
 			return entity.Post{ID: postID, CustomerID: "customer-1", CreatedAt: now}, nil
 		},
 		likeFn: func(ctx context.Context, postID string, customerID string) error {
@@ -76,10 +84,11 @@ func TestPostService_Like_NoNotificationForSelfLike(t *testing.T) {
 		},
 	}
 
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{}, publisher)
+	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{}, WithPublisher(publisher))
 
 	err := svc.Like(context.Background(), "42", "customer-1")
 	require.NoError(t, err)
+	assert.True(t, fetched)
 	assert.True(t, liked)
 	assert.False(t, published)
 }

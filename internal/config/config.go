@@ -70,6 +70,8 @@ type Postgres interface {
 type Redis interface {
 	Addr() string
 	Password() string
+	TLS() bool
+	DB() int
 }
 
 type JwtToken interface {

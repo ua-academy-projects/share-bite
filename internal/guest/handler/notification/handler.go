@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -12,8 +13,10 @@ import (
 )
 
 type handler struct {
-	hub      *notification.Hub
-	customer customerService
+	hub        *notification.Hub
+	customer   customerService
+	activeRuns map[string]bool
+	runsMu     sync.Mutex
 }
 
 type customerService interface {
@@ -27,8 +30,9 @@ func RegisterHandlers(
 	authMiddleware gin.HandlerFunc,
 ) {
 	h := &handler{
-		hub:      hub,
-		customer: customerService,
+		hub:        hub,
+		customer:   customerService,
+		activeRuns: make(map[string]bool),
 	}
 	protected := r.Group("/").Use(authMiddleware)
 
@@ -58,8 +62,21 @@ func (h *handler) stream(c *gin.Context) {
 	h.hub.Register(client)
 	defer h.hub.Unregister(client)
 
-	go h.hub.Run(ctx, userID)
+	h.runsMu.Lock()
+	if !h.activeRuns[userID] {
+		h.activeRuns[userID] = true
+		go func() {
+			_ = h.hub.Run(context.Background(), userID)
+			h.runsMu.Lock()
+			delete(h.activeRuns, userID)
+			h.runsMu.Unlock()
+		}()
+	}
+	h.runsMu.Unlock()
 
+	c.Header("Content-Type", "text/event-stream;charset=utf-8")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
 	_, _ = fmt.Fprint(c.Writer, ": connected\n\n")

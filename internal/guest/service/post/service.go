@@ -37,7 +37,15 @@ type service struct {
 	publisher     notification.Publisher
 }
 
-func New(postRepo postRepository, venueProvider VenueProvider, storage storage.ObjectStorage, txManager database.TxManager, publishers ...notification.Publisher) *service {
+type Option func(*service)
+
+func WithPublisher(publisher notification.Publisher) Option {
+	return func(s *service) {
+		s.publisher = publisher
+	}
+}
+
+func New(postRepo postRepository, venueProvider VenueProvider, storage storage.ObjectStorage, txManager database.TxManager, opts ...Option) *service {
 	if storage == nil {
 		panic("post service: storage is not configured")
 	}
@@ -45,16 +53,18 @@ func New(postRepo postRepository, venueProvider VenueProvider, storage storage.O
 		panic("post service: transaction manager is not configured")
 	}
 
-	var publisher notification.Publisher
-	if len(publishers) > 0 {
-		publisher = publishers[0]
-	}
-
-	return &service{
+	svc := &service{
 		postRepo:      postRepo,
 		venueProvider: venueProvider,
 		storage:       storage,
 		txManager:     txManager,
-		publisher:     publisher,
 	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(svc)
+		}
+	}
+
+	return svc
 }

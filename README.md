@@ -10,6 +10,8 @@ Create a local `.env` file based on the provided example:
 cp .env.example .env
 ```
 
+> **Note:** Please use distinct, strong credentials per service in non-local environments (e.g. for `POSTGRES_PASSWORD` and `REDIS_PASSWORD`).
+
 ### 2. Database Infrastructure
 
 Start the local PostgreSQL database using Docker Compose:
@@ -72,7 +74,12 @@ For local development, add Redis connection values to `.env` based on `.env.exam
 ```env
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=bite
+REDIS_PASSWORD=redis_example_password
+```
+
+Start the Redis service using the provided docker-compose configuration:
+```bash
+docker compose -f build/compose.infra.yaml up -d
 ```
 
 ### Web UI (optional)
@@ -106,7 +113,7 @@ This orchestrates the correct execution order:
 
 ### 8. Testing
 
-> Ensure API clients are generated (step 6) before running tests.
+> Ensure API clients are generated (step 7) before running tests.
 
 Run the full test suite:
 

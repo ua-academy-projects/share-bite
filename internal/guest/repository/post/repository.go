@@ -350,6 +350,14 @@ func (r *Repository) GetAuthorUserID(ctx context.Context, postID string) (string
 	var userID string
 	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&userID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperror.PostNotFoundID(postID)
+		}
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
+			return "", apperror.PostNotFoundID(postID)
+		}
+
 		return "", scanRowError(err)
 	}
 

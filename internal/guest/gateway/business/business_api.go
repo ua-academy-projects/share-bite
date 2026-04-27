@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"syscall"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/client"
@@ -287,8 +289,15 @@ func isRetryableError(err error) bool {
 	}
 
 	var netErr net.Error
-	if errors.As(err, &netErr) {
-		return netErr.Timeout()
+	if errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary()) {
+		return true
+	}
+	if errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, io.EOF) {
+		return true
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return true
 	}
 	statusCode := extractStatusCode(err)
 	if statusCode == 0 {

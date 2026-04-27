@@ -10,13 +10,15 @@ import (
 )
 
 type mockSubscriber struct {
-	mu       sync.Mutex
-	msgChans map[string]chan Message
+	mu         sync.Mutex
+	msgChans   map[string]chan Message
+	readyChans map[string]chan struct{}
 }
 
 func newMockSubscriber() *mockSubscriber {
 	return &mockSubscriber{
-		msgChans: make(map[string]chan Message),
+		msgChans:   make(map[string]chan Message),
+		readyChans: make(map[string]chan struct{}),
 	}
 }
 
@@ -25,6 +27,9 @@ func (m *mockSubscriber) Subscribe(ctx context.Context, ch string) (<-chan Messa
 	defer m.mu.Unlock()
 	if _, ok := m.msgChans[ch]; !ok {
 		m.msgChans[ch] = make(chan Message, 10)
+		if ready, exists := m.readyChans[ch]; exists {
+			close(ready)
+		}
 	}
 	return m.msgChans[ch], nil
 }
@@ -32,8 +37,8 @@ func (m *mockSubscriber) Subscribe(ctx context.Context, ch string) (<-chan Messa
 func (m *mockSubscriber) publish(ch string, msg Message) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if ch, ok := m.msgChans[ch]; ok {
-		ch <- msg
+	if msgCh, ok := m.msgChans[ch]; ok {
+		msgCh <- msg
 	}
 }
 
@@ -82,10 +87,18 @@ func TestHub_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	readyChan := make(chan struct{})
+	sub.mu.Lock()
+	sub.readyChans["user1"] = readyChan
+	sub.mu.Unlock()
+
 	go hub.Run(ctx, "user1")
 
-	// wait for run to subscribe
-	time.Sleep(50 * time.Millisecond)
+	select {
+	case <-readyChan:
+	case <-time.After(1 * time.Second):
+		t.Fatal("timeout waiting for subscriber")
+	}
 
 	msg := Message{
 		UserID:    "user1",

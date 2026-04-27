@@ -6,12 +6,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	internalmiddleware "github.com/ua-academy-projects/share-bite/internal/middleware"
 )
+
+func validAuthMiddleware() gin.HandlerFunc {
+	return internalmiddleware.Auth(tokenParserMock{
+		parseAccessTokenFn: func(token string) (string, string, error) {
+			if token != "valid-token" {
+				return "", "", context.Canceled
+			}
+
+			return "user-1", "customer", nil
+		},
+	})
+}
 
 func TestPostHandler_Delete_ServiceError(t *testing.T) {
 	t.Parallel()
@@ -27,15 +40,7 @@ func TestPostHandler_Delete_ServiceError(t *testing.T) {
 		},
 	}
 
-	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
-			if token != "valid-token" {
-				return "", "", context.Canceled
-			}
-
-			return "user-1", "customer", nil
-		},
-	})
+	authMiddleware := validAuthMiddleware()
 
 	router := testRouter(postSvc, customerSvc, authMiddleware)
 
@@ -60,15 +65,7 @@ func TestPostHandler_Delete(t *testing.T) {
 		},
 	}
 
-	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
-			if token != "valid-token" {
-				return "", "", context.Canceled
-			}
-
-			return "user-1", "customer", nil
-		},
-	})
+	authMiddleware := validAuthMiddleware()
 
 	router := testRouter(postSvc, customerSvc, authMiddleware)
 

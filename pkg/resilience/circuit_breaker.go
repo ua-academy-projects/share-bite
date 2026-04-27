@@ -79,12 +79,7 @@ func ExecuteValueWithBreaker[T any](cb *CircuitBreaker, operation func() (T, err
 	}
 
 	result, err := cb.breaker.Execute(func() (interface{}, error) {
-		value, opErr := operation()
-		if opErr != nil {
-			return nil, opErr
-		}
-
-		return value, nil
+		return operation()
 	})
 	if err != nil {
 		return zero, err
@@ -123,6 +118,11 @@ func defaultReadyToTrip(counts gobreaker.Counts) bool {
 	return failureRate >= defaultBreakerFailureRate
 }
 
+// defaultIsSuccessful treats any non-nil error as a failure.
+// This means context.Canceled and context.DeadlineExceeded will count
+// toward failure rates in defaultReadyToTrip.
+// Advise callers to provide a custom IsSuccessful when they want to treat
+// context cancellations or timeouts as non-failures.
 func defaultIsSuccessful(err error) bool {
 	return err == nil
 }

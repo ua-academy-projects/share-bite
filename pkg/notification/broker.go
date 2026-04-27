@@ -12,12 +12,14 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 )
 
-type client struct {
+const defaultSubscribeBufferSize = 100
+
+type Broker struct {
 	rdb           *goredis.Client
 	publishPolicy resilience.Policy
 }
 
-type Option func(*client)
+type Option func(*Broker)
 
 type Publisher interface {
 	Publish(ctx context.Context, ch string, msg Message) error
@@ -28,13 +30,13 @@ type Subscriber interface {
 }
 
 func WithPublishPolicy(policy resilience.Policy) Option {
-	return func(c *client) {
+	return func(c *Broker) {
 		c.publishPolicy = policy
 	}
 }
 
-func NewBroker(rdb *goredis.Client, opts ...Option) *client {
-	out := &client{
+func NewBroker(rdb *goredis.Client, opts ...Option) *Broker {
+	out := &Broker{
 		rdb: rdb,
 		publishPolicy: resilience.Policy{
 			RetryConfig: resilience.RetryConfig{
@@ -56,7 +58,7 @@ func NewBroker(rdb *goredis.Client, opts ...Option) *client {
 	return out
 }
 
-func (c *client) Publish(ctx context.Context, ch string, msg Message) error {
+func (c *Broker) Publish(ctx context.Context, ch string, msg Message) error {
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("json marshal: %w", err)
@@ -90,23 +92,35 @@ func (c *client) Publish(ctx context.Context, ch string, msg Message) error {
 	return nil
 }
 
-func (c *client) Subscribe(ctx context.Context, ch string) (<-chan Message, error) {
+func (c *Broker) Subscribe(ctx context.Context, ch string) (<-chan Message, error) {
 	pubsub := c.rdb.Subscribe(ctx, ch)
 	if _, err := pubsub.Receive(ctx); err != nil {
-		return nil, fmt.Errorf("redis subscribe error: %v\n", err)
+		return nil, fmt.Errorf("redis subscribe error: %w", err)
 	}
-	out := make(chan Message, 100)
+	out := make(chan Message, defaultSubscribeBufferSize)
 	redisCh := pubsub.Channel()
 	go func() {
 		defer pubsub.Close()
 		defer close(out)
-		for msg := range redisCh {
-			var payload Message
-			if err := json.Unmarshal([]byte(msg.Payload), &payload); err != nil {
-				logger.WarnKV(ctx, "skip malformed notification payload", "payload", msg.Payload, "error", err)
-				continue
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg, ok := <-redisCh:
+				if !ok {
+					return
+				}
+				var payload Message
+				if err := json.Unmarshal([]byte(msg.Payload), &payload); err != nil {
+					logger.WarnKV(ctx, "skip malformed notification payload", "payload", msg.Payload, "error", err)
+					continue
+				}
+				select {
+				case out <- payload:
+				case <-ctx.Done():
+					return
+				}
 			}
-			out <- payload
 		}
 	}()
 	return out, nil
