@@ -24,6 +24,7 @@ type config struct {
 	BusinessHttpClient HttpClient
 
 	Postgres Postgres
+	Redis    Redis
 
 	JwtToken  JwtToken
 	Email     Email
@@ -64,6 +65,13 @@ type HttpClient interface {
 type Postgres interface {
 	Dsn() string
 	MigrationsDir() string
+}
+
+type Redis interface {
+	Addr() string
+	Password() string
+	TLS() bool
+	DB() int
 }
 
 type JwtToken interface {
@@ -131,6 +139,11 @@ func Load(paths ...string) error {
 		return fmt.Errorf("postgres config: %w", err)
 	}
 
+	redisConfig, err := env.NewRedisConfig()
+	if err != nil {
+		return fmt.Errorf("redis config: %w", err)
+	}
+
 	jwtTokenConfig, err := env.NewJwtTokenConfig()
 	if err != nil {
 		return fmt.Errorf("jwt token config: %w", err)
@@ -161,6 +174,7 @@ func Load(paths ...string) error {
 		BusinessHttpClient: businessHttpClientConfig,
 
 		Postgres:  postgresConfig,
+		Redis:     redisConfig,
 		JwtToken:  jwtTokenConfig,
 		Email:     emailConfig,
 		RateLimit: rateLimitConfig,

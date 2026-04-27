@@ -50,7 +50,7 @@ type updateResponse struct {
 //	@Failure		500			{object}	errorResponse	"Internal server error"
 //	@Router			/posts/{id} [patch]
 func (h *handler) update(c *gin.Context) {
-	if c.ContentType() == gin.MIMEMultipartPOSTForm {
+	if c.ContentType() != gin.MIMEMultipartPOSTForm {
 		c.Error(apperror.BadRequest("content type must be multipart/form-data"))
 		return
 	}

@@ -22,6 +22,10 @@ type createResponse struct {
 	Post postResponse `json:"post"`
 }
 
+type errorResponse struct {
+	Error string `json:"error" example:"not found"`
+}
+
 // create creates a guest post with optional images.
 //
 //	@Summary		Create post
@@ -85,6 +89,7 @@ func (h *handler) create(c *gin.Context) {
 
 	in := dto.CreatePostInput{
 		CustomerID: customer.ID,
+		UserID:     customer.UserID,
 		VenueID:    req.VenueID,
 		Text:       req.Text,
 		Rating:     req.Rating,
