@@ -29,3 +29,10 @@ type BoxWithDistance struct {
 	Box      Box
 	Distance float64
 }
+
+type BoxReservation struct {
+	Image         string
+	FullPrice     decimal.Decimal
+	DiscountPrice decimal.Decimal
+	BoxCode       string
+}

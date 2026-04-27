@@ -156,3 +156,67 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 
 	return pagination.List(ctx, r.db.DB(), "business_repository.ListNearbyBoxes", p, scanner)
 }
+
+func (r *Repository) GetBox(ctx context.Context, boxID int64) (*entity.Box, error) {
+	const op = "repository.box.GetBox"
+
+	q := database.Query{
+		Name: "get_box",
+		Sql: `
+		SELECT id, venue_id, category_id, image, price_full, price_discount, created_at, expires_at
+		FROM business.boxes
+		WHERE id = $1
+	`,
+	}
+
+	var box entity.Box
+	err := r.db.DB().QueryRowContext(ctx, q, boxID).Scan(
+		&box.ID,
+		&box.VenueID,
+		&box.CategoryID,
+		&box.Image,
+		&box.FullPrice,
+		&box.DiscountPrice,
+		&box.CreatedAt,
+		&box.ExpiresAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &box, nil
+}
+
+func (r *Repository) ReserveBoxItem(ctx context.Context, boxID int64, userID string) (string, error) {
+	const op = "repository.box.ReserveBoxItem"
+
+	q := database.Query{
+		Name: "reserve_box_item",
+		Sql: `
+		UPDATE business.box_items
+		SET reserved_by_user_id = $1
+		WHERE box_code = (
+			SELECT box_code
+			FROM business.box_items
+			WHERE box_id = $2 AND reserved_by_user_id IS NULL
+			LIMIT 1
+			FOR UPDATE SKIP LOCKED
+		)
+		RETURNING box_code
+	`,
+	}
+
+	var boxCode string
+	err := r.db.DB().QueryRowContext(ctx, q, userID, boxID).Scan(&boxCode)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("%s: %w", op, ErrNoAvailableItems)
+		}
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return boxCode, nil
+}

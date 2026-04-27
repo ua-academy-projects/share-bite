@@ -87,3 +87,24 @@ func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, l
 
 	return result, nil
 }
+
+func (s *service) ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error) {
+	const op = "service.box.ReserveBox"
+
+	box, err := s.businessRepo.GetBox(ctx, boxID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	boxCode, err := s.businessRepo.ReserveBoxItem(ctx, boxID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &entity.BoxReservation{
+		Image:         box.Image,
+		FullPrice:     box.FullPrice,
+		DiscountPrice: box.DiscountPrice,
+		BoxCode:       boxCode,
+	}, nil
+}

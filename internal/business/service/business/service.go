@@ -32,6 +32,9 @@ type businessRepository interface {
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 
+	GetBox(ctx context.Context, boxID int64) (*entity.Box, error)
+	ReserveBoxItem(ctx context.Context, boxID int64, userID string) (string, error)
+
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)

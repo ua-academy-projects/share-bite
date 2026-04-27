@@ -33,6 +33,7 @@ type businessService interface {
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
+	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	Rating(ctx context.Context, id int) (float32, error)
 }
 
@@ -81,6 +82,12 @@ func RegisterHandlers(
 		Use(middleware.RequireRoles("business"))
 	{
 		boxes.POST("", h.CreateBox)
+	}
+
+	reservations := r.Group("/boxes").
+		Use(auth)
+	{
+		reservations.PATCH("/:boxID/reserve", h.reserveBox)
 	}
 }
 
