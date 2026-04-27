@@ -17,7 +17,7 @@ import (
 //	@Param			lon		query		float64	true	"Longitude"
 //	@Param			skip	query		int		false	"Number of items to skip (default: 0)"
 //	@Param			limit	query		int		false	"Items per page (default: 10, max: 100)"
-//	@Success		200		{object}	dto.NearbyVenuesListResponse
+//	@Success		200		{object}	dto.ListNearbyVenuesOutput
 //	@Failure		400		{object}	errorResponse
 //	@Failure		500		{object}	errorResponse
 //	@Router			/business/locations/nearby [get]
