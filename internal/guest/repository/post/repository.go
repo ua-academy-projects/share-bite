@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	_ "time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
@@ -528,4 +529,59 @@ func (r *Repository) Unlike(ctx context.Context, postID string, customerID strin
 	}
 
 	return nil
+}
+
+func (r *Repository) GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error) {
+	const op = "repository.post.GetPostsByVenueIDs"
+
+	q := database.Query{
+		Name: "post_repository.GetPostsByVenueIDs",
+		Sql: `
+          SELECT 
+              p.id, 
+              p.customer_id, 
+              p.venue_id, 
+              p.text, 
+              p.rating, 
+              p.status, 
+              p.created_at, 
+              p.updated_at,
+              p.published_at,
+              (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
+              false AS is_liked_by_me
+          FROM guest.posts p
+          WHERE p.venue_id = ANY($1) AND p.status = 'published'
+          ORDER BY p.created_at DESC
+          LIMIT $2
+       `,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, venueIDs, limit)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var posts Posts
+	if err := pgxscan.ScanAll(&posts, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	result := posts.ToEntities()
+
+	postIDs := make([]string, 0, len(result))
+	for i := range result {
+		postIDs = append(postIDs, result[i].ID)
+	}
+
+	imagesByPostID, err := r.loadImagesByPostIDs(ctx, postIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range result {
+		result[i].Images = imagesByPostID[result[i].ID]
+	}
+
+	return result, nil
 }
