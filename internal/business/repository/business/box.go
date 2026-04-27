@@ -96,7 +96,7 @@ func (r *Repository) CreateBoxItem(ctx context.Context, boxID int64, code string
 	return nil
 }
 
-func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error) {
+func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
 	var args []any
 
 	where := `boxes.expires_at > NOW()
@@ -112,6 +112,10 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 	if categoryID != nil {
 		args = append(args, *categoryID)
 		where += fmt.Sprintf(" AND boxes.category_id=$%d", len(args))
+	}
+	if orgID != nil {
+		args = append(args, *orgID)
+		where += fmt.Sprintf(" AND (org_units.id=$%d OR org_units.parent_id=$%d)", len(args), len(args))
 	}
 
 	scanner := func(rows pgx.Rows) (entity.BoxWithDistance, error) {

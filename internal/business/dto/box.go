@@ -21,6 +21,7 @@ type GetNearbyBoxesReq struct {
 	Lon        float64 `form:"lon" binding:"required,longitude"`
 	Limit      int     `form:"limit" binding:"min=0,max=100"`
 	Skip       int     `form:"skip" binding:"min=0"`
+	OrgID      *int    `form:"org_id" binding:"omitempty,min=1"`
 	CategoryID *int    `form:"category_id" binding:"omitempty,min=1"`
 }
 
