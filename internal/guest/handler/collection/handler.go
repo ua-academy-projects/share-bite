@@ -166,7 +166,7 @@ type invitationResponse struct {
 	Inviter customerInfoResponse `json:"inviter"`
 	Invitee customerInfoResponse `json:"invitee"`
 
-	ExpiresAt time.Time `db:"expires_at"`
+	ExpiresAt time.Time `json:"expiresAt"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
