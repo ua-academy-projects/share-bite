@@ -27,39 +27,44 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 	}
 
 	var uploadedKeys []string
+	postImages := make([]entity.PostImage, 0, len(in.Images))
+	uploadSessionID := uuid.New().String()
+
+	for i, img := range in.Images {
+		ext := extensionFromContentType(img.ContentType)
+		if ext == "" {
+			rollbackUploadedImages(s.storage, uploadedKeys)
+			return entity.Post{}, apperror.ErrUnsupportedImageType
+		}
+
+		objectKey := generatePostImageKey(in.CustomerID, uploadSessionID, ext)
+		uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
+		if err != nil {
+			rollbackUploadedImages(s.storage, uploadedKeys)
+			return entity.Post{}, fmt.Errorf("upload post image to storage: %w", err)
+		}
+
+		uploadedKeys = append(uploadedKeys, uploadedKey)
+		postImages = append(postImages, entity.PostImage{
+			ObjectKey:   uploadedKey,
+			ContentType: img.ContentType,
+			FileSize:    img.FileSize,
+			SortOrder:   int16(i),
+		})
+	}
 
 	var post entity.Post
-
 	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		createdPost, err := s.postRepo.Create(txCtx, in)
 		if err != nil {
 			return fmt.Errorf("create post in post repository: %w", err)
 		}
 
-		postImages := make([]entity.PostImage, 0, len(in.Images))
-		for i, img := range in.Images {
-			ext := extensionFromContentType(img.ContentType)
-			if ext == "" {
-				return apperror.ErrUnsupportedImageType
-			}
-
-			objectKey := generatePostImageKey(in.CustomerID, createdPost.ID, ext)
-			uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
-			if err != nil {
-				return fmt.Errorf("upload post image to storage: %w", err)
-			}
-
-			uploadedKeys = append(uploadedKeys, uploadedKey)
-			postImages = append(postImages, entity.PostImage{
-				PostID:      createdPost.ID,
-				ObjectKey:   uploadedKey,
-				ContentType: img.ContentType,
-				FileSize:    img.FileSize,
-				SortOrder:   int16(i),
-			})
-		}
-
 		if len(postImages) > 0 {
+			for i := range postImages {
+				postImages[i].PostID = createdPost.ID
+			}
+
 			if err := s.postRepo.CreateImages(txCtx, postImages); err != nil {
 				return fmt.Errorf("create post images in post repository: %w", err)
 			}

@@ -85,6 +85,7 @@ func (h *handler) create(c *gin.Context) {
 
 	in := dto.CreatePostInput{
 		CustomerID: customer.ID,
+		UserID:     customer.UserID,
 		VenueID:    req.VenueID,
 		Text:       req.Text,
 		Rating:     req.Rating,
