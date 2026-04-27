@@ -220,6 +220,10 @@ func (c *businessAPIClient) GetNearbyVenues(ctx context.Context, lat, lon float6
 		return nil, fmt.Errorf("failed to call business api: %w", err)
 	}
 
+	if resp != nil && !resp.IsSuccess() {
+		return nil, fmt.Errorf("business api returned non-success status")
+	}
+
 	payload := resp.GetPayload()
 	if payload == nil || len(payload.Items) == 0 {
 		return []int64{}, nil

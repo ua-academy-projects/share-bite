@@ -36,7 +36,7 @@ type ListPostsOutput struct {
 type ExploreNearbyInput struct {
 	Lat   float64 `form:"lat" binding:"required,latitude"`
 	Lon   float64 `form:"lon" binding:"required,longitude"`
-	Limit int     `form:"limit" binding:"min=1,max=100"`
+	Limit int     `form:"limit" binding:"max=100"`
 }
 
 type ExploreVenueItem struct {

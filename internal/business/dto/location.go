@@ -21,7 +21,7 @@ type UpdateLocationInput struct {
 type ListNearbyVenuesInput struct {
 	Lat   float64 `form:"lat" binding:"required,latitude"`
 	Lon   float64 `form:"lon" binding:"required,longitude"`
-	Limit int     `form:"limit" binding:"min=1,max=100"`
+	Limit int     `form:"limit" binding:"max=100"`
 	Skip  int     `form:"skip" binding:"min=0"`
 }
 
