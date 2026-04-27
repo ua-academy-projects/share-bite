@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -118,4 +119,8 @@ func (s *service) DeleteLocation(ctx context.Context, locationID int, ownerUserI
 	}
 
 	return nil
+}
+
+func (s *service) ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error) {
+	return s.businessRepo.ListNearbyVenues(ctx, lat, lon, skip, limit)
 }

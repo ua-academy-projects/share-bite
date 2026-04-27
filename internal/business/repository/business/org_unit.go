@@ -301,3 +301,50 @@ func (r *Repository) DeleteLocation(ctx context.Context, locationID int, brandID
 
 	return nil
 }
+
+func (r *Repository) ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error) {
+	const op = "repository.business.ListNearbyVenues"
+
+	dynamicColumns := fmt.Sprintf(
+		"id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, "+
+			"point(%f, %f) <@> point(longitude, latitude) AS distance",
+		lon, lat,
+	)
+
+	p := pagination.Params{
+		Table:   "business.org_units",
+		Columns: dynamicColumns,
+		Where:   "profile_type = 'VENUE' AND latitude IS NOT NULL AND longitude IS NOT NULL",
+		OrderBy: "distance ASC",
+		Args:    []any{},
+		Offset:  offset,
+		Limit:   limit,
+	}
+
+	scanner := func(rows pgx.Rows) (entity.OrgUnitWithDistance, error) {
+		var item entity.OrgUnitWithDistance
+		var ou OrgUnit
+
+		err := rows.Scan(
+			&ou.Id,
+			&ou.OrgAccountId,
+			&ou.ProfileType,
+			&ou.Name,
+			&ou.Avatar,
+			&ou.Banner,
+			&ou.Description,
+			&ou.ParentId,
+			&ou.Latitude,
+			&ou.Longitude,
+			&item.Distance,
+		)
+		if err != nil {
+			return entity.OrgUnitWithDistance{}, fmt.Errorf("%s: %w", op, err)
+		}
+
+		item.OrgUnit = ou.ToEntity()
+		return item, nil
+	}
+
+	return pagination.List(ctx, r.db.DB(), "business_repository.ListNearbyVenues", p, scanner)
+}

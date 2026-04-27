@@ -34,6 +34,8 @@ type businessService interface {
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
 	Rating(ctx context.Context, id int) (float32, error)
+
+	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 }
 
 func RegisterHandlers(
@@ -82,6 +84,8 @@ func RegisterHandlers(
 	{
 		boxes.POST("", h.CreateBox)
 	}
+
+	r.GET("/locations/nearby", h.ListNearbyVenues)
 }
 
 type errorResponse struct {
