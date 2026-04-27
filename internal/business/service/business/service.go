@@ -30,6 +30,11 @@ type businessRepository interface {
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
+	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
+	GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (map[int][]string, error)
+	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
+	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
+
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
