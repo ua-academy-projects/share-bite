@@ -22,6 +22,10 @@ type createResponse struct {
 	Post postResponse `json:"post"`
 }
 
+type errorResponse struct {
+	Error string `json:"error" example:"not found"`
+}
+
 // create creates a guest post with optional images.
 //
 //	@Summary		Create post
