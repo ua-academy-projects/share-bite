@@ -8,6 +8,14 @@ import (
 
 const RunningLowThreshold = 7
 
+type Status string
+
+const (
+	StatusSoldOut    Status = "sold_out"
+	StatusRunningLow Status = "running_low"
+	StatusAvailable  Status = "available"
+)
+
 type Box struct {
 	ID         int64
 	VenueID    int
@@ -33,12 +41,12 @@ type BoxWithDistance struct {
 	Distance          float64
 }
 
-func (b BoxWithDistance) AvailabilityStatus() string {
+func (b BoxWithDistance) AvailabilityStatus() Status {
 	if b.AvailabilityCount == 0 {
-		return "sold_out"
+		return StatusSoldOut
 	} else if b.AvailabilityCount <= RunningLowThreshold {
-		return "running_low"
+		return StatusRunningLow
 	} else {
-		return "available"
+		return StatusAvailable
 	}
 }

@@ -26,7 +26,7 @@ type GetNearbyBoxesReq struct {
 }
 
 type NearbyBoxesResp struct {
-	Id                 int64           `json:"id" example:"123"`
+	ID                 int64           `json:"id" example:"123"`
 	VenueID            int             `json:"venue_id" example:"1"`
 	CategoryID         *int            `json:"category_id" example:"2"`
 	Image              string          `json:"image" example:"https://example.com/box.jpg"`

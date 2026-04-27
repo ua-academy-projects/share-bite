@@ -5,7 +5,7 @@ services:
     restart: on-failure
     build:
       context: ../
-      dockerfile: docker/Dockerfile.guest
+      dockerfile: build/Dockerfile.guest
     ports:
       - ${GUEST_HTTP_SERVER_PORT}:${GUEST_HTTP_SERVER_PORT}
     env_file:
@@ -20,7 +20,7 @@ services:
     restart: on-failure
     build:
       context: ../
-      dockerfile: docker/Dockerfile.admin
+      dockerfile: build/Dockerfile.admin
     ports:
       - ${ADMIN_HTTP_SERVER_PORT}:${ADMIN_HTTP_SERVER_PORT}
     env_file:
@@ -35,7 +35,7 @@ services:
     restart: on-failure
     build:
       context: ../
-      dockerfile: docker/Dockerfile.business
+      dockerfile: build/Dockerfile.business
     ports:
       - ${BUSINESS_HTTP_SERVER_PORT}:${BUSINESS_HTTP_SERVER_PORT}
     env_file:
