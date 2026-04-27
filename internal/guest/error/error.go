@@ -32,6 +32,12 @@ var (
 	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
 	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
 	ErrMultipartFormData    = newError(code.BadRequest, "content type must be multipart/form-data")
+
+	ErrCannotFollowYourself   = newError(code.InvalidRequest, "cannot follow yourself")
+	ErrCannotUnfollowYourself = newError(code.InvalidRequest, "cannot unfollow yourself")
+	ErrFollowersListPrivate   = newError(code.Forbidden, "followers list is private")
+	ErrFollowingListPrivate   = newError(code.Forbidden, "following list is private")
+	ErrFollowNotFound         = newError(code.NotFound, "follow relationship not found")
 )
 
 type Error struct {
@@ -63,8 +69,16 @@ func newError(code code.Code, err string) *Error {
 	}
 }
 
+func BadRequest(msg string) *Error {
+	return newError(code.BadRequest, msg)
+}
+
+func Internal(msg string) *Error {
+	return newError(code.Internal, msg)
+}
+
 func VenueNotFoundID(venueID int64) *Error {
-	msg := fmt.Sprintf("venue with id %d was not found", venueID)
+	msg := fmt.Sprintf("venue with id %q was not found", venueID)
 	return newError(code.NotFound, msg)
 }
 
@@ -73,13 +87,6 @@ func PostNotFoundID(postID string) *Error {
 	return newError(code.NotFound, msg)
 }
 
-func BadRequest(msg string) *Error {
-	return newError(code.BadRequest, msg)
-}
-
-func Internal(msg string) *Error {
-	return newError(code.Internal, msg)
-}
 func CustomerNotFoundUserID(userID string) *Error {
 	msg := fmt.Sprintf("customer with user_id %q was not found", userID)
 	return newError(code.NotFound, msg)
@@ -113,6 +120,13 @@ func VenueNotFoundInCollection(venueID int64) *Error {
 func CommentNotFoundID(commentID int64) *Error {
 	msg := fmt.Sprintf("comment with id %d was not found", commentID)
 	return newError(code.NotFound, msg)
+}
+
+func AlreadyFollowing(current, target string) *Error {
+	return newError(
+		code.AlreadyExists,
+		fmt.Sprintf("current %q is already following target %q", current, target),
+	)
 }
 
 func InvalidPostStatusTransition(from, to string) *Error {

@@ -3,9 +3,8 @@ package comment
 import (
 	"context"
 	"fmt"
-	"strconv"
-
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+	"strconv"
 )
 
 func (s *service) List(ctx context.Context, in dto.ListCommentsInput) (dto.ListCommentsOutput, error) {

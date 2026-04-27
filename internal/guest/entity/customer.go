@@ -13,6 +13,9 @@ type Customer struct {
 	AvatarObjectKey *string
 	Bio             *string
 
+	IsFollowersPublic bool
+	IsFollowingPublic bool
+
 	CreatedAt time.Time
 }
 
@@ -35,4 +38,7 @@ type UpdateCustomer struct {
 
 	AvatarObjectKey *string
 	Bio             *string
+
+	IsFollowersPublic *bool
+	IsFollowingPublic *bool
 }

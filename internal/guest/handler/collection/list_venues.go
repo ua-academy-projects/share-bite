@@ -17,7 +17,6 @@ import (
 // @Tags			collections
 // @Accept			json
 // @Produce		json
-// @Security		BearerAuth
 //
 // @Param			collectionId	path		string						true	"Collection ID (UUID)"
 //

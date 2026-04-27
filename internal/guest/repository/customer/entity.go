@@ -18,6 +18,9 @@ type Customer struct {
 	AvatarObjectKey *string `db:"avatar_object_key"`
 	Bio             *string `db:"bio"`
 
+	IsFollowersPublic bool `db:"is_followers_public"`
+	IsFollowingPublic bool `db:"is_following_public"`
+
 	CreatedAt time.Time `db:"created_at"`
 }
 
@@ -33,8 +36,21 @@ func (e Customer) ToEntity() entity.Customer {
 		AvatarObjectKey: e.AvatarObjectKey,
 		Bio:             e.Bio,
 
+		IsFollowersPublic: e.IsFollowersPublic,
+		IsFollowingPublic: e.IsFollowingPublic,
+
 		CreatedAt: e.CreatedAt,
 	}
+}
+
+type Customers []Customer
+
+func (es Customers) ToEntities() []entity.Customer {
+	res := make([]entity.Customer, 0, len(es))
+	for i := range es {
+		res = append(res, es[i].ToEntity())
+	}
+	return res
 }
 
 func executeSQLError(err error) error {
