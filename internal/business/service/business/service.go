@@ -33,6 +33,7 @@ type businessRepository interface {
 	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
 	GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (map[int][]string, error)
 	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
+	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
 
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
 

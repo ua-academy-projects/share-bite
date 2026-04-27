@@ -89,3 +89,14 @@ func (s *service) Rating(ctx context.Context, id int) (float32, error) {
 
 	return rating, nil
 }
+
+func (s *service) ListLocationTags(ctx context.Context) ([]entity.LocationTag, error) {
+	const op = "service.business.ListLocationTags"
+
+	tags, err := s.businessRepo.ListLocationTags(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return tags, nil
+}

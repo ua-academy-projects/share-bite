@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 )
@@ -165,7 +166,7 @@ func (r *Repository) SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tag
 				INSERT INTO business.org_unit_tags (org_unit_id, tag_id)
 				SELECT $1, lt.id
 				FROM business.location_tags lt
-				WHERE lt.slug = ANY($2::int[])
+				WHERE lt.id = ANY($2::int[])
 				ON CONFLICT (org_unit_id, tag_id) DO NOTHING
 			`,
 		}
@@ -182,6 +183,40 @@ func (r *Repository) SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tag
 		ownTx = false
 	}
 	return nil
+}
+
+func (r *Repository) ListLocationTags(ctx context.Context) ([]entity.LocationTag, error) {
+	const op = "repository.business.ListLocationTags"
+
+	q := database.Query{
+		Name: "business_repository.ListLocationTags",
+		Sql: `
+			SELECT id, name, slug
+			FROM business.location_tags
+			ORDER BY id
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	tags := make([]entity.LocationTag, 0)
+	for rows.Next() {
+		var t entity.LocationTag
+		if err := rows.Scan(&t.ID, &t.Name, &t.Slug); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		tags = append(tags, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return tags, nil
 }
 
 func uniqueInts(ids []int) []int {
