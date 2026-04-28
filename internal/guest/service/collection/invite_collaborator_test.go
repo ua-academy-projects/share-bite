@@ -22,13 +22,9 @@ func TestInviteCollaborator(t *testing.T) {
 		inviteeID    = "random-invitee-customer-uuid"
 		invitationID = "invitation-uuid"
 
-		expiry = time.Now().UTC().Add(invitationTTL)
-
 		validCollaboratorsCount = 4
 
 		errRepo = errors.New("unexpected repository error")
-		_       = errRepo
-		_       = expiry
 	)
 
 	tests := []struct {
