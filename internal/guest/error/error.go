@@ -3,6 +3,7 @@ package apperror
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 )
@@ -14,7 +15,6 @@ var (
 
 	ErrForbidden = newError(code.Forbidden, "forbidden: you are not the owner of this resource")
 
-	ErrCollectionFull       = newError(code.InvalidRequest, "collection has reached the maximum limit of 100 venues")
 	ErrInvalidReorderParams = newError(code.InvalidRequest, "invalid reorder parameters")
 	ErrInvalidPageToken     = newError(code.InvalidRequest, "invalid page token")
 
@@ -26,12 +26,18 @@ var (
 
 	ErrEmptyUpdate = newError(code.EmptyUpdate, "nothing to update")
 
-	ErrCollectionAccessDenied = newError(code.Forbidden, "you are not allowed to manage the collection")
+	ErrCollectionAccessDenied = newError(code.Forbidden, "you are not allowed to do that action in the collection")
 
 	ErrImageRequired        = newError(code.BadRequest, "image is required")
 	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
 	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
 	ErrMultipartFormData    = newError(code.BadRequest, "content type must be multipart/form-data")
+
+	ErrCannotListOthersOutboundInvites = newError(code.Forbidden, "you can only view your own outbound invitations")
+	ErrCannotListOthersInboundInvites  = newError(code.Forbidden, "you can only view your own inbound invitations")
+
+	ErrInvitationExpired          = newError(code.BadRequest, "this invitation has expired, please ask for a new one")
+	ErrInvitationAlreadyProcessed = newError(code.AlreadyExists, "this invitation has already been processed")
 )
 
 type Error struct {
@@ -118,4 +124,61 @@ func CommentNotFoundID(commentID int64) *Error {
 func InvalidPostStatusTransition(from, to string) *Error {
 	msg := fmt.Sprintf("invalid post status transition: %s -> %s", from, to)
 	return newError(code.InvalidRequest, msg)
+}
+
+func CollectionVenuesLimitReached(limit int) *Error {
+	msg := fmt.Sprintf("collection has reached the limit of %d venues", limit)
+	return newError(code.InvalidRequest, msg)
+}
+
+func CollaboratorNotFound(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q is not a collaborator in this collection", customerID)
+	return newError(code.NotFound, msg)
+}
+
+func CustomerAlreadyCollaborator(customerID string) *Error {
+	msg := fmt.Sprintf("customer with id %q is already a collaborator in this collection", customerID)
+	return newError(code.AlreadyExists, msg)
+}
+
+func CollectionCollaboratorsLimitReached(limit int) *Error {
+	msg := fmt.Sprintf("collection has reached the limit of %d collaborators", limit)
+	return newError(code.InvalidRequest, msg)
+}
+
+func InviteeCustomerNotFoundID(inviteeID string) *Error {
+	msg := fmt.Sprintf("invitee customer with id %q does not exist", inviteeID)
+	return newError(code.NotFound, msg)
+}
+
+func InvitationAlreadySent(collectionID string, inviteeID string) *Error {
+	msg := fmt.Sprintf("invitation for collection %q has already been sent to customer %q", collectionID, inviteeID)
+	return newError(code.AlreadyExists, msg)
+}
+
+func InvitationCooldown(cooldown time.Duration) *Error {
+	hours := int(cooldown.Hours())
+	minutes := int(cooldown.Minutes()) % 60
+
+	var msg string
+	if hours > 0 {
+		msg = fmt.Sprintf("please wait %d hour(s) and %d minute(s) before resending this invitation", hours, minutes)
+	} else {
+		if minutes < 1 {
+			minutes = 1
+		}
+		msg = fmt.Sprintf("please wait %d minute(s) before resending this invitation", minutes)
+	}
+
+	return newError(code.TooManyRequests, msg)
+}
+
+func InvitationNotFoundID(invitationID string) *Error {
+	msg := fmt.Sprintf("invitation with id %q does not exist", invitationID)
+	return newError(code.NotFound, msg)
+}
+
+func InvitationNotFoundForInvitee(collectionID string, inviteeID string) *Error {
+	msg := fmt.Sprintf("invitation for collection %q and invitee %q was not found", collectionID, inviteeID)
+	return newError(code.NotFound, msg)
 }

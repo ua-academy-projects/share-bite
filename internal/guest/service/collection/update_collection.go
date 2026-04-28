@@ -13,7 +13,12 @@ func (s *service) UpdateCollection(ctx context.Context, in entity.UpdateCollecti
 	if err != nil {
 		return entity.Collection{}, fmt.Errorf("get collection from repository: %w", err)
 	}
-	if collection.CustomerID != in.CustomerID {
+	if err := s.requireCollaborator(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
+		return entity.Collection{}, err
+	}
+
+	// only owner can have control over collection visibility
+	if in.IsPublic != nil && in.CustomerID != collection.CustomerID {
 		return entity.Collection{}, apperror.ErrCollectionAccessDenied
 	}
 

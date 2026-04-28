@@ -17,8 +17,14 @@ func (s *service) ListVenues(
 	if err != nil {
 		return nil, fmt.Errorf("get collection from repository: %w", err)
 	}
-	if !canAccessCollection(collection, customerID) {
-		return nil, apperror.CollectionNotFoundID(collectionID)
+	if !collection.IsPublic {
+		if customerID == nil {
+			return nil, apperror.CollectionNotFoundID(collectionID)
+		}
+
+		if err := s.requireCollaborator(ctx, collectionID, *customerID, collection.CustomerID); err != nil {
+			return nil, err
+		}
 	}
 
 	collectionVenues, err := s.collectionRepo.ListCollectionVenues(ctx, collectionID)

@@ -17,7 +17,14 @@ import (
 )
 
 const (
-	constraintCollectionVenuesPkey = "collection_venues_pkey"
+	constraintCollectionVenuesPkey        = "collection_venues_pkey"
+	constraintCollectionCollaboratorsPkey = "collection_collaborators_pkey"
+
+	constraintCollectionCollaboratorsCustomerFkey = "collection_collaborators_customer_id_fkey"
+
+	constraintCollectionInvitationsUnique         = "idx_collection_invitations_unique"
+	constraintCollectionInvitationsInviteeFkey    = "collection_invitations_invitee_id_fkey"
+	constraintCollectionInvitationsCollectionFkey = "collection_invitations_collection_id_fkey"
 )
 
 type repository struct {
@@ -117,9 +124,13 @@ func (r *repository) UpdateCollection(ctx context.Context, in entity.UpdateColle
 	}
 
 	sfx := "RETURNING id, customer_id, name, description, is_public, created_at, updated_at"
-	sql += fmt.Sprintf("%s, updated_at=now() WHERE id=@id AND customer_id=@customer_id %s", strings.Join(updates, ", "), sfx)
+	sql += fmt.Sprintf(
+		`%s, updated_at = now() WHERE id=@id %s`,
+		strings.Join(updates, ", "),
+		sfx,
+	)
+
 	args["id"] = in.CollectionID
-	args["customer_id"] = in.CustomerID
 
 	q := database.Query{
 		Name: "collection_repository.UpdateCollection",
@@ -148,10 +159,19 @@ func (r *repository) ListCustomerCollections(
 	limit int,
 ) ([]entity.Collection, error) {
 	sql := `
-        SELECT id, customer_id, name, description, is_public, created_at, updated_at
-        FROM guest.collections
-        WHERE customer_id = @customer_id
-    `
+		SELECT id, customer_id, name, description, is_public, created_at, updated_at
+		FROM guest.collections collections
+		WHERE (
+			customer_id = @customer_id
+				OR
+			EXISTS (
+				SELECT 1
+				FROM guest.collection_collaborators collaborators
+				WHERE collections.id = collaborators.collection_id AND collaborators.customer_id = @customer_id
+			)
+		)
+	`
+
 	args := pgx.NamedArgs{
 		"customer_id": customerID,
 		"limit":       limit,
@@ -491,4 +511,428 @@ func (r *repository) HasVenuesBetween(ctx context.Context, collectionID string, 
 	}
 
 	return has, nil
+}
+
+func (r *repository) CreateCollaborator(ctx context.Context, collectionID string, inviteeID string) error {
+	sql := `
+		INSERT INTO guest.collection_collaborators(collection_id, customer_id)
+		VALUES($1, $2)
+	`
+
+	q := database.Query{
+		Name: "collection_repository.CreateCollaborator",
+		Sql:  sql,
+	}
+	args := []any{
+		collectionID,
+		inviteeID,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, args...)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			// handle if collaborator is already added
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				switch pgErr.ConstraintName {
+				case constraintCollectionCollaboratorsPkey:
+					return apperror.CustomerAlreadyCollaborator(inviteeID)
+				}
+			}
+
+			// handle if invitee customer exists
+			if pgErr.Code == pgerrcode.ForeignKeyViolation {
+				switch pgErr.ConstraintName {
+				case constraintCollectionCollaboratorsCustomerFkey:
+					return apperror.InviteeCustomerNotFoundID(inviteeID)
+				}
+			}
+		}
+
+		return executeSQLError(err)
+	}
+
+	return nil
+}
+
+func (r *repository) DeleteCollaborator(ctx context.Context, collectionID string, customerID string) error {
+	sql := `
+		DELETE FROM guest.collection_collaborators
+		WHERE collection_id = $1 AND customer_id = $2
+	`
+
+	q := database.Query{
+		Name: "collection_repository.DeleteCollaborator",
+		Sql:  sql,
+	}
+	args := []any{
+		collectionID,
+		customerID,
+	}
+
+	cmd, err := r.db.DB().ExecContext(ctx, q, args...)
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return apperror.CollaboratorNotFound(customerID)
+	}
+
+	return nil
+}
+
+func (r *repository) CheckIfCollaborator(ctx context.Context, collectionID string, customerID string) (bool, error) {
+	sql := `
+		SELECT EXISTS
+			(SELECT 1 FROM guest.collection_collaborators WHERE collection_id = $1 AND customer_id = $2)
+	`
+
+	q := database.Query{
+		Name: "collection_repository.CheckIfCollaborator",
+		Sql:  sql,
+	}
+	args := []any{
+		collectionID,
+		customerID,
+	}
+
+	var exists bool
+	if err := r.db.DB().QueryRowContext(ctx, q, args...).Scan(&exists); err != nil {
+		return false, scanRowError(err)
+	}
+
+	return exists, nil
+}
+
+func (r *repository) CountCollaborators(ctx context.Context, collectionID string) (int, error) {
+	sql := `
+		SELECT COUNT(*) AS count
+		FROM guest.collection_collaborators
+		WHERE collection_id = $1
+	`
+	q := database.Query{
+		Name: "collection_repository.CountCollaborators",
+		Sql:  sql,
+	}
+
+	var count int
+	if err := r.db.DB().QueryRowContext(ctx, q, collectionID).Scan(&count); err != nil {
+		return 0, scanRowError(err)
+	}
+
+	return count, nil
+}
+
+func (r *repository) ListCollaborators(ctx context.Context, collectionID string) ([]entity.Collaborator, error) {
+	sql := `
+		SELECT 
+			collaborators.collection_id AS collection_id,
+			collaborators.customer_id AS customer_id,
+			customers.username AS username,
+			customers.avatar_object_key AS avatar_object_key,
+			collaborators.added_at AS added_at
+		FROM guest.collection_collaborators collaborators
+		JOIN guest.customers customers ON collaborators.customer_id = customers.id
+		WHERE collection_id = $1
+	`
+	q := database.Query{
+		Name: "collection_repository.ListCollaborators",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, collectionID)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var collaborators Collaborators
+	if err := pgxscan.ScanAll(&collaborators, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	return collaborators.ToEntities(), nil
+}
+
+func (r *repository) CreateInvitation(ctx context.Context, in entity.InviteCollaboratorInput) (string, error) {
+	sql := `
+		INSERT INTO guest.collection_invitations(collection_id, status, inviter_id, invitee_id, expires_at)
+		VALUES($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+	args := []any{
+		in.CollectionID,
+		entity.PendingInvitationStatus,
+		in.InviterID,
+		in.InviteeID,
+		in.Expiry,
+	}
+
+	q := database.Query{
+		Name: "collection_repository.CreateInvitation",
+		Sql:  sql,
+	}
+
+	var id string
+	if err := r.db.DB().QueryRowContext(ctx, q, args...).Scan(&id); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				if pgErr.ConstraintName == constraintCollectionInvitationsUnique {
+					return "", apperror.InvitationAlreadySent(in.CollectionID, in.InviteeID)
+				}
+			case pgerrcode.ForeignKeyViolation:
+				// handle if invitee customer exists
+				if pgErr.ConstraintName == constraintCollectionInvitationsInviteeFkey {
+					return "", apperror.InviteeCustomerNotFoundID(in.InviteeID)
+				}
+
+				// handle if collection still exists
+				if pgErr.ConstraintName == constraintCollectionInvitationsCollectionFkey {
+					return "", apperror.CollectionNotFoundID(in.CollectionID)
+				}
+			}
+		}
+
+		return "", scanRowError(err)
+	}
+
+	return id, nil
+}
+
+func (r *repository) GetInvitation(ctx context.Context, invitationID string) (entity.Invitation, error) {
+	sql := `
+		SELECT 
+			id,
+			collection_id,
+			status,
+			inviter_id,
+			invitee_id,
+			expires_at,
+			last_sent_at,
+			created_at
+		FROM guest.collection_invitations
+		WHERE id = $1
+	`
+	q := database.Query{
+		Name: "collection_repository.GetInvitation",
+		Sql:  sql,
+	}
+
+	row, err := r.db.DB().QueryContext(ctx, q, invitationID)
+	if err != nil {
+		return entity.Invitation{}, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var invitation Invitation
+	if err := pgxscan.ScanOne(&invitation, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Invitation{}, apperror.InvitationNotFoundID(invitationID)
+		}
+
+		return entity.Invitation{}, scanRowError(err)
+	}
+
+	return invitation.ToEntity(), nil
+}
+
+func (r *repository) GetInvitationForUpdate(ctx context.Context, invitationID string) (entity.Invitation, error) {
+	sql := `
+		SELECT 
+			id,
+			collection_id,
+			status,
+			inviter_id,
+			invitee_id,
+			expires_at,
+			last_sent_at,
+			created_at
+		FROM guest.collection_invitations
+		WHERE id = $1
+		FOR UPDATE
+	`
+	q := database.Query{
+		Name: "collection_repository.GetInvitationForUpdate",
+		Sql:  sql,
+	}
+
+	row, err := r.db.DB().QueryContext(ctx, q, invitationID)
+	if err != nil {
+		return entity.Invitation{}, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var invitation Invitation
+	if err := pgxscan.ScanOne(&invitation, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Invitation{}, apperror.InvitationNotFoundID(invitationID)
+		}
+
+		return entity.Invitation{}, scanRowError(err)
+	}
+
+	return invitation.ToEntity(), nil
+}
+
+func (r *repository) GetInvitationByInvitee(ctx context.Context, collectionID string, inviteeID string) (entity.Invitation, error) {
+	sql := `
+		SELECT 
+			id,
+			collection_id,
+			status,
+			inviter_id,
+			invitee_id,
+			expires_at,
+			last_sent_at,
+			created_at
+		FROM guest.collection_invitations
+		WHERE collection_id = $1 AND invitee_id = $2
+	`
+	q := database.Query{
+		Name: "collection_repository.GetInvitationByInvitee",
+		Sql:  sql,
+	}
+
+	row, err := r.db.DB().QueryContext(ctx, q, collectionID, inviteeID)
+	if err != nil {
+		return entity.Invitation{}, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var invitation Invitation
+	if err := pgxscan.ScanOne(&invitation, row); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Invitation{}, apperror.InvitationNotFoundForInvitee(collectionID, inviteeID)
+		}
+
+		return entity.Invitation{}, scanRowError(err)
+	}
+
+	return invitation.ToEntity(), nil
+}
+
+func (r *repository) UpdateInvitationStatus(ctx context.Context, invitationID string, status entity.InvitationStatus) error {
+	sql := `
+		UPDATE guest.collection_invitations
+		SET status = $1
+		WHERE id = $2
+	`
+
+	q := database.Query{
+		Name: "collection_repository.UpdateInvitationStatus",
+		Sql:  sql,
+	}
+
+	cmd, err := r.db.DB().ExecContext(ctx, q, status, invitationID)
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return apperror.InvitationNotFoundID(invitationID)
+	}
+
+	return nil
+}
+
+func (r *repository) RefreshInvitation(ctx context.Context, invitationID string, newExpiry time.Time) error {
+	sql := `
+		UPDATE guest.collection_invitations
+		SET 
+			expires_at = $1,
+			status = 'pending',
+			last_sent_at = now()
+		WHERE id = $2
+	`
+	q := database.Query{
+		Name: "collection_repository.RefreshInvitation",
+		Sql:  sql,
+	}
+
+	cmd, err := r.db.DB().ExecContext(ctx, q, newExpiry, invitationID)
+	if err != nil {
+		return executeSQLError(err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return apperror.InvitationNotFoundID(invitationID)
+	}
+
+	return nil
+}
+
+func (r *repository) ListInvitations(ctx context.Context, in entity.ListInvitationsInput) ([]entity.EnrichedInvitation, error) {
+	sql := `
+		SELECT
+			i.id AS id,
+			i.status AS status,
+			i.created_at AS created_at,
+			i.expires_at AS expires_at,
+			
+			c.id AS collection_id,
+			c.name AS collection_name,
+
+			inviter.id AS inviter_id,
+			inviter.username AS inviter_username,
+			inviter.avatar_object_key AS inviter_avatar_object_key,
+
+			invitee.id AS invitee_id,
+			invitee.username AS invitee_username,
+			invitee.avatar_object_key AS invitee_avatar_object_key
+		FROM guest.collection_invitations i
+		JOIN guest.collections c ON i.collection_id = c.id
+		JOIN guest.customers inviter ON i.inviter_id = inviter.id
+		JOIN guest.customers invitee ON i.invitee_id = invitee.id
+	`
+
+	args := pgx.NamedArgs{}
+	conditions := make([]string, 0, 5)
+
+	if in.CollectionID != nil {
+		args["collection_id"] = *in.CollectionID
+		conditions = append(conditions, "c.id=@collection_id")
+	}
+	if in.InviteeID != nil {
+		args["invitee_id"] = *in.InviteeID
+		conditions = append(conditions, "invitee.id=@invitee_id")
+	}
+	if in.InviterID != nil {
+		args["inviter_id"] = *in.InviterID
+		conditions = append(conditions, "inviter.id=@inviter_id")
+	}
+	if in.Status != nil {
+		args["status"] = *in.Status
+		conditions = append(conditions, "i.status=@status")
+	}
+	if len(in.CursorID) > 0 {
+		args["cursor_id"] = in.CursorID
+		conditions = append(conditions, "i.id<@cursor_id")
+	}
+
+	if len(conditions) > 0 {
+		sql += " WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	sql += " ORDER BY i.id DESC LIMIT @limit"
+	args["limit"] = in.Limit
+
+	q := database.Query{
+		Name: "collection_repository.ListInvitations",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, args)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	eis := make(EnrichedInvitations, 0, in.Limit)
+	if err := pgxscan.ScanAll(&eis, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	return eis.ToEntities(), nil
 }

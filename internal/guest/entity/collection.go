@@ -59,13 +59,16 @@ type UpdateCollectionInput struct {
 
 type ListCustomerCollectionsInput struct {
 	CustomerID string
-	PageSize   int
-	PageToken  string
+
+	CursorTime time.Time
+	CursorID   string
+	Limit      int
 }
 
 type ListCustomerCollectionsOutput struct {
-	Collections   []Collection
-	NextPageToken string
+	Collections    []Collection
+	NextCursorTime *time.Time
+	NextCursorID   *string
 }
 
 //

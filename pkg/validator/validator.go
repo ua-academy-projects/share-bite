@@ -94,6 +94,9 @@ func msgForTag(err validator.FieldError) string {
 		return "This field must be a valid phone number"
 	case "required_without":
 		return fmt.Sprintf("This field is required if %s is missing", param)
+	case "required_without_all":
+		formattedParam := strings.ReplaceAll(param, " ", ", ")
+		return fmt.Sprintf("This field is required if all of %s are missing", formattedParam)
 	case "alphanum":
 		return "This field can only contain letters and numbers"
 	default:

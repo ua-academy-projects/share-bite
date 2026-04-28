@@ -11,10 +11,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
-const (
-	rebalanceGapLimit = 1e-9
-)
-
 func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput) error {
 	var needsReset bool
 
@@ -23,8 +19,8 @@ func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput)
 		if err != nil {
 			return fmt.Errorf("get collection from repository: %w", err)
 		}
-		if collection.CustomerID != in.CustomerID {
-			return apperror.ErrCollectionAccessDenied
+		if err := s.requireCollaborator(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
+			return err
 		}
 
 		exists, err := s.collectionRepo.CheckIfVenueInCollection(ctx, in.CollectionID, in.VenueID)

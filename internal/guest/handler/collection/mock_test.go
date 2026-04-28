@@ -57,3 +57,35 @@ func (m *mockCollectionService) ListVenues(ctx context.Context, collectionID str
 	args := m.Called(ctx, collectionID, customerID)
 	return args.Get(0).([]entity.EnrichedVenueItem), args.Error(1)
 }
+
+func (m *mockCollectionService) ListCollaborators(ctx context.Context, collectionID string, customerID *string) ([]entity.Collaborator, error) {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Get(0).([]entity.Collaborator), args.Error(1)
+}
+
+func (m *mockCollectionService) RemoveCollaborator(ctx context.Context, in entity.RemoveCollaboratorInput) error {
+	args := m.Called(ctx, in)
+	return args.Error(0)
+}
+
+// invitations
+
+func (m *mockCollectionService) InviteCollaborator(ctx context.Context, in entity.InviteCollaboratorInput) error {
+	args := m.Called(ctx, in)
+	return args.Error(0)
+}
+
+func (m *mockCollectionService) AcceptInvitation(ctx context.Context, invitationID string, customerID string) error {
+	args := m.Called(ctx, invitationID, customerID)
+	return args.Error(0)
+}
+
+func (m *mockCollectionService) DeclineInvitation(ctx context.Context, invitationID string, customerID string) error {
+	args := m.Called(ctx, invitationID, customerID)
+	return args.Error(0)
+}
+
+func (m *mockCollectionService) ListInvitations(ctx context.Context, in entity.ListInvitationsInput) (entity.ListInvitationsOutput, error) {
+	args := m.Called(ctx, in)
+	return args.Get(0).(entity.ListInvitationsOutput), args.Error(1)
+}

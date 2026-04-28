@@ -36,7 +36,7 @@ func TestAddVenue(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name:         "success",
+			name:         "success - as owner",
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
@@ -58,7 +58,7 @@ func TestAddVenue(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:         "error - collection access denied",
+			name:         "success - as collaborator",
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
@@ -70,8 +70,38 @@ func TestAddVenue(t *testing.T) {
 						ID:         collectionID,
 						CustomerID: gofakeit.UUID(),
 					}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(true, nil).
+					Once()
+
+				repo.On("CountVenues", mock.Anything, collectionID).Return(5, nil).Once()
+
+				repo.On("GetMaxSortOrder", mock.Anything, collectionID).Return(500.0, nil).Once()
+
+				repo.On("AddVenue", mock.Anything, collectionID, venueID, 600.0).Return(nil).Once()
 			},
-			wantErr: apperror.ErrCollectionAccessDenied,
+			wantErr: nil,
+		},
+		{
+			name:         "error - collection not found (outsider)",
+			collectionID: collectionID,
+			customerID:   customerID,
+			venueID:      venueID,
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
+					entity.Collection{
+						ID:         collectionID,
+						CustomerID: gofakeit.UUID(),
+					}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, nil).
+					Once()
+			},
+			wantErr: apperror.CollectionNotFoundID(collectionID),
 		},
 		{
 			name:         "error - collection full",
@@ -89,7 +119,7 @@ func TestAddVenue(t *testing.T) {
 
 				repo.On("CountVenues", mock.Anything, collectionID).Return(maxVenuesPerCollection, nil).Once()
 			},
-			wantErr: apperror.ErrCollectionFull,
+			wantErr: apperror.CollectionVenuesLimitReached(maxVenuesPerCollection),
 		},
 		{
 			name:         "error - get collection repo fails",
@@ -182,6 +212,22 @@ func TestAddVenue(t *testing.T) {
 					Return(apperror.ErrVenueAlreadyInCollection).Once()
 			},
 			wantErr: apperror.ErrVenueAlreadyInCollection,
+		},
+		{
+			name:         "error - check if collaborator repo fails",
+			collectionID: collectionID,
+			customerID:   customerID,
+			venueID:      venueID,
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
+					entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
+
+				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
+					Return(false, errRepo).Once()
+			},
+			wantErr: errRepo,
 		},
 	}
 
