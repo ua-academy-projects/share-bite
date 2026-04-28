@@ -70,7 +70,7 @@ func TestListMyCollections(t *testing.T) {
 						UpdatedAt: now,
 					},
 				},
-				// Очікуємо вже закодований рядок
+
 				NextPageToken: validToken,
 			},
 		},

@@ -77,7 +77,7 @@ type listInvitationsParams struct {
 	InviteeID    *string `form:"inviteeId" binding:"required_without_all=InviterID CollectionID,omitempty,uuid"`
 	Status       *string `form:"status" binding:"omitempty,oneof=pending accepted declined"`
 
-	PageSize  int    `form:"pageSize" binding:"omitempty,min=1,max=100"`
+	PageSize  int    `form:"pageSize" binding:"omitempty,gte=1,lte=100"`
 	PageToken string `form:"pageToken"`
 }
 

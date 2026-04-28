@@ -261,7 +261,7 @@ func TestListInvitations(t *testing.T) {
 			wantBody: response.ErrorResponse{
 				Message: validationMsg,
 				Details: []response.ErrorDetail{
-					{Field: "pageSize", Message: "This field must be at most 100 characters long"},
+					{Field: "pageSize", Message: "This field must be less than or equal to 100"},
 				},
 			},
 		},
