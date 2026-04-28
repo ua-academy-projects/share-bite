@@ -22,7 +22,7 @@ type businessService interface {
 	DeletePost(ctx context.Context, postID int64, userID string) error
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
-	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
+	List(ctx context.Context, brandId, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)

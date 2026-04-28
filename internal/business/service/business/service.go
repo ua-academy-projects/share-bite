@@ -36,9 +36,8 @@ type businessRepository interface {
 	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
 	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
 
-
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
-	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
+	ListByParentID(ctx context.Context, parentID, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 }

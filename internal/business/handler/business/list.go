@@ -2,6 +2,7 @@ package business
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
@@ -9,9 +10,10 @@ import (
 )
 
 type listRequest struct {
-	BrandId int `uri:"id" binding:"required"`
-	Skip    int `form:"skip"`
-	Limit   int `form:"limit"`
+	BrandId int    `uri:"id" binding:"required"`
+	Skip    int    `form:"skip"`
+	Limit   int    `form:"limit"`
+	Tags    string `form:"tags"`
 }
 
 type listItem struct {
@@ -38,6 +40,7 @@ type listResponse struct {
 //	@Param			id		path		int	true	"Brand ID"
 //	@Param			skip	query		int	false	"Number of items to skip (default: 0)"
 //	@Param			limit	query		int	false	"Items per page (default: 10, max: 100)"
+//	@Param			tags	query		string	false	"Comma-separated location tag slugs, e.g. vegan,romantic"
 //	@Success		200		{object}	listResponse
 //	@Failure		400		{object}	errorResponse
 //	@Failure		500		{object}	errorResponse
@@ -66,9 +69,19 @@ func (h *handler) list(c *gin.Context) {
 		req.Limit = 100
 	}
 
-	log.Info("list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit)
+	var tags []string
+	if req.Tags != "" {
+		for _, tag := range strings.Split(req.Tags, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+	}
 
-	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit)
+	log.Info("list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit, "tags", tags)
+
+	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit, tags)
 	if err != nil {
 		log.Error("failed to list locations", "brandId", req.BrandId, "error", err)
 		c.Error(err)
