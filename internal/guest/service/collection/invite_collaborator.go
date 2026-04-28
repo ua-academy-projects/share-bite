@@ -59,7 +59,8 @@ func (s *service) InviteCollaborator(ctx context.Context, in entity.InviteCollab
 		} else {
 			// refresh already sent invitation
 			if !invitation.CanResend(resendInvitationCooldown) {
-				return apperror.InvitationCooldown(resendInvitationCooldown)
+				timeLeft := resendInvitationCooldown - time.Since(invitation.LastSentAt)
+				return apperror.InvitationCooldown(timeLeft)
 			}
 
 			if err := s.collectionRepo.RefreshInvitation(ctx, invitation.ID, time.Now().UTC().Add(invitationTTL)); err != nil {

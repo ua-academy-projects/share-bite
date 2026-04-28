@@ -161,7 +161,7 @@ func (r *repository) ListCustomerCollections(
 	sql := `
 		SELECT id, customer_id, name, description, is_public, created_at, updated_at
 		FROM guest.collections collections
-		WHERE
+		WHERE (
 			customer_id = @customer_id
 				OR
 			EXISTS (
@@ -169,6 +169,7 @@ func (r *repository) ListCustomerCollections(
 				FROM guest.collection_collaborators collaborators
 				WHERE collections.id = collaborators.collection_id AND collaborators.customer_id = @customer_id
 			)
+		)
 	`
 
 	args := pgx.NamedArgs{

@@ -158,7 +158,17 @@ func InvitationAlreadySent(collectionID string, inviteeID string) *Error {
 
 func InvitationCooldown(cooldown time.Duration) *Error {
 	hours := int(cooldown.Hours())
-	msg := fmt.Sprintf("please wait %d hour(s) before resending this invitation", hours)
+	minutes := int(cooldown.Minutes()) % 60
+
+	var msg string
+	if hours > 0 {
+		msg = fmt.Sprintf("please wait %d hour(s) and %d minute(s) before resending this invitation", hours, minutes)
+	} else {
+		if minutes < 1 {
+			minutes = 1
+		}
+		msg = fmt.Sprintf("please wait %d minute(s) before resending this invitation", minutes)
+	}
 
 	return newError(code.TooManyRequests, msg)
 }
