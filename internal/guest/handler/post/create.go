@@ -12,10 +12,11 @@ import (
 )
 
 type createRequest struct {
-	VenueID int64                   `form:"venue_id" binding:"required"`
-	Text    string                  `form:"text" binding:"required,max=2000"`
-	Rating  int16                   `form:"rating" binding:"required,min=1,max=5"`
-	Images  []*multipart.FileHeader `form:"images" binding:"omitempty"`
+	VenueID  int64                   `form:"venue_id" binding:"required"`
+	Text     string                  `form:"text" binding:"required,max=2000"`
+	Rating   int16                   `form:"rating" binding:"required,min=1,max=5"`
+	Images   []*multipart.FileHeader `form:"images" binding:"omitempty"`
+	Mentions []string                `form:"mentions" binding:"omitempty"`
 }
 
 type createResponse struct {
@@ -94,6 +95,7 @@ func (h *handler) create(c *gin.Context) {
 		Text:       req.Text,
 		Rating:     req.Rating,
 		Images:     dtoImages,
+		Mentions:   req.Mentions,
 	}
 
 	post, err := h.service.Create(ctx, in)
