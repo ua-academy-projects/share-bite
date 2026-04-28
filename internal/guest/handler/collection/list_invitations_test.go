@@ -23,11 +23,11 @@ func TestListInvitations(t *testing.T) {
 		inviterID    = gofakeit.UUID()
 		inviteeID    = gofakeit.UUID()
 
-		invitationId1 = "invitation-uuid-1"
-		invitationId2 = "invitation-uuid-2"
-		invitationId3 = "invitation-uuid-3"
+		invitationId1 = gofakeit.UUID()
+		invitationId2 = gofakeit.UUID()
+		invitationId3 = gofakeit.UUID()
 
-		validCursorID = "valid-cursor-id"
+		validCursorID = gofakeit.UUID()
 		validToken    = base64.RawURLEncoding.EncodeToString([]byte(validCursorID))
 
 		statusPending = string(entity.PendingInvitationStatus)
