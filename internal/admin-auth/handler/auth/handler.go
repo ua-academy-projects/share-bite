@@ -280,8 +280,9 @@ func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 // @Success      200      {object}  MessageResponse  "Success message."
 // @Failure      400      {object}  ErrorResponse    "Validation error."
 // @Failure      401      {object}  ErrorResponse    "Unauthorized access."
+// @Failure      403      {object}  ErrorResponse    "Forbidden. Token belongs to another user."
 // @Failure      500      {object}  ErrorResponse    "Internal server error."
-// @Router       /auth/logout [post]
+// @Router       /user/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	userIDVal, exists := c.Get(middleware.CtxUserID)
 	if !exists {
