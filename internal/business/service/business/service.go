@@ -49,7 +49,6 @@ type businessRepository interface {
 	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
 	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
 
-
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
@@ -100,7 +99,10 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 	if in.ProfileType == entity.ProfileTypeVenue {
 		parent, err := s.businessRepo.GetById(ctx, *in.ParentId)
 		if err != nil {
-			return 0, apperror.BadRequest("parent_id does not exist")
+			if errors.Is(err, repository.ErrNotFound) {
+				return 0, apperror.BadRequest("parent_id does not exist")
+			}
+			return 0, fmt.Errorf("get parent org unit in business repository: %w", err)
 		}
 		if parent.ProfileType != entity.ProfileTypeBrand {
 			return 0, apperror.BadRequest("parent must be a BRAND, not a VENUE")
