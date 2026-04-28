@@ -21,6 +21,7 @@ type listItem struct {
 	Description *string  `json:"description" example:"A cozy place in the city center."`
 	Latitude    *float32 `json:"latitude" example:"50.4501"`
 	Longitude   *float32 `json:"longitude" example:"30.5234"`
+	Tags        []string `json:"tags"`
 }
 
 type listResponse struct {
@@ -83,6 +84,7 @@ func (h *handler) list(c *gin.Context) {
 			Description: u.Description,
 			Latitude:    u.Latitude,
 			Longitude:   u.Longitude,
+			Tags:        normalizeTags(u.Tags),
 		})
 	}
 

@@ -18,6 +18,7 @@ type OrgUnit struct {
 	ParentId     *int
 	Latitude     *float32
 	Longitude    *float32
+	Tags         []string
 }
 
 type UpdateOrgUnitInput struct {

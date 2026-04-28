@@ -3,8 +3,9 @@ package comment
 import (
 	"context"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"time"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -45,14 +46,6 @@ func RegisterHandlers(
 	protected.DELETE("/:comment_id", h.delete)
 }
 
-type customerDTO struct {
-	ID        string  `json:"id"`
-	UserName  string  `json:"userName"`
-	FirstName string  `json:"firstName"`
-	LastName  string  `json:"lastName"`
-	AvatarURL *string `json:"avatarURL"`
-}
-
 type commentResponse struct {
 	ID        int64       `json:"id"`
 	PostID    int64       `json:"postId"`
@@ -60,6 +53,14 @@ type commentResponse struct {
 	CreatedAt time.Time   `json:"createdAt"`
 	UpdatedAt time.Time   `json:"updatedAt"`
 	Customer  customerDTO `json:"customer"`
+}
+
+type customerDTO struct {
+	ID        string  `json:"id"`
+	UserName  string  `json:"userName"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	AvatarURL *string `json:"avatarURL"`
 }
 
 func commentToResponse(comment entity.Comment, customer entity.Customer) commentResponse {

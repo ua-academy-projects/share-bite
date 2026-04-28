@@ -6,10 +6,20 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const RunningLowThreshold = 7
+
+type Status string
+
+const (
+	StatusSoldOut    Status = "sold_out"
+	StatusRunningLow Status = "running_low"
+	StatusAvailable  Status = "available"
+)
+
 type Box struct {
-	ID            int64
-	VenueID       int
-	CategoryID    *int
+	ID         int64
+	VenueID    int
+	CategoryID *int
 
 	Image         string
 	FullPrice     decimal.Decimal
@@ -26,6 +36,17 @@ type BoxItem struct {
 }
 
 type BoxWithDistance struct {
-	Box      Box
-	Distance float64
+	Box               Box
+	AvailabilityCount int
+	Distance          float64
+}
+
+func (b BoxWithDistance) AvailabilityStatus() Status {
+	if b.AvailabilityCount == 0 {
+		return StatusSoldOut
+	} else if b.AvailabilityCount <= RunningLowThreshold {
+		return StatusRunningLow
+	} else {
+		return StatusAvailable
+	}
 }

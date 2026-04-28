@@ -1,14 +1,27 @@
 -- +goose Up
-ALTER TABLE business.org_units
+ALTER TABLE IF EXISTS business.org_units
 DROP CONSTRAINT IF EXISTS org_units_org_account_id_key;
 
-CREATE UNIQUE INDEX IF NOT EXISTS org_units_brand_owner_uidx
-ON business.org_units (org_account_id)
-WHERE profile_type = 'BRAND';
-
--- +goose Down
+-- +goose StatementBegin
 DO $$
 BEGIN
+    IF to_regclass('business.org_units') IS NULL THEN
+        RETURN;
+    END IF;
+    CREATE UNIQUE INDEX IF NOT EXISTS org_units_brand_owner_uidx
+    ON business.org_units (org_account_id)
+    WHERE profile_type = 'BRAND';
+END $$;
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DO $$
+BEGIN
+    IF to_regclass('business.org_units') IS NULL THEN
+        RETURN;
+    END IF;
+
     IF EXISTS (
         SELECT 1
         FROM business.org_units
@@ -18,9 +31,10 @@ BEGIN
         RAISE EXCEPTION
             'Rollback blocked: business.org_units has duplicate org_account_id (BRAND/VENUE).';
     END IF;
+
+    DROP INDEX IF EXISTS business.org_units_brand_owner_uidx;
+
+    ALTER TABLE business.org_units
+    ADD CONSTRAINT org_units_org_account_id_key UNIQUE (org_account_id);
 END $$;
-
-DROP INDEX IF EXISTS business.org_units_brand_owner_uidx;
-
-ALTER TABLE business.org_units
-ADD CONSTRAINT org_units_org_account_id_key UNIQUE (org_account_id);
+-- +goose StatementEnd

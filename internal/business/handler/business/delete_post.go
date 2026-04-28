@@ -12,19 +12,19 @@ import (
 
 // DeletePost deletes a post by ID.
 //
-// @Summary      Delete post
-// @Description  Deletes a post if the user has permission (owner of the org)
-// @Tags         posts
-// @Produce      json
-// @Param        id   path      int  true  "Post ID"
-// @Success      204  "No Content"
-// @Failure      400  {object}  errorResponse  "invalid id"
-// @Failure      401  {object}  errorResponse  "unauthorized"
-// @Failure      403  {object}  errorResponse  "forbidden"
-// @Failure      404  {object}  errorResponse  "post not found"
-// @Failure      500  {object}  errorResponse  "internal error"
-// @Security     BearerAuth
-// @Router       /business/posts/{id} [delete]
+//	@Summary		Delete post
+//	@Description	Deletes a post if the user has permission (owner of the org)
+//	@Tags			posts
+//	@Produce		json
+//	@Param			id	path	int	true	"Post ID"
+//	@Success		204	"No Content"
+//	@Failure		400	{object}	errorResponse	"invalid id"
+//	@Failure		401	{object}	errorResponse	"unauthorized"
+//	@Failure		403	{object}	errorResponse	"forbidden"
+//	@Failure		404	{object}	errorResponse	"post not found"
+//	@Failure		500	{object}	errorResponse	"internal error"
+//	@Security		BearerAuth
+//	@Router			/business/posts/{id} [delete]
 func (h *handler) DeletePost(c *gin.Context) {
 	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || postID <= 0 {
