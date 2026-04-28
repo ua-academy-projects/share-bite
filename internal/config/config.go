@@ -28,8 +28,10 @@ type config struct {
 	JwtToken  JwtToken
 	Email     Email
 	RateLimit RateLimit
+	GitHub   GitHub
 
 	Storage Storage
+
 }
 
 var cfg *config
@@ -94,6 +96,13 @@ type Storage interface {
 	UsePathStyle() bool
 }
 
+type GitHub interface {
+	GetClientID() string
+	GetClientSecret() string
+	GetRedirectURL() string
+	GetSuccessRedirectURL() string
+}
+
 func Load(paths ...string) error {
 	if len(paths) > 0 {
 		if err := godotenv.Load(paths...); err != nil {
@@ -151,6 +160,11 @@ func Load(paths ...string) error {
 		return fmt.Errorf("storage config: %w", err)
 	}
 
+	githubConfig, err := env.NewGitHubConfig()
+	if err != nil {
+		return fmt.Errorf("github config: %w", err)
+	}
+
 	cfg = &config{
 		App: appConfig,
 
@@ -166,6 +180,7 @@ func Load(paths ...string) error {
 		RateLimit: rateLimitConfig,
 
 		Storage: storageConfig,
+		GitHub:   githubConfig,
 	}
 
 	return nil

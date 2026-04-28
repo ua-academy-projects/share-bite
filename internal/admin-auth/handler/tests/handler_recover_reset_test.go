@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/mock"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/ghAuth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
@@ -53,6 +54,15 @@ func (m *mockUserRepository) CreateUser(ctx context.Context, params user.CreateU
 	}
 
 	return args.Get(0).(*user.CreatedUser), args.Error(1)
+}
+
+func (m *mockUserRepository) UpsertByGitHubID(ctx context.Context, ghUser ghAuth.GitHubUser) (*ghAuth.User, error) {
+	args := m.Called(ctx, ghUser)
+	user := args.Get(0)
+	if user == nil {
+		return nil, args.Error(1)
+	}
+	return user.(*ghAuth.User), args.Error(1)
 }
 
 func (m *mockUserRepository) FindBySocialProvider(ctx context.Context, provider string, providerID string) (*dto.UserWithRole, error) {

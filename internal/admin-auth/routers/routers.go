@@ -7,9 +7,10 @@ import (
 	_ "github.com/ua-academy-projects/share-bite/docs/api/admin-auth"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/ghAuth"
 )
 
-func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc, limiter gin.HandlerFunc) {
+func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc, limiter gin.HandlerFunc, gh *ghAuth.Handler) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	{
 		authGroup := r.Group("/auth")
@@ -25,6 +26,10 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddlewa
 			}
 			authGroup.POST("/recover-access", limiter, authHandler.RecoverAccess)
 			authGroup.POST("/reset-password", limiter, authHandler.ResetPassword)
+			
+			authGroup.GET("/github", gin.WrapF(gh.Login))
+			authGroup.GET("/github/callback", gin.WrapF(gh.Callback))
+			authGroup.GET("/github/success", gin.WrapF(gh.Success))
 		}
 	}
 }
