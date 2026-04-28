@@ -31,3 +31,12 @@ type SocialAccount struct {
 	Email      string    `db:"email"`
 	CreatedAt  time.Time `db:"created_at"`
 }
+
+type RefreshToken struct {
+	ID        string     `db:"id"`
+	TokenHash string     `db:"token_hash"`
+	UserID    string     `db:"user_id"`
+	CreatedAt time.Time  `db:"created_at"`
+	ExpiresAt time.Time  `db:"expires_at"`
+	RevokedAt *time.Time `db:"revoked_at"`
+}

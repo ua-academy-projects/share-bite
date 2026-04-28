@@ -45,6 +45,7 @@ var (
 	ErrUserNotFound       = New(http.StatusNotFound, "user not found")
 	ErrUserAlreadyExists  = New(http.StatusConflict, "user with this email already exists")
 	ErrRoleNotFound       = New(http.StatusUnprocessableEntity, "role not found")
+	ErrForbidden          = New(http.StatusForbidden, "user doesn't have permission to access this resource")
 
 	ErrProviderExchangeFail  = New(http.StatusBadGateway, "failed to exchange code with provider")
 	ErrProviderUserInfoFail  = New(http.StatusBadGateway, "failed to fetch user info from provider")

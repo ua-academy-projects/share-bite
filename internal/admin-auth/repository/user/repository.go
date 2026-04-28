@@ -17,13 +17,20 @@ import (
 type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
+	FindByID(ctx context.Context, id string) (*dto.UserWithRole, error)
 	CreateUser(ctx context.Context, user CreateUser) (*CreatedUser, error)
 	AssignRole(ctx context.Context, userID string, roleID int) error
 	FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error)
 	CreateWithSocial(ctx context.Context, params dto.CreateUserWithSocialParams) (*dto.CreatedUser, error)
 	LinkSocialAccount(ctx context.Context, params dto.CreateSocialAccountParams) error
 	CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error
-	ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error)
+	ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error)
+	StoreRefreshToken(ctx context.Context, params dto.StoreRefreshTokenParams) error
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
+	GetUserIDByRefreshToken(ctx context.Context, tokenHash string) (string, error)
+	RevokeAllUserTokens(ctx context.Context, userID string) error
+	EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error
+	DeleteExpiredTokens(ctx context.Context) error
 }
 
 type repository struct {
@@ -58,6 +65,35 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 			return nil, nil
 		}
 		return nil, fmt.Errorf("find by email: %w", err)
+	}
+
+	return u, nil
+}
+
+func (r *repository) FindByID(ctx context.Context, id string) (*dto.UserWithRole, error) {
+	q := database.Query{
+		Name: "user.FindByID",
+		Sql: `
+          SELECT u.id, u.email, u.password_hash, r.slug
+          FROM auth.users u
+          LEFT JOIN auth.user_roles ur ON u.id = ur.user_id
+          LEFT JOIN auth.roles r ON ur.role_id = r.id
+          WHERE u.id = $1
+       `,
+	}
+
+	row := r.client.DB().QueryRowContext(ctx, q, id)
+	u := new(dto.UserWithRole)
+	if err := row.Scan(
+		&u.ID,
+		&u.Email,
+		&u.PasswordHash,
+		&u.RoleSlug,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find by id: %w", err)
 	}
 
 	return u, nil
@@ -99,7 +135,7 @@ func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.Cr
 	return nil
 }
 
-func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (bool, error) {
+func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error) {
 	var userID string
 
 	consumeTokenQuery := database.Query{
@@ -126,17 +162,17 @@ func (r *repository) ResetPassword(ctx context.Context, tokenHash, passwordHash 
 
 	if err := r.client.DB().QueryRowContext(ctx, consumeTokenQuery, tokenHash).Scan(&userID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, apperr.ErrInvalidResetToken
+			return "", false, apperr.ErrInvalidResetToken
 		}
 
-		return false, fmt.Errorf("consume password reset token: %w", err)
+		return "", false, fmt.Errorf("consume password reset token: %w", err)
 	}
 
 	if _, err := r.client.DB().ExecContext(ctx, updatePasswordQuery, userID, passwordHash); err != nil {
-		return false, fmt.Errorf("update password: %w", err)
+		return "", false, fmt.Errorf("update password: %w", err)
 	}
 
-	return true, nil
+	return userID, true, nil
 }
 
 func (r *repository) FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error) {
@@ -295,6 +331,110 @@ func (r *repository) LinkSocialAccount(ctx context.Context, params dto.CreateSoc
 		}
 
 		return apperr.Wrap(http.StatusInternalServerError, "failed to link social account", err)
+	}
+
+	return nil
+}
+
+func (r *repository) StoreRefreshToken(ctx context.Context, params dto.StoreRefreshTokenParams) error {
+	q := database.Query{
+		Name: "user.StoreRefreshToken",
+		Sql: `INSERT INTO auth.refresh_tokens (user_id, token_hash, expires_at)
+			  VALUES ($1, $2, $3)`,
+	}
+	_, err := r.client.DB().ExecContext(ctx, q, params.UserID, params.TokenHash, params.ExpiresAt)
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to store refresh token", err)
+	}
+	return nil
+}
+
+func (r *repository) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
+	q := database.Query{
+		Name: "user.RevokeRefreshToken",
+		Sql:  `UPDATE auth.refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1 AND revoked_at IS NULL`,
+	}
+
+	_, err := r.client.DB().ExecContext(ctx, q, tokenHash)
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to revoke refresh token", err)
+	}
+
+	return nil
+}
+
+func (r *repository) GetUserIDByRefreshToken(ctx context.Context, tokenHash string) (string, error) {
+	q := database.Query{
+		Name: "user.GetUserIDByRefreshToken",
+		Sql:  `SELECT user_id FROM auth.refresh_tokens WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > NOW()`,
+	}
+	var userID string
+	row := r.client.DB().QueryRowContext(ctx, q, tokenHash)
+	if err := row.Scan(&userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", apperr.ErrInvalidToken
+		}
+		return "", apperr.Wrap(http.StatusInternalServerError, "failed to fetch user id", err)
+	}
+	return userID, nil
+}
+
+func (r *repository) RevokeAllUserTokens(ctx context.Context, userID string) error {
+	q := database.Query{
+		Name: "user.RevokeAllUserTokens",
+		Sql:  `UPDATE auth.refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL`,
+	}
+	_, err := r.client.DB().ExecContext(ctx, q, userID)
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to revoke all user tokens", err)
+	}
+	return nil
+}
+
+func (r *repository) EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error {
+	keepCount := maxSessions - 1
+	if keepCount < 0 {
+		keepCount = 0
+	}
+
+	q := database.Query{
+		Name: "user.EnforceMaxSessions",
+		Sql: `
+          UPDATE auth.refresh_tokens
+          SET revoked_at = NOW()
+          WHERE id IN (
+             SELECT id 
+             FROM auth.refresh_tokens 
+             WHERE user_id = $1 
+               AND revoked_at IS NULL 
+               AND expires_at > NOW()
+             ORDER BY created_at DESC 
+             OFFSET $2
+          )
+       `,
+	}
+
+	_, err := r.client.DB().ExecContext(ctx, q, userID, keepCount)
+	if err != nil {
+		return fmt.Errorf("enforce max sessions: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repository) DeleteExpiredTokens(ctx context.Context) error {
+	q := database.Query{
+		Name: "user.DeleteExpiredTokens",
+		Sql: `
+          DELETE FROM auth.refresh_tokens 
+          WHERE expires_at < NOW() - INTERVAL '3 days' 
+             OR (revoked_at IS NOT NULL AND revoked_at < NOW() - INTERVAL '3 days')
+       `,
+	}
+
+	_, err := r.client.DB().ExecContext(ctx, q)
+	if err != nil {
+		return fmt.Errorf("cleanup expired tokens: %w", err)
 	}
 
 	return nil
