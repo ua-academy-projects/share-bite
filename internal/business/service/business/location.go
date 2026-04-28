@@ -11,8 +11,14 @@ import (
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 )
 
+const maxLocationTags = 5
+
 func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
 	const op = "business.service.CreateLocation"
+
+	if len(in.TagIDs) > maxLocationTags {
+		return nil, apperror.BadRequest("location can have at most 5 tags")
+	}
 
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
 	if err != nil {
@@ -37,9 +43,32 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 		return nil, apperror.BadRequest("target org unit is not a brand")
 	}
 
-	location, err := s.businessRepo.CreateLocation(ctx, brandID, ownerUserID, in)
+	var location *entity.OrgUnit
+
+	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
+		created, err := s.businessRepo.CreateLocation(ctxTx, brandID, ownerUserID, in)
+		if err != nil {
+			return fmt.Errorf("%s: create location: %w", op, err)
+		}
+
+		if err := s.businessRepo.SetOrgUnitTagsByIDs(ctxTx, created.Id, in.TagIDs); err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return apperror.BadRequest("one or more tags are invalid")
+			}
+			return fmt.Errorf("%s: set location tags: %w", op, err)
+		}
+
+		tags, err := s.businessRepo.GetOrgUnitTagSlugs(ctxTx, created.Id)
+		if err != nil {
+			return fmt.Errorf("%s: get location tags: %w", op, err)
+		}
+		created.Tags = tags
+
+		location = created
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: create location: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return location, nil
@@ -47,6 +76,10 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 
 func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error) {
 	const op = "business.service.UpdateLocation"
+
+	if in.TagIDs != nil && len(*in.TagIDs) > maxLocationTags {
+		return nil, apperror.BadRequest("location can have at most 5 tags")
+	}
 
 	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
 	if err != nil {
@@ -72,12 +105,38 @@ func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserI
 		return nil, apperror.Forbidden("you can manage only your own brand locations")
 	}
 
-	updated, err := s.businessRepo.UpdateLocation(ctx, locationID, ownerBrandID, in)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, apperror.LocationNotFoundID(locationID)
+	var updated *entity.OrgUnit
+
+	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
+		var err error
+
+		updated, err = s.businessRepo.UpdateLocation(ctxTx, locationID, ownerBrandID, in)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return apperror.LocationNotFoundID(locationID)
+			}
+			return fmt.Errorf("%s: update location: %w", op, err)
 		}
-		return nil, fmt.Errorf("%s: update location: %w", op, err)
+
+		if in.TagIDs != nil {
+			if err := s.businessRepo.SetOrgUnitTagsByIDs(ctxTx, locationID, *in.TagIDs); err != nil {
+				if errors.Is(err, repository.ErrNotFound) {
+					return apperror.BadRequest("one or more tags are invalid")
+				}
+				return fmt.Errorf("%s: set location tags: %w", op, err)
+			}
+		}
+
+		tags, err := s.businessRepo.GetOrgUnitTagSlugs(ctxTx, locationID)
+		if err != nil {
+			return fmt.Errorf("%s: get location tags: %w", op, err)
+		}
+		updated.Tags = tags
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return updated, nil

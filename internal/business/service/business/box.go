@@ -73,10 +73,10 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	return box, nil
 }
 
-func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error) {
+func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
 	const op = "service.box.ListNearbyBoxes"
 
-	result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID)
+	result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID, orgID)
 	if err != nil {
 		return pagination.Result[entity.BoxWithDistance]{}, fmt.Errorf("%s: %w", op, err)
 	}

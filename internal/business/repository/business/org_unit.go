@@ -194,7 +194,8 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 
 	var ou OrgUnit
 	err := r.db.DB().QueryRowContext(
-		ctx, q,
+		ctx,
+		q,
 		ownerUserID,
 		entity.ProfileTypeVenue,
 		brandID,
@@ -246,7 +247,8 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 
 	var ou OrgUnit
 	err := r.db.DB().QueryRowContext(
-		ctx, q,
+		ctx,
+		q,
 		in.Name,
 		in.Avatar,
 		in.Banner,
