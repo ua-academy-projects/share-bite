@@ -43,10 +43,6 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 		return
 	}
 
-	if !checkBusinessRole(c) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can create organizations"})
-		return
-	}
 
 	userID, ok := val.(string)
 
