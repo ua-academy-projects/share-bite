@@ -182,11 +182,11 @@ func (h *handler) invitationToResponse(invitation entity.EnrichedInvitation) inv
 		inviteeAvatarURL *string
 	)
 
-	if invitation.InviterAvatarObjectKey != nil {
+	if invitation.InviterAvatarObjectKey != nil && h.storage != nil {
 		url := h.storage.BuildURL(*invitation.InviterAvatarObjectKey)
 		inviterAvatarURL = &url
 	}
-	if invitation.InviteeAvatarObjectKey != nil {
+	if invitation.InviteeAvatarObjectKey != nil && h.storage != nil {
 		url := h.storage.BuildURL(*invitation.InviteeAvatarObjectKey)
 		inviteeAvatarURL = &url
 	}

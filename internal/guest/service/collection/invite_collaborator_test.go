@@ -434,7 +434,7 @@ func TestInviteCollaborator(t *testing.T) {
 					}, nil).
 					Once()
 			},
-			wantErr: apperror.InvitationCooldown(resendInvitationCooldown),
+			wantErr: apperror.InvitationCooldown(59 * time.Minute),
 		},
 		{
 			name: "error - refresh invitation repository fails",

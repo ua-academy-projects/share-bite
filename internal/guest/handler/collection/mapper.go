@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
@@ -58,6 +59,10 @@ func parsePageToken(token string) (time.Time, string, error) {
 	parts := strings.Split(string(decoded), "|")
 	if len(parts) != 2 {
 		return time.Time{}, "", fmt.Errorf("invalid token format")
+	}
+
+	if err := uuid.Validate(parts[1]); err != nil {
+		return time.Time{}, "", fmt.Errorf("invalid cursor id format")
 	}
 
 	createdAt, err := time.Parse(time.RFC3339Nano, parts[0])
