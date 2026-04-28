@@ -205,6 +205,10 @@ func listInvitationsRequestToInput(params listInvitationsParams, callerID string
 		}
 
 		cursorID = string(decoded)
+
+		if err := uuid.Validate(cursorID); err != nil {
+			return entity.ListInvitationsInput{}, apperror.ErrInvalidPageToken
+		}
 	}
 
 	limit := params.PageSize
