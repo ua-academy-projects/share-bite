@@ -35,6 +35,7 @@ type businessService interface {
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
+	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	Rating(ctx context.Context, id int) (float32, error)
 }
 
@@ -85,13 +86,14 @@ func RegisterHandlers(
 	{
 		boxes.POST("", h.CreateBox)
 	}
+
+	reservations := r.Group("/boxes").
+		Use(auth)
+	{
+		reservations.PATCH("/:boxID/reserve", h.reserveBox)
+	}
 }
 
 type errorResponse struct {
 	Error string `json:"error" example:"not found"`
-}
-
-type CreateBoxResponse struct {
-	ID      int64  `json:"id"`
-	Message string `json:"message"`
 }

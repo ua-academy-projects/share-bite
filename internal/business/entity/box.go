@@ -50,3 +50,10 @@ func (b BoxWithDistance) AvailabilityStatus() Status {
 		return StatusAvailable
 	}
 }
+
+type BoxReservation struct {
+	Image         string
+	FullPrice     decimal.Decimal
+	DiscountPrice decimal.Decimal
+	BoxCode       string
+}

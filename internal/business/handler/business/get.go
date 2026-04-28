@@ -13,13 +13,13 @@ type getRequest struct {
 }
 
 type brandResponse struct {
-	Id     int     `json:"id" example:"1"`
+	ID     int     `json:"id" example:"1"`
 	Name   string  `json:"name" example:"ShareBite HQ"`
 	Avatar *string `json:"avatar" example:"https://cdn.example.com/brand-avatar.png"`
 }
 
 type getResponse struct {
-	Id          int            `json:"id" example:"42"`
+	ID          int            `json:"id" example:"42"`
 	Name        string         `json:"name" example:"ShareBite Downtown"`
 	Avatar      *string        `json:"avatar" example:"https://cdn.example.com/avatar.png"`
 	Banner      *string        `json:"banner" example:"https://cdn.example.com/banner.png"`
@@ -68,7 +68,7 @@ func (h *handler) get(c *gin.Context) {
 	}
 
 	resp := getResponse{
-		Id:          location.Id,
+		ID:          location.Id,
 		Name:        location.Name,
 		Avatar:      location.Avatar,
 		Banner:      location.Banner,
@@ -86,7 +86,7 @@ func (h *handler) get(c *gin.Context) {
 			return
 		}
 		resp.Brand = &brandResponse{
-			Id:     brand.Id,
+			ID:     brand.Id,
 			Name:   brand.Name,
 			Avatar: brand.Avatar,
 		}

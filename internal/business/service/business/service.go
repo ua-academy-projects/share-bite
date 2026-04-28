@@ -37,6 +37,9 @@ type businessRepository interface {
 	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
 
 
+	GetBox(ctx context.Context, boxID int64) (*entity.Box, error)
+	ReserveBoxItem(ctx context.Context, boxID int64, userID string) (string, error)
+
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)

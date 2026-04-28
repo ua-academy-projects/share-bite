@@ -22,6 +22,11 @@ type createBoxRequest struct {
 	Quantity      int             `json:"quantity" binding:"required,min=1,max=1000"`
 }
 
+type CreateBoxResponse struct {
+	ID      int64  `json:"id"`
+	Message string `json:"message"`
+}
+
 // CreateBox creates a limited box for a venue.
 //
 //	@Summary		Create box

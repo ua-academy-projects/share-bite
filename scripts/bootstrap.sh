@@ -20,7 +20,9 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 # Shortcut: run any garage CLI command inside the container
-garage() { docker compose -f build/compose.yaml exec "$CONTAINER" /garage "$@"; }
+garage() { 
+  MSYS_NO_PATHCONV=1 docker compose -f build/compose.yaml exec -T "$CONTAINER" /garage "$@"; 
+}
 
 echo "==> Waiting for Garage to be healthy..."
 until docker compose -f build/compose.yaml ps "$CONTAINER" | grep -q "healthy"; do
@@ -33,10 +35,22 @@ echo -e "${GREEN}    Garage is healthy${RESET}"
 # --------------------------------------------------------------------------
 echo ""
 echo "==> Step 1: Reading node ID..."
-NODE_ID=$(garage status 2>&1 | awk '/NO ROLE ASSIGNED/{print $1; exit}')
+
+STATUS_OUTPUT=$(garage status 2>&1) || { 
+    echo -e "${YELLOW}Error executing 'garage status':${RESET}"
+    echo "$STATUS_OUTPUT"
+    exit 1 
+}
+
+NODE_ID=$(echo "$STATUS_OUTPUT" | awk '/NO ROLE ASSIGNED/{print $1; exit}')
 
 if [[ -z "$NODE_ID" ]]; then
-  echo "    Node already has a role. Skipping layout step."
+  if echo "$STATUS_OUTPUT" | grep -q "PRIMARY"; then
+     echo "    Node already has a role. Skipping layout step."
+  else
+     echo -e "${YELLOW}Warning: Node ID not found in output, but no error was thrown.${RESET}"
+     echo "Output was: $STATUS_OUTPUT"
+  fi
 else
   echo "    Node ID: $NODE_ID"
   echo "==> Step 1a: Assigning layout..."
