@@ -2,6 +2,7 @@
 ALTER TABLE IF EXISTS business.org_units
 DROP CONSTRAINT IF EXISTS org_units_org_account_id_key;
 
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF to_regclass('business.org_units') IS NULL THEN
@@ -11,8 +12,10 @@ BEGIN
     ON business.org_units (org_account_id)
     WHERE profile_type = 'BRAND';
 END $$;
+-- +goose StatementEnd
 
 -- +goose Down
+-- +goose StatementBegin
 DO $$
 BEGIN
     IF to_regclass('business.org_units') IS NULL THEN
@@ -34,3 +37,4 @@ BEGIN
     ALTER TABLE business.org_units
     ADD CONSTRAINT org_units_org_account_id_key UNIQUE (org_account_id);
 END $$;
+-- +goose StatementEnd

@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
@@ -36,6 +37,10 @@ type businessService interface {
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
 	Rating(ctx context.Context, id int) (float32, error)
+
+	Create(ctx context.Context, in entity.OrgUnit) (int, error)
+	UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID, in entity.UpdateOrgUnitInput) (*entity.OrgUnit, error)
+	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 }
 
 func RegisterHandlers(
@@ -74,6 +79,10 @@ func RegisterHandlers(
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
 	{
+		businessLocations.POST("/", h.createOrgUnit)
+		businessLocations.PUT("/:id", h.updateOrgUnit)
+		businessLocations.PATCH("/:id", h.updateOrgUnit)
+		businessLocations.DELETE("/:id", h.deleteOrgUnit)
 		businessLocations.POST("/:id/locations", h.createLocation)
 		businessLocations.PATCH("/locations/:id", h.updateLocation)
 		businessLocations.DELETE("/locations/:id", h.deleteLocation)
