@@ -79,8 +79,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 a {
-  color: inherit;
-  text-decoration: none;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a:hover, a:focus-visible {
+  color: var(--color-primary-hover);
 }
 
 button {

@@ -44,7 +44,7 @@ export const Auth: React.FC = () => {
         const lastName = nameParts.slice(1).join(' ') || 'User';
         
         // Generate a random unique username
-        const userName = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
+        const userName = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Date.now();
         
         await apiClient.createCustomer({
           userName,

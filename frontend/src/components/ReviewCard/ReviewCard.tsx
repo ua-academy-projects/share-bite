@@ -17,7 +17,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, author }) => {
           <img src={author.avatar} alt={author.name} className={styles.avatar} />
           <div>
             <div className={styles.authorName}>{author.name}</div>
-            <div className={styles.date}>{review.createdAt}</div>
+            <div className={styles.date}>{new Date(review.createdAt).toLocaleString()}</div>
           </div>
         </div>
         <div className={styles.rating}>

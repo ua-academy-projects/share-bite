@@ -37,11 +37,18 @@ export const apiClient = {
   },
   
   // Guest
-  getPosts: async (limit = 10, offset = 0) => {
-    const res = await guestApi.get<{Posts: PostResponse[], Total: number}>('/posts/', {
-      params: { limit, offset }
+  getPosts: async (limit = 10, offset = 0, venueId?: string | number, customerId?: string) => {
+    const params: any = { limit, offset };
+    if (venueId) params.venue_id = venueId;
+    if (customerId) params.customer_id = customerId;
+
+    const res = await guestApi.get<{posts: PostResponse[], total: number}>('/posts/', {
+      params
     });
-    return res.data;
+    return {
+      Posts: res.data.posts || [],
+      Total: res.data.total || 0
+    };
   },
   getExploreNearby: async (lat: number, lon: number, limit = 10) => {
     const res = await guestApi.get<ExploreVenueItem[]>('/posts/explore', {
@@ -76,7 +83,7 @@ export const apiClient = {
     return res.data;
   },
   getNearbyVenues: async (lat: number = 50.4501, lon: number = 30.5234) => {
-    const res = await businessApi.get<{Items: {id: number, name: string, avatar?: string}[], Total: number}>('/locations/nearby', {
+    const res = await businessApi.get<{Items: {id: number, name: string, avatar?: string}[], Total: number}>('/nearby-boxes', {
       params: { lat, lon, limit: 50 }
     });
     return res.data;

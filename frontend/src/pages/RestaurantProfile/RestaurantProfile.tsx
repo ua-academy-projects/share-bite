@@ -24,7 +24,7 @@ export const RestaurantProfile: React.FC = () => {
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['restaurantPosts', id],
-    queryFn: () => apiClient.getPosts(20, 0), // Mocking endpoint logic for now as specific venue post endpoint not defined
+    queryFn: () => apiClient.getPosts(20, 0, id),
     enabled: !!id
   });
 
@@ -48,7 +48,7 @@ export const RestaurantProfile: React.FC = () => {
     );
   }
 
-  const restaurantPosts = postsData?.Posts?.filter(p => p.venueId === Number(id)) || [];
+  const restaurantPosts = postsData?.Posts || [];
 
   return (
     <div className={styles.container}>

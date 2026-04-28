@@ -7,6 +7,7 @@ import { RestaurantProfile } from './pages/RestaurantProfile/RestaurantProfile';
 import { UserProfile } from './pages/UserProfile/UserProfile';
 import { Auth } from './pages/Auth/Auth';
 import { CreatePost } from './pages/CreatePost/CreatePost';
+import { RequireAuth } from './components/RequireAuth/RequireAuth';
 import { ThemeProvider } from './context/ThemeContext';
 import './styles/variables.css';
 
@@ -20,10 +21,10 @@ function App() {
             <Route path="/" element={<HomeFeed />} />
             <Route path="/explore" element={<Navigate to="/" replace />} />
             <Route path="/restaurant/:id" element={<RestaurantProfile />} />
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/user/:id" element={<UserProfile />} />
+            <Route path="/profile" element={<RequireAuth><UserProfile /></RequireAuth>} />
+            <Route path="/user/:id" element={<RequireAuth><UserProfile /></RequireAuth>} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/post/create" element={<CreatePost />} />
+            <Route path="/post/create" element={<RequireAuth><CreatePost /></RequireAuth>} />
           </Routes>
         </main>
       </div>

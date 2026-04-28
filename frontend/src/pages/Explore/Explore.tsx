@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './Explore.module.css';
 import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
@@ -7,9 +7,28 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 
 export const Explore: React.FC = () => {
+  const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        (error) => {
+          console.warn('Geolocation error:', error);
+          setCoords({ lat: 50.4501, lng: 30.5234 }); // fallback to Kyiv
+        }
+      );
+    } else {
+      setCoords({ lat: 50.4501, lng: 30.5234 }); // fallback
+    }
+  }, []);
+
   const { data: venues, isLoading, error } = useQuery({
-    queryKey: ['explore'],
-    queryFn: () => apiClient.getExploreNearby(50.4501, 30.5234, 20) // Default to Kyiv lat/lon or similar
+    queryKey: ['explore', coords?.lat, coords?.lng],
+    queryFn: () => apiClient.getExploreNearby(coords!.lat, coords!.lng, 20),
+    enabled: !!coords
   });
 
   return (

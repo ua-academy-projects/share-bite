@@ -18,21 +18,32 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
   const [saved, setSaved] = useState(false);
 
   const toggleLikeMutation = useMutation({
-    mutationFn: async () => {
-      if (liked) {
-        await apiClient.unlikePost(post.id);
-      } else {
+    mutationFn: async (nextLiked: boolean) => {
+      if (nextLiked) {
         await apiClient.likePost(post.id);
+      } else {
+        await apiClient.unlikePost(post.id);
       }
     },
-    onSuccess: () => {
+    onMutate: async (nextLiked) => {
+      await queryClient.cancelQueries({ queryKey: ['posts'] });
+      const previousLiked = liked;
+      setLiked(nextLiked);
+      return { previousLiked };
+    },
+    onError: (err, nextLiked, context) => {
+      if (context?.previousLiked !== undefined) {
+        setLiked(context.previousLiked);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     }
   });
 
   const handleLike = () => {
-    setLiked(!liked);
-    toggleLikeMutation.mutate();
+    const nextLiked = !liked;
+    toggleLikeMutation.mutate(nextLiked);
   };
 
   return (

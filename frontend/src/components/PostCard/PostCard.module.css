@@ -92,6 +92,7 @@
 .actionBtn {
   background: transparent;
   border: none;
+  outline: none;
   color: var(--color-text);
   cursor: pointer;
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s ease;
@@ -107,6 +108,12 @@
 
 .actionBtn:active {
   transform: scale(0.95);
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .liked {

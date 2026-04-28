@@ -9,24 +9,25 @@ export const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   // For the current user, we might get ID from auth token or have a dedicated endpoint
   // Defaulting to 1 for demo purposes if no ID
-  const userId = id || '1'; 
+  const customerId = id || '1'; 
+  const username = id || 'demoUser';
 
   const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ['user', userId],
-    queryFn: () => apiClient.getUser(userId),
-    enabled: !!userId
+    queryKey: ['user', username],
+    queryFn: () => apiClient.getUser(username),
+    enabled: !!username
   });
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
-    queryKey: ['userPosts', userId],
-    queryFn: () => apiClient.getPosts(20, 0), // Mock logic: filter locally since specific endpoint is not mapped yet
-    enabled: !!userId
+    queryKey: ['userPosts', customerId],
+    queryFn: () => apiClient.getPosts(20, 0, undefined, customerId),
+    enabled: !!customerId
   });
 
   if (userLoading) return <div className={styles.notFound}>Loading user...</div>;
   if (!user) return <div className={styles.notFound}>User not found</div>;
 
-  const userPosts = postsData?.Posts?.filter(p => p.customerId === userId) || [];
+  const userPosts = postsData?.Posts || [];
 
   return (
     <div className={styles.container}>

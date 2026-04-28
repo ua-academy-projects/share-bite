@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/Button/Button';
 import styles from './CreatePost.module.css';
@@ -16,21 +16,32 @@ export const CreatePost: React.FC = () => {
   const [text, setText] = useState('');
   const [rating, setRating] = useState(5);
 
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
       const url = URL.createObjectURL(file);
       setImagePreview(url);
     }
   };
 
   const createMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ parsedVenueId, parsedRating }: { parsedVenueId: number; parsedRating: number }) => {
       return await apiClient.createPost({
-        venueId: parseInt(venueId, 10),
+        venueId: parsedVenueId,
         text,
-        rating,
+        rating: parsedRating,
         images: imageFile ? [imageFile] : undefined
       });
     },
@@ -46,11 +57,17 @@ export const CreatePost: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!venueId) {
-      alert("Please select a venue");
+    const parsedVenueId = parseInt(venueId, 10);
+    if (Number.isNaN(parsedVenueId)) {
+      alert("Please enter a valid numeric venue ID");
       return;
     }
-    createMutation.mutate();
+    const parsedRating = parseInt(rating.toString(), 10);
+    if (Number.isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      alert("Please enter a valid rating between 1 and 5");
+      return;
+    }
+    createMutation.mutate({ parsedVenueId, parsedRating });
   };
 
   return (

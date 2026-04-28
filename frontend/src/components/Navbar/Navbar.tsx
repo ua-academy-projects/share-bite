@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Moon, Sun, Search, User } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import styles from './Navbar.module.css';
@@ -8,6 +8,12 @@ import { clsx } from 'clsx';
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/auth', { replace: true, state: { isLogin: true } });
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -49,7 +55,7 @@ export const Navbar: React.FC = () => {
                 + Post
               </Link>
               <button 
-                onClick={() => { localStorage.removeItem('token'); window.location.reload(); }} 
+                onClick={handleLogout} 
                 className={clsx(styles.link, styles.logoutBtn)}
               >
                 Logout

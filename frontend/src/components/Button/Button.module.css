@@ -7,7 +7,11 @@
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   border: 1px solid transparent;
-  outline: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .button:disabled {
