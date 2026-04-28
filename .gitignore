@@ -20,6 +20,9 @@ Thumbs.db
 
 /docs/api/
 
+/frontend/node_modules
+/.agent/
+
 .env*
 !.env.example
 

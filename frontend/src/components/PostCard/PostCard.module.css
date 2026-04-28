@@ -1,0 +1,151 @@
+.card {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.header {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.authorInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 2px solid var(--color-primary);
+}
+
+.authorName {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.meta {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.restaurantTag {
+  padding: 0 1rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.restaurantLink {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-surface);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.restaurantLink:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.rating {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #F59E0B; /* amber-500 */
+}
+
+.imageContainer {
+  width: 100%;
+  aspect-ratio: 4/5;
+  overflow: hidden;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.leftActions {
+  display: flex;
+  gap: 1rem;
+}
+
+.actionBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionBtn:hover {
+  transform: scale(1.1);
+  color: var(--color-text-muted);
+}
+
+.actionBtn:active {
+  transform: scale(0.95);
+}
+
+.liked {
+  color: #E11D48; /* rose-600 */
+}
+
+.liked:hover {
+  color: #BE123C;
+}
+
+.saved {
+  color: var(--color-primary);
+}
+
+.content {
+  padding: 0 1rem 1.5rem;
+}
+
+.likes {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.text {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.authorNameInline {
+  font-weight: 700;
+}
+
+.comments {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.comments:hover {
+  text-decoration: underline;
+}
