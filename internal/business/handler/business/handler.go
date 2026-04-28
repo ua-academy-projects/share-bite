@@ -104,17 +104,3 @@ type CreateBoxResponse struct {
 	ID      int64  `json:"id"`
 	Message string `json:"message"`
 }
-
-func checkBusinessRole(c *gin.Context) bool {
-	val, exists := c.Get(middleware.CtxUserRole)
-	if !exists {
-		return false
-	}
-
-	role, ok := val.(string)
-	if !ok {
-		return false
-	}
-
-	return role == "business"
-}
