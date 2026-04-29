@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
 	"go.uber.org/zap"
 
@@ -89,22 +89,12 @@ func main() {
 	txManager := txmanager.NewTransactionManager(client.DB())
 	userRepo := userrepo.New(client)
 
-	go func() {
-		ticket := time.NewTicker(24 * time.Hour)
-		defer ticket.Stop()
-
-		for {
-			select {
-			case <-ticket.C:
-				logger.Info(ctx, "running background task: delete expired tokens")
-				if err := userRepo.DeleteExpiredTokens(ctx); err != nil {
-					logger.Error(ctx, "failed to delete expired tokens: ", err)
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	workerManager := worker.NewManager(userRepo)
+	workerManager.Start(ctx)
+	closer.Add(func(ctx context.Context) error {
+		workerManager.Stop()
+		return nil
+	})
 
 	providerFactory := provider.NewFactory(google.Config{
 		ClientID:     googleCfg.ClientID(),

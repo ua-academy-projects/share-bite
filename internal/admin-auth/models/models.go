@@ -33,7 +33,6 @@ type SocialAccount struct {
 }
 
 type RefreshToken struct {
-	ID        string     `db:"id"`
 	TokenHash string     `db:"token_hash"`
 	UserID    string     `db:"user_id"`
 	CreatedAt time.Time  `db:"created_at"`
