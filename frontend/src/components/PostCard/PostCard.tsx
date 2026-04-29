@@ -23,6 +23,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   const handleNextImage = () => {
     if (post.images && currentImageIndex < post.images.length - 1) {
@@ -58,6 +59,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', post.id] });
+    },
+    onError: (error: any) => {
+      console.error("Failed to delete comment:", error);
+      setCommentError("Failed to delete comment. Please try again.");
     }
   });
 
@@ -68,7 +73,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
     onSuccess: () => {
       setEditingCommentId(null);
       setEditCommentText('');
+      setCommentError(null);
       queryClient.invalidateQueries({ queryKey: ['comments', post.id] });
+    },
+    onError: (error: any) => {
+      console.error("Failed to update comment:", error);
+      setCommentError("Failed to update comment. Please try again.");
     }
   });
 
@@ -150,10 +160,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
               
               <div className={styles.carouselDots}>
                 {post.images.map((_, idx) => (
-                  <span 
+                  <button 
+                    type="button"
                     key={idx} 
                     className={clsx(styles.dot, idx === currentImageIndex && styles.activeDot)}
                     onClick={() => setCurrentImageIndex(idx)}
+                    aria-label={`Go to image ${idx + 1}`}
+                    aria-pressed={idx === currentImageIndex}
                   />
                 ))}
               </div>
@@ -315,6 +328,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
           </form>
           {createCommentMutation.isError && (
             <div className={styles.commentError}>Failed to post comment</div>
+          )}
+          {commentError && (
+            <div className={styles.commentError}>{commentError}</div>
           )}
         </div>
       )}

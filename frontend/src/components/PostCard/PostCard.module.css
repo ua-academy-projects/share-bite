@@ -126,6 +126,8 @@
   background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+  padding: 0;
+  border: none;
 }
 
 .activeDot {
@@ -293,7 +295,7 @@
 .commentText {
   font-size: 0.875rem;
   margin: 0;
-  word-break: break-word;
+  overflow-wrap: break-word;
   flex: 1;
   text-align: left;
 }

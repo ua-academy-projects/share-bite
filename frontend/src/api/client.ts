@@ -68,25 +68,34 @@ export const apiClient = {
     if (data.images && data.images.length > 0) {
       data.images.forEach(img => createFormData.append('images', img));
     }
-    const createRes = await guestApi.post<{post: PostResponse}>('/posts/', createFormData, {
-      headers: { 
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    const createRes = await guestApi.post<{post: PostResponse}>('/posts/', createFormData);
     
     const newPostId = createRes.data.post.id;
     
-    // Step 2: Publish
+    // Step 2: Publish with a simple retry loop
     const patchFormData = new FormData();
     patchFormData.append('status', 'published');
     
-    const patchRes = await guestApi.patch<{post: PostResponse}>(`/posts/${newPostId}`, patchFormData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+    let attempts = 0;
+    const maxAttempts = 2;
+    while (attempts < maxAttempts) {
+      try {
+        const patchRes = await guestApi.patch<{post: PostResponse}>(`/posts/${newPostId}`, patchFormData);
+        return patchRes.data.post;
+      } catch (err) {
+        attempts++;
+        console.warn(`Publish attempt ${attempts} failed for post ${newPostId}:`, err);
+        if (attempts >= maxAttempts) {
+          // Return the created post (which is currently a draft)
+          return {
+            ...createRes.data.post,
+            status: 'draft'
+          };
+        }
       }
-    });
+    }
     
-    return patchRes.data.post;
+    return createRes.data.post;
   },
   likePost: async (postId: string) => {
     await guestApi.post(`/posts/${postId}/like`);

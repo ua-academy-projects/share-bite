@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/Button/Button';
 import styles from './CreatePost.module.css';
@@ -14,10 +14,16 @@ export const CreatePost: React.FC = () => {
   const [venueId, setVenueId] = useState('');
   const [text, setText] = useState('');
   const [rating, setRating] = useState(5);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const imagesRef = useRef(images);
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
 
   useEffect(() => {
     return () => {
-      images.forEach(img => URL.revokeObjectURL(img.previewUrl));
+      imagesRef.current.forEach(img => URL.revokeObjectURL(img.previewUrl));
     };
   }, []);
 
@@ -78,13 +84,16 @@ export const CreatePost: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
+
     const parsedVenueId = parseInt(venueId, 10);
-    // Remove the window.alert based on CRITICAL RULES and use inline error
     if (Number.isNaN(parsedVenueId)) {
+      setValidationError('Please enter a valid Venue ID');
       return;
     }
     const parsedRating = parseInt(rating.toString(), 10);
     if (Number.isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      setValidationError('Rating must be between 1 and 5');
       return;
     }
     createMutation.mutate({ parsedVenueId, parsedRating });
@@ -179,6 +188,12 @@ export const CreatePost: React.FC = () => {
               onChange={e => setText(e.target.value)}
             />
           </div>
+
+          {validationError && (
+            <div className={styles.errorMessage}>
+              {validationError}
+            </div>
+          )}
 
           {createMutation.isError && (
             <div className={styles.errorMessage}>
