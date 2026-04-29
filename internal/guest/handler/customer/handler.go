@@ -20,6 +20,7 @@ type customerService interface {
 
 	GetByUserName(ctx context.Context, userName string) (entity.Customer, error)
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
+	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
 func RegisterHandlers(
