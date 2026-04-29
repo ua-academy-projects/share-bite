@@ -48,19 +48,15 @@ export const CreatePost: React.FC = () => {
   };
 
   const moveImage = (index: number, direction: 'left' | 'right') => {
-    if (direction === 'left' && index > 0) {
-      setImages(prev => {
-        const newImages = [...prev];
+    setImages(prev => {
+      const newImages = [...prev];
+      if (direction === 'left' && index > 0) {
         [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
-        return newImages;
-      });
-    } else if (direction === 'right' && index < images.length - 1) {
-      setImages(prev => {
-        const newImages = [...prev];
+      } else if (direction === 'right' && index < prev.length - 1) {
         [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
-        return newImages;
-      });
-    }
+      }
+      return newImages;
+    });
   };
 
   const createMutation = useMutation({

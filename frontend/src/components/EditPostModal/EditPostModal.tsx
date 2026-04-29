@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, ImagePlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,31 +30,27 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
   const [isImagesModified, setIsImagesModified] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const urlToFile = async (url: string, filename: string): Promise<File> => {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    return new File([blob], filename, { type: blob.type });
-  };
+  const galleryRef = useRef(gallery);
+  useEffect(() => {
+    galleryRef.current = gallery;
+  }, [gallery]);
+
+  useEffect(() => {
+    return () => {
+      galleryRef.current.forEach(item => {
+        if (item.file) {
+          URL.revokeObjectURL(item.url);
+        }
+      });
+    };
+  }, []);
 
   const updateMutation = useMutation({
     mutationFn: async () => {
       let filesToSend: File[] | undefined = undefined;
 
       if (isImagesModified) {
-        filesToSend = [];
-        for (let i = 0; i < gallery.length; i++) {
-          const item = gallery[i];
-          if (item.file) {
-            filesToSend.push(item.file);
-          } else {
-            try {
-              const file = await urlToFile(item.url, `image-${i}.jpg`);
-              filesToSend.push(file);
-            } catch (err) {
-              console.error('Failed to convert URL to file:', item.url, err);
-            }
-          }
-        }
+        filesToSend = gallery.filter(item => item.file).map(item => item.file as File);
       }
 
       return await apiClient.updatePost(post.id, {
@@ -74,6 +70,19 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.deletePost(post.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      onClose();
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.error || err.response?.data?.message || 'Failed to delete post.');
+    }
+  });
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setIsImagesModified(true);
@@ -89,7 +98,23 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
 
   const removeImage = (id: string) => {
     setIsImagesModified(true);
-    setGallery(prev => prev.filter(item => item.id !== id));
+    setGallery(prev => {
+      const itemToRemove = prev.find(item => item.id === id);
+      if (itemToRemove?.file) {
+        URL.revokeObjectURL(itemToRemove.url);
+      }
+      return prev.filter(item => item.id !== id);
+    });
+  };
+
+  const clearImages = () => {
+    setIsImagesModified(true);
+    setGallery(prev => {
+      prev.forEach(item => {
+        if (item.file) URL.revokeObjectURL(item.url);
+      });
+      return [];
+    });
   };
 
   const moveImage = (index: number, direction: 'left' | 'right') => {
@@ -118,6 +143,12 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
     updateMutation.mutate();
   };
 
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      deleteMutation.mutate();
+    }
+  };
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={clsx(styles.modal, 'glass-panel')} onClick={e => e.stopPropagation()}>
@@ -125,51 +156,75 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
           <X size={24} />
         </button>
         
-        <h2 className={styles.title}>Edit Post</h2>
+        <div className={styles.headerRow}>
+          <h2 className={styles.title}>Edit Post</h2>
+          <button 
+            type="button"
+            className={styles.deleteBtn}
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending || updateMutation.isPending}
+          >
+            Delete Post
+          </button>
+        </div>
         
         <form className={styles.form} onSubmit={handleSubmit}>
           {/* Image Gallery */}
-          <div className={styles.imageUploadContainer}>
-            <div className={styles.imagePreviews}>
-              {gallery.map((item, idx) => (
-                <div key={item.id} className={styles.previewWrapper}>
-                  <img src={item.url} alt={`Preview ${idx}`} className={styles.imagePreview} />
-                  <div className={styles.previewOverlay}>
-                    {idx > 0 && (
-                      <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'left')}>
-                        <ChevronLeft size={16} />
-                      </button>
-                    )}
-                    {idx < gallery.length - 1 && (
-                      <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'right')}>
-                        <ChevronRight size={16} />
-                      </button>
-                    )}
-                  </div>
-                  <button type="button" className={styles.removeImgBtn} onClick={() => removeImage(item.id)}>&times;</button>
-                </div>
-              ))}
-            </div>
-            
-            {gallery.length < 5 && (
-              <div className={styles.imageUploadWrapper}>
-                <label htmlFor={`edit-image-upload-${post.id}`} className={styles.imageUploadLabel}>
-                  <div className={styles.uploadPlaceholder}>
-                    <ImagePlus size={32} className={styles.uploadIcon} />
-                    <span>Add photo</span>
-                  </div>
-                </label>
-                <input 
-                  id={`edit-image-upload-${post.id}`} 
-                  type="file" 
-                  accept="image/*" 
-                  multiple
-                  className={styles.hiddenInput} 
-                  onChange={handleImageChange}
-                />
-              </div>
+          <div className={styles.imageSectionHeader}>
+            <label className={styles.label}>Photos</label>
+            {!isImagesModified && gallery.length > 0 && (
+              <button 
+                type="button" 
+                className={styles.clearImagesBtn}
+                onClick={clearImages}
+              >
+                Clear & Replace Gallery
+              </button>
             )}
           </div>
+
+          <div className={styles.imagePreviews}>
+            {gallery.map((item, idx) => (
+              <div key={item.id} className={styles.previewWrapper}>
+                <img src={item.url} alt={`Preview ${idx}`} className={styles.imagePreview} />
+                <div className={styles.previewOverlay}>
+                  {isImagesModified && idx > 0 && (
+                    <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'left')}>
+                      <ChevronLeft size={16} />
+                    </button>
+                  )}
+                  {isImagesModified && idx < gallery.length - 1 && (
+                    <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'right')}>
+                      <ChevronRight size={16} />
+                    </button>
+                  )}
+                </div>
+                {isImagesModified && (
+                  <button type="button" className={styles.removeImgBtn} onClick={() => removeImage(item.id)}>&times;</button>
+                )}
+              </div>
+            ))}
+          </div>
+            
+          {isImagesModified && gallery.length < 5 && (
+            <div className={styles.imageUploadWrapper}>
+              <label htmlFor={`edit-image-upload-${post.id}`} className={styles.imageUploadLabel}>
+                <div className={styles.uploadPlaceholder}>
+                  <ImagePlus size={32} className={styles.uploadIcon} />
+                  <span>Add photo</span>
+                </div>
+              </label>
+              <input 
+                id={`edit-image-upload-${post.id}`} 
+                type="file" 
+                accept="image/*" 
+                multiple
+                className={styles.hiddenInput} 
+                onChange={handleImageChange}
+              />
+            </div>
+          )}
+          
 
           {/* Input Fields */}
           <div className={styles.inputGroup}>

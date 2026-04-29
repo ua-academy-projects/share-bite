@@ -109,6 +109,9 @@ export const apiClient = {
     const res = await guestApi.patch<{post: PostResponse}>(`/posts/${postId}`, formData);
     return res.data.post;
   },
+  deletePost: async (postId: string | number) => {
+    await guestApi.delete(`/posts/${postId}`);
+  },
   likePost: async (postId: string) => {
     await guestApi.post(`/posts/${postId}/like`);
   },
