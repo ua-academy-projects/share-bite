@@ -14,17 +14,18 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
-	//exists, err := s.venueProvider.CheckExists(ctx, in.VenueID)
-	//if err != nil {
-	//	return entity.Post{}, fmt.Errorf("check venue exists: %w", err)
-	//}
-	//if !exists {
-	//	return entity.Post{}, apperror.VenueNotFoundID(in.VenueID)
-	//}
+	exists, err := s.venueProvider.CheckExists(ctx, in.VenueID)
+	if err != nil {
+		return entity.Post{}, fmt.Errorf("check venue exists: %w", err)
+	}
+	if !exists {
+		return entity.Post{}, apperror.VenueNotFoundID(in.VenueID)
+	}
 	if len(in.Images) > 0 && s.storage == nil {
 		return entity.Post{}, apperror.Internal("storage is not configured")
 	}
 
+	// mentions validation
 	if len(in.Mentions) > 0 {
 		mentions := UniqueStrings(in.Mentions)
 
@@ -57,6 +58,7 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 		in.Mentions = mentions
 	}
 
+	// upload images BEFORE tx
 	var uploadedKeys []string
 	postImages := make([]entity.PostImage, 0, len(in.Images))
 	uploadSessionID := uuid.New().String()
@@ -87,7 +89,7 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 
 	var post entity.Post
 
-	err := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		createdPost, err := s.postRepo.Create(txCtx, in)
 		if err != nil {
 			return fmt.Errorf("create post in post repository: %w", err)
@@ -168,4 +170,17 @@ func extensionFromContentType(contentType string) string {
 	default:
 		return ""
 	}
+}
+
+func UniqueStrings(input []string) []string {
+	set := make(map[string]struct{}, len(input))
+	res := make([]string, 0, len(input))
+	for _, v := range input {
+		if _, ok := set[v]; ok {
+			continue
+		}
+		set[v] = struct{}{}
+		res = append(res, v)
+	}
+	return res
 }

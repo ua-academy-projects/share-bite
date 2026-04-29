@@ -14,6 +14,8 @@ type CustomerRepository interface {
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
 	GetByUserName(ctx context.Context, userName string) (entity.Customer, error)
 	GetByID(ctx context.Context, customerID string) (entity.Customer, error)
+
+	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
 type service struct {

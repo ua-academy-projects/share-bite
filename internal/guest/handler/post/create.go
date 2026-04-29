@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 )
 
 type createRequest struct {
@@ -40,12 +41,12 @@ type errorResponse struct {
 //	@Param			rating		formData	int		true	"Rating (1..5)"
 //	@Param			images		formData	file	false	"Post images (jpeg/png, up to 5)"
 //	@Success		201			{object}	createResponse
-//	@Failure		400			{object}	errorResponse
-//	@Failure		401			{object}	errorResponse
-//	@Failure		403			{object}	errorResponse
-//	@Failure		404			{object}	errorResponse
-//	@Failure		502			{object}	errorResponse
-//	@Failure		500			{object}	errorResponse
+//	@Failure		400			{object}	response.ErrorResponse
+//	@Failure		401			{object}	response.ErrorResponse
+//	@Failure		403			{object}	response.ErrorResponse
+//	@Failure		404			{object}	response.ErrorResponse
+//	@Failure		502			{object}	response.ErrorResponse
+//	@Failure		500			{object}	response.ErrorResponse
 //	@Router			/posts/ [post]
 func (h *handler) create(c *gin.Context) {
 	if c.ContentType() != gin.MIMEMultipartPOSTForm {

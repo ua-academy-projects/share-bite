@@ -271,3 +271,61 @@ func (r *repository) GetByID(ctx context.Context, customerID string) (entity.Cus
 
 	return customer.ToEntity(), nil
 }
+
+func (r *repository) GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error) {
+	if len(ids) == 0 {
+		return []entity.Customer{}, nil
+	}
+
+	sql := `
+		SELECT 
+			id,
+			user_id,
+			username,
+			first_name,
+			last_name,
+			avatar_object_key,
+			bio,
+			created_at
+		FROM guest.customers
+		WHERE id = ANY($1::uuid[])
+	`
+
+	q := database.Query{
+		Name: "customer_repository.GetByIDs",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, ids)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	customers := make([]entity.Customer, 0, len(ids))
+
+	for rows.Next() {
+		var c Customer
+
+		if err := rows.Scan(
+			&c.ID,
+			&c.UserID,
+			&c.UserName,
+			&c.FirstName,
+			&c.LastName,
+			&c.AvatarObjectKey,
+			&c.Bio,
+			&c.CreatedAt,
+		); err != nil {
+			return nil, scanRowError(err)
+		}
+
+		customers = append(customers, c.ToEntity())
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return customers, nil
+}
