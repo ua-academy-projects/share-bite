@@ -17,7 +17,7 @@ import (
 //		@Param          lon         query       float64 true    "User longitude"
 //		@Param          skip        query       int     false   "Number of items to skip (default: 0)"
 //		@Param          limit       query       int     false  	"Items per page (default: 10, max: 100)"
-// 		@Param			org_id		query		int 	false	"Optional Organisation ID to filter by"
+//		@Param			org_id		query		int 	false	"Optional Organisation ID to filter by"
 //		@Param          category_id query       int     false   "Optional Category ID to filter by"
 //		@Success        200         {object}    dto.ListResponse
 //		@Failure        400         {object}    errorResponse
