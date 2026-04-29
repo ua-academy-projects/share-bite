@@ -40,6 +40,7 @@ type errorResponse struct {
 //	@Param			text		formData	string	true	"Post text"
 //	@Param			rating		formData	int		true	"Rating (1..5)"
 //	@Param			images		formData	file	false	"Post images (jpeg/png, up to 5)"
+//	@Param			mentions	formData	[]string	false	"Mentions (usernames)"
 //	@Success		201			{object}	createResponse
 //	@Failure		400			{object}	response.ErrorResponse
 //	@Failure		401			{object}	response.ErrorResponse
