@@ -41,6 +41,7 @@ type businessService interface {
 	Create(ctx context.Context, in entity.OrgUnit) (int, error)
 	UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID, in entity.UpdateOrgUnitInput) (*entity.OrgUnit, error)
 	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
+	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 }
 
 func RegisterHandlers(
@@ -94,6 +95,8 @@ func RegisterHandlers(
 	{
 		boxes.POST("", h.CreateBox)
 	}
+
+	r.GET("/locations/nearby", h.ListNearbyVenues)
 }
 
 type errorResponse struct {

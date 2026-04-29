@@ -208,3 +208,31 @@ func schemeLocationClientOption(scheme string) locations.ClientOption {
 		op.Schemes = []string{scheme}
 	}
 }
+
+func (c *businessAPIClient) GetNearbyVenues(ctx context.Context, lat, lon float64, limit int) ([]int64, error) {
+	params := locations.NewGetBusinessLocationsNearbyParamsWithContext(ctx).
+		WithLat(lat).
+		WithLon(lon).
+		WithLimit((*int64)(&[]int64{int64(limit)}[0]))
+
+	resp, err := c.api.Locations.GetBusinessLocationsNearby(params, schemeLocationClientOption(c.scheme))
+	if err != nil {
+		return nil, fmt.Errorf("failed to call business api: %w", err)
+	}
+
+	if !resp.IsSuccess() {
+		return nil, fmt.Errorf("get nearby venues unexpected status code: %d", resp.Code())
+	}
+
+	payload := resp.GetPayload()
+	if payload == nil || len(payload.Items) == 0 {
+		return []int64{}, nil
+	}
+
+	venueIDs := make([]int64, 0, len(payload.Items))
+	for _, item := range payload.Items {
+		venueIDs = append(venueIDs, int64(item.ID))
+	}
+
+	return venueIDs, nil
+}

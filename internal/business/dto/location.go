@@ -19,3 +19,22 @@ type UpdateLocationInput struct {
 	Longitude   *float32
 	TagIDs      *[]int
 }
+
+type ListNearbyVenuesInput struct {
+	Lat   float64 `form:"lat" binding:"required,latitude"`
+	Lon   float64 `form:"lon" binding:"required,longitude"`
+	Limit int     `form:"limit" binding:"max=100"`
+	Skip  int     `form:"skip" binding:"min=0"`
+}
+
+type NearbyVenueItem struct {
+	ID       int     `json:"id"`
+	Name     string  `json:"name"`
+	Avatar   *string `json:"avatar"`
+	Distance float64 `json:"distance"`
+}
+
+type ListNearbyVenuesOutput struct {
+	Items []NearbyVenueItem `json:"items"`
+	Total int               `json:"total"`
+}

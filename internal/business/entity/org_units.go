@@ -29,3 +29,7 @@ type UpdateOrgUnitInput struct {
 	Latitude    *float32
 	Longitude   *float32
 }
+type OrgUnitWithDistance struct {
+	OrgUnit  OrgUnit
+	Distance float64
+}
