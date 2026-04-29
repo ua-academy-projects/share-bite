@@ -5,7 +5,10 @@ import type {
   AuthResponse, 
   PostResponse, 
   ExploreVenueItem,
-  CreatePostInput
+  CreatePostInput,
+  PaginatedComments,
+  CommentResponse,
+  CustomerResponse
 } from '../types/api';
 
 const authApi = axios.create({ baseURL: '/api/auth' });
@@ -57,20 +60,33 @@ export const apiClient = {
     return res.data;
   },
   createPost: async (data: CreatePostInput) => {
-    const formData = new FormData();
-    formData.append('venue_id', data.venueId.toString());
-    formData.append('text', data.text);
-    formData.append('rating', data.rating.toString());
-    if (data.images) {
-      data.images.forEach(img => formData.append('images', img));
+    // Step 1: Create draft
+    const createFormData = new FormData();
+    createFormData.append('venue_id', data.venueId.toString());
+    createFormData.append('text', data.text);
+    createFormData.append('rating', data.rating.toString());
+    if (data.images && data.images.length > 0) {
+      data.images.forEach(img => createFormData.append('images', img));
     }
-    const res = await axios.post<PostResponse>('/api/guest/posts/', formData, {
+    const createRes = await guestApi.post<{post: PostResponse}>('/posts/', createFormData, {
       headers: { 
-        'Content-Type': 'multipart/form-data',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Content-Type': 'multipart/form-data'
       }
     });
-    return res.data;
+    
+    const newPostId = createRes.data.post.id;
+    
+    // Step 2: Publish
+    const patchFormData = new FormData();
+    patchFormData.append('status', 'published');
+    
+    const patchRes = await guestApi.patch<{post: PostResponse}>(`/posts/${newPostId}`, patchFormData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    return patchRes.data.post;
   },
   likePost: async (postId: string) => {
     await guestApi.post(`/posts/${postId}/like`);
@@ -95,5 +111,28 @@ export const apiClient = {
   createCustomer: async (data: { userName: string; firstName: string; lastName: string; bio?: string }) => {
     const res = await guestApi.post<{customerId: string}>('/customers/', data);
     return res.data;
+  },
+  getCurrentCustomer: async () => {
+    const res = await guestApi.get<{customer: CustomerResponse}>('/customers/');
+    return res.data.customer;
+  },
+  
+  // Comments
+  getComments: async (postId: string | number, limit = 20, offset = 0) => {
+    const res = await guestApi.get<PaginatedComments>(`/posts/${postId}/comments`, {
+      params: { take: limit, skip: offset }
+    });
+    return res.data;
+  },
+  createComment: async (postId: string | number, text: string) => {
+    const res = await guestApi.post<{comment: CommentResponse}>(`/posts/${postId}/comments/`, { text });
+    return res.data.comment;
+  },
+  updateComment: async (postId: string | number, commentId: number, text: string) => {
+    const res = await guestApi.patch<{comment: CommentResponse}>(`/posts/${postId}/comments/${commentId}`, { text });
+    return res.data.comment;
+  },
+  deleteComment: async (postId: string | number, commentId: number) => {
+    await guestApi.delete(`/posts/${postId}/comments/${commentId}`);
   }
 };

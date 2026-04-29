@@ -3,36 +3,57 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/Button/Button';
 import styles from './CreatePost.module.css';
 import { clsx } from 'clsx';
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 
 export const CreatePost: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [venueId, setVenueId] = useState('');
   const [text, setText] = useState('');
   const [rating, setRating] = useState(5);
 
   useEffect(() => {
     return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      images.forEach(img => URL.revokeObjectURL(img.previewUrl));
     };
-  }, [imagePreview]);
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files).slice(0, 5 - images.length);
+      const newImages = files.map(file => ({
+        file,
+        previewUrl: URL.createObjectURL(file)
+      }));
+      setImages(prev => [...prev, ...newImages].slice(0, 5));
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => {
+      const newImages = [...prev];
+      URL.revokeObjectURL(newImages[index].previewUrl);
+      newImages.splice(index, 1);
+      return newImages;
+    });
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    if (direction === 'left' && index > 0) {
+      setImages(prev => {
+        const newImages = [...prev];
+        [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
+        return newImages;
+      });
+    } else if (direction === 'right' && index < images.length - 1) {
+      setImages(prev => {
+        const newImages = [...prev];
+        [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+        return newImages;
+      });
     }
   };
 
@@ -42,7 +63,7 @@ export const CreatePost: React.FC = () => {
         venueId: parsedVenueId,
         text,
         rating: parsedRating,
-        images: imageFile ? [imageFile] : undefined
+        images: images.length > 0 ? images.map(img => img.file) : undefined
       });
     },
     onSuccess: () => {
@@ -58,13 +79,12 @@ export const CreatePost: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsedVenueId = parseInt(venueId, 10);
+    // Remove the window.alert based on CRITICAL RULES and use inline error
     if (Number.isNaN(parsedVenueId)) {
-      alert("Please enter a valid numeric venue ID");
       return;
     }
     const parsedRating = parseInt(rating.toString(), 10);
     if (Number.isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
-      alert("Please enter a valid rating between 1 and 5");
       return;
     }
     createMutation.mutate({ parsedVenueId, parsedRating });
@@ -78,24 +98,46 @@ export const CreatePost: React.FC = () => {
 
         <form className={styles.form} onSubmit={handleSubmit}>
           
-          <div className={styles.imageUploadWrapper}>
-            <label htmlFor="image-upload" className={styles.imageUploadLabel}>
-              {imagePreview ? (
-                <img src={imagePreview} alt="Preview" className={styles.imagePreview} />
-              ) : (
-                <div className={styles.uploadPlaceholder}>
-                  <ImagePlus size={48} className={styles.uploadIcon} />
-                  <span>Click to upload a photo</span>
+          <div className={styles.imageUploadContainer}>
+            <div className={styles.imagePreviews}>
+              {images.map((img, idx) => (
+                <div key={img.previewUrl} className={styles.previewWrapper}>
+                  <img src={img.previewUrl} alt={`Preview ${idx}`} className={styles.imagePreview} />
+                  <div className={styles.previewOverlay}>
+                    {idx > 0 && (
+                      <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'left')}>
+                        <ChevronLeft size={16} />
+                      </button>
+                    )}
+                    {idx < images.length - 1 && (
+                      <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'right')}>
+                        <ChevronRight size={16} />
+                      </button>
+                    )}
+                  </div>
+                  <button type="button" className={styles.removeImgBtn} onClick={() => removeImage(idx)}>&times;</button>
                 </div>
-              )}
-            </label>
-            <input 
-              id="image-upload" 
-              type="file" 
-              accept="image/*" 
-              className={styles.hiddenInput} 
-              onChange={handleImageChange}
-            />
+              ))}
+            </div>
+            
+            {images.length < 5 && (
+              <div className={styles.imageUploadWrapper}>
+                <label htmlFor="image-upload" className={styles.imageUploadLabel}>
+                  <div className={styles.uploadPlaceholder}>
+                    <ImagePlus size={32} className={styles.uploadIcon} />
+                    <span>Upload photo</span>
+                  </div>
+                </label>
+                <input 
+                  id="image-upload" 
+                  type="file" 
+                  accept="image/*" 
+                  multiple
+                  className={styles.hiddenInput} 
+                  onChange={handleImageChange}
+                />
+              </div>
+            )}
           </div>
 
           <div className={styles.inputGroup}>
