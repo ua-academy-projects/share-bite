@@ -23,6 +23,7 @@ type updateLocationRequest struct {
 	Description *string  `json:"description"`
 	Latitude    *float32 `json:"latitude" binding:"omitempty,gte=-90,lte=90"`
 	Longitude   *float32 `json:"longitude" binding:"omitempty,gte=-180,lte=180"`
+	TagIDs      *[]int   `json:"tagIds"`
 }
 
 // updateLocation updates an existing venue/location.
@@ -66,7 +67,8 @@ func (h *handler) updateLocation(c *gin.Context) {
 	}
 
 	if req.Name == nil && req.Avatar == nil && req.Banner == nil &&
-		req.Description == nil && req.Latitude == nil && req.Longitude == nil {
+		req.Description == nil && req.Latitude == nil && req.Longitude == nil &&
+		req.TagIDs == nil {
 		c.Error(apperror.BadRequest("empty update"))
 		return
 	}
@@ -78,6 +80,7 @@ func (h *handler) updateLocation(c *gin.Context) {
 		Description: req.Description,
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
+		TagIDs:      req.TagIDs,
 	})
 	if err != nil {
 		sum := sha256.Sum256([]byte(userID))
