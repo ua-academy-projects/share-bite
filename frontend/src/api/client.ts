@@ -97,6 +97,18 @@ export const apiClient = {
     
     return createRes.data.post;
   },
+  updatePost: async (postId: string | number, data: { text?: string; rating?: number; venueId?: number; status?: string; images?: File[] }) => {
+    const formData = new FormData();
+    if (data.text !== undefined) formData.append('text', data.text);
+    if (data.rating !== undefined) formData.append('rating', data.rating.toString());
+    if (data.venueId !== undefined) formData.append('venue_id', data.venueId.toString());
+    if (data.status !== undefined) formData.append('status', data.status);
+    if (data.images && data.images.length > 0) {
+      data.images.forEach(img => formData.append('images', img));
+    }
+    const res = await guestApi.patch<{post: PostResponse}>(`/posts/${postId}`, formData);
+    return res.data.post;
+  },
   likePost: async (postId: string) => {
     await guestApi.post(`/posts/${postId}/like`);
   },

@@ -403,3 +403,98 @@
   font-size: 0.875rem;
   margin-top: -0.5rem;
 }
+
+.editPostIconBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.editPostIconBtn:hover {
+  color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.editPostForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.editTextarea {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  color: var(--color-text);
+  font-family: inherit;
+  resize: vertical;
+}
+
+.editTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.editPostRatingWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editPostLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.editPostSelect {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.25rem 0.5rem;
+  color: var(--color-text);
+}
+
+.editPostActions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.editPostSaveBtn {
+  background: var(--color-primary);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.editPostSaveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editPostCancelBtn {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.editPostError {
+  color: #ff6b6b;
+  font-size: 0.875rem;
+}

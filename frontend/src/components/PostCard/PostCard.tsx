@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Trash2, Edit2, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import type { PostResponse } from '../../types/api';
 import styles from './PostCard.module.css';
 import { clsx } from 'clsx';
@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import { useCurrentCustomer } from '../../hooks/useCurrentCustomer';
+import { EditPostModal } from '../EditPostModal/EditPostModal';
 
 interface PostCardProps {
   post: PostResponse;
@@ -24,6 +25,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [commentError, setCommentError] = useState<string | null>(null);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleNextImage = () => {
     if (post.images && currentImageIndex < post.images.length - 1) {
@@ -124,6 +127,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
             </div>
           </div>
         </div>
+        {currentCustomer?.id === post.customerId && (
+          <button 
+            className={styles.editPostIconBtn} 
+            onClick={() => setIsEditModalOpen(true)}
+            title="Edit post"
+          >
+            <Pencil size={18} />
+          </button>
+        )}
       </div>
 
       {/* Restaurant Tag */}
@@ -333,6 +345,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
             <div className={styles.commentError}>{commentError}</div>
           )}
         </div>
+      )}
+      {isEditModalOpen && (
+        <EditPostModal 
+          post={post} 
+          isOpen={isEditModalOpen} 
+          onClose={() => setIsEditModalOpen(false)} 
+        />
       )}
     </div>
   );
