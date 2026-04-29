@@ -402,8 +402,8 @@ func (r *repository) EnforceMaxSessions(ctx context.Context, userID string, maxS
 		Sql: `
           UPDATE auth.refresh_tokens
           SET revoked_at = NOW()
-          WHERE id IN (
-             SELECT id 
+          WHERE token_hash IN (
+             SELECT token_hash
              FROM auth.refresh_tokens 
              WHERE user_id = $1 
                AND revoked_at IS NULL 
@@ -427,7 +427,7 @@ func (r *repository) DeleteExpiredTokens(ctx context.Context) error {
 		Name: "user.DeleteExpiredTokens",
 		Sql: `
           DELETE FROM auth.refresh_tokens 
-          WHERE expires_at < NOW() - INTERVAL '3 days' 
+          WHERE (expires_at < NOW() AND revoked_at IS NULL)
              OR (revoked_at IS NOT NULL AND revoked_at < NOW() - INTERVAL '3 days')
        `,
 	}
