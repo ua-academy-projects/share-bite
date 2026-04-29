@@ -30,15 +30,15 @@ func (m *MockBusinessService) ListNearbyBoxes(ctx context.Context, offset, limit
 			VenueID: 1,
 		},
 		AvailabilityCount: 6,
-		Distance: 2.5,
+		Distance:          2.5,
 	}
 	fakeBox2 := entity.BoxWithDistance{
 		Box: entity.Box{
-			ID:321,
+			ID:      321,
 			VenueID: 1,
 		},
 		AvailabilityCount: 8,
-		Distance: 3,
+		Distance:          3,
 	}
 	return pagination.Result[entity.BoxWithDistance]{
 		Items: []entity.BoxWithDistance{fakeBox1, fakeBox2},
@@ -101,7 +101,7 @@ func TestListNearbyBoxes_Positive_Success(t *testing.T) {
 	if response.Items[1].AvailabilityStatus != "available" {
 		t.Errorf("Expected status: available in response, got: %s", response.Items[1].AvailabilityStatus)
 	}
-	
+
 	if response.Items[0].Distance != 2.5 {
 		t.Errorf("Expected distance: 2.5 in response, got: %f", response.Items[0].Distance)
 	}
