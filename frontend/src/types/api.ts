@@ -74,13 +74,36 @@ export interface ReviewResponse {
 
 export type Review = ReviewResponse;
 
-export interface Comment {
+export interface CustomerResponse {
   id: string;
-  postId: string;
-  customerId: string;
   userName: string;
+  firstName: string;
+  lastName: string;
+  avatarURL?: string | null;
+  bio?: string;
+  createdAt: string;
+}
+
+export interface CommentCustomer {
+  id: string;
+  userName: string;
+  firstName: string;
+  lastName: string;
+  avatarURL?: string | null;
+}
+
+export interface CommentResponse {
+  id: number;
+  postId: number;
   text: string;
   createdAt: string;
+  updatedAt: string;
+  customer: CommentCustomer;
+}
+
+export interface PaginatedComments {
+  total: number;
+  entities: CommentResponse[];
 }
 
 // Business DTOs (if needed)
