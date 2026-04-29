@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v6"
+	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
