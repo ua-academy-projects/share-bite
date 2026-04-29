@@ -35,6 +35,7 @@ export const CreatePost: React.FC = () => {
         previewUrl: URL.createObjectURL(file)
       }));
       setImages(prev => [...prev, ...newImages].slice(0, 5));
+      e.currentTarget.value = '';
     }
   };
 

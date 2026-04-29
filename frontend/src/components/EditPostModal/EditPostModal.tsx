@@ -45,12 +45,37 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
     };
   }, []);
 
+  const urlToFile = async (url: string, filename: string): Promise<File> => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type });
+  };
+
   const updateMutation = useMutation({
     mutationFn: async () => {
       let filesToSend: File[] | undefined = undefined;
 
       if (isImagesModified) {
-        filesToSend = gallery.filter(item => item.file).map(item => item.file as File);
+        filesToSend = [];
+        let conversionFailed = false;
+        for (let i = 0; i < gallery.length; i++) {
+          const item = gallery[i];
+          if (item.file) {
+            filesToSend.push(item.file);
+          } else {
+            try {
+              const file = await urlToFile(item.url, `image-${i}.jpg`);
+              filesToSend.push(file);
+            } catch (err) {
+              console.error('Failed to convert URL to file:', item.url, err);
+              conversionFailed = true;
+            }
+          }
+        }
+        if (conversionFailed) {
+          setErrorMsg('Failed to process some existing images due to CORS issues. Please remove them to proceed.');
+          throw new Error('Failed to process images');
+        }
       }
 
       return await apiClient.updatePost(post.id, {
@@ -66,7 +91,9 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
       onClose();
     },
     onError: (err: any) => {
-      setErrorMsg(err.response?.data?.error || err.response?.data?.message || 'Failed to update post.');
+      if (err.message !== 'Failed to process images') {
+        setErrorMsg(err.response?.data?.error || err.response?.data?.message || 'Failed to update post.');
+      }
     }
   });
 
@@ -93,6 +120,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
         file
       }));
       setGallery(prev => [...prev, ...newItems].slice(0, 5));
+      e.currentTarget.value = '';
     }
   };
 
@@ -172,7 +200,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
           {/* Image Gallery */}
           <div className={styles.imageSectionHeader}>
             <label className={styles.label}>Photos</label>
-            {!isImagesModified && gallery.length > 0 && (
+            {gallery.length > 0 && (
               <button 
                 type="button" 
                 className={styles.clearImagesBtn}
@@ -188,25 +216,23 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onCl
               <div key={item.id} className={styles.previewWrapper}>
                 <img src={item.url} alt={`Preview ${idx}`} className={styles.imagePreview} />
                 <div className={styles.previewOverlay}>
-                  {isImagesModified && idx > 0 && (
+                  {idx > 0 && (
                     <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'left')}>
                       <ChevronLeft size={16} />
                     </button>
                   )}
-                  {isImagesModified && idx < gallery.length - 1 && (
+                  {idx < gallery.length - 1 && (
                     <button type="button" className={styles.moveImgBtn} onClick={() => moveImage(idx, 'right')}>
                       <ChevronRight size={16} />
                     </button>
                   )}
                 </div>
-                {isImagesModified && (
-                  <button type="button" className={styles.removeImgBtn} onClick={() => removeImage(item.id)}>&times;</button>
-                )}
+                <button type="button" className={styles.removeImgBtn} onClick={() => removeImage(item.id)}>&times;</button>
               </div>
             ))}
           </div>
             
-          {isImagesModified && gallery.length < 5 && (
+          {gallery.length < 5 && (
             <div className={styles.imageUploadWrapper}>
               <label htmlFor={`edit-image-upload-${post.id}`} className={styles.imageUploadLabel}>
                 <div className={styles.uploadPlaceholder}>

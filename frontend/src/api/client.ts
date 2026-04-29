@@ -86,11 +86,10 @@ export const apiClient = {
         attempts++;
         console.warn(`Publish attempt ${attempts} failed for post ${newPostId}:`, err);
         if (attempts >= maxAttempts) {
-          // Return the created post (which is currently a draft)
-          return {
-            ...createRes.data.post,
-            status: 'draft'
-          };
+          throw Object.assign(
+            new Error(`Post was created as draft, but publishing failed after ${attempts} attempts.`),
+            { draftPost: createRes.data.post }
+          );
         }
       }
     }
@@ -103,8 +102,12 @@ export const apiClient = {
     if (data.rating !== undefined) formData.append('rating', data.rating.toString());
     if (data.venueId !== undefined) formData.append('venue_id', data.venueId.toString());
     if (data.status !== undefined) formData.append('status', data.status);
-    if (data.images && data.images.length > 0) {
-      data.images.forEach(img => formData.append('images', img));
+    if (data.images !== undefined) {
+      if (data.images.length > 0) {
+        data.images.forEach(img => formData.append('images', img));
+      } else {
+        formData.append('images_cleared', 'true');
+      }
     }
     const res = await guestApi.patch<{post: PostResponse}>(`/posts/${postId}`, formData);
     return res.data.post;
