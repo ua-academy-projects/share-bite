@@ -17,13 +17,13 @@ type updateLocationURI struct {
 }
 
 type updateLocationRequest struct {
-	Name        *string   `json:"name"`
-	Avatar      *string   `json:"avatar"`
-	Banner      *string   `json:"banner"`
-	Description *string   `json:"description"`
-	Latitude    *float32  `json:"latitude" binding:"omitempty,gte=-90,lte=90"`
-	Longitude   *float32  `json:"longitude" binding:"omitempty,gte=-180,lte=180"`
-	TagIDs    *[]int `json:"tagIds"`
+	Name        *string  `json:"name"`
+	Avatar      *string  `json:"avatar"`
+	Banner      *string  `json:"banner"`
+	Description *string  `json:"description"`
+	Latitude    *float32 `json:"latitude" binding:"omitempty,gte=-90,lte=90"`
+	Longitude   *float32 `json:"longitude" binding:"omitempty,gte=-180,lte=180"`
+	TagIDs      *[]int   `json:"tagIds"`
 }
 
 // updateLocation updates an existing venue/location.
@@ -80,7 +80,7 @@ func (h *handler) updateLocation(c *gin.Context) {
 		Description: req.Description,
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
-		TagIDs:    req.TagIDs,
+		TagIDs:      req.TagIDs,
 	})
 	if err != nil {
 		sum := sha256.Sum256([]byte(userID))

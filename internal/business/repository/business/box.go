@@ -141,11 +141,11 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 		return item, nil
 	}
 
-	dynamicColumns := fmt.Sprintf("boxes.id, boxes.venue_id, boxes.category_id, " +
-			"boxes.image, boxes.price_full, boxes.price_discount, " +
-			"boxes.created_at, boxes.expires_at, " +
-			"(SELECT COUNT(*) FROM business.box_items bi WHERE reserved_by_user_id IS NULL AND bi.box_id=boxes.id) AS availability_count, " +
-			"point(%f, %f) <@> point(org_units.longitude, org_units.latitude) AS distance", 
+	dynamicColumns := fmt.Sprintf("boxes.id, boxes.venue_id, boxes.category_id, "+
+		"boxes.image, boxes.price_full, boxes.price_discount, "+
+		"boxes.created_at, boxes.expires_at, "+
+		"(SELECT COUNT(*) FROM business.box_items bi WHERE reserved_by_user_id IS NULL AND bi.box_id=boxes.id) AS availability_count, "+
+		"point(%f, %f) <@> point(org_units.longitude, org_units.latitude) AS distance",
 		lon, lat)
 
 	p := pagination.Params{

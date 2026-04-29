@@ -30,6 +30,8 @@ type config struct {
 	RateLimit RateLimit
 
 	Storage Storage
+
+	Auth AuthConfig
 }
 
 var cfg *config
@@ -78,6 +80,11 @@ type Email interface {
 	SenderProviderValue() string
 	ResendAPIKeyValue() string
 	ResendFromEmailValue() string
+	PasswordResetTTLValue() time.Duration
+}
+
+type AuthConfig interface {
+	MaxSessions() int
 }
 
 type RateLimit interface {
@@ -151,8 +158,14 @@ func Load(paths ...string) error {
 		return fmt.Errorf("storage config: %w", err)
 	}
 
+	authConfig, err := env.NewAuthConfig()
+	if err != nil {
+		return fmt.Errorf("auth config: %w", err)
+	}
+
 	cfg = &config{
-		App: appConfig,
+		App:  appConfig,
+		Auth: authConfig,
 
 		GuestHttpServer:    guestHttpServerConfig,
 		AdminHttpServer:    adminHttpServerConfig,
