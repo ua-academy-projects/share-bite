@@ -19,8 +19,9 @@ func (r *Repository) Follow(ctx context.Context, followerID, followedID string) 
 		INSERT INTO guest.customer_follows(
 			follower_customer_id,
 			followed_customer_id
-		) VALUES ($1, $2)
-		RETURNING id, follower_customer_id, followed_customer_id, created_at
+		)
+		VALUES ($1, $2)
+		ON CONFLICT (follower_customer_id, followed_customer_id) DO NOTHING;
 	`
 
 	q := database.Query{
@@ -28,15 +29,8 @@ func (r *Repository) Follow(ctx context.Context, followerID, followedID string) 
 		Sql:  sql,
 	}
 
-	row := r.db.DB().QueryRowContext(ctx, q, followerID, followedID)
-
-	var follow CustomerFollow
-	if err := row.Scan(
-		&follow.ID,
-		&follow.FollowerCustomerID,
-		&follow.FollowedCustomerID,
-		&follow.CreatedAt,
-	); err != nil {
+	_, err := r.db.DB().ExecContext(ctx, q, followerID, followedID)
+	if err != nil {
 		return executeSQLError(err)
 	}
 

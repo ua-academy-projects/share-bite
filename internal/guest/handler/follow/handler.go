@@ -39,17 +39,17 @@ func RegisterHandler(
 		storage: st,
 	}
 
-	//protected := r.Group("/").Use(authMiddleware, customerMiddleware)
+	protected := r.Group("/").Use(authMiddleware, customerMiddleware)
 
-	r.POST("/id/:id/follow", h.follow)
-	r.DELETE("/id/:id/follow", h.unfollow)
+	protected.POST("/id/:id/follow", h.follow)
+	protected.DELETE("/id/:id/follow", h.unfollow)
 
 	optional := r.Group("/").Use(optionalAuthMiddleware, customerMiddleware)
 
 	optional.GET("/id/:id/followers", h.listFollowers)
 	optional.GET("/id/:id/following", h.listFollowing)
 
-	r.GET("/following", h.listMyFollowing)
+	protected.GET("/following", h.listMyFollowing)
 }
 
 func (h *handler) followersToResponse(customers []entity.Follower) []dto.FollowerResponse {

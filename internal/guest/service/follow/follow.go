@@ -15,19 +15,5 @@ func (s *service) Follow(ctx context.Context, userID, targetCustomerID string) e
 		return apperror.ErrCannotFollowYourself
 	}
 
-	isFollowing, err := s.customerFollowRepo.IsFollowing(ctx, currentCustomer.ID, targetCustomerID)
-	if err != nil {
-		return err
-	}
-
-	if isFollowing {
-		return apperror.AlreadyFollowing(currentCustomer.ID, targetCustomerID)
-	}
-
-	err = s.customerFollowRepo.Follow(ctx, currentCustomer.ID, targetCustomerID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.customerFollowRepo.Follow(ctx, currentCustomer.ID, targetCustomerID)
 }
