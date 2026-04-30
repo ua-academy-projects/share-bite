@@ -20,7 +20,7 @@ type likeUriRequest struct {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id	path	int	true	"Post ID"
-//	@Success		204	{string}	string	"No Content"
+//	@Success 		200 {object} 	nil
 //	@Failure		400	{object}	response.ErrorResponse
 //	@Failure		401	{object}	response.ErrorResponse
 //	@Failure		404	{object}	response.ErrorResponse
@@ -62,7 +62,7 @@ func (h *handler) like(c *gin.Context) {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id	path	int	true	"Post ID"
-//	@Success		200	{string}	string	"OK"
+//	@Success 		204 {object} 	nil
 //	@Failure		400	{object}	response.ErrorResponse
 //	@Failure		401	{object}	response.ErrorResponse
 //	@Failure		404	{object}	response.ErrorResponse
@@ -93,5 +93,5 @@ func (h *handler) unlike(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.Status(http.StatusNoContent)
 }

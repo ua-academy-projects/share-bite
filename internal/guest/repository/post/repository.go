@@ -655,11 +655,9 @@ func (r *Repository) ListMentionsByPostIDs(ctx context.Context, postIDs []string
 		return map[string][]entity.PostMention{}, nil
 	}
 
-	sql := `
-		SELECT post_id, mentioned_customer_id
-		FROM guest.post_mentions
-		WHERE post_id = ANY($1)
-	`
+	sql := `SELECT post_id, mentioned_customer_id
+	FROM guest.post_mentions
+	WHERE post_id::text = ANY($1)`
 
 	q := database.Query{
 		Name: "post_repository.ListMentionsByPostIDs",

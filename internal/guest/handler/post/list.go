@@ -45,7 +45,11 @@ func (h *handler) list(c *gin.Context) {
 		return
 	}
 
-	resp := listPostsOutToResponse(ctx, out, h.storage, h.customerService)
+	resp, err := listPostsOutToResponse(ctx, out, h.storage, h.customerService)
+	if err != nil {
+		c.Error(err)
+		return
+	}
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -59,7 +63,7 @@ type listResponse struct {
 	Total int            `json:"total"`
 }
 
-func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storage storage.ObjectStorage, customerService customerService) listResponse {
+func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storage storage.ObjectStorage, customerService customerService) (listResponse, error) {
 	customerIDSet := make(map[string]struct{})
 
 	for _, p := range out.Posts {
@@ -72,14 +76,15 @@ func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storag
 	}
 
 	customers, err := customerService.GetByIDs(ctx, customerIDs)
-
-	customerMap := make(map[string]entity.Customer, len(customers))
 	if err == nil {
-		for _, c := range customers {
-			customerMap[c.ID] = c
-		}
+		return listResponse{}, err
 	}
 
+	customerMap := make(map[string]entity.Customer, len(customers))
+
+	for _, c := range customers {
+		customerMap[c.ID] = c
+	}
 	list := make([]postResponse, 0, len(out.Posts))
 
 	for _, p := range out.Posts {
@@ -94,5 +99,5 @@ func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storag
 	return listResponse{
 		Posts: list,
 		Total: out.Total,
-	}
+	}, nil
 }
