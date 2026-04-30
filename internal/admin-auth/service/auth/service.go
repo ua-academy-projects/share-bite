@@ -270,6 +270,11 @@ func (s *service) LinkProvider(ctx context.Context, userID string, provider OAut
 		ProviderID: info.ProviderID,
 		Email:      info.Email,
 	})
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to link provider", err)
+	}
+
+	return nil
 }
 
 func (s *service) GetUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (models.UserStatus, error) {

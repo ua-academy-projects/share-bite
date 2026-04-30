@@ -18,7 +18,6 @@ type Repository interface {
 	FindByID(ctx context.Context, userID string) (*dto.UserWithRole, error)
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
-	FindByID(ctx context.Context, id string) (*dto.UserWithRole, error)
 	CreateUser(ctx context.Context, user CreateUser) (*CreatedUser, error)
 	AssignRole(ctx context.Context, userID string, roleID int) error
 	FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error)
@@ -119,36 +118,6 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 
 	return u, nil
 }
-
-func (r *repository) FindByID(ctx context.Context, id string) (*dto.UserWithRole, error) {
-	q := database.Query{
-		Name: "user.FindByID",
-		Sql: `
-          SELECT u.id, u.email, u.password_hash, r.slug
-          FROM auth.users u
-          LEFT JOIN auth.user_roles ur ON u.id = ur.user_id
-          LEFT JOIN auth.roles r ON ur.role_id = r.id
-          WHERE u.id = $1
-       `,
-	}
-
-	row := r.client.DB().QueryRowContext(ctx, q, id)
-	u := new(dto.UserWithRole)
-	if err := row.Scan(
-		&u.ID,
-		&u.Email,
-		&u.PasswordHash,
-		&u.RoleSlug,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("find by id: %w", err)
-	}
-
-	return u, nil
-}
-
 func (r *repository) CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error {
 	invalidateQuery := database.Query{
 		Name: "user.InvalidatePasswordResetTokens",
