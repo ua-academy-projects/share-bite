@@ -15,6 +15,7 @@ import (
 )
 
 type Repository interface {
+	FindByID(ctx context.Context, userID string) (*dto.UserWithRole, error)
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
 	FindByID(ctx context.Context, id string) (*dto.UserWithRole, error)
@@ -23,6 +24,7 @@ type Repository interface {
 	FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error)
 	CreateWithSocial(ctx context.Context, params dto.CreateUserWithSocialParams) (*dto.CreatedUser, error)
 	LinkSocialAccount(ctx context.Context, params dto.CreateSocialAccountParams) error
+	UpdateUserStatus(ctx context.Context, params UpdateUserStatus) error
 	CreatePasswordResetToken(ctx context.Context, params dto.CreatePasswordResetTokenParams) error
 	ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error)
 	StoreRefreshToken(ctx context.Context, params dto.StoreRefreshTokenParams) error
@@ -41,11 +43,58 @@ func New(client database.Client) Repository {
 	return &repository{client: client}
 }
 
+func (r *repository) FindByID(ctx context.Context, userID string) (*dto.UserWithRole, error) {
+	q := database.Query{
+		Name: "user.FindByID",
+		Sql: `
+			SELECT u.id, u.email, u.password_hash, u.status, r.slug
+			FROM auth.users u
+			LEFT JOIN auth.user_roles ur ON u.id = ur.user_id
+			LEFT JOIN auth.roles r ON ur.role_id = r.id
+			WHERE u.id = $1
+		`,
+	}
+
+	row := r.client.DB().QueryRowContext(ctx, q, userID)
+	u := new(dto.UserWithRole)
+	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Status, &u.RoleSlug); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find by id: %w", err)
+	}
+
+	return u, nil
+}
+
+func (r *repository) UpdateUserStatus(ctx context.Context, params UpdateUserStatus) error {
+	q := database.Query{
+		Name: "user.UpdateUserStatus",
+		Sql: `
+			UPDATE auth.users
+			SET status = $2,
+			    updated_at = NOW()
+			WHERE id = $1
+		`,
+	}
+
+	result, err := r.client.DB().ExecContext(ctx, q, params.UserID, params.Status)
+	if err != nil {
+		return fmt.Errorf("update user status: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return apperr.ErrUserNotFound
+	}
+
+	return nil
+}
+
 func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error) {
 	q := database.Query{
 		Name: "user.FindByEmail",
 		Sql: `
-			SELECT u.id, u.email, u.password_hash, r.slug
+			SELECT u.id, u.email, u.password_hash, u.status, r.slug
 			FROM auth.users u
 			LEFT JOIN auth.user_roles ur ON u.id = ur.user_id
 			LEFT JOIN auth.roles r ON ur.role_id = r.id
@@ -59,6 +108,7 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*dto.UserWi
 		&u.ID,
 		&u.Email,
 		&u.PasswordHash,
+		&u.Status,
 		&u.RoleSlug,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -242,7 +292,7 @@ func (r *repository) FindBySocialProvider(ctx context.Context, provider, provide
 	q := database.Query{
 		Name: "user.FindBySocialProvider",
 		Sql: `
-			SELECT u.id, u.email, u.password_hash, r.slug
+			SELECT u.id, u.email, u.password_hash, u.status, r.slug
 			FROM auth.users u
 			JOIN auth.social_accounts sa
 				on sa.user_id = u.id
@@ -256,7 +306,7 @@ func (r *repository) FindBySocialProvider(ctx context.Context, provider, provide
 	}
 	row := r.client.DB().QueryRowContext(ctx, q, provider, providerID)
 	u := new(dto.UserWithRole)
-	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.RoleSlug); err != nil {
+	if err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Status, &u.RoleSlug); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}

@@ -23,6 +23,12 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddlewa
 
 		}
 
+		usersGroup := r.Group("/users").Use(authMiddleware)
+		{
+			usersGroup.GET("/:userId/status", authHandler.GetAdminUserStatus)
+			usersGroup.PUT("/:userId/status", authHandler.UpdateAdminUserStatus)
+		}
+
 		protectedUserGroup := r.Group("/user").Use(authMiddleware)
 		{
 			protectedUserGroup.POST("/logout", authHandler.Logout)
