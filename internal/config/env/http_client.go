@@ -8,6 +8,7 @@ import (
 
 type httpClientConfig struct {
 	BaseURLVal             string        `env:"HTTP_CLIENT_BASE_URL"`
+	SchemeVal              string        `env:"HTTP_CLIENT_SCHEME" envDefault:"http"`
 	TimeoutVal             time.Duration `env:"HTTP_CLIENT_TIMEOUT" envDefault:"10s"`
 	MaxIdleConnsVal        int           `env:"HTTP_CLIENT_MAX_IDLE_CONNS" envDefault:"100"`
 	MaxIdleConnsPerHostVal int           `env:"HTTP_CLIENT_MAX_IDLE_CONNS_PER_HOST" envDefault:"100"`
@@ -27,6 +28,10 @@ func NewHttpClientConfig(prefix string) (*httpClientConfig, error) {
 
 func (c *httpClientConfig) BaseURL() string {
 	return c.BaseURLVal
+}
+
+func (c *httpClientConfig) Scheme() string {
+	return c.SchemeVal
 }
 
 func (c *httpClientConfig) Timeout() time.Duration {
