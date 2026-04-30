@@ -60,7 +60,10 @@ func NewBusinessAPIClient(baseURL string, scheme string, basePath string, httpCl
 		return nil, fmt.Errorf("parse business baseURL: %w", err)
 	}
 
-	if u.Scheme == "" || u.Host == "" {
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("invalid business baseURL %q: unsupported scheme %q", normalizedBaseURL, u.Scheme)
+	}
+	if u.Host == "" {
 		return nil, fmt.Errorf("invalid business baseURL %q: scheme and host are required", normalizedBaseURL)
 	}
 	if httpClient == nil {
@@ -222,18 +225,38 @@ func schemeLocationClientOption(scheme string) locations.ClientOption {
 }
 
 func (c *businessAPIClient) GetNearbyVenues(ctx context.Context, lat, lon float64, limit int) ([]int64, error) {
+	limitValue := int64(limit)
 	params := locations.NewGetBusinessLocationsNearbyParamsWithContext(ctx).
 		WithLat(lat).
 		WithLon(lon).
-		WithLimit((*int64)(&[]int64{int64(limit)}[0]))
+		WithLimit(&limitValue)
 
-	resp, err := c.api.Locations.GetBusinessLocationsNearby(params, schemeLocationClientOption(c.scheme))
+	var resp *locations.GetBusinessLocationsNearbyOK
+	err := c.executeWithResilience(ctx, func() error {
+		apiResp, opErr := c.api.Locations.GetBusinessLocationsNearby(params, schemeLocationClientOption(c.scheme))
+		if opErr != nil {
+			wrappedErr := fmt.Errorf("failed to call business api: %w", opErr)
+			if !isRetryableError(opErr) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		if !apiResp.IsSuccess() {
+			wrappedErr := fmt.Errorf("get nearby venues unexpected status code: %d", apiResp.Code())
+			if !isRetryableStatus(apiResp.Code()) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		resp = apiResp
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to call business api: %w", err)
-	}
-
-	if !resp.IsSuccess() {
-		return nil, fmt.Errorf("get nearby venues unexpected status code: %d", resp.Code())
+		return nil, err
 	}
 
 	payload := resp.GetPayload()

@@ -11,15 +11,16 @@ import (
 )
 
 type postRepositoryMock struct {
-	createFn           func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
-	listFn             func(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
-	getFn              func(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
-	getByIDFn          func(ctx context.Context, postID string) (entity.Post, error)
-	getAuthorUserIDFn  func(ctx context.Context, postID string) (string, error)
-	updateFn           func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
-	likeFn             func(ctx context.Context, postID string, customerID string) error
-	unlikeFn           func(ctx context.Context, postID string, customerID string) error
-	updateStatusFn     func(ctx context.Context, postID, customerID string, status entity.PostStatus) error
+	createFn             func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+	listFn               func(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
+	getFn                func(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
+	getByIDFn            func(ctx context.Context, postID string) (entity.Post, error)
+	getAuthorUserIDFn    func(ctx context.Context, postID string) (string, error)
+	updateFn             func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
+	likeFn               func(ctx context.Context, postID string, customerID string) error
+	unlikeFn             func(ctx context.Context, postID string, customerID string) error
+	updateStatusFn       func(ctx context.Context, postID, customerID string, status entity.PostStatus) error
+	getPostsByVenueIDsFn func(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
 
 	lastCreateInput dto.CreatePostInput
 	lastListInput   dto.ListPostsInput
@@ -104,8 +105,16 @@ func (m *postRepositoryMock) UpdateStatus(ctx context.Context, postID, customerI
 	return nil
 }
 
+func (m *postRepositoryMock) GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error) {
+	if m.getPostsByVenueIDsFn != nil {
+		return m.getPostsByVenueIDsFn(ctx, venueIDs, limit)
+	}
+	return []entity.Post{}, nil
+}
+
 type venueProviderMock struct {
-	checkExistsFn func(ctx context.Context, venueID int64) (bool, error)
+	checkExistsFn     func(ctx context.Context, venueID int64) (bool, error)
+	getNearbyVenuesFn func(ctx context.Context, lat, lon float64, limit int) ([]int64, error)
 }
 
 func (m *venueProviderMock) CheckExists(ctx context.Context, venueID int64) (bool, error) {
@@ -113,6 +122,13 @@ func (m *venueProviderMock) CheckExists(ctx context.Context, venueID int64) (boo
 		return m.checkExistsFn(ctx, venueID)
 	}
 	return true, nil
+}
+
+func (m *venueProviderMock) GetNearbyVenues(ctx context.Context, lat, lon float64, limit int) ([]int64, error) {
+	if m.getNearbyVenuesFn != nil {
+		return m.getNearbyVenuesFn(ctx, lat, lon, limit)
+	}
+	return []int64{}, nil
 }
 
 type txManagerMock struct {
@@ -138,7 +154,7 @@ func (m *publisherMock) Publish(ctx context.Context, target string, msg notifica
 }
 
 type storageMock struct {
-	uploadFn func(ctx context.Context, key string, contentType string, file io.Reader) (string, error)
+	uploadFn   func(ctx context.Context, key string, contentType string, file io.Reader) (string, error)
 	deleteFn   func(ctx context.Context, key string) error
 	buildURLFn func(key string) string
 }

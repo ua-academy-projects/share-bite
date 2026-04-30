@@ -54,14 +54,14 @@ services:
     ports:
       - '${REDIS_PORT}:6379'
     volumes:
-      - ../redis.conf:/usr/local/etc/redis/redis.conf
+      - ../redis.conf:/usr/local/etc/redis/redis.conf:ro
       - redis-data:/data
     networks:
       - share-bite-net
     command: redis-server /usr/local/etc/redis/redis.conf
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "ping"]
+      test: ["CMD-SHELL", "redis-cli --raw ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 5

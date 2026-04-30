@@ -20,13 +20,14 @@ import (
 )
 
 type postServiceMock struct {
-	createFn func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
-	updateFn func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
-	deleteFn func(ctx context.Context, postID, customerID string) error
-	listFn   func(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
-	getFn    func(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
-	likeFn   func(ctx context.Context, postID string, customerID string) error
-	unlikeFn func(ctx context.Context, postID string, customerID string) error
+	createFn        func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+	updateFn        func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
+	deleteFn        func(ctx context.Context, postID, customerID string) error
+	listFn          func(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
+	getFn           func(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
+	likeFn          func(ctx context.Context, postID string, customerID string) error
+	unlikeFn        func(ctx context.Context, postID string, customerID string) error
+	exploreNearbyFn func(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
 
 	lastCreateInput      dto.CreatePostInput
 	lastUpdateInput      entity.UpdatePostInput
@@ -94,6 +95,13 @@ func (m *postServiceMock) Unlike(ctx context.Context, postID string, customerID 
 		return m.unlikeFn(ctx, postID, customerID)
 	}
 	return nil
+}
+
+func (m *postServiceMock) ExploreNearby(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error) {
+	if m.exploreNearbyFn != nil {
+		return m.exploreNearbyFn(ctx, lat, lon, limit)
+	}
+	return []dto.ExploreVenueItem{}, nil
 }
 
 type customerServiceMock struct {
