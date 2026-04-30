@@ -17,7 +17,7 @@ const (
 
 // @Summary		List invitations
 // @Description	Retrieves a paginated list of invitations.
-// @Description	You must provide exactly ONE filter parameter: collectionId, inviterId, or inviteeId.
+// @Description	You must provide AT LEAST one filter parameter: collectionId, inviterId, or inviteeId.
 // @Description	Users can only view their own inbound (inviteeId) and outbound (inviterId) invitations.
 // @Description	Only the collection owner can view invitations filtered by collectionId.
 //
