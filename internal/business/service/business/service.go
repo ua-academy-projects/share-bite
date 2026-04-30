@@ -108,6 +108,9 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 		if parent.ProfileType != entity.ProfileTypeBrand {
 			return 0, apperror.BadRequest("parent must be a BRAND, not a VENUE")
 		}
+		if parent.OrgAccountId != in.OrgAccountId {
+			return 0, apperror.BadRequest("parent must belong to same org account")
+		}
 	}
 
 	id, err := s.businessRepo.Create(ctx, in)
