@@ -99,6 +99,7 @@ type Storage interface {
 	SecretKey() string
 	Bucket() string
 	UsePathStyle() bool
+	PresignTTL() time.Duration
 }
 
 func Load(paths ...string) error {
