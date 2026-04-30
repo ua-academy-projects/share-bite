@@ -24,12 +24,15 @@ type config struct {
 	BusinessHttpClient HttpClient
 
 	Postgres Postgres
+	Redis    Redis
 
 	JwtToken  JwtToken
 	Email     Email
 	RateLimit RateLimit
 
 	Storage Storage
+
+	Auth AuthConfig
 }
 
 var cfg *config
@@ -55,6 +58,7 @@ type HttpServer interface {
 
 type HttpClient interface {
 	BaseURL() string
+	Scheme() string
 	Timeout() time.Duration
 	MaxIdleConns() int
 	MaxIdleConnsPerHost() int
@@ -64,6 +68,13 @@ type HttpClient interface {
 type Postgres interface {
 	Dsn() string
 	MigrationsDir() string
+}
+
+type Redis interface {
+	Addr() string
+	Password() string
+	TLS() bool
+	DB() int
 }
 
 type JwtToken interface {
@@ -78,6 +89,11 @@ type Email interface {
 	SenderProviderValue() string
 	ResendAPIKeyValue() string
 	ResendFromEmailValue() string
+	PasswordResetTTLValue() time.Duration
+}
+
+type AuthConfig interface {
+	MaxSessions() int
 }
 
 type RateLimit interface {
@@ -131,6 +147,11 @@ func Load(paths ...string) error {
 		return fmt.Errorf("postgres config: %w", err)
 	}
 
+	redisConfig, err := env.NewRedisConfig()
+	if err != nil {
+		return fmt.Errorf("redis config: %w", err)
+	}
+
 	jwtTokenConfig, err := env.NewJwtTokenConfig()
 	if err != nil {
 		return fmt.Errorf("jwt token config: %w", err)
@@ -151,8 +172,14 @@ func Load(paths ...string) error {
 		return fmt.Errorf("storage config: %w", err)
 	}
 
+	authConfig, err := env.NewAuthConfig()
+	if err != nil {
+		return fmt.Errorf("auth config: %w", err)
+	}
+
 	cfg = &config{
-		App: appConfig,
+		App:  appConfig,
+		Auth: authConfig,
 
 		GuestHttpServer:    guestHttpServerConfig,
 		AdminHttpServer:    adminHttpServerConfig,
@@ -161,6 +188,7 @@ func Load(paths ...string) error {
 		BusinessHttpClient: businessHttpClientConfig,
 
 		Postgres:  postgresConfig,
+		Redis:     redisConfig,
 		JwtToken:  jwtTokenConfig,
 		Email:     emailConfig,
 		RateLimit: rateLimitConfig,

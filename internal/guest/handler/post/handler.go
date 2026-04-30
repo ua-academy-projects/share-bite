@@ -29,6 +29,7 @@ type postService interface {
 	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
 	Like(ctx context.Context, postID string, customerID string) error
 	Unlike(ctx context.Context, postID string, customerID string) error
+	ExploreNearby(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
 }
 
 type customerService interface {
@@ -57,6 +58,8 @@ func RegisterHandlers(
 	protected.DELETE("/:id", h.delete)
 	protected.POST("/:id/like", h.like)
 	protected.DELETE("/:id/like", h.unlike)
+
+	r.GET("/explore", h.ExploreNearby)
 }
 
 type postResponse struct {
@@ -74,11 +77,6 @@ type postResponse struct {
 	CreatedAt   time.Time         `json:"createdAt"`
 	UpdatedAt   time.Time         `json:"updatedAt"`
 	PublishedAt *time.Time        `json:"publishedAt,omitempty"`
-}
-
-// errorResponse describes guest API error payload.
-type errorResponse struct {
-	Message string `json:"message" example:"invalid request"`
 }
 
 func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {

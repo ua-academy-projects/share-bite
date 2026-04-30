@@ -20,3 +20,8 @@ type OrgUnit struct {
 	Longitude    *float32
 	Tags         []string
 }
+
+type OrgUnitWithDistance struct {
+	OrgUnit  OrgUnit
+	Distance float64
+}

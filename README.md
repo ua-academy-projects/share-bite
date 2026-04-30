@@ -10,6 +10,8 @@ Create a local `.env` file based on the provided example:
 cp .env.example .env
 ```
 
+> **Note:** Please use distinct, strong credentials per service in non-local environments (e.g. for `POSTGRES_PASSWORD` and `REDIS_PASSWORD`).
+
 ### 2. Database Infrastructure
 
 Start the local PostgreSQL database using Docker Compose:
@@ -63,6 +65,23 @@ S3_USE_PATH_STYLE=true
 
 > Bootstrap runs once. On subsequent starts credentials stay the same.
 
+### 6. Notifications helper and Redis
+
+The repository includes a shared Redis Pub/Sub helper in `pkg/notification` for notification events.
+
+For local development, add Redis connection values to `.env` based on `.env.example`:
+
+```env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=redis_example_password
+```
+
+Start the Redis service using the provided docker-compose configuration:
+```bash
+docker compose -f build/compose.infra.yaml up -d
+```
+
 ### Web UI (optional)
 
 ```bash
@@ -71,7 +90,7 @@ make s3-ui
 
 Open http://localhost:3909
 
-### 6. Code Generation & API Clients
+### 7. Code Generation & API Clients
 
 To prevent excessive git churn, **generated Swagger documentation and API clients are not committed to the repository**. You must generate them locally before building or running tests.
 
@@ -92,9 +111,9 @@ This orchestrates the correct execution order:
 
 ---
 
-### 7. Testing
+### 8. Testing
 
-> Ensure API clients are generated (step 6) before running tests.
+> Ensure API clients are generated (step 7) before running tests.
 
 Run the full test suite:
 
