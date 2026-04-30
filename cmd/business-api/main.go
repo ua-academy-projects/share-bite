@@ -22,6 +22,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 
 	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
+	h3 "github.com/ua-academy-projects/share-bite/pkg/aws"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
@@ -92,7 +93,8 @@ func main() {
 	businessRepo := businessrepo.New(client)
 
 	// services
-	businessSvc := businesssvc.New(businessRepo, txManager, storageClient)
+	h3Service := h3.NewH3Service()
+	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),

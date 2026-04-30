@@ -14,6 +14,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/pkg/aws"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -75,13 +76,15 @@ type service struct {
 	businessRepo businessRepository
 	txManager    database.TxManager
 	storage      storage.ObjectStorage
+	h3Service    aws.H3Service
 }
 
-func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage) *service {
+func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage, h3Service aws.H3Service) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
 		storage:      st,
+		h3Service:    h3Service,
 	}
 }
 

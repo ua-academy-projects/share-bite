@@ -52,6 +52,16 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 			return fmt.Errorf("%s: create location: %w", op, err)
 		}
 
+		if in.Latitude != nil && in.Longitude != nil {
+			hash := s.h3Service.GetH3Index(float64(*in.Latitude), float64(*in.Longitude), 9)
+			in.H3Hash = &hash
+		}
+
+		location, err = s.businessRepo.CreateLocation(ctx, brandID, ownerUserID, in)
+		if err != nil {
+			return fmt.Errorf("%s: create location: %w", "business.service.CreateLocation", err)
+		}
+
 		if err := s.businessRepo.SetOrgUnitTagsByIDs(ctxTx, created.Id, in.TagIDs); err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return apperror.BadRequest("one or more tags are invalid")

@@ -17,6 +17,7 @@ type OrgUnit struct {
 	ParentId     *int      `db:"parent_id"`
 	Latitude     *float32  `db:"latitude"`
 	Longitude    *float32  `db:"longitude"`
+	H3Hash       *string   `db:"h3_hash"`
 }
 
 func (e OrgUnit) ToEntity() entity.OrgUnit {
