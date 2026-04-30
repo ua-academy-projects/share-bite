@@ -86,6 +86,10 @@ func (s *service) Login(ctx context.Context, email, password string) (*Tokens, e
 		return nil, apperr.ErrInvalidCredentials
 	}
 
+	if u.Status == models.UserStatusSuspended {
+		return nil, apperr.ErrAccountSuspended
+	}
+
 	return s.issueTokens(ctx, u.ID, u.RoleSlug)
 }
 
@@ -157,6 +161,9 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, er
 	if u == nil {
 		return nil, apperr.ErrUserNotFound
 	}
+	if u.Status == models.UserStatusSuspended {
+		return nil, apperr.ErrAccountSuspended
+	}
 
 	if err := s.userRepo.RevokeRefreshToken(ctx, hashedToken); err != nil {
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to revoke old token", err)
@@ -205,6 +212,9 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to query social provider", err)
 	}
 	if existing != nil {
+		if existing.Status == models.UserStatusSuspended {
+			return nil, apperr.ErrAccountSuspended
+		}
 		return s.issueTokens(ctx, existing.ID, existing.RoleSlug)
 	}
 
@@ -215,6 +225,9 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 	if byEmail != nil {
 		if !info.EmailVerified {
 			return nil, apperr.ErrEmailNotVerified
+		}
+		if byEmail.Status == models.UserStatusSuspended {
+			return nil, apperr.ErrAccountSuspended
 		}
 		err := s.userRepo.LinkSocialAccount(ctx, dto.CreateSocialAccountParams{
 			UserID:     byEmail.ID,
@@ -317,6 +330,12 @@ func (s *service) UpdateUserStatus(ctx context.Context, requesterUserID, request
 	}); err != nil {
 		apperr.Wrap(http.StatusInternalServerError, "failed to fetch user", err)
 		return fmt.Errorf("update user status: %w", err)
+	}
+
+	if target.Status != models.UserStatusSuspended && status == models.UserStatusSuspended {
+		if err := s.userRepo.RevokeAllUserTokens(ctx, targetUserID); err != nil {
+			return apperr.Wrap(http.StatusInternalServerError, "failed to revoke all sessions", err)
+		}
 	}
 
 	return nil
