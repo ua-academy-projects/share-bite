@@ -9,8 +9,6 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
-	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -613,6 +611,85 @@ func (r *Repository) GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, l
 
 	for i := range result {
 		result[i].Images = imagesByPostID[result[i].ID]
+	}
+
+	return result, nil
+}
+
+func (r *Repository) CreateMentions(ctx context.Context, mentions []entity.PostMention) error {
+	if len(mentions) == 0 {
+		return nil
+	}
+
+	query := `
+		INSERT INTO guest.post_mentions (post_id, mentioned_customer_id)
+		VALUES 
+	`
+
+	args := make([]interface{}, 0, len(mentions)*2)
+	values := make([]string, 0, len(mentions))
+
+	for i, m := range mentions {
+		idx := i*2 + 1
+		values = append(values, fmt.Sprintf("($%d, $%d)", idx, idx+1))
+
+		args = append(args, m.PostID, m.CustomerID)
+	}
+
+	query += strings.Join(values, ", ")
+
+	q := database.Query{
+		Name: "post_repository.CreateMentions",
+		Sql:  query,
+	}
+
+	if _, err := r.db.DB().ExecContext(ctx, q, args...); err != nil {
+		return executeSQLError(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) ListMentionsByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error) {
+	if len(postIDs) == 0 {
+		return map[string][]entity.PostMention{}, nil
+	}
+
+	sql := `
+		SELECT post_id, mentioned_customer_id
+		FROM guest.post_mentions
+		WHERE post_id = ANY($1)
+	`
+
+	q := database.Query{
+		Name: "post_repository.ListMentionsByPostIDs",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postIDs)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	result := make(map[string][]entity.PostMention)
+
+	for rows.Next() {
+		var postID string
+		var customerID string
+
+		if err := rows.Scan(&postID, &customerID); err != nil {
+			return nil, scanRowError(err)
+		}
+
+		result[postID] = append(result[postID], entity.PostMention{
+			PostID:     postID,
+			CustomerID: customerID,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return result, nil
