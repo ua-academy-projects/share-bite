@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
@@ -39,29 +38,14 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 		return
 	}
 
-	val, exists := c.Get(middleware.CtxUserID)
-
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found"})
-		return
-	}
-
-
-	userID, ok := val.(string)
-
+	userUUID, ok := middleware.GetUserUUID(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id type in context"})
-		return
-	}
-	parsedUUID, err := uuid.Parse(userID)
-
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id format"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_uuid type in context"})
 		return
 	}
 
 	orgEntity := entity.OrgUnit{
-		OrgAccountId: parsedUUID,
+		OrgAccountId: userUUID,
 		ProfileType:  profileType,
 		ParentId:     req.ParentID,
 		Name:         req.Name,

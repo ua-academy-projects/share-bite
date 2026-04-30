@@ -76,14 +76,21 @@ func RegisterHandlers(
 		businessPosts.POST("/:id", h.CreatePost)
 	}
 
+	orgMutations := r.Group("").
+		Use(auth).
+		Use(middleware.RequireRoles("business")).
+		Use(middleware.RequireUserUUID())
+	{
+		orgMutations.POST("/", h.createOrgUnit)
+		orgMutations.PUT("/:id", h.updateOrgUnit)
+		orgMutations.PATCH("/:id", h.updateOrgUnit)
+		orgMutations.DELETE("/:id", h.deleteOrgUnit)
+	}
+
 	businessLocations := r.Group("").
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
 	{
-		businessLocations.POST("/", h.createOrgUnit)
-		businessLocations.PUT("/:id", h.updateOrgUnit)
-		businessLocations.PATCH("/:id", h.updateOrgUnit)
-		businessLocations.DELETE("/:id", h.deleteOrgUnit)
 		businessLocations.POST("/:id/locations", h.createLocation)
 		businessLocations.PATCH("/locations/:id", h.updateLocation)
 		businessLocations.DELETE("/locations/:id", h.deleteLocation)

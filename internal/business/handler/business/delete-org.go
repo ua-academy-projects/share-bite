@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
@@ -46,21 +45,9 @@ func (h *handler) deleteOrgUnit(c *gin.Context) {
 		return
 	}
 
-	val, exists := c.Get(middleware.CtxUserID)
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	userID, ok := val.(string)
+	orgAccountID, ok := middleware.GetUserUUID(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id type in context"})
-		return
-	}
-
-	orgAccountID, err := uuid.Parse(userID)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id format"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_uuid type in context"})
 		return
 	}
 
