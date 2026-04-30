@@ -71,9 +71,14 @@ func (h *handler) list(c *gin.Context) {
 
 	var tags []string
 	if req.Tags != "" {
+		seen := make(map[string]struct{})
 		for _, tag := range strings.Split(req.Tags, ",") {
-			tag = strings.TrimSpace(tag)
+			tag = strings.ToLower(strings.TrimSpace(tag))
 			if tag != "" {
+				if _, ok := seen[tag]; ok {
+					continue
+				}
+				seen[tag] = struct{}{}
 				tags = append(tags, tag)
 			}
 		}

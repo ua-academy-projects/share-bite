@@ -66,7 +66,7 @@ func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit
 			FROM business.org_unit_tags ot
 			JOIN business.location_tags lt ON lt.id = ot.tag_id
 			WHERE ot.org_unit_id = business.org_units.id
-			AND lt.name = ANY($2)
+			AND lt.slug = ANY($2)
 		)
 	`
 		args = append(args, pq.Array(tags))
