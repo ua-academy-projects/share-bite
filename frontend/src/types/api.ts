@@ -106,7 +106,72 @@ export interface PaginatedComments {
   entities: CommentResponse[];
 }
 
-// Business DTOs (if needed)
+// Customer DTOs
+export interface UpdateCustomerRequest {
+  userName?: string;
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+}
+
+export interface Customer {
+  id: string;
+  userId: string;
+  userName: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  createdAt: string;
+}
+
+// Collection DTOs
+export interface Collection {
+  id: string;
+  name: string;
+  description?: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollectionVenue {
+  id: number;
+  name: string;
+  description?: string | null;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  sortOrder: number;
+  addedAt: string;
+}
+
+export interface CreateCollectionRequest {
+  name: string;
+  description?: string;
+  isPublic: boolean;
+}
+
+export interface UpdateCollectionRequest {
+  name?: string;
+  description?: string;
+  isPublic?: boolean;
+}
+
+export interface ListCollectionsResponse {
+  collections: Collection[];
+  next_page_token?: string;
+}
+
+export interface ListVenuesResponse {
+  venues: CollectionVenue[];
+}
+
+export interface ReorderVenueRequest {
+  prevVenueId?: number;
+  nextVenueId?: number;
+}
+
+// Business DTOs
 export interface RestaurantResponse {
   id: number;
   name: string;

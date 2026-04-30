@@ -8,6 +8,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import { useCurrentCustomer } from '../../hooks/useCurrentCustomer';
 import { EditPostModal } from '../EditPostModal/EditPostModal';
+import { SaveToCollectionModal } from '../SaveToCollectionModal/SaveToCollectionModal';
 
 interface PostCardProps {
   post: PostResponse;
@@ -27,6 +28,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
   const [commentError, setCommentError] = useState<string | null>(null);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
   const handleNextImage = () => {
     if (post.images && currentImageIndex < post.images.length - 1) {
@@ -221,7 +223,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
         </div>
         <button 
           className={clsx(styles.actionBtn, saved && styles.saved)}
-          onClick={() => setSaved(!saved)}
+          onClick={() => setIsSaveModalOpen(true)}
+          title="Save to collection"
         >
           <Bookmark size={24} fill={saved ? "currentColor" : "none"} />
         </button>
@@ -351,6 +354,13 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
           post={post} 
           isOpen={isEditModalOpen} 
           onClose={() => setIsEditModalOpen(false)} 
+        />
+      )}
+      {isSaveModalOpen && (
+        <SaveToCollectionModal
+          venueId={post.venueId}
+          isOpen={isSaveModalOpen}
+          onClose={() => setIsSaveModalOpen(false)}
         />
       )}
     </div>

@@ -7,6 +7,7 @@ import { RestaurantProfile } from './pages/RestaurantProfile/RestaurantProfile';
 import { UserProfile } from './pages/UserProfile/UserProfile';
 import { Auth } from './pages/Auth/Auth';
 import { CreatePost } from './pages/CreatePost/CreatePost';
+import { CollectionDetail } from './pages/CollectionDetail/CollectionDetail';
 import { RequireAuth } from './components/RequireAuth/RequireAuth';
 import { ThemeProvider } from './context/ThemeContext';
 import './styles/variables.css';
@@ -25,6 +26,7 @@ function App() {
             <Route path="/user/:id" element={<RequireAuth><UserProfile /></RequireAuth>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/post/create" element={<RequireAuth><CreatePost /></RequireAuth>} />
+            <Route path="/collections/:id" element={<RequireAuth><CollectionDetail /></RequireAuth>} />
           </Routes>
         </main>
       </div>

@@ -8,7 +8,15 @@ import type {
   CreatePostInput,
   PaginatedComments,
   CommentResponse,
-  CustomerResponse
+  CustomerResponse,
+  Customer,
+  UpdateCustomerRequest,
+  Collection,
+  CreateCollectionRequest,
+  UpdateCollectionRequest,
+  ListCollectionsResponse,
+  ListVenuesResponse,
+  ReorderVenueRequest
 } from '../types/api';
 
 const authApi = axios.create({ baseURL: '/api/auth' });
@@ -131,17 +139,65 @@ export const apiClient = {
     });
     return res.data;
   },
-  getUser: async (username: string) => {
-    const res = await guestApi.get(`/customers/${username}`);
-    return res.data;
+  getCustomerByUsername: async (username: string) => {
+    const res = await guestApi.get<{customer: Customer}>(`/customers/${username}`);
+    return res.data.customer;
   },
   createCustomer: async (data: { userName: string; firstName: string; lastName: string; bio?: string }) => {
     const res = await guestApi.post<{customerId: string}>('/customers/', data);
     return res.data;
   },
   getCurrentCustomer: async () => {
-    const res = await guestApi.get<{customer: CustomerResponse}>('/customers/');
+    const res = await guestApi.get<{customer: Customer}>('/customers/');
     return res.data.customer;
+  },
+  updateCustomer: async (data: UpdateCustomerRequest) => {
+    const res = await guestApi.patch<{customer: Customer}>('/customers/', data);
+    return res.data.customer;
+  },
+  uploadAvatar: async (image: File) => {
+    const formData = new FormData();
+    formData.append('image', image);
+    const res = await guestApi.post<Customer>('/customers/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  },
+
+  // Collections
+  createCollection: async (data: CreateCollectionRequest) => {
+    const res = await guestApi.post<{collection: Collection}>('/collections/', data);
+    return res.data.collection;
+  },
+  listMyCollections: async (pageSize = 20, pageToken?: string) => {
+    const res = await guestApi.get<ListCollectionsResponse>('/collections/me', {
+      params: { page_size: pageSize, page_token: pageToken }
+    });
+    return res.data;
+  },
+  getCollection: async (id: string) => {
+    const res = await guestApi.get<{collection: Collection}>(`/collections/${id}`);
+    return res.data.collection;
+  },
+  updateCollection: async (id: string, data: UpdateCollectionRequest) => {
+    const res = await guestApi.patch<{collection: Collection}>(`/collections/${id}`, data);
+    return res.data.collection;
+  },
+  deleteCollection: async (id: string) => {
+    await guestApi.delete(`/collections/${id}`);
+  },
+  addVenueToCollection: async (collectionId: string, venueId: number) => {
+    await guestApi.post(`/collections/${collectionId}/venues/${venueId}`);
+  },
+  removeVenueFromCollection: async (collectionId: string, venueId: number) => {
+    await guestApi.delete(`/collections/${collectionId}/venues/${venueId}`);
+  },
+  reorderVenueInCollection: async (collectionId: string, venueId: number, data: ReorderVenueRequest) => {
+    await guestApi.post(`/collections/${collectionId}/venues/${venueId}/reorder`, data);
+  },
+  listVenuesInCollection: async (collectionId: string) => {
+    const res = await guestApi.get<ListVenuesResponse>(`/collections/${collectionId}/venues`);
+    return res.data.venues;
   },
   
   // Comments
