@@ -90,6 +90,12 @@ func (s *S3Storage) GetPresignedURL(ctx context.Context, key string) (string, er
 	if key == "" {
 		return "", apperror.BadRequest("object key is required")
 	}
+	if s.presignClient == nil {
+		return "", fmt.Errorf("presign client is not configured")
+	}
+	if s.urlTTL <= 0 {
+		return "", fmt.Errorf("invalid presign URL TTL: %s", s.urlTTL)
+	}
 
 	req, err := s.presignClient.PresignGetObject(ctx, &awss3.GetObjectInput{
 		Bucket: &s.bucketName,

@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"time"
+
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/sony/gobreaker"
 	swaggerfiles "github.com/swaggo/files"
 	ginswagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
@@ -16,6 +20,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
+	notif_handler "github.com/ua-academy-projects/share-bite/internal/guest/handler/notification"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
 	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
@@ -35,6 +40,9 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	redis "github.com/ua-academy-projects/share-bite/pkg/redis"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
 )
@@ -94,7 +102,67 @@ func main() {
 		return nil
 	})
 
-	// clients
+	rdb, err := redis.NewClient(
+		config.Config().Redis.Addr(),
+		config.Config().Redis.Password(),
+		config.Config().Redis.DB(),
+		config.Config().Redis.TLS(),
+	)
+	if err != nil {
+		logger.Fatal(ctx, "new redis client: ", err)
+	}
+	ctxPing, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = rdb.Ping(ctxPing).Result()
+	if err != nil {
+		logger.Fatal(ctx, "ping redis: ", err)
+	}
+	closer.Add(func(ctx context.Context) error {
+		rdb.Close()
+		return nil
+	})
+	notificationResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			// Very fast initial attempts (10ms -> 20ms -> 40ms) and overall goroutine lock timeout 1.5s
+			InitialInterval:     10 * time.Millisecond,
+			RandomizationFactor: 0.2,
+			Multiplier:          2.0,
+			MaxInterval:         200 * time.Millisecond,
+			MaxElapsedTime:      1500 * time.Millisecond,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "redis-pub",
+			MaxRequests: 1,                // Use 1 probe request
+			Interval:    10 * time.Second, // reset error counter every 10s
+			Timeout:     5 * time.Second,  // allow 5s for Redis recovery
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				// Open circuit after 20 consecutive publish errors to protect Redis
+				return counts.ConsecutiveFailures >= 20
+			},
+
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "redis circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				// Treat context.Canceled as success; mark Redis-specific permanent errors via resilience.IsPermanent
+				if err == nil || errors.Is(err, context.Canceled) {
+					return true
+				}
+				return resilience.IsPermanent(err)
+			},
+		}),
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.Debugf(ctx, "redis publish retry scheduled in %v: %v", nextRetryIn, err)
+		},
+	}
+	broker := notification.NewBroker(rdb, notification.WithPublishPolicy(notificationResiliencePolicy))
+
+	notifHub := notification.NewHub(broker)
+
 	clientCfg := config.Config().BusinessHttpClient
 	httpClient := &http.Client{
 		Timeout: clientCfg.Timeout(),
@@ -109,7 +177,50 @@ func main() {
 		return nil
 	})
 
-	businessGateway, err := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), "/", httpClient)
+	businessResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     250 * time.Millisecond,
+			RandomizationFactor: 0.25,
+			Multiplier:          2,
+			MaxInterval:         3 * time.Second,
+			MaxElapsedTime:      12 * time.Second,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "guest-business-api",
+			MaxRequests: 3,
+			Interval:    30 * time.Second,
+			Timeout:     10 * time.Second,
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+
+				if errors.Is(err, context.Canceled) {
+					return true
+				}
+
+				return resilience.IsPermanent(err)
+			},
+		}),
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.Warnf(ctx, "business API retry scheduled in %v: %v", nextRetryIn, err)
+		},
+	}
+
+	businessGateway, err := business.NewBusinessAPIClient(
+		config.Config().BusinessHttpClient.BaseURL(),
+		config.Config().BusinessHttpClient.Scheme(),
+		"/",
+		httpClient,
+		business.WithResiliencePolicy(businessResiliencePolicy),
+	)
 	if err != nil {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
 	}
@@ -137,7 +248,7 @@ func main() {
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager)
+	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager, postsvc.WithPublisher(broker))
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
 	followSvc := followsvc.New(followRepo, customerRepo)
@@ -151,6 +262,7 @@ func main() {
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+	notif_handler.RegisterHandlers(router.Group("/notification", optionalAuthMiddleware), notifHub, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
 		router.Group("/collections"),
 		collectionSvc,
