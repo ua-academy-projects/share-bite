@@ -21,6 +21,9 @@ import (
 // @Success      201     {object}  map[string]int    "Returns created organization ID"
 // @Failure      400     {object}  errorResponse     "Validation error"
 // @Failure      401     {object}  errorResponse     "Unauthorized (missing token)"
+// @Failure      403     {object}  errorResponse     "Forbidden"
+// @Failure      409     {object}  errorResponse     "Conflict"
+// @Failure      500     {object}  errorResponse     "Internal server error"
 // @Router       /business/ [post]
 // @Security     BearerAuth
 func (h *handler) createOrgUnit(c *gin.Context) {
