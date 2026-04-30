@@ -9,8 +9,6 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
-	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
-
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -336,35 +334,6 @@ func (r *Repository) GetByID(ctx context.Context, postID string) (entity.Post, e
 	result.Images = images
 
 	return result, nil
-}
-
-func (r *Repository) GetAuthorUserID(ctx context.Context, postID string) (string, error) {
-	sql := `
-		SELECT c.user_id
-		FROM guest.posts p
-		JOIN guest.customers c ON p.customer_id = c.id
-		WHERE p.id = $1
-	`
-	q := database.Query{
-		Name: "post_repository.GetAuthorUserID",
-		Sql:  sql,
-	}
-
-	var userID string
-	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&userID)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", apperror.PostNotFoundID(postID)
-		}
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
-			return "", apperror.PostNotFoundID(postID)
-		}
-
-		return "", scanRowError(err)
-	}
-
-	return userID, nil
 }
 
 func translatePostInsertError(err error, in dto.CreatePostInput) error {
