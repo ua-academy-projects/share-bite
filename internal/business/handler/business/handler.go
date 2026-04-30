@@ -29,11 +29,15 @@ type businessService interface {
 	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
 
-	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
+	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
+
+	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
 	Rating(ctx context.Context, id int) (float32, error)
+
+	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 }
 
 func RegisterHandlers(
@@ -57,6 +61,7 @@ func RegisterHandlers(
 
 	r.GET("/posts", h.GetPosts)
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
+	r.GET("/location-tags", h.listLocationTags)
 
 	businessPosts := r.Group("/posts").
 		Use(auth).
@@ -82,6 +87,8 @@ func RegisterHandlers(
 	{
 		boxes.POST("", h.CreateBox)
 	}
+
+	r.GET("/locations/nearby", h.ListNearbyVenues)
 }
 
 type errorResponse struct {

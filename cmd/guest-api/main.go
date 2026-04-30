@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"net/http"
 	"time"
 
@@ -13,7 +15,7 @@ import (
 	ginswagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	businessgateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
@@ -23,13 +25,14 @@ import (
 	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
 	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
+	followrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/follow"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
 	collectionsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/collection"
 	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
+	followsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/follow"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
-	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
@@ -57,9 +60,15 @@ import (
 func main() {
 	ctx := context.Background()
 
+	// for local development only
 	if err := config.Load(".env"); err != nil {
 		logger.Fatal(ctx, "load config:", err)
 	}
+
+	// docker variant
+	// if err := config.Load(); err != nil {
+	// 	logger.Fatal(ctx, "load config:", err)
+	// }
 
 	router := gin.New()
 	router.Use(common_middleware.RequestID())
@@ -68,7 +77,6 @@ func main() {
 	router.Use(guest_middleware.ErrorMiddleware())
 
 	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
-	router.StaticFile("/notification-test", "./scripts/notification-test.html")
 
 	binding.Validator = validator.New("binding")
 
@@ -80,6 +88,7 @@ func main() {
 	}
 	closer.SetShutdownTimeout(config.Config().App.GracefulShutdownTimeout())
 
+	// db connection
 	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
@@ -204,8 +213,8 @@ func main() {
 		},
 	}
 
-	businessGateway, err := businessgateway.NewBusinessAPIClient(
-		clientCfg.BaseURL(),
+	businessGateway, err := business.NewBusinessAPIClient(
+		config.Config().BusinessHttpClient.BaseURL(),
 		"/",
 		httpClient,
 		businessgateway.WithResiliencePolicy(businessResiliencePolicy),
@@ -228,20 +237,26 @@ func main() {
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
 
+	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
 	commentRepo := commentrepo.New(client)
 	collectionRepo := collectionrepo.New(client)
+	followRepo := followrepo.New(client)
 
+	// services
 	customerSvc := customersvc.New(customerRepo)
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager, postsvc.WithPublisher(broker))
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
+	followSvc := followsvc.New(followRepo, customerRepo)
 
+	// middlewares
 	authMiddleware := middleware.Auth(tokenManager)
 	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
 	customerMiddleware := middleware.CustomerID(customerSvc)
 
+	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
@@ -253,6 +268,7 @@ func main() {
 		optionalAuthMiddleware,
 		customerMiddleware,
 	)
+	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

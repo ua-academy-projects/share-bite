@@ -23,10 +23,12 @@ type postRepository interface {
 	CreateImages(ctx context.Context, images []entity.PostImage) error
 	DeleteImagesByPostID(ctx context.Context, postID string) error
 	UpdateStatus(ctx context.Context, postID, customerID string, status entity.PostStatus) error
+	GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
 }
 
 type VenueProvider interface {
 	CheckExists(ctx context.Context, venueID int64) (bool, error)
+	GetNearbyVenues(ctx context.Context, lat, lon float64, limit int) ([]int64, error)
 }
 
 type service struct {

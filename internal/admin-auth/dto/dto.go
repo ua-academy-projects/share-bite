@@ -50,3 +50,9 @@ type CreateSocialAccountParams struct {
 	ProviderID string
 	Email      string
 }
+
+type StoreRefreshTokenParams struct {
+	TokenHash string
+	UserID    string
+	ExpiresAt time.Time
+}
