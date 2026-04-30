@@ -345,7 +345,7 @@ func (h *Handler) RevokeAllSessions(c *gin.Context) {
 	c.JSON(http.StatusOK, MessageResponse{Message: "All sessions have been successfully revoked."})
 }
 
-func (h *Handler) GetAdminUserStatus(c *gin.Context) {
+func (h *Handler) GetUserStatus(c *gin.Context) {
 	requesterUserID, requesterRole, ok := getRequester(c)
 	if !ok {
 		return
@@ -361,7 +361,7 @@ func (h *Handler) GetAdminUserStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, UserStatusResponse{Status: string(status)})
 }
 
-func (h *Handler) UpdateAdminUserStatus(c *gin.Context) {
+func (h *Handler) UpdateUserStatus(c *gin.Context) {
 	requesterUserID, requesterRole, ok := getRequester(c)
 	if !ok {
 		return
