@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 )
 
 const (
@@ -42,6 +44,10 @@ func (c *githubClient) exchangeCode(ctx context.Context, code string) (string, e
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ghlogin: token endpoint status %d", resp.StatusCode)
+	}
+
 	var result struct {
 		AccessToken string `json:"access_token"`
 		Error       string `json:"error"`
@@ -55,7 +61,7 @@ func (c *githubClient) exchangeCode(ctx context.Context, code string) (string, e
 	return result.AccessToken, nil
 }
 
-func (c *githubClient) getUser(ctx context.Context, accessToken string) (*GitHubUser, error) {
+func (c *githubClient) getUser(ctx context.Context, accessToken string) (*dto.GitHubUser, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, githubUserURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("ghlogin: build user request: %w", err)
@@ -73,7 +79,7 @@ func (c *githubClient) getUser(ctx context.Context, accessToken string) (*GitHub
 		return nil, fmt.Errorf("ghlogin: github user status %d", resp.StatusCode)
 	}
 
-	var ghUser GitHubUser
+	var ghUser dto.GitHubUser
 	if err := json.NewDecoder(resp.Body).Decode(&ghUser); err != nil {
 		return nil, fmt.Errorf("ghlogin: decode github user: %w", err)
 	}

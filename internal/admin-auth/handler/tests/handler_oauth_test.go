@@ -15,8 +15,8 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"         // пакет з твоїми хендлерами та Request-структурами
-	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth" // пакет з інтерфейсами провайдера та сервісу
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 

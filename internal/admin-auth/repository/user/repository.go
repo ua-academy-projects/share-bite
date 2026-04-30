@@ -8,7 +8,6 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/ghAuth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
@@ -17,7 +16,7 @@ type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
 	CreateWithRole(ctx context.Context, params dto.CreateWithRoleParams) (*dto.CreatedUser, error)
-	UpsertByGitHubID(ctx context.Context, ghUser ghAuth.GitHubUser) (*ghAuth.User, error)
+	UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error)
 	FindBySocialProvider(ctx context.Context, provider, providerID string) (*dto.UserWithRole, error)
 	LinkSocialAccount(ctx context.Context, params dto.CreateSocialAccountParams) error
 	CreateWithSocial(ctx context.Context, params dto.CreateUserWithSocialParams) (*dto.CreatedUser, error)
@@ -192,7 +191,7 @@ func (r *repository) CreateWithRole(ctx context.Context, params dto.CreateWithRo
 	return u, nil
 }
 
-func (r *repository) UpsertByGitHubID(ctx context.Context, ghUser ghAuth.GitHubUser) (*ghAuth.User, error) {
+func (r *repository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
 	q := database.Query{
 		Name: "user.UpsertByGitHubID",
 		Sql: `
@@ -205,7 +204,7 @@ func (r *repository) UpsertByGitHubID(ctx context.Context, ghUser ghAuth.GitHubU
 	}
 
 	row := r.client.DB().QueryRowContext(ctx, q, ghUser.ID, ghUser.Login)
-	u := new(ghAuth.User)
+	u := new(dto.User)
 	if err := row.Scan(&u.ID, &u.GitHubID, &u.Login, &u.CreatedAt, &u.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("upsert by github id: %w", err)
 	}

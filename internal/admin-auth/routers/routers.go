@@ -5,10 +5,10 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/ghAuth"
+	github "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
 )
 
-func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc, limiter gin.HandlerFunc, gh *ghAuth.Handler) {
+func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddleware gin.HandlerFunc, limiter gin.HandlerFunc, gh *github.Handler) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	{
 		authGroup := r.Group("/auth")

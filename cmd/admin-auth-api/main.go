@@ -19,7 +19,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 
-	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/ghAuth"
+	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
