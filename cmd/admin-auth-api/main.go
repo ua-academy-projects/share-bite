@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
 	"go.uber.org/zap"
 
@@ -30,14 +30,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	commonmiddleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
-
-	//	@title			Share Bite Admin Auth API
-	//	@version		1.0
-	//	@description	This is an authentication microservice for Share Bite.
-
-	//	@host		localhost:3850
-	//	@BasePath	/
 
 	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 )
@@ -55,12 +47,10 @@ func main() {
 
 	googleCfg, err := env.NewGoogleConfig()
 	if err != nil {
-		log.Fatalf("load google oauth config: %v", err)
+		logger.Fatal(ctx, "load google oauth config: ", err)
 	}
 
 	router := gin.New()
-	router.Use(commonmiddleware.RequestID())
-	router.Use(commonmiddleware.RequestLogger())
 	router.Use(gin.Recovery())
 	router.Use(pkgmw.RequestID())
 	router.Use(pkgmw.RequestLogger())
@@ -99,6 +89,13 @@ func main() {
 	txManager := txmanager.NewTransactionManager(client.DB())
 	userRepo := userrepo.New(client)
 
+	workerManager := worker.NewManager(userRepo)
+	workerManager.Start(ctx)
+	closer.Add(func(ctx context.Context) error {
+		workerManager.Stop()
+		return nil
+	})
+
 	providerFactory := provider.NewFactory(google.Config{
 		ClientID:     googleCfg.ClientID(),
 		ClientSecret: googleCfg.ClientSecret(),
@@ -122,7 +119,7 @@ func main() {
 	default:
 		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", providerStr))
 	}
-	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager)
+	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager, cfg.Email.PasswordResetTTLValue(), cfg.Auth.MaxSessions())
 	authHandler := authhttp.NewHandler(authSvc, providerFactory)
 
 	limiter := adminmw.NewAuthRecoveryLimiter(
@@ -159,7 +156,7 @@ func ErrorMiddleware() gin.HandlerFunc {
 		if errors.As(err.Err, &appErr) {
 			respCode = appErr.HTTPStatus()
 
-			resp = authhttp.ErrorResponse{Error: appErr.Error()}
+			resp = authhttp.ErrorResponse{Error: appErr.Message}
 		}
 
 		c.JSON(respCode, resp)

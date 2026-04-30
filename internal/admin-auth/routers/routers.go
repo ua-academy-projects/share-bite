@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "github.com/ua-academy-projects/share-bite/docs/api/admin-auth"
 
+	_ "github.com/ua-academy-projects/share-bite/docs/api/admin-auth"
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 )
 
@@ -18,13 +18,16 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, authMiddlewa
 			authGroup.POST("/register", authHandler.Register)
 			authGroup.POST("/refresh", authHandler.Refresh)
 			authGroup.POST("/oauth/:provider/callback", authHandler.OAuthCallback)
-
-			protectedUserGroup := r.Group("/user").Use(authMiddleware)
-			{
-				protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
-			}
 			authGroup.POST("/recover-access", limiter, authHandler.RecoverAccess)
 			authGroup.POST("/reset-password", limiter, authHandler.ResetPassword)
+
+		}
+
+		protectedUserGroup := r.Group("/user").Use(authMiddleware)
+		{
+			protectedUserGroup.POST("/logout", authHandler.Logout)
+			protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
+			protectedUserGroup.POST("/sessions/revoke-all", authHandler.RevokeAllSessions)
 		}
 	}
 }
