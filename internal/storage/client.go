@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	awscred "github.com/aws/aws-sdk-go-v2/credentials"

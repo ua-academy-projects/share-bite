@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS guest.posts (
 
     CONSTRAINT posts_status_chk
     CHECK (status IN ('draft', 'published', 'archived'))
-);
+    );
 -- +goose StatementEnd
 
 -- +goose Down
