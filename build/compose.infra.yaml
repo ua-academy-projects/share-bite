@@ -54,16 +54,11 @@ services:
     ports:
       - '${REDIS_PORT}:6379'
     volumes:
+      - ../redis.conf:/usr/local/etc/redis/redis.conf
       - redis-data:/data
     networks:
       - share-bite-net
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - REDIS_AOF=${REDIS_AOF}
-    command:
-      redis-server 
-      --requirepass ${REDIS_PASSWORD} 
-      --appendonly ${REDIS_AOF}
+    command: redis-server /usr/local/etc/redis/redis.conf
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "ping"]

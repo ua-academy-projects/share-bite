@@ -45,10 +45,14 @@ func WithResiliencePolicy(policy resilience.Policy) Option {
 	}
 }
 
-func NewBusinessAPIClient(baseURL string, basePath string, httpClient *http.Client, opts ...Option) (*businessAPIClient, error) {
+func NewBusinessAPIClient(baseURL string, scheme string, basePath string, httpClient *http.Client, opts ...Option) (*businessAPIClient, error) {
 	normalizedBaseURL := strings.TrimSpace(baseURL)
+	normalizedScheme := strings.TrimSpace(scheme)
 	if !strings.Contains(normalizedBaseURL, "://") {
-		normalizedBaseURL = "http://" + normalizedBaseURL
+		if normalizedScheme == "" {
+			return nil, fmt.Errorf("business baseURL %q: scheme is required when URL does not include one", normalizedBaseURL)
+		}
+		normalizedBaseURL = normalizedScheme + "://" + normalizedBaseURL
 	}
 
 	u, err := url.Parse(normalizedBaseURL)

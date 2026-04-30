@@ -215,6 +215,7 @@ func main() {
 
 	businessGateway, err := business.NewBusinessAPIClient(
 		config.Config().BusinessHttpClient.BaseURL(),
+		config.Config().BusinessHttpClient.Scheme(),
 		"/",
 		httpClient,
 		businessgateway.WithResiliencePolicy(businessResiliencePolicy),

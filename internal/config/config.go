@@ -58,6 +58,7 @@ type HttpServer interface {
 
 type HttpClient interface {
 	BaseURL() string
+	Scheme() string
 	Timeout() time.Duration
 	MaxIdleConns() int
 	MaxIdleConnsPerHost() int
