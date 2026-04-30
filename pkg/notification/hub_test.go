@@ -68,8 +68,13 @@ func TestHub_RegisterAndUnregister(t *testing.T) {
 	assert.False(t, exists)
 
 	// Sending channel should be closed
-	_, ok := <-client.Send
-	assert.False(t, ok)
+	// Use non-blocking receive with timeout to avoid hanging if Hub.Unregister fails to close the channel
+	select {
+	case _, ok := <-client.Send:
+		assert.False(t, ok, "expected client.Send channel to be closed after Hub.Unregister")
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("timeout: Hub.Unregister did not close client.Send channel")
+	}
 }
 
 func TestHub_Run(t *testing.T) {
