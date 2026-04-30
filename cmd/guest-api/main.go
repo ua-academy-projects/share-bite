@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
-	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"net/http"
 	"time"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -218,7 +219,7 @@ func main() {
 		config.Config().BusinessHttpClient.Scheme(),
 		"/",
 		httpClient,
-		businessgateway.WithResiliencePolicy(businessResiliencePolicy),
+		business.WithResiliencePolicy(businessResiliencePolicy),
 	)
 	if err != nil {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
