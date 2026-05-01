@@ -1,4 +1,4 @@
-package auth
+package handler
 
 type LoginRequest struct {
 	Email    string `json:"email"    binding:"required,email"`
@@ -44,4 +44,17 @@ type MessageResponse struct {
 
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+type UsersFilterQuery struct {
+	Limit     int    `form:"limit"`
+	Offset    int    `form:"offset"`
+	Search    string `form:"search_email"`
+	Role      string `form:"role"`
+	Status    string `form:"status"`
+	SortOrder string `form:"sort_order"`
+}
+
+type ChangeRoleRequest struct {
+	RoleSlug string `json:"role_slug" binding:"required,oneof=admin moderator user business"`
 }
