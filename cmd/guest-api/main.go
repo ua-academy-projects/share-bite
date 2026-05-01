@@ -250,7 +250,7 @@ func main() {
 	customerSvc := customersvc.New(customerRepo)
 	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager, postsvc.WithPublisher(broker))
 	commentSvc := commentsvc.New(commentRepo, postSvc)
-	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
+	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
 	followSvc := followsvc.New(followRepo, customerRepo)
 
 	// middlewares
@@ -269,6 +269,7 @@ func main() {
 		authMiddleware,
 		optionalAuthMiddleware,
 		customerMiddleware,
+		storageClient,
 	)
 	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
 
