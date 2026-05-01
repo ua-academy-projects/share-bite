@@ -56,7 +56,9 @@ func (s *service) ReorderVenue(ctx context.Context, in entity.ReorderVenueInput)
 
 	if needsReset {
 		go func(collectionID string) {
-			rebalanceCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			detachedCtx := context.WithoutCancel(ctx)
+
+			rebalanceCtx, cancel := context.WithTimeout(detachedCtx, time.Second*5)
 			defer cancel()
 
 			logger.Info(rebalanceCtx, "starting async rebalance for collection: ", collectionID)
