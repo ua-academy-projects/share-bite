@@ -20,7 +20,8 @@ const (
 	constraintCollectionVenuesPkey        = "collection_venues_pkey"
 	constraintCollectionCollaboratorsPkey = "collection_collaborators_pkey"
 
-	constraintCollectionCollaboratorsCustomerFkey = "collection_collaborators_customer_id_fkey"
+	constraintCollectionCollaboratorsCustomerFkey   = "collection_collaborators_customer_id_fkey"
+	constraintCollectionCollaboratorsCollectionFkey = "collection_collaborators_collection_id_fkey"
 
 	constraintCollectionInvitationsUnique         = "idx_collection_invitations_unique"
 	constraintCollectionInvitationsInviteeFkey    = "collection_invitations_invitee_id_fkey"
@@ -545,6 +546,8 @@ func (r *repository) CreateCollaborator(ctx context.Context, collectionID string
 				switch pgErr.ConstraintName {
 				case constraintCollectionCollaboratorsCustomerFkey:
 					return apperror.InviteeCustomerNotFoundID(inviteeID)
+				case constraintCollectionCollaboratorsCollectionFkey:
+					return apperror.CollectionNotFoundID(collectionID)
 				}
 			}
 		}

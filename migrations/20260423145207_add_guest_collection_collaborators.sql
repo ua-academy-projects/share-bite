@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS guest.collection_invitations
     invitee_id UUID NOT NULL REFERENCES guest.customers(id) ON DELETE CASCADE,
 
     last_sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

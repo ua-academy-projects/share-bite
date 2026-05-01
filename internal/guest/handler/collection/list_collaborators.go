@@ -26,8 +26,8 @@ import (
 // @Success		200				{object}	listCollaboratorsResponse	"Successfully retrieved the list of collaborators"
 // @Failure		400				{object}	response.ErrorResponse		"Invalid collection ID format"
 // @Failure		401				{object}	response.AuthErrorResponse	"Unauthorized: Token was provided but is invalid or expired"
-// @Failure		403				{object}	response.ErrorResponse		"Forbidden: Token is valid but customer profile not found, or collection is private"
-// @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection does not exist"
+// @Failure		403				{object}	response.ErrorResponse		"Forbidden: Token is valid but customer profile not found"
+// @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection does not exist or is not accessible"
 // @Failure		500				{object}	response.ErrorResponse		"Internal server error"
 //
 // @Router			/collections/{collectionId}/collaborators [get]
