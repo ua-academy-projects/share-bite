@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
 type mockCollectionRepository struct {
@@ -187,4 +188,22 @@ func (m *mockTxManager) ReadCommitted(ctx context.Context, fn database.Handler) 
 	}
 
 	return fn(ctx)
+}
+
+type mockCustomerRepository struct {
+	mock.Mock
+}
+
+func (m *mockCustomerRepository) GetByID(ctx context.Context, customerID string) (entity.Customer, error) {
+	args := m.Called(ctx, customerID)
+	return args.Get(0).(entity.Customer), args.Error(1)
+}
+
+type mockPublisher struct {
+	mock.Mock
+}
+
+func (m *mockPublisher) Publish(ctx context.Context, ch string, msg notification.Message) error {
+	args := m.Called(ctx, ch, msg)
+	return args.Error(0)
 }

@@ -311,7 +311,7 @@ func TestListInvitations(t *testing.T) {
 			t.Parallel()
 
 			repo := new(mockCollectionRepository)
-			svc := New(repo, nil, nil)
+			svc := New(repo, nil, nil, nil)
 			tt.mockFn(repo)
 
 			resp, err := svc.ListInvitations(context.Background(), tt.input)

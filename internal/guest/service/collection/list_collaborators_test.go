@@ -229,7 +229,7 @@ func TestListCollaborators(t *testing.T) {
 			t.Parallel()
 
 			repo := new(mockCollectionRepository)
-			svc := New(repo, nil, nil)
+			svc := New(repo, nil, nil, nil)
 			tt.mockFn(repo)
 
 			resp, err := svc.ListCollaborators(context.Background(), tt.collectionID, tt.customerID)

@@ -241,7 +241,7 @@ func TestListVenues(t *testing.T) {
 			repo := new(mockCollectionRepository)
 			txManager := new(mockTxManager)
 			businessClient := new(mockBusinessClient)
-			svc := New(repo, txManager, businessClient)
+			svc := New(repo, nil, txManager, businessClient)
 
 			tt.mockFn(repo, businessClient)
 

@@ -5,7 +5,8 @@ import "time"
 type EventType string
 
 const (
-	PostLiked EventType = "post_liked"
+	PostLiked          EventType = "post_liked"
+	InvitationReceived EventType = "invitation_received"
 )
 
 type Message struct {

@@ -602,7 +602,7 @@ func TestAcceptInvitation(t *testing.T) {
 			t.Parallel()
 			repo := new(mockCollectionRepository)
 			txManager := new(mockTxManager)
-			svc := New(repo, txManager, nil)
+			svc := New(repo, nil, txManager, nil)
 			tt.mockFn(repo, txManager)
 
 			err := svc.AcceptInvitation(context.Background(), tt.invitationID, tt.inviteeID)

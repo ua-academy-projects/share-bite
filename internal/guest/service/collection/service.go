@@ -8,6 +8,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
 const (
@@ -61,28 +62,52 @@ type collectionRepository interface {
 	ListInvitations(ctx context.Context, in entity.ListInvitationsInput) ([]entity.EnrichedInvitation, error)
 }
 
+type customerRepository interface {
+	GetByID(ctx context.Context, customerID string) (entity.Customer, error)
+}
+
 type businessClient interface {
 	ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error)
 }
 
 type service struct {
 	collectionRepo collectionRepository
-
-	txManager database.TxManager
+	customerRepo   customerRepository
+	txManager      database.TxManager
 
 	businessClient businessClient
+	publisher      notification.Publisher
+}
+
+type Option func(*service)
+
+func WithPublisher(pub notification.Publisher) Option {
+	return func(s *service) {
+		s.publisher = pub
+	}
 }
 
 func New(
 	collectionRepo collectionRepository,
+	customerRepo customerRepository,
 	txManager database.TxManager,
 	businessClient businessClient,
+	opts ...Option,
 ) *service {
-	return &service{
+	s := &service{
 		collectionRepo: collectionRepo,
+		customerRepo:   customerRepo,
 		txManager:      txManager,
 		businessClient: businessClient,
 	}
+
+	for _, o := range opts {
+		if o != nil {
+			o(s)
+		}
+	}
+
+	return s
 }
 
 // requireOwner returns nil if the requesting user is the owner.

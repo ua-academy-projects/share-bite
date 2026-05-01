@@ -164,7 +164,7 @@ func TestDeclineInvitation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			repo := new(mockCollectionRepository)
-			svc := New(repo, nil, nil)
+			svc := New(repo, nil, nil, nil)
 			tt.mockFn(repo)
 
 			err := svc.DeclineInvitation(context.Background(), tt.invitationID, tt.inviteeID)
