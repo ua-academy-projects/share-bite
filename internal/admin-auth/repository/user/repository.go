@@ -31,6 +31,29 @@ type Repository interface {
 	RevokeAllUserTokens(ctx context.Context, userID string) error
 	EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error
 	DeleteExpiredTokens(ctx context.Context) error
+	UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error)
+}
+
+func (r *repository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
+	q := database.Query{
+		Name: "user.UpsertByGitHubID",
+		Sql: `
+			INSERT INTO github.users (github_id, login)
+			VALUES ($1, $2)
+			ON CONFLICT (github_id) DO UPDATE
+			SET login = EXCLUDED.login, updated_at = NOW()
+			RETURNING id, github_id, login, created_at, updated_at
+		`,
+	}
+
+	row := r.client.DB().QueryRowContext(ctx, q, ghUser.ID, ghUser.Login)
+	u := new(dto.User)
+	if err := row.Scan(&u.ID, &u.GitHubID, &u.Login, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("upsert by github id: %w", err)
+	}
+	u.Email = ghUser.Email
+
+	return u, nil
 }
 
 type repository struct {
