@@ -9,22 +9,30 @@ import (
 )
 
 func (s *service) UpdateCollection(ctx context.Context, in entity.UpdateCollectionInput) (entity.Collection, error) {
-	collection, err := s.collectionRepo.GetCollection(ctx, in.CollectionID)
-	if err != nil {
-		return entity.Collection{}, fmt.Errorf("get collection from repository: %w", err)
-	}
-	if err := s.requireCollaborator(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
-		return entity.Collection{}, err
-	}
+	var updatedCollection entity.Collection
 
-	// only owner can have control over collection visibility
-	if in.IsPublic != nil && in.CustomerID != collection.CustomerID {
-		return entity.Collection{}, apperror.ErrCollectionAccessDenied
-	}
+	if txErr := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
+		collection, err := s.collectionRepo.GetCollectionForUpdate(ctx, in.CollectionID)
+		if err != nil {
+			return fmt.Errorf("get collection from repository: %w", err)
+		}
+		if err := s.requireCollaborator(ctx, in.CollectionID, in.CustomerID, collection.CustomerID); err != nil {
+			return err
+		}
 
-	updatedCollection, err := s.collectionRepo.UpdateCollection(ctx, in)
-	if err != nil {
-		return entity.Collection{}, fmt.Errorf("update collection in repository: %w", err)
+		// only owner can have control over collection visibility
+		if in.IsPublic != nil && in.CustomerID != collection.CustomerID {
+			return apperror.ErrCollectionAccessDenied
+		}
+
+		updatedCollection, err = s.collectionRepo.UpdateCollection(ctx, in)
+		if err != nil {
+			return fmt.Errorf("update collection in repository: %w", err)
+		}
+
+		return nil
+	}); txErr != nil {
+		return entity.Collection{}, txErr
 	}
 
 	return updatedCollection, nil

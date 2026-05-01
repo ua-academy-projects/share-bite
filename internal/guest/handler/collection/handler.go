@@ -138,7 +138,7 @@ type collaboratorResponse struct {
 	UserName   string  `json:"userName"`
 	AvatarURL  *string `json:"avatarUrl"`
 
-	AddedAt time.Time `json:"addedAt"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func (h *handler) collaboratorToResponse(collaborator entity.Collaborator) collaboratorResponse {
@@ -152,7 +152,7 @@ func (h *handler) collaboratorToResponse(collaborator entity.Collaborator) colla
 		CustomerID: collaborator.CustomerID,
 		UserName:   collaborator.UserName,
 		AvatarURL:  avatarURL,
-		AddedAt:    collaborator.AddedAt,
+		CreatedAt:  collaborator.CreatedAt,
 	}
 }
 

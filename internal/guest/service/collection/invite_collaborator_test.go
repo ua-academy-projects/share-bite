@@ -581,16 +581,22 @@ func TestInviteCollaborator(t *testing.T) {
 
 			if tt.wait {
 				require.Eventually(t, func() bool {
+					if len(pub.ExpectedCalls) > 0 {
+						for _, call := range pub.Calls {
+							if call.Method == "Publish" {
+								return true
+							}
+						}
+
+						return false
+					}
+
 					for _, call := range customerRepo.Calls {
 						if call.Method == "GetByID" {
 							return true
 						}
 					}
-					for _, call := range pub.Calls {
-						if call.Method == "Publish" {
-							return true
-						}
-					}
+
 					return false
 				}, time.Second, 10*time.Millisecond, "async goroutine was not called in time")
 			}

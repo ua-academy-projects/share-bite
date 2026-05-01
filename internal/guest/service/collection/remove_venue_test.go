@@ -31,7 +31,7 @@ func TestRemoveVenue(t *testing.T) {
 		customerID   string
 		venueID      int64
 
-		mockFn func(repo *mockCollectionRepository)
+		mockFn func(repo *mockCollectionRepository, tx *mockTxManager)
 
 		wantErr error
 	}{
@@ -40,8 +40,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).
 					Once()
 
@@ -60,8 +62,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).
 					Once()
 
@@ -81,8 +85,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: "other-owner-id"}, nil).Once()
 				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
 					Return(false, errRepo).Once()
@@ -94,8 +100,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{}, errRepo).
 					Once()
 			},
@@ -106,8 +114,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{}, apperror.CollectionNotFoundID(collectionID)).
 					Once()
 			},
@@ -118,8 +128,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).
 					Once()
 
@@ -133,8 +145,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).
 					Once()
 
@@ -149,8 +163,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).
 					Once()
 
@@ -165,8 +181,10 @@ func TestRemoveVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).
 					Once()
 
@@ -191,7 +209,7 @@ func TestRemoveVenue(t *testing.T) {
 			businessClient := new(mockBusinessClient)
 			svc := New(repo, nil, txManager, businessClient)
 
-			tt.mockFn(repo)
+			tt.mockFn(repo, txManager)
 
 			err := svc.RemoveVenue(context.Background(), tt.collectionID, tt.customerID, tt.venueID)
 
@@ -203,6 +221,7 @@ func TestRemoveVenue(t *testing.T) {
 			}
 
 			repo.AssertExpectations(t)
+			txManager.AssertExpectations(t)
 		})
 	}
 }

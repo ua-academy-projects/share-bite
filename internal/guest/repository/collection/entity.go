@@ -80,7 +80,7 @@ type Collaborator struct {
 	UserName        string  `db:"username"`
 	AvatarObjectKey *string `db:"avatar_object_key"`
 
-	AddedAt time.Time `db:"added_at"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 func (e Collaborator) ToEntity() entity.Collaborator {
@@ -91,7 +91,7 @@ func (e Collaborator) ToEntity() entity.Collaborator {
 		UserName:        e.UserName,
 		AvatarObjectKey: e.AvatarObjectKey,
 
-		AddedAt: e.AddedAt,
+		CreatedAt: e.CreatedAt,
 	}
 }
 

@@ -27,7 +27,7 @@ func TestUpdateCollection(t *testing.T) {
 	tests := []struct {
 		name           string
 		input          entity.UpdateCollectionInput
-		mockFn         func(repo *mockCollectionRepository)
+		mockFn         func(repo *mockCollectionRepository, tx *mockTxManager)
 		wantCollection entity.Collection
 		wantErr        error
 	}{
@@ -40,8 +40,10 @@ func TestUpdateCollection(t *testing.T) {
 				Description:  strPtr(description),
 				IsPublic:     boolPtr(true),
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).Once()
 
 				repo.On("UpdateCollection", mock.Anything, entity.UpdateCollectionInput{
@@ -75,8 +77,10 @@ func TestUpdateCollection(t *testing.T) {
 				CustomerID:   customerID,
 				Name:         strPtr(name),
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: "other-owner-id"}, nil).Once()
 				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
 					Return(true, nil).Once()
@@ -96,8 +100,10 @@ func TestUpdateCollection(t *testing.T) {
 				CustomerID:   customerID,
 				Name:         strPtr(name),
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
 
 				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
@@ -115,8 +121,10 @@ func TestUpdateCollection(t *testing.T) {
 				Description:  strPtr(description),
 				IsPublic:     boolPtr(true),
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{}, errRepo).Once()
 			},
 			wantCollection: entity.Collection{},
@@ -129,8 +137,10 @@ func TestUpdateCollection(t *testing.T) {
 				CustomerID:   customerID,
 				Name:         strPtr(name),
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
 
 				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
@@ -148,8 +158,10 @@ func TestUpdateCollection(t *testing.T) {
 				Description:  strPtr(description),
 				IsPublic:     boolPtr(true),
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).Once()
 
 				repo.On("UpdateCollection", mock.Anything, entity.UpdateCollectionInput{
@@ -173,8 +185,10 @@ func TestUpdateCollection(t *testing.T) {
 				Description:  nil,
 				IsPublic:     nil,
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: customerID}, nil).Once()
 
 				repo.On("UpdateCollection", mock.Anything, entity.UpdateCollectionInput{
@@ -196,8 +210,10 @@ func TestUpdateCollection(t *testing.T) {
 				CustomerID:   customerID,
 				IsPublic:     boolPtr(true),
 			},
-			mockFn: func(repo *mockCollectionRepository) {
-				repo.On("GetCollection", mock.Anything, collectionID).
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
+
+				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
 					Return(entity.Collection{ID: collectionID, CustomerID: gofakeit.UUID()}, nil).Once()
 
 				repo.On("CheckIfCollaborator", mock.Anything, collectionID, customerID).
@@ -217,7 +233,7 @@ func TestUpdateCollection(t *testing.T) {
 			businessClient := new(mockBusinessClient)
 			svc := New(repo, nil, txManager, businessClient)
 
-			tt.mockFn(repo)
+			tt.mockFn(repo, txManager)
 
 			collection, err := svc.UpdateCollection(context.Background(), tt.input)
 
@@ -226,10 +242,11 @@ func TestUpdateCollection(t *testing.T) {
 				assert.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
+				assert.Equal(t, tt.wantCollection, collection)
 			}
 
-			assert.Equal(t, tt.wantCollection, collection)
 			repo.AssertExpectations(t)
+			txManager.AssertExpectations(t)
 		})
 	}
 }

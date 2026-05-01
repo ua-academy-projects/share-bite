@@ -9,7 +9,7 @@ type Collaborator struct {
 	UserName        string
 	AvatarObjectKey *string
 
-	AddedAt time.Time
+	CreatedAt time.Time
 }
 
 type RemoveCollaboratorInput struct {
