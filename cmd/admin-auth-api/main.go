@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
@@ -127,7 +128,17 @@ func main() {
 		cfg.RateLimit.AuthRecoverDuration(),
 	)
 
-	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter)
+	ghConfig := gh.Config{
+		ClientID:           cfg.Github.GetClientID(),
+		ClientSecret:       cfg.Github.GetClientSecret(),
+		RedirectURL:        cfg.Github.GetRedirectURL(),
+		SuccessRedirectURL: cfg.Github.GetSuccessRedirectURL(),
+	}
+
+	sessionStore := gh.NewJWTSessionStore(tokenManager)
+	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore)
+
+	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter, *ghHandler)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()

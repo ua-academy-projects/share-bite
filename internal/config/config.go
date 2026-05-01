@@ -29,6 +29,7 @@ type config struct {
 	JwtToken  JwtToken
 	Email     Email
 	RateLimit RateLimit
+	Github GitHub
 
 	Storage Storage
 
@@ -46,6 +47,13 @@ type App interface {
 	Stage() string
 	IsProd() bool
 	GracefulShutdownTimeout() time.Duration
+}
+
+type GitHub interface {
+	GetClientID() string
+	GetClientSecret() string
+	GetRedirectURL() string
+	GetSuccessRedirectURL() string
 }
 
 type HttpServer interface {
@@ -176,10 +184,16 @@ func Load(paths ...string) error {
 	if err != nil {
 		return fmt.Errorf("auth config: %w", err)
 	}
+	
+	ghcfg, err := env.NewGitHubConfig()
+	if err != nil {	
+		return fmt.Errorf("Errorl load github config: %w", err)
+	}
 
 	cfg = &config{
 		App:  appConfig,
 		Auth: authConfig,
+		Github: ghcfg,
 
 		GuestHttpServer:    guestHttpServerConfig,
 		AdminHttpServer:    adminHttpServerConfig,
