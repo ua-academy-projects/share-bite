@@ -120,7 +120,7 @@ func (s *service) InviteCollaborator(ctx context.Context, in entity.InviteCollab
 				CreatedAt: time.Now().UTC(),
 			}
 			if err := s.publisher.Publish(publishCtx, inviteeUserID, msg); err != nil {
-				logger.Error(publishCtx, "publishing invitation event to redis failed", "error", err)
+				logger.ErrorKV(publishCtx, "publishing invitation event to redis failed", "error", err)
 				return
 			}
 

@@ -634,10 +634,11 @@ func (r *repository) ListCollaborators(ctx context.Context, collectionID string)
 			collaborators.customer_id AS customer_id,
 			customers.username AS username,
 			customers.avatar_object_key AS avatar_object_key,
-			collaborators.added_at AS added_at
+			collaborators.created_at AS created_at
 		FROM guest.collection_collaborators collaborators
 		JOIN guest.customers customers ON collaborators.customer_id = customers.id
 		WHERE collection_id = $1
+		ORDER BY collaborators.created_at ASC
 	`
 	q := database.Query{
 		Name: "collection_repository.ListCollaborators",
