@@ -4,25 +4,34 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
 
 env:
-  REGISTRY: ghcr.io
+  AWS_REGION: us-east-2
+  AWS_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
 
 jobs:
   build-and-push:
     name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
     permissions:
+      id-token: write
       contents: read
-      packages: write
 
     strategy:
       fail-fast: false
       matrix:
-        service: [admin, business, guest]
+        include:
+          - service: admin
+            ecr_repo: share-bite/admin-auth-api
+          - service: business
+            ecr_repo: share-bite/business-api
+          - service: guest
+            ecr_repo: share-bite/guest-api
 
     steps:
       - name: Checkout repository
@@ -36,20 +45,39 @@ jobs:
       - name: Generate swagger
         run: make generate
 
-      - name: Log in to the Container registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+           images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}
+           tags: |
+              type=sha,prefix=sha-
+              type=ref,event=branch
+              type=ref,event=tag
+              type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push ${{ matrix.service }} image
+        id: build-push
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./build/Dockerfile.${{ matrix.service }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:latest
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}
+            context: .
+            file: ./build/Dockerfile.${{ matrix.service }}
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Output Pushed Image URI
+        run: |
+            IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}@${{ steps.build-push.outputs.digest }}"
+            echo "Successfully pushed to: $IMAGE_URI"
+            echo "**${{ matrix.service }}**: \`$IMAGE_URI\`" >> $GITHUB_STEP_SUMMARY
