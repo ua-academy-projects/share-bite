@@ -2,8 +2,7 @@ package business
 
 import (
 	"net/http"
-	"strings"
-
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -12,7 +11,7 @@ import (
 
 // createOrgUnit godoc
 // @Summary      Create new business organization
-// @Description  Creates a BRAND (top-level) or VENUE (location under a brand). VENUEs must specify parent_id.
+// @Description  Creates a BRAND (top-level)
 // @Tags         business
 // @Accept       json
 // @Produce      json
@@ -27,16 +26,15 @@ import (
 // @Security     BearerAuth
 func (h *handler) createOrgUnit(c *gin.Context) {
 	var req dto.CreateOrgRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
+	decoder := json.NewDecoder(c.Request.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid contract: " + err.Error()})
 		return
 	}
 
-	profileType := strings.ToUpper(strings.TrimSpace(req.ProfileType))
-	if profileType != entity.ProfileTypeBrand && profileType != entity.ProfileTypeVenue {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid profile type"})
-		return
-	}
 
 	userUUID, ok := middleware.GetUserUUID(c)
 	if !ok {
@@ -46,12 +44,9 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 
 	orgEntity := entity.OrgUnit{
 		OrgAccountId: userUUID,
-		ProfileType:  profileType,
-		ParentId:     req.ParentID,
+		ProfileType:  entity.ProfileTypeBrand,
 		Name:         req.Name,
 		Description:  req.Description,
-		Latitude:     req.Latitude,
-		Longitude:    req.Longitude,
 	}
 
 	id, err := h.service.Create(c.Request.Context(), orgEntity)
