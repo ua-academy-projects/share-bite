@@ -28,11 +28,11 @@ func NewHandler(service authsvc.Service, providerFactory ProviderFactory) *Handl
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request  body      LoginRequest  true  "Login credentials"
-// @Success      200      {object}  TokensResponse  "Success. Returns access and refresh tokens."
-// @Failure      400      {object}  ErrorResponse   "Validation error."
-// @Failure      401      {object}  ErrorResponse   "Invalid credentials."
-// @Failure      500      {object}  ErrorResponse   "Internal server error."
+// @Param        request  body      handler.LoginRequest    true  "Login credentials"
+// @Success      200      {object}  handler.TokensResponse  "Success. Returns access and refresh tokens."
+// @Failure      400      {object}  handler.ErrorResponse   "Validation error."
+// @Failure      401      {object}  handler.ErrorResponse   "Invalid credentials."
+// @Failure      500      {object}  handler.ErrorResponse   "Internal server error."
 // @Router       /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req handler.LoginRequest
@@ -59,10 +59,10 @@ func (h *Handler) Login(c *gin.Context) {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request  body      RecoverAccessRequest  true  "Recover access payload"
-// @Success      200      {object}  MessageResponse       "Success message."
-// @Failure      400      {object}  ErrorResponse         "Validation error."
-// @Failure      500      {object}  ErrorResponse         "Internal server error."
+// @Param        request  body      handler.RecoverAccessRequest  true  "Recover access payload"
+// @Success      200      {object}  handler.MessageResponse       "Success message."
+// @Failure      400      {object}  handler.ErrorResponse         "Validation error."
+// @Failure      500      {object}  handler.ErrorResponse         "Internal server error."
 // @Router       /auth/recover-access [post]
 func (h *Handler) RecoverAccess(c *gin.Context) {
 	var req handler.RecoverAccessRequest
@@ -88,10 +88,10 @@ func (h *Handler) RecoverAccess(c *gin.Context) {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request  body      ResetPasswordRequest  true  "Reset password payload"
-// @Success      200      {object}  MessageResponse       "Success message."
-// @Failure      400      {object}  ErrorResponse         "Validation error."
-// @Failure      500      {object}  ErrorResponse         "Internal server error."
+// @Param        request  body      handler.ResetPasswordRequest  true  "Reset password payload"
+// @Success      200      {object}  handler.MessageResponse       "Success message."
+// @Failure      400      {object}  handler.ErrorResponse         "Validation error."
+// @Failure      500      {object}  handler.ErrorResponse         "Internal server error."
 // @Router       /auth/reset-password [post]
 func (h *Handler) ResetPassword(c *gin.Context) {
 	var req handler.ResetPasswordRequest
@@ -115,12 +115,12 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request  body      RegisterRequest  true  "Registration payload"
-// @Success      201      {object}  TokensResponse   "Success. Returns access and refresh tokens."
-// @Failure      400      {object}  ErrorResponse    "Validation error."
-// @Failure      409      {object}  ErrorResponse    "User already exists."
-// @Failure      422      {object}  ErrorResponse    "Role not found."
-// @Failure      500      {object}  ErrorResponse    "Internal server error."
+// @Param        request  body      handler.RegisterRequest  true  "Registration payload"
+// @Success      201      {object}  handler.TokensResponse   "Success. Returns access and refresh tokens."
+// @Failure      400      {object}  handler.ErrorResponse    "Validation error."
+// @Failure      409      {object}  handler.ErrorResponse    "User already exists."
+// @Failure      422      {object}  handler.ErrorResponse    "Role not found."
+// @Failure      500      {object}  handler.ErrorResponse    "Internal server error."
 // @Router       /auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req handler.RegisterRequest
@@ -147,11 +147,11 @@ func (h *Handler) Register(c *gin.Context) {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request  body      RefreshRequest  true  "Refresh token payload"
-// @Success      200      {object}  TokensResponse  "Success. Returns new access and refresh tokens."
-// @Failure      400      {object}  ErrorResponse   "Validation error."
-// @Failure      401      {object}  ErrorResponse   "Invalid or expired refresh token."
-// @Failure      500      {object}  ErrorResponse   "Internal server error."
+// @Param        request  body      handler.RefreshRequest  true  "Refresh token payload"
+// @Success      200      {object}  handler.TokensResponse  "Success. Returns new access and refresh tokens."
+// @Failure      400      {object}  handler.ErrorResponse   "Validation error."
+// @Failure      401      {object}  handler.ErrorResponse   "Invalid or expired refresh token."
+// @Failure      500      {object}  handler.ErrorResponse   "Internal server error."
 // @Router       /auth/refresh [post]
 func (h *Handler) Refresh(c *gin.Context) {
 	var req handler.RefreshRequest
@@ -179,12 +179,12 @@ func (h *Handler) Refresh(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        provider path      string                true  "Provider name (e.g., google)"
-// @Param        request  body      OAuthCallbackRequest  true  "OAuth callback payload"
-// @Success      200      {object}  TokensResponse        "Success. Returns access and refresh tokens."
-// @Failure      400      {object}  ErrorResponse         "Unsupported provider or invalid request."
-// @Failure      422      {object}  ErrorResponse         "Role not found."
-// @Failure      500      {object}  ErrorResponse         "Internal server error."
-// @Failure      502      {object}  ErrorResponse         "Error exchanging code with the provider."
+// @Param        request  body      handler.OAuthCallbackRequest  true  "OAuth callback payload"
+// @Success      200      {object}  handler.TokensResponse        "Success. Returns access and refresh tokens."
+// @Failure      400      {object}  handler.ErrorResponse         "Unsupported provider or invalid request."
+// @Failure      422      {object}  handler.ErrorResponse         "Role not found."
+// @Failure      500      {object}  handler.ErrorResponse         "Internal server error."
+// @Failure      502      {object}  handler.ErrorResponse         "Error exchanging code with the provider."
 // @Router       /auth/oauth/{provider}/callback [post]
 func (h *Handler) OAuthCallback(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -224,13 +224,13 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        provider path      string            true  "Provider name (e.g., google)"
-// @Param        request  body      OAuthLinkRequest  true  "OAuth link payload"
-// @Success      200      {object}  MessageResponse   "Success. Returns a confirmation message."
-// @Failure      400      {object}  ErrorResponse     "Invalid request."
-// @Failure      401      {object}  ErrorResponse     "Unauthorized access."
-// @Failure      409      {object}  ErrorResponse     "Provider is already linked to the account."
-// @Failure      500      {object}  ErrorResponse     "Internal server error."
-// @Failure      502      {object}  ErrorResponse     "Error exchanging code with the provider."
+// @Param        request  body      handler.OAuthLinkRequest  true  "OAuth link payload"
+// @Success      200      {object}  handler.MessageResponse   "Success. Returns a confirmation message."
+// @Failure      400      {object}  handler.ErrorResponse     "Invalid request."
+// @Failure      401      {object}  handler.ErrorResponse     "Unauthorized access."
+// @Failure      409      {object}  handler.ErrorResponse     "Provider is already linked to the account."
+// @Failure      500      {object}  handler.ErrorResponse     "Internal server error."
+// @Failure      502      {object}  handler.ErrorResponse     "Error exchanging code with the provider."
 // @Router       /user/link/{provider} [post]
 func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -277,12 +277,12 @@ func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        request  body      RefreshRequest   true  "Refresh token to delete"
-// @Success      200      {object}  MessageResponse  "Success message."
-// @Failure      400      {object}  ErrorResponse    "Validation error."
-// @Failure      401      {object}  ErrorResponse    "Unauthorized access."
-// @Failure      403      {object}  ErrorResponse    "Forbidden. Token belongs to another user."
-// @Failure      500      {object}  ErrorResponse    "Internal server error."
+// @Param        request  body      handler.RefreshRequest   true  "Refresh token to delete"
+// @Success      200      {object}  handler.MessageResponse  "Success message."
+// @Failure      400      {object}  handler.ErrorResponse    "Validation error."
+// @Failure      401      {object}  handler.ErrorResponse    "Unauthorized access."
+// @Failure      403      {object}  handler.ErrorResponse    "Forbidden. Token belongs to another user."
+// @Failure      500      {object}  handler.ErrorResponse    "Internal server error."
 // @Router       /user/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	userIDVal, exists := c.Get(middleware.CtxUserID)
@@ -319,9 +319,9 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Success      200      {object}  MessageResponse  "Success message."
-// @Failure      401      {object}  ErrorResponse    "Unauthorized access."
-// @Failure      500      {object}  ErrorResponse    "Internal server error."
+// @Success      200      {object}  handler.MessageResponse  "Success message."
+// @Failure      401      {object}  handler.ErrorResponse    "Unauthorized access."
+// @Failure      500      {object}  handler.ErrorResponse    "Internal server error."
 // @Router       /user/sessions/revoke-all [post]
 func (h *Handler) RevokeAllSessions(c *gin.Context) {
 	ctx := c.Request.Context()
