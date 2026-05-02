@@ -43,7 +43,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := config.Load(".env"); err != nil {
-		logger.Info(ctx, "No .env file found, relying on system environment variables")
+		logger.Fatal(ctx, err)
 	}
 
 	googleCfg, err := env.NewGoogleConfig()
