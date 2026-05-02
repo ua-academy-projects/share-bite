@@ -15,8 +15,8 @@ import (
 	"go.uber.org/zap"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
-	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider"
+	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
