@@ -47,16 +47,20 @@ func (h *Handler) GetUsersList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, handler.ErrorResponse{Error: "Invalid query parameters."})
 		return
 	}
-	if query.Limit <= 0 {
-		query.Limit = 10
+	limit := 10
+	offset := 0
+
+	if query.Limit != nil {
+		limit = *query.Limit
 	}
-	if query.Offset < 0 {
-		query.Offset = 0
+
+	if query.Offset != nil {
+		offset = *query.Offset
 	}
 
 	filter := dto.AdminUserFilter{
-		Limit:       query.Limit,
-		Offset:      query.Offset,
+		Limit:       limit,
+		Offset:      offset,
 		SearchEmail: query.Search,
 		RoleSlug:    query.Role,
 		Status:      query.Status,

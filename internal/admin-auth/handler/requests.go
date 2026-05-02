@@ -47,8 +47,8 @@ type ErrorResponse struct {
 }
 
 type UsersFilterQuery struct {
-	Limit     int    `form:"limit" binding:"omitempty,min=1"`
-	Offset    int    `form:"offset" binding:"omitempty,min=0"`
+	Limit     *int   `form:"limit" binding:"omitempty,min=1"`
+	Offset    *int   `form:"offset" binding:"omitempty,min=0"`
 	Search    string `form:"search_email" binding:"omitempty,max=255" `
 	Role      string `form:"role" binding:"omitempty,oneof=admin moderator user business"`
 	Status    string `form:"status" binding:"omitempty,oneof=active muted suspended"`
