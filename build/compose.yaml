@@ -8,7 +8,7 @@ include:
     env_file: ../.env
 
   # to run applications with docker
-  # - path: compose.apps.yaml
+  - path: compose.apps.yaml
   #  env_file: ../.env
 
 networks:
