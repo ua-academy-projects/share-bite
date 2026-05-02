@@ -37,7 +37,6 @@ type VenueProvider interface {
 
 type service struct {
 	postRepo      postRepository
-	followRepo    followRepository
 	venueProvider VenueProvider
 	followRepo    follow.CustomerFollowRepository
 	customerRepo  customer.CustomerRepository
