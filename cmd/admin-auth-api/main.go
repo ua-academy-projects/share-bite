@@ -150,8 +150,7 @@ func main() {
 	sessionStore := gh.NewJWTSessionStore(tokenManager)
 	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore)
 
-	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter, *ghHandler)
-	routers.SetupRouter(router.Group("/"), authHandler, adminHandler, authMw, limiter)
+	routers.SetupRouter(router.Group("/"), authHandler,adminHandler, authMw, limiter, *ghHandler)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
