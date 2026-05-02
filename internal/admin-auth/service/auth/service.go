@@ -323,19 +323,28 @@ func (s *service) UpdateUserStatus(ctx context.Context, requesterUserID, request
 		return apperr.ErrUserNotFound
 	}
 
-	if err := s.userRepo.UpdateUserStatus(ctx, user.UpdateUserStatus{
-		UserID:  targetUserID,
-		Status:  status,
-		SetByID: requesterUserID,
-	}); err != nil {
-		apperr.Wrap(http.StatusInternalServerError, "failed to fetch user", err)
-		return fmt.Errorf("update user status: %w", err)
-	}
+	shouldRevoke := target.Status != models.UserStatusSuspended && status == models.UserStatusSuspended
 
-	if target.Status != models.UserStatusSuspended && status == models.UserStatusSuspended {
-		if err := s.userRepo.RevokeAllUserTokens(ctx, targetUserID); err != nil {
-			return apperr.Wrap(http.StatusInternalServerError, "failed to revoke all sessions", err)
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+		if err := s.userRepo.UpdateUserStatus(txCtx, user.UpdateUserStatus{
+			UserID:  targetUserID,
+			Status:  status,
+			SetByID: requesterUserID,
+		}); err != nil {
+			return apperr.Wrap(http.StatusInternalServerError, "failed to update user status", err)
 		}
+
+		if shouldRevoke {
+			if err := s.userRepo.RevokeAllUserTokens(txCtx, targetUserID); err != nil {
+				return apperr.Wrap(http.StatusInternalServerError, "failed to revoke all sessions", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("update user status: %w", err)
 	}
 
 	return nil
