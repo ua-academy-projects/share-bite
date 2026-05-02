@@ -123,6 +123,11 @@ func (h *Handler) ChangeUserRole(c *gin.Context) {
 	ctx := c.Request.Context()
 	userID := c.Param("id")
 
+	if err := uuid.Validate(userID); err != nil {
+		c.JSON(http.StatusBadRequest, handler.ErrorResponse{Error: "invalid user id format"})
+		return
+	}
+
 	var req handler.ChangeRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, handler.ErrorResponse{Error: "Invalid request payload. 'role_slug' is required."})

@@ -23,10 +23,15 @@ func (c *Client) GetCustomerByUserID(ctx context.Context, userID string) (*dto.C
 	q := database.Query{
 		Name: "guest.GetCustomerByUserID",
 		Sql: `
-			SELECT username, first_name, last_name, avatar_object_key, bio 
-			FROM guest.customers 
-			WHERE user_id = $1
-		`,
+          SELECT 
+              username, 
+              first_name, 
+              last_name, 
+              COALESCE(avatar_object_key, ''), 
+              COALESCE(bio, '') 
+          FROM guest.customers 
+          WHERE user_id = $1
+       `,
 	}
 
 	row := c.client.DB().QueryRowContext(ctx, q, userID)
