@@ -28,7 +28,7 @@ func TestPostService_Delete_SucceedsForOwner(t *testing.T) {
 			return nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	err := svc.Delete(context.Background(), "42", "customer-1")
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestPostService_Delete_RejectsForeignOwner(t *testing.T) {
 			return entity.Post{ID: postID, CustomerID: "customer-1", Status: entity.PostStatusPublished, CreatedAt: time.Now()}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	err := svc.Delete(context.Background(), "42", "customer-2")
 	require.Error(t, err)
@@ -66,7 +66,7 @@ func TestPostService_Delete_IsIdempotentForAlreadyDeleted(t *testing.T) {
 			return nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	err := svc.Delete(context.Background(), "42", "customer-1")
 	require.NoError(t, err)
