@@ -101,13 +101,13 @@ type CustomerProfileData struct {
 }
 
 type BusinessProfileData struct {
-	ProfileType string  `json:"profile_type"`
-	Name        string  `json:"name"`
-	Avatar      string  `json:"avatar"`
-	Banner      string  `json:"banner"`
-	Description string  `json:"description"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
+	ProfileType string   `json:"profile_type"`
+	Name        string   `json:"name"`
+	Avatar      string   `json:"avatar"`
+	Banner      string   `json:"banner"`
+	Description string   `json:"description"`
+	Latitude    *float64 `json:"latitude"`
+	Longitude   *float64 `json:"longitude"`
 }
 
 type GitHubUser struct {

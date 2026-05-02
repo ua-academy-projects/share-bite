@@ -143,10 +143,11 @@ func (s *service) ChangeUserRole(ctx context.Context, targetUserID string, newRo
 
 	role, err := s.authRepo.FindRoleBySlug(ctx, newRoleSlug)
 	if err != nil {
-		if errors.Is(err, apperr.ErrRoleNotFound) {
-			return err
-		}
 		return apperr.Wrap(http.StatusInternalServerError, "failed to query role", err)
+	}
+
+	if role == nil {
+		return apperr.ErrRoleNotFound
 	}
 
 	txErr := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {

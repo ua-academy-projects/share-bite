@@ -23,10 +23,19 @@ func (c *Client) GetBusinessByUserID(ctx context.Context, userID string) (*dto.B
 	q := database.Query{
 		Name: "business.GetBusinessByUserID",
 		Sql: `
-			SELECT profile_type, name, avatar, banner, description, latitude, longitude 
-			FROM business.org_units 
-			WHERE org_account_id = $1
-		`,
+          SELECT 
+              profile_type, 
+              name, 
+              COALESCE(avatar, ''), 
+              COALESCE(banner, ''), 
+              COALESCE(description, ''), 
+              latitude,
+              longitude
+          FROM business.org_units 
+          WHERE org_account_id = $1
+          ORDER BY CASE WHEN profile_type = 'BRAND' THEN 1 ELSE 2 END ASC
+          LIMIT 1
+       `,
 	}
 
 	row := c.client.DB().QueryRowContext(ctx, q, userID)

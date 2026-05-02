@@ -28,7 +28,7 @@ func NewHandler(service adminsvc.Service) *Handler {
 // @Security     BearerAuth
 // @Accept       json
 // @Produce      json
-// @Param        limit   query     int     false  "Number of items to return (default 20)"
+// @Param        limit   query     int     false  "Number of items to return (default 10)"
 // @Param        offset  query     int     false  "Number of items to skip (default 0)"
 // @Param        search_email  query     string  false  "Search by email (partial match)"
 // @Param        role    query     string  false  "Filter by role slug (e.g., user, business, moderator)"
