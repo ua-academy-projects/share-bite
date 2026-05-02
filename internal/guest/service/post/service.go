@@ -42,7 +42,6 @@ type customerRepo interface {
 
 type service struct {
 	postRepo      postRepository
-	followRepo    followRepository
 	venueProvider VenueProvider
 	followRepo    followRepo
 	customerRepo  customerRepo
