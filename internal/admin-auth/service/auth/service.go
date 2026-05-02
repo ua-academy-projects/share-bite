@@ -3,12 +3,14 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/pkg"
 	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -41,6 +43,8 @@ type Service interface {
 	RevokeAllSessions(ctx context.Context, userID string) error
 	OAuthLogin(ctx context.Context, provider OAuthProvider, code string, slug string) (*Tokens, error)
 	LinkProvider(ctx context.Context, userID string, provider OAuthProvider, code string) error
+	GetUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (models.UserStatus, error)
+	UpdateUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string, status models.UserStatus) error
 	RecoverAccess(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
 }
@@ -80,6 +84,10 @@ func (s *service) Login(ctx context.Context, email, password string) (*Tokens, e
 
 	if err := bcrypt.CompareHashAndPassword([]byte(*u.PasswordHash), []byte(password)); err != nil {
 		return nil, apperr.ErrInvalidCredentials
+	}
+
+	if u.Status == models.UserStatusSuspended {
+		return nil, apperr.ErrAccountSuspended
 	}
 
 	return s.issueTokens(ctx, u.ID, u.RoleSlug)
@@ -153,6 +161,9 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, er
 	if u == nil {
 		return nil, apperr.ErrUserNotFound
 	}
+	if u.Status == models.UserStatusSuspended {
+		return nil, apperr.ErrAccountSuspended
+	}
 
 	if err := s.userRepo.RevokeRefreshToken(ctx, hashedToken); err != nil {
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to revoke old token", err)
@@ -201,6 +212,9 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to query social provider", err)
 	}
 	if existing != nil {
+		if existing.Status == models.UserStatusSuspended {
+			return nil, apperr.ErrAccountSuspended
+		}
 		return s.issueTokens(ctx, existing.ID, existing.RoleSlug)
 	}
 
@@ -211,6 +225,9 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 	if byEmail != nil {
 		if !info.EmailVerified {
 			return nil, apperr.ErrEmailNotVerified
+		}
+		if byEmail.Status == models.UserStatusSuspended {
+			return nil, apperr.ErrAccountSuspended
 		}
 		err := s.userRepo.LinkSocialAccount(ctx, dto.CreateSocialAccountParams{
 			UserID:     byEmail.ID,
@@ -269,6 +286,67 @@ func (s *service) LinkProvider(ctx context.Context, userID string, provider OAut
 	if err != nil {
 		return apperr.Wrap(http.StatusInternalServerError, "failed to link provider", err)
 	}
+
+	return nil
+}
+
+func (s *service) GetUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (models.UserStatus, error) {
+	u, err := s.userRepo.FindByID(ctx, targetUserID)
+	if err != nil {
+		return "", fmt.Errorf("find user by id: %w", err)
+	}
+	if u == nil {
+		return "", apperr.ErrUserNotFound
+	}
+
+	if !canReadUserStatus(requesterRole, requesterUserID, targetUserID) {
+		return "", apperr.ErrForbiddenStatusRead
+	}
+
+	return u.Status, nil
+}
+
+func (s *service) UpdateUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string, status models.UserStatus) error {
+	if !canUpdateUserStatus(requesterRole) {
+		return apperr.ErrForbiddenStatusRead
+	}
+
+	if !isValidStatus(status) {
+		return apperr.ErrInvalidUserStatus
+	}
+
+	target, err := s.userRepo.FindByID(ctx, targetUserID)
+	if err != nil {
+		return fmt.Errorf("find user by id: %w", err)
+	}
+	if target == nil {
+		return apperr.ErrUserNotFound
+	}
+
+	shouldRevoke := target.Status != models.UserStatusSuspended && status == models.UserStatusSuspended
+
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+		if err := s.userRepo.UpdateUserStatus(txCtx, user.UpdateUserStatus{
+			UserID:  targetUserID,
+			Status:  status,
+			SetByID: requesterUserID,
+		}); err != nil {
+			return apperr.Wrap(http.StatusInternalServerError, "failed to update user status", err)
+		}
+
+		if shouldRevoke {
+			if err := s.userRepo.RevokeAllUserTokens(txCtx, targetUserID); err != nil {
+				return apperr.Wrap(http.StatusInternalServerError, "failed to revoke all sessions", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("update user status: %w", err)
+	}
+
 	return nil
 }
 
@@ -359,4 +437,25 @@ func (s *service) issueTokens(ctx context.Context, userID, role string) (*Tokens
 	}
 
 	return &Tokens{AccessToken: access, RefreshToken: refresh}, nil
+}
+
+func isValidStatus(status models.UserStatus) bool {
+	switch status {
+	case models.UserStatusActive, models.UserStatusMuted, models.UserStatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
+func canReadUserStatus(requesterRole, requesterUserID, targetUserID string) bool {
+	if requesterRole == "admin" || requesterRole == "moderator" || requesterUserID == targetUserID {
+		return true
+	}
+
+	return false
+}
+
+func canUpdateUserStatus(requesterRole string) bool {
+	return requesterRole == "admin" || requesterRole == "moderator"
 }

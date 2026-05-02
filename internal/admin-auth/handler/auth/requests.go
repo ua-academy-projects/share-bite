@@ -38,6 +38,14 @@ type TokensResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type UpdateUserStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=active muted suspended"`
+}
+
+type UserStatusResponse struct {
+	Status string `json:"status"`
+}
+
 type MessageResponse struct {
 	Message string `json:"message"`
 }
