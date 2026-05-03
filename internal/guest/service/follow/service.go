@@ -20,6 +20,7 @@ type CustomerFollowRepository interface {
 	ListFollowingEnriched(ctx context.Context, requesterID string, customerID string, cursorTime time.Time, cursorID string, limit int) ([]entity.Follower, error)
 	ListFollowersEnriched(ctx context.Context, requesterID string, customerID string, cursorTime time.Time, cursorID string, limit int) ([]entity.Follower, error)
 	IsFollowing(ctx context.Context, followerID, followedID string) (bool, error)
+	GetAllowedMentions(ctx context.Context, customerID string, mentions []string) ([]string, error)
 }
 
 type service struct {

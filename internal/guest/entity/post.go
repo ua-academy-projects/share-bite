@@ -31,6 +31,8 @@ type Post struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	PublishedAt *time.Time
+
+	Mentions []Customer
 }
 
 type CreatePostInput struct {

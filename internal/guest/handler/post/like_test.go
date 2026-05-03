@@ -125,7 +125,7 @@ func TestPostHandler_Unlike(t *testing.T) {
 	res := httptest.NewRecorder()
 	router.ServeHTTP(res, req)
 
-	require.Equal(t, http.StatusOK, res.Code)
+	require.Equal(t, http.StatusNoContent, res.Code)
 	assert.True(t, unliked)
 }
 

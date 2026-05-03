@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
@@ -42,12 +43,12 @@ type updateResponse struct {
 //	@Param			status		formData	string			false	"Allowed: draft,published,archived"
 //	@Param			images		formData	file			false	"Images field presence triggers rewrite"
 //	@Success		200			{object}	updateResponse	"Successfully updated the post"
-//	@Failure		400			{object}	errorResponse	"Invalid path, form, or status transition"
-//	@Failure		401			{object}	errorResponse	"Unauthorized: token is missing, invalid, or expired"
-//	@Failure		403			{object}	errorResponse	"Forbidden: customer profile was not found"
-//	@Failure		404			{object}	errorResponse	"Not found: post does not exist, is private, or does not belong to the user"
-//	@Failure		502			{object}	errorResponse	"Bad gateway: venue lookup failed"
-//	@Failure		500			{object}	errorResponse	"Internal server error"
+//	@Failure		400			{object}	response.ErrorResponse	"Invalid path, form, or status transition"
+//	@Failure		401			{object}	response.ErrorResponse	"Unauthorized: token is missing, invalid, or expired"
+//	@Failure		403			{object}	response.ErrorResponse	"Forbidden: customer profile was not found"
+//	@Failure		404			{object}	response.ErrorResponse	"Not found: post does not exist, is private, or does not belong to the user"
+//	@Failure		502			{object}	response.ErrorResponse	"Bad gateway: venue lookup failed"
+//	@Failure		500			{object}	response.ErrorResponse	"Internal server error"
 //	@Router			/posts/{id} [patch]
 func (h *handler) update(c *gin.Context) {
 	if c.ContentType() != gin.MIMEMultipartPOSTForm {

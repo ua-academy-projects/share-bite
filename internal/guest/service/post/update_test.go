@@ -21,7 +21,7 @@ func TestPostService_Update_AllowsDraftToPublished(t *testing.T) {
 			return entity.Post{ID: postID, CustomerID: "customer-1", Status: entity.PostStatusDraft, CreatedAt: now}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	status := entity.PostStatusPublished
 	_, err := svc.Update(context.Background(), entity.UpdatePostInput{
@@ -42,7 +42,7 @@ func TestPostService_Update_RejectsPublishedToDraft(t *testing.T) {
 			return entity.Post{ID: postID, CustomerID: "customer-1", Status: entity.PostStatusPublished}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	status := entity.PostStatusDraft
 	_, err := svc.Update(context.Background(), entity.UpdatePostInput{
@@ -68,7 +68,7 @@ func TestPostService_Update_AllowsEditingArchivedPost(t *testing.T) {
 			return entity.Post{ID: in.ID, CustomerID: in.CustomerID, Text: *in.Text}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	text := "updated text"
 	_, err := svc.Update(context.Background(), entity.UpdatePostInput{
@@ -89,7 +89,7 @@ func TestPostService_Update_AllowsUnarchiveArchivedToPublished(t *testing.T) {
 			return entity.Post{ID: postID, CustomerID: "customer-1", Status: entity.PostStatusArchived}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	status := entity.PostStatusPublished
 	_, err := svc.Update(context.Background(), entity.UpdatePostInput{
@@ -110,7 +110,7 @@ func TestPostService_Update_RejectsForeignOwner(t *testing.T) {
 			return entity.Post{ID: postID, CustomerID: "customer-1", Status: entity.PostStatusDraft}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	status := entity.PostStatusPublished
 	_, err := svc.Update(context.Background(), entity.UpdatePostInput{
@@ -133,7 +133,7 @@ func TestPostService_Update_RejectsDraftToDeleted(t *testing.T) {
 			return entity.Post{ID: postID, CustomerID: "customer-1", Status: entity.PostStatusDraft}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	status := entity.PostStatusDeleted
 	_, err := svc.Update(context.Background(), entity.UpdatePostInput{

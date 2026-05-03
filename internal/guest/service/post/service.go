@@ -2,7 +2,6 @@ package post
 
 import (
 	"context"
-
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
@@ -24,6 +23,8 @@ type postRepository interface {
 	DeleteImagesByPostID(ctx context.Context, postID string) error
 	UpdateStatus(ctx context.Context, postID, customerID string, status entity.PostStatus) error
 	GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
+	CreateMentions(ctx context.Context, mentions []entity.PostMention) error
+	ListMentionsByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
 }
 
 type VenueProvider interface {
@@ -31,9 +32,19 @@ type VenueProvider interface {
 	GetNearbyVenues(ctx context.Context, lat, lon float64, limit int) ([]int64, error)
 }
 
+type followRepo interface {
+	GetAllowedMentions(ctx context.Context, customerID string, mentions []string) ([]string, error)
+}
+
+type customerRepo interface {
+	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
+}
+
 type service struct {
 	postRepo      postRepository
 	venueProvider VenueProvider
+	followRepo    followRepo
+	customerRepo  customerRepo
 	storage       storage.ObjectStorage
 	txManager     database.TxManager
 	publisher     notification.Publisher
@@ -47,21 +58,21 @@ func WithPublisher(publisher notification.Publisher) Option {
 	}
 }
 
-func New(postRepo postRepository, venueProvider VenueProvider, storage storage.ObjectStorage, txManager database.TxManager, opts ...Option) *service {
+func New(postRepo postRepository, venueProvider VenueProvider, followRepo followRepo, customerRepo customerRepo, storage storage.ObjectStorage, txManager database.TxManager, opts ...Option) *service {
 	if storage == nil {
 		panic("post service: storage is not configured")
 	}
 	if txManager == nil {
 		panic("post service: transaction manager is not configured")
 	}
-
 	svc := &service{
 		postRepo:      postRepo,
 		venueProvider: venueProvider,
+		followRepo:    followRepo,
+		customerRepo:  customerRepo,
 		storage:       storage,
 		txManager:     txManager,
 	}
-
 	for _, opt := range opts {
 		if opt != nil {
 			opt(svc)
