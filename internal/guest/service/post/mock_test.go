@@ -182,17 +182,17 @@ func (m *publisherMock) Publish(ctx context.Context, target string, msg notifica
 }
 
 type storageMock struct {
-	uploadFn   func(ctx context.Context, key string, contentType string, file io.Reader) (string, error)
+	uploadFn   func(ctx context.Context, key string, contentType string, file io.Reader) error
 	deleteFn   func(ctx context.Context, key string) error
 	buildURLFn func(key string) string
 	getPresignedURLFn func(ctx context.Context, key string) (string, error)
 }
 
-func (m *storageMock) Upload(ctx context.Context, key string, contentType string, file io.Reader) (string, error) {
+func (m *storageMock) Upload(ctx context.Context, key string, contentType string, file io.Reader) error {
 	if m.uploadFn != nil {
 		return m.uploadFn(ctx, key, contentType, file)
 	}
-	return key, nil
+	return nil
 }
 
 func (m *storageMock) Delete(ctx context.Context, key string) error {

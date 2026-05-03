@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/internal/storage/key"
+	"github.com/ua-academy-projects/share-bite/internal/storage/mediatype"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"time"
 
@@ -64,23 +66,17 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 	uploadSessionID := uuid.New().String()
 
 	for i, img := range in.Images {
-		ext := extensionFromContentType(img.ContentType)
-		if ext == "" {
-			rollbackUploadedImages(s.storage, uploadedKeys)
-			return entity.Post{}, apperror.ErrUnsupportedImageType
-		}
+		ext := mediatype.ExtFromContentType(img.ContentType)
 
-		objectKey := generatePostImageKey(in.CustomerID, uploadSessionID, ext)
-		uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
-		if err != nil {
+		objectKey := key.CustomerPostImageKey(in.CustomerID, uploadSessionID, uuid.NewString(), ext)
+		if err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File); err != nil {
 			rollbackUploadedImages(s.storage, uploadedKeys)
 			return entity.Post{}, fmt.Errorf("upload post image to storage: %w", err)
 		}
 
-		uploadedKeys = append(uploadedKeys, uploadedKey)
-
+		uploadedKeys = append(uploadedKeys, objectKey)
 		postImages = append(postImages, entity.PostImage{
-			ObjectKey:   uploadedKey,
+			ObjectKey:   objectKey,
 			ContentType: img.ContentType,
 			FileSize:    img.FileSize,
 			SortOrder:   int16(i),
@@ -154,21 +150,6 @@ func cleanupDelete(objectStorage storage.ObjectStorage, key string) {
 			"key", key,
 			"error", err,
 		)
-	}
-}
-
-func generatePostImageKey(customerID, postID, ext string) string {
-	return fmt.Sprintf("posts/%s/%s/%s.%s", customerID, postID, uuid.New().String(), ext)
-}
-
-func extensionFromContentType(contentType string) string {
-	switch contentType {
-	case "image/jpeg":
-		return "jpg"
-	case "image/png":
-		return "png"
-	default:
-		return ""
 	}
 }
 

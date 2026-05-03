@@ -142,8 +142,8 @@ func (m tokenParserMock) ParseAccessToken(token string) (string, string, error) 
 
 type objectStorageMock struct{}
 
-func (objectStorageMock) Upload(context.Context, string, string, io.Reader) (string, error) {
-	return "", nil
+func (objectStorageMock) Upload(context.Context, string, string, io.Reader) error {
+	return nil
 }
 
 func (objectStorageMock) Delete(context.Context, string) error {
