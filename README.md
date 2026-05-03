@@ -44,16 +44,18 @@ make run-all
 
 _(To run them individually, you can use `make run-guest`, `make run-business`, or `make run-auth`)._
 
-### 5. Run local S3 storage
+### 5. Object Storage (S3 / Garage)
 
-### Start
+The application uses S3-compatible storage for storing media files. It supports both local development via Garage and real AWS S3 for production.
 
+#### Local Development (Garage)
+
+Start the local Garage instance:
 ```bash
 make s3-up
 ```
 
-After bootstrap, copy credentials printed in the terminal into `.env`:
-
+After bootstrap, copy the credentials printed in the terminal into your `.env`:
 ```env
 S3_ENDPOINT=http://localhost:3900
 S3_REGION=garage
@@ -64,6 +66,29 @@ S3_USE_PATH_STYLE=true
 ```
 
 > Bootstrap runs once. On subsequent starts credentials stay the same.
+
+**Web UI (optional)**
+```bash
+make s3-ui
+```
+Open http://localhost:3909
+
+#### Production (AWS S3)
+
+For real AWS deployment, configure your production `.env` like this:
+
+```env
+S3_REGION=eu-central-1
+S3_BUCKET=your-production-bucket-name
+
+# Note: Currently using static credentials for AWS.
+# In the future, this will be migrated to IAM Roles, and keys won't be needed.
+S3_ACCESS_KEY=your-aws-access-key
+S3_SECRET_KEY=your-aws-secret-key
+
+# DO NOT set S3_ENDPOINT for AWS.
+# S3_USE_PATH_STYLE is also NOT REQUIRED for native AWS S3.
+```
 
 ### 6. Notifications helper and Redis
 
@@ -81,14 +106,6 @@ Start the Redis service using the provided docker-compose configuration:
 ```bash
 docker compose -f build/compose.infra.yaml up -d
 ```
-
-### Web UI (optional)
-
-```bash
-make s3-ui
-```
-
-Open http://localhost:3909
 
 ### 7. Code Generation & API Clients
 
