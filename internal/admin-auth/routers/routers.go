@@ -34,6 +34,11 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler
 		protectedUserGroup.POST("/link/:provider", authHandler.OAuthLinkAccount)
 		protectedUserGroup.POST("/sessions/revoke-all", authHandler.RevokeAllSessions)
 	}
+	usersGroup := r.Group("/users").Use(authMiddleware)
+	{
+		usersGroup.GET("/:userId/status", authHandler.GetUserStatus)
+		usersGroup.PUT("/:userId/status", authHandler.UpdateUserStatus)
+	}
 	adminGroup := r.Group("/admin").Use(authMiddleware)
 	{
 		adminGroup.GET("/users", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUsersList)

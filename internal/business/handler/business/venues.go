@@ -33,20 +33,18 @@ type venueResponse struct {
 //	@Failure		500		{object}	errorResponse
 //	@Router			/business/org-units/venues [post]
 func (h *handler) getVenuesByIDs(c *gin.Context) {
-	ctx := c.Request.Context()
-	log := logger.FromContext(ctx)
-
 	var req getVenuesByIDsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(apperror.BadRequest("invalid request body"))
 		return
 	}
 
-	log.Info("get venues by ids", "count", len(req.IDs))
+	ctx := c.Request.Context()
+	logger.InfoKV(ctx, "get venues by ids", "count", len(req.IDs))
 
 	venues, err := h.service.GetVenuesByIDs(ctx, req.IDs)
 	if err != nil {
-		log.Error("failed to get venues by ids", "error", err)
+		logger.ErrorKV(ctx, "failed to get venues by ids", "error", err)
 		c.Error(err)
 		return
 	}

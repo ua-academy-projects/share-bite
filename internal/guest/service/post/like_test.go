@@ -41,7 +41,7 @@ func TestPostService_Like_Succeeds(t *testing.T) {
 		},
 	}
 
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{}, WithPublisher(publisher))
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{}, WithPublisher(publisher))
 
 	err := svc.Like(context.Background(), "42", "customer-1")
 	require.NoError(t, err)
@@ -84,7 +84,7 @@ func TestPostService_Like_NoNotificationForSelfLike(t *testing.T) {
 		},
 	}
 
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{}, WithPublisher(publisher))
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{}, WithPublisher(publisher))
 
 	err := svc.Like(context.Background(), "42", "customer-1")
 	require.NoError(t, err)
@@ -109,7 +109,7 @@ func TestPostService_Unlike_Succeeds(t *testing.T) {
 		},
 	}
 
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	err := svc.Unlike(context.Background(), "42", "customer-1")
 	require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestPostService_Like_PropagatesError(t *testing.T) {
 		},
 	}
 
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	err := svc.Like(context.Background(), "42", "customer-1")
 	require.ErrorIs(t, err, repoErr)

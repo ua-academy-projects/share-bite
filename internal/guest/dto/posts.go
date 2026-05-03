@@ -14,7 +14,8 @@ type CreatePostInput struct {
 	Text       string
 	Rating     int16
 
-	Images []UploadImageInput
+	Images   []UploadImageInput
+	Mentions []string
 }
 
 type UploadImageInput struct {

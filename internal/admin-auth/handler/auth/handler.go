@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -343,4 +344,65 @@ func (h *Handler) RevokeAllSessions(c *gin.Context) {
 
 	logger.InfoKV(ctx, "all user sessions revoked", "user_id", userID)
 	c.JSON(http.StatusOK, handler.MessageResponse{Message: "All sessions have been successfully revoked."})
+}
+
+func (h *Handler) GetUserStatus(c *gin.Context) {
+	requesterUserID, requesterRole, ok := getRequester(c)
+	if !ok {
+		return
+	}
+
+	targetUserID := c.Param("userId")
+	status, err := h.service.GetUserStatus(c.Request.Context(), requesterUserID, requesterRole, targetUserID)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, handler.UserStatusResponse{Status: string(status)})
+}
+
+func (h *Handler) UpdateUserStatus(c *gin.Context) {
+	requesterUserID, requesterRole, ok := getRequester(c)
+	if !ok {
+		return
+	}
+
+	targetUserID := c.Param("userId")
+
+	var req handler.UpdateUserStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, handler.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	if err := h.service.UpdateUserStatus(c.Request.Context(), requesterUserID, requesterRole, targetUserID, models.UserStatus(req.Status)); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, handler.MessageResponse{Message: "user status has been updated"})
+}
+
+func getRequester(c *gin.Context) (string, string, bool) {
+	requesterUserIDVal, exists := c.Get(middleware.CtxUserID)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, handler.ErrorResponse{Error: "unauthorized"})
+		return "", "", false
+	}
+
+	requesterRoleVal, exists := c.Get(middleware.CtxUserRole)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, handler.ErrorResponse{Error: "unauthorized"})
+		return "", "", false
+	}
+
+	requesterUserID, userIDOk := requesterUserIDVal.(string)
+	requesterRole, roleOk := requesterRoleVal.(string)
+	if !userIDOk || !roleOk {
+		c.JSON(http.StatusInternalServerError, handler.ErrorResponse{Error: "internal server error"})
+		return "", "", false
+	}
+
+	return requesterUserID, requesterRole, true
 }

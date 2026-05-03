@@ -21,6 +21,8 @@ type postRepositoryMock struct {
 	unlikeFn             func(ctx context.Context, postID string, customerID string) error
 	updateStatusFn       func(ctx context.Context, postID, customerID string, status entity.PostStatus) error
 	getPostsByVenueIDsFn func(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
+	createMentionsFn     func(ctx context.Context, mentions []entity.PostMention) error
+	listMentionsFn       func(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
 
 	lastCreateInput dto.CreatePostInput
 	lastListInput   dto.ListPostsInput
@@ -131,6 +133,32 @@ func (m *venueProviderMock) GetNearbyVenues(ctx context.Context, lat, lon float6
 	return []int64{}, nil
 }
 
+type followRepoMock struct {
+	getAllowedMentionsFn func(ctx context.Context, customerID string, ids []string) ([]string, error)
+}
+
+func (m *followRepoMock) GetAllowedMentions(ctx context.Context, customerID string, ids []string) ([]string, error) {
+	if m.getAllowedMentionsFn != nil {
+		return m.getAllowedMentionsFn(ctx, customerID, ids)
+	}
+	return ids, nil
+}
+
+type customerRepoMock struct {
+	getByIDsFn func(ctx context.Context, customerIDs []string) ([]entity.Customer, error)
+}
+
+func (m *customerRepoMock) GetByIDs(ctx context.Context, customerIDs []string) ([]entity.Customer, error) {
+	if m.getByIDsFn != nil {
+		return m.getByIDsFn(ctx, customerIDs)
+	}
+	customers := make([]entity.Customer, len(customerIDs))
+	for i, id := range customerIDs {
+		customers[i] = entity.Customer{ID: id}
+	}
+	return customers, nil
+}
+
 type txManagerMock struct {
 	readCommittedFn func(ctx context.Context, fn database.Handler) error
 }
@@ -178,4 +206,18 @@ func (m *storageMock) BuildURL(key string) string {
 		return m.buildURLFn(key)
 	}
 	return key
+}
+
+func (m *postRepositoryMock) CreateMentions(ctx context.Context, mentions []entity.PostMention) error {
+	if m.createMentionsFn != nil {
+		return m.createMentionsFn(ctx, mentions)
+	}
+	return nil
+}
+
+func (m *postRepositoryMock) ListMentionsByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error) {
+	if m.listMentionsFn != nil {
+		return m.listMentionsFn(ctx, postIDs)
+	}
+	return map[string][]entity.PostMention{}, nil
 }
