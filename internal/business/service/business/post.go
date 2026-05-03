@@ -2,30 +2,32 @@ package business
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
-	"path/filepath"
 
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/storage/key"
+	"github.com/ua-academy-projects/share-bite/internal/storage/mediatype"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 const (
-	maxImageSize   = 5 * 1024 * 1024
 	fileHeaderSize = 512
+	maxImageSize   = 5 * 1024 * 1024
+)
+
+var (
+	postImageValidator = mediatype.NewValidator(maxImageSize, "image/jpeg", "image/png", "image/webp", "image/gif")
 )
 
 func (s *service) CreatePost(ctx context.Context, userID string, unitID int, description string, images []*multipart.FileHeader) (*entity.PostWithPhotos, error) {
 	const op = "service.post.CreatePost"
 	for _, file := range images {
-		if file.Size > maxImageSize {
-			return nil, biserr.FileToLargeErr
-		}
-
 		openedFile, err := file.Open()
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
@@ -38,14 +40,24 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		if err != nil && err != io.EOF {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
+
 		contentType := http.DetectContentType(buffer)
-		if !isAllowedImageType(contentType) {
-			return nil, biserr.WrongFileExtErr
+		if err := postImageValidator.Validate(contentType, file.Size); err != nil {
+			if errors.Is(err, mediatype.ErrUnsupportedType) {
+				return nil, biserr.WrongFileExtErr
+			}
+
+			if errors.Is(err, mediatype.ErrFileTooLarge) {
+				return nil, biserr.FileToLargeErr
+			}
+
+			return nil, err
 		}
 	}
 
 	var photoURLs []string
 	var uploadedKeys []string
+	uploadSessionID := uuid.NewString()
 
 	cleanupS3 := func() {
 		for _, key := range uploadedKeys {
@@ -55,7 +67,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 
 	isSuccess := false
 	defer func() {
-		if !isSuccess{
+		if !isSuccess {
 			cleanupS3()
 		}
 	}()
@@ -69,24 +81,25 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		buffer := make([]byte, fileHeaderSize)
 		_, err = openedFile.Read(buffer)
 
-		fileExt := filepath.Ext(file.Filename)
 		contentType := http.DetectContentType(buffer)
+		ext := mediatype.ExtFromContentType(contentType)
 
 		seeker, _ := openedFile.(io.Seeker)
 		seeker.Seek(0, io.SeekStart)
 
-		objectKey := fmt.Sprintf("posts/%d/%s%s", unitID, uuid.New().String(), fileExt)
+		objectKey := key.BusinessPostImageKey(unitID, uploadSessionID, uuid.NewString(), ext)
+		err = s.storage.Upload(ctx, objectKey, contentType, openedFile)
 
-		key, err := s.storage.Upload(ctx, objectKey, contentType, openedFile)
 		openedFile.Close()
 
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
-		photoURL := s.storage.BuildURL(key)
-		photoURLs = append(photoURLs, photoURL)
-		uploadedKeys = append(uploadedKeys, key)
+		uploadedKeys = append(uploadedKeys, objectKey)
+
+		imageURL := s.storage.BuildURL(objectKey)
+		photoURLs = append(photoURLs, imageURL)
 	}
 
 	var post *entity.Post
@@ -114,7 +127,6 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		return nil, fmt.Errorf("get org: %w", err)
 	}
 
-
 	isSuccess = true
 	return &entity.PostWithPhotos{
 		ID:          post.ID,
@@ -125,15 +137,6 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		OrgName:     org.Name,
 		ProfileType: org.ProfileType,
 	}, nil
-}
-
-func isAllowedImageType(contentType string) bool {
-	switch contentType {
-	case "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif":
-		return true
-	default:
-		return false
-	}
 }
 
 func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error) {
