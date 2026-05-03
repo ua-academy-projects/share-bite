@@ -1,192 +1,371 @@
-package main
+package business
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"net"
 	"net/http"
-	"os"
+	"net/url"
+	"strings"
+	"syscall"
 
-	aws "github.com/aws/aws-sdk-go-v2/aws"
-	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	awscred "github.com/aws/aws-sdk-go-v2/credentials"
-	s3sdk "github.com/aws/aws-sdk-go-v2/service/s3"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
-	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
-	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
-	businessrepo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
-	businesssvc "github.com/ua-academy-projects/share-bite/internal/business/service/business"
-	"github.com/ua-academy-projects/share-bite/internal/config"
-	"github.com/ua-academy-projects/share-bite/internal/storage/s3"
-	"github.com/ua-academy-projects/share-bite/pkg/closer"
-	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
-	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
-
-	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
-	"github.com/ua-academy-projects/share-bite/pkg/jwt"
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/locations"
+	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/business_client/venues"
+	business_dto "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business/client/dto"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	"go.uber.org/zap"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
+
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-// @title						ShareBite Business API
-// @version					1.0
-// @description				API for discovering brand locations (venues).
-//
-// @securityDefinitions.apikey	BearerAuth
-// @in							header
-// @name						Authorization
-//
-// @BasePath					/
-func main() {
-	ctx := context.Background()
+const maxErrorBodySize = 2048
 
-	if err := config.Load(".env"); err != nil {
-		logger.Fatal(ctx, err)
-	}
+type businessAPIClient struct {
+	api    *business_client.ShareBiteBusinessAPI
+	scheme string
+	policy *resilience.Policy
 
-	cfg := config.Config()
-
-	router := gin.New()
-	router.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.BusinessHttpServer.AllowedOrigins(),
-		AllowMethods:     cfg.BusinessHttpServer.AllowedMethods(),
-		AllowHeaders:     cfg.BusinessHttpServer.AllowedHeaders(),
-		ExposeHeaders:    cfg.BusinessHttpServer.ExposeHeaders(),
-		AllowCredentials: true,
-	}))
-	router.Use(gin.Recovery())
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
-		ginSwagger.URL("/swagger/doc.json"),
-	))
-
-	router.Use(ErrorMiddleware())
-
-	if config.Config().App.IsProd() {
-		logger.SetLevel(zap.InfoLevel)
-		gin.SetMode(gin.ReleaseMode)
-	} else {
-		logger.SetLevel(zap.DebugLevel)
-	}
-	closer.SetShutdownTimeout(config.Config().App.GracefulShutdownTimeout())
-
-	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
-	if err != nil {
-		logger.Fatal(ctx, "new database client: ", err)
-	}
-	if err := client.DB().Ping(ctx); err != nil {
-		logger.Fatal(ctx, "ping database: ", err)
-	}
-	closer.Add(func(ctx context.Context) error {
-		client.Close()
-		return nil
-	})
-
-	txManager := txmanager.NewTransactionManager(client.DB())
-
-	var storageClient *s3.S3Storage
-	{
-		s3Endpoint := os.Getenv("S3_ENDPOINT")
-		s3Region := os.Getenv("S3_REGION")
-		s3AccessKey := os.Getenv("S3_ACCESS_KEY")
-		s3SecretKey := os.Getenv("S3_SECRET_KEY")
-		s3Bucket := os.Getenv("S3_BUCKET")
-		if s3Bucket == "" {
-			logger.Fatal(ctx, "S3_BUCKET is required but not set")
-		}
-		usePathStyle := os.Getenv("S3_USE_PATH_STYLE") == "true"
-
-		if s3Bucket != "" {
-			loaderOpts := []func(*awscfg.LoadOptions) error{
-				awscfg.WithRegion(s3Region),
-			}
-			if s3AccessKey != "" && s3SecretKey != "" {
-				loaderOpts = append(loaderOpts, awscfg.WithCredentialsProvider(
-					awscred.NewStaticCredentialsProvider(s3AccessKey, s3SecretKey, ""),
-				))
-			}
-			if s3Endpoint != "" {
-				loaderOpts = append(loaderOpts, awscfg.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
-					func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-						return aws.Endpoint{URL: s3Endpoint, HostnameImmutable: true}, nil
-					},
-				)))
-			}
-
-			awsCfg, err := awscfg.LoadDefaultConfig(ctx, loaderOpts...)
-			if err != nil {
-				logger.Fatal(ctx, "aws load config: ", err)
-			}
-
-			s3Client := s3sdk.NewFromConfig(awsCfg, func(o *s3sdk.Options) {
-				o.UsePathStyle = usePathStyle
-			})
-
-			storageClient = s3.NewS3Storage(s3Client, s3Bucket, s3Endpoint)
-		}
-	}
-
-	// repos
-	businessRepo := businessrepo.New(client)
-
-	// services
-	businessSvc := businesssvc.New(businessRepo, txManager, storageClient)
-
-	tokenManager := jwt.NewTokenManager(
-		config.Config().JwtToken.AccessTokenSecretKey(),
-		config.Config().JwtToken.RefreshTokenSecretKey(),
-		config.Config().JwtToken.AccessTokenTTL(),
-		config.Config().JwtToken.RefreshTokenTTL(),
-	)
-
-	// handlers
-	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager)
-
-	go func() {
-		logger.Info(ctx, "business http server is running")
-		if err := router.Run(config.Config().BusinessHttpServer.Address()); err != nil && err != http.ErrServerClosed {
-			logger.Fatal(ctx, "run http server: ", err)
-		}
-	}()
-
-	closer.Wait()
+	// TODO: remove to use swagger autogen files only
+	client  *http.Client
+	baseURL string
 }
 
-func ErrorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
+type Option func(*businessAPIClient)
 
-		err := c.Errors.Last()
-		if err == nil {
-			return
-		}
-
-		ctx := c.Request.Context()
-
-		var appErr *apperror.Error
-		if errors.As(err.Err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				c.JSON(http.StatusNotFound, gin.H{"error": appErr.Error()})
-				return
-			case code.BadRequest:
-				c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Error()})
-				return
-			case code.Forbidden:
-				c.JSON(http.StatusForbidden, gin.H{"error": appErr.Error()})
-				return
-			case code.Unauthorized:
-				c.JSON(http.StatusUnauthorized, gin.H{"error": appErr.Error()})
-				return
-			}
-		}
-
-		logger.ErrorKV(ctx, "internal error", "error", err.Err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+func WithResiliencePolicy(policy resilience.Policy) Option {
+	return func(c *businessAPIClient) {
+		c.policy = &policy
 	}
+}
+
+func NewBusinessAPIClient(baseURL string, scheme string, basePath string, httpClient *http.Client, opts ...Option) (*businessAPIClient, error) {
+	normalizedBaseURL := strings.TrimSpace(baseURL)
+	normalizedScheme := strings.TrimSpace(scheme)
+	if !strings.Contains(normalizedBaseURL, "://") {
+		if normalizedScheme == "" {
+			return nil, fmt.Errorf("business baseURL %q: scheme is required when URL does not include one", normalizedBaseURL)
+		}
+		normalizedBaseURL = normalizedScheme + "://" + normalizedBaseURL
+	}
+
+	u, err := url.Parse(normalizedBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse business baseURL: %w", err)
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("invalid business baseURL %q: unsupported scheme %q", normalizedBaseURL, u.Scheme)
+	}
+	if u.Host == "" {
+		return nil, fmt.Errorf("invalid business baseURL %q: scheme and host are required", normalizedBaseURL)
+	}
+	if httpClient == nil {
+		return nil, fmt.Errorf("http client should be initialized")
+	}
+
+	transport := client.NewWithClient(u.Host, basePath, []string{u.Scheme}, httpClient)
+	api := business_client.New(transport, strfmt.Default)
+
+	out := &businessAPIClient{
+		api:     api,
+		scheme:  u.Scheme,
+		client:  httpClient,
+		baseURL: strings.TrimRight(normalizedBaseURL, "/"),
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(out)
+		}
+	}
+
+	return out, nil
+}
+
+func (c *businessAPIClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
+	params := locations.NewGetBusinessOrgUnitsIDParamsWithContext(ctx).WithID(venueID)
+
+	exists := false
+	err := c.executeWithResilience(ctx, func() error {
+		_, opErr := c.api.Locations.GetBusinessOrgUnitsID(params, schemeLocationClientOption(c.scheme))
+		if opErr == nil {
+			exists = true
+			return nil
+		}
+
+		var notFoundErr *locations.GetBusinessOrgUnitsIDNotFound
+		if errors.As(opErr, &notFoundErr) {
+			exists = false
+			return nil
+		}
+
+		mappedErr, retryable := mapCheckExistsError(opErr)
+		if !retryable {
+			return resilience.Permanent(mappedErr)
+		}
+
+		return mappedErr
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (c *businessAPIClient) ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error) {
+	if len(venueIDs) == 0 {
+		return map[int64]entity.Venue{}, nil
+	}
+	venueIDs = removeDuplicates(venueIDs)
+
+	payload := &business_dto.HandlerBusinessGetVenuesByIDsRequest{
+		Ids: venueIDs,
+	}
+	params := venues.NewPostBusinessOrgUnitsVenuesParamsWithContext(ctx).WithRequest(payload)
+
+	var resp *venues.PostBusinessOrgUnitsVenuesOK
+	err := c.executeWithResilience(ctx, func() error {
+		apiResp, opErr := c.api.Venues.PostBusinessOrgUnitsVenues(params, schemeClientOption(c.scheme))
+		if opErr != nil {
+			logger.ErrorKV(ctx, "get venues from business service",
+				"error", opErr,
+				"venue_ids_count", len(venueIDs),
+			)
+
+			wrappedErr := fmt.Errorf("get venues by IDs: %w", opErr)
+			if !isRetryableError(opErr) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		if !apiResp.IsSuccess() {
+			wrappedErr := fmt.Errorf("get venues by IDs unexpected status code: %d", apiResp.Code())
+			if !isRetryableStatus(apiResp.Code()) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		resp = apiResp
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	respPayload := resp.GetPayload()
+	if respPayload == nil {
+		return map[int64]entity.Venue{}, nil
+	}
+
+	out := make(map[int64]entity.Venue, len(respPayload))
+	for _, v := range respPayload {
+		if v == nil {
+			continue
+		}
+
+		out[v.ID] = entity.Venue{
+			ID:          v.ID,
+			Name:        v.Name,
+			Description: toNilStrPtr(v.Description),
+			AvatarURL:   toNilStrPtr(v.Avatar),
+			BannerURL:   toNilStrPtr(v.Banner),
+		}
+	}
+
+	return out, nil
+}
+
+func toNilStrPtr(v string) *string {
+	if v == "" {
+		return nil
+	}
+
+	val := v
+	return &val
+}
+
+func removeDuplicates(in []int64) []int64 {
+	seen := make(map[int64]struct{}, len(in))
+
+	out := make([]int64, 0, len(in))
+	for _, id := range in {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+
+	return out
+}
+
+func schemeClientOption(scheme string) venues.ClientOption {
+	return func(op *runtime.ClientOperation) {
+		op.Schemes = []string{scheme}
+	}
+}
+
+func schemeLocationClientOption(scheme string) locations.ClientOption {
+	return func(op *runtime.ClientOperation) {
+		op.Schemes = []string{scheme}
+	}
+}
+
+func (c *businessAPIClient) GetNearbyVenues(ctx context.Context, lat, lon float64, limit int) ([]int64, error) {
+	limitValue := int64(limit)
+	params := locations.NewGetBusinessLocationsNearbyParamsWithContext(ctx).
+		WithLat(lat).
+		WithLon(lon).
+		WithLimit(&limitValue)
+
+	var resp *locations.GetBusinessLocationsNearbyOK
+	err := c.executeWithResilience(ctx, func() error {
+		apiResp, opErr := c.api.Locations.GetBusinessLocationsNearby(params, schemeLocationClientOption(c.scheme))
+		if opErr != nil {
+			wrappedErr := fmt.Errorf("failed to call business api: %w", opErr)
+			if !isRetryableError(opErr) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		if !apiResp.IsSuccess() {
+			wrappedErr := fmt.Errorf("get nearby venues unexpected status code: %d", apiResp.Code())
+			if !isRetryableStatus(apiResp.Code()) {
+				return resilience.Permanent(wrappedErr)
+			}
+
+			return wrappedErr
+		}
+
+		resp = apiResp
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	payload := resp.GetPayload()
+	if payload == nil || len(payload.Items) == 0 {
+		return []int64{}, nil
+	}
+
+	venueIDs := make([]int64, 0, len(payload.Items))
+	for _, item := range payload.Items {
+		venueIDs = append(venueIDs, int64(item.ID))
+	}
+
+	return venueIDs, nil
+}
+
+func (c *businessAPIClient) executeWithResilience(ctx context.Context, operation func() error) error {
+	if c.policy == nil {
+		return operation()
+	}
+
+	return c.policy.Execute(ctx, operation)
+}
+
+func mapCheckExistsError(err error) (error, bool) {
+	statusCode := extractStatusCode(err)
+	if statusCode == 0 {
+		return fmt.Errorf("execute request: %w: %w", apperror.ErrUpstreamError, err), true
+	}
+
+	errMsg := ""
+	var badRequestErr *locations.GetBusinessOrgUnitsIDBadRequest
+	if errors.As(err, &badRequestErr) {
+		if payload := badRequestErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	var internalErr *locations.GetBusinessOrgUnitsIDInternalServerError
+	if errMsg == "" && errors.As(err, &internalErr) {
+		if payload := internalErr.GetPayload(); payload != nil {
+			errMsg = strings.TrimSpace(payload.Error)
+		}
+	}
+
+	if errMsg == "" {
+		errMsg = strings.TrimSpace(err.Error())
+	}
+	if errMsg == "" {
+		errMsg = apperror.ErrUpstreamError.Error()
+	}
+	if len(errMsg) > maxErrorBodySize {
+		errMsg = errMsg[:maxErrorBodySize]
+	}
+
+	if statusCode >= http.StatusBadRequest && statusCode < http.StatusInternalServerError {
+		return fmt.Errorf("client error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError), isRetryableStatus(statusCode)
+	}
+
+	return fmt.Errorf("server error %d: %s: %w", statusCode, errMsg, apperror.ErrUpstreamError), true
+}
+
+func extractStatusCode(err error) int {
+	type withStatusCode interface {
+		Code() int
+	}
+
+	var codeErr withStatusCode
+	if errors.As(err, &codeErr) {
+		return codeErr.Code()
+	}
+
+	return 0
+}
+
+func isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if errors.Is(err, context.Canceled) {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary()) {
+		return true
+	}
+	if errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, io.EOF) {
+		return true
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return true
+	}
+	statusCode := extractStatusCode(err)
+	if statusCode == 0 {
+		return true
+	}
+
+	return isRetryableStatus(statusCode)
+}
+
+func isRetryableStatus(statusCode int) bool {
+	if statusCode == http.StatusRequestTimeout || statusCode == http.StatusTooManyRequests {
+		return true
+	}
+
+	return statusCode >= http.StatusInternalServerError
 }

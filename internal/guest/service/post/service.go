@@ -2,9 +2,6 @@ package post
 
 import (
 	"context"
-	"github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
-	"github.com/ua-academy-projects/share-bite/internal/guest/service/follow"
-
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
@@ -35,11 +32,19 @@ type VenueProvider interface {
 	GetNearbyVenues(ctx context.Context, lat, lon float64, limit int) ([]int64, error)
 }
 
+type followRepo interface {
+	GetAllowedMentions(ctx context.Context, customerID string, mentions []string) ([]string, error)
+}
+
+type customerRepo interface {
+	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
+}
+
 type service struct {
 	postRepo      postRepository
 	venueProvider VenueProvider
-	followRepo    follow.CustomerFollowRepository
-	customerRepo  customer.CustomerRepository
+	followRepo    followRepo
+	customerRepo  customerRepo
 	storage       storage.ObjectStorage
 	txManager     database.TxManager
 	publisher     notification.Publisher
@@ -53,7 +58,7 @@ func WithPublisher(publisher notification.Publisher) Option {
 	}
 }
 
-func New(postRepo postRepository, venueProvider VenueProvider, followRepo follow.CustomerFollowRepository, customerRepo customer.CustomerRepository, storage storage.ObjectStorage, txManager database.TxManager, opts ...Option) *service {
+func New(postRepo postRepository, venueProvider VenueProvider, followRepo followRepo, customerRepo customerRepo, storage storage.ObjectStorage, txManager database.TxManager, opts ...Option) *service {
 	if storage == nil {
 		panic("post service: storage is not configured")
 	}
