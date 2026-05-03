@@ -45,7 +45,7 @@ s3-up:
 	bash scripts/bootstrap.sh
 
 s3-ui:
-	docker compose -f docker/compose.yaml up -d garage_webui
+	docker compose -f build/compose.yaml up -d garage_webui
 	@echo "web_ui: http://localhost:3909"
 
 goose-up:
