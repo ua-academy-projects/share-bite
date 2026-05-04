@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [admin, business, guest]
+        service: [admin, business, guest, migrator]
 
     steps:
       - name: Checkout repository
