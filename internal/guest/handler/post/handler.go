@@ -30,6 +30,12 @@ type postService interface {
 	Like(ctx context.Context, postID string, customerID string) error
 	Unlike(ctx context.Context, postID string, customerID string) error
 	ExploreNearby(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
+
+	CreatePostWithCollaborators(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+	AcceptInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	DeclineInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	GetMyPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	GetPostAuthors(ctx context.Context, postID string) ([]string, error)
 }
 
 type customerService interface {
