@@ -3,6 +3,7 @@ package email
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,10 +17,13 @@ import (
 )
 
 const (
-	resendSendEmailURL        = "https://api.resend.com/emails"
-	resetEmailSubject         = "Reset your Share Bite password"
-	passwordResetTemplatePath = "internal/admin-auth/provider/email/templates/password_reset.html"
+	resendSendEmailURL = "https://api.resend.com/emails"
+	resetEmailSubject  = "Reset your Share Bite password"
+	templateResetPath  = "templates/password_reset.html"
 )
+
+//go:embed templates/password_reset.html
+var templateFS embed.FS
 
 type Sender interface {
 	SendPasswordResetToken(ctx context.Context, toEmail, token string) error
@@ -51,7 +55,7 @@ func NewResendSender(apiKey, fromEmail string) (Sender, error) {
 		return nil, errors.New("resend from email is empty")
 	}
 
-	tpl, err := template.ParseFiles(passwordResetTemplatePath)
+	tpl, err := template.ParseFS(templateFS, templateResetPath)
 	if err != nil {
 		return nil, fmt.Errorf("parse password reset email template: %w", err)
 	}
