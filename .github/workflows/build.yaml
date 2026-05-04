@@ -75,8 +75,7 @@ jobs:
         with:
           context: .
           file: ./build/Dockerfile.${{ matrix.service }}
-          # push: ${{ github.event_name != 'pull_request' }}
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -104,24 +103,6 @@ jobs:
           with:
             role-to-assume: ${{ env.AWS_ROLE_ARN }}
             aws-region: ${{ env.AWS_REGION }}
-
-        - name: Deploy via AWS SSM
-          run: |
-              COMPOSE_B64=$(base64 -w 0 deploy/compose/compose.aws.yaml)
-              
-              aws ssm send-command \
-                --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-                --document-name "AWS-RunShellScript" \
-                --parameters 'commands=[
-                  "cd /home/ubuntu/share-bite",
-                  "echo '"$COMPOSE_B64"' | base64 -d > compose.aws.yaml",
-                  "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
-                  "export AWS_REGION=${{ env.AWS_REGION }}",
-                  "export IMAGE_TAG=sha-$(echo ${{ github.sha }} | cut -c1-7)",
-                  "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
-                  "docker compose -f compose.aws.yaml pull",
-                  "docker compose -f compose.aws.yaml up -d"
-                ]'
 
 #        - name: Deploy via AWS SSM
 #          run: |
