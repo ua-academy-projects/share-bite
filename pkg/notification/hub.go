@@ -64,13 +64,13 @@ func (h *Hub) Run(ctx context.Context, channelName string) error {
 			}
 
 			h.mu.RLock()
-			userClients, exists := h.clients[msg.UserID]
+			userClients, exists := h.clients[msg.RecipientID]
 			if exists {
 				for client := range userClients {
 					select {
 					case client.Send <- msg:
 					default:
-						logger.DebugKV(ctx, "dropped notification", "user_id", msg.UserID, "client", client)
+						logger.DebugKV(ctx, "dropped notification", "user_id", msg.RecipientID, "client", client)
 					}
 				}
 			}

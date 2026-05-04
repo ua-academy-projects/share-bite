@@ -106,19 +106,22 @@ func TestHub_Run(t *testing.T) {
 	}
 
 	msg := Message{
-		UserID:    "user1",
-		Type:      PostLiked,
-		Data:      "123",
-		CreatedAt: time.Now(),
+		EventID:     NewEventID(string(PostLiked), "user1", "customer-1", "post", "123"),
+		EventType:   PostLiked,
+		RecipientID: "user1",
+		ActorID:     "customer-1",
+		EntityType:  "post",
+		EntityID:    "123",
+		CreatedAt:   time.Now(),
 	}
 
 	sub.publish("user1", msg)
 
 	select {
 	case received := <-client.Send:
-		assert.Equal(t, msg.UserID, received.UserID)
-		assert.Equal(t, msg.Type, received.Type)
-		assert.Equal(t, msg.Data, received.Data)
+		assert.Equal(t, msg.EventType, received.EventType)
+		assert.Equal(t, msg.RecipientID, received.RecipientID)
+		assert.Equal(t, msg.EntityID, received.EntityID)
 	case <-time.After(1 * time.Second):
 		t.Fatal("did not receive message")
 	}

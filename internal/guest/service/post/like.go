@@ -26,12 +26,15 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 
 			authorUserID, err := s.postRepo.GetAuthorUserID(pubCtx, postID)
 			if err == nil && authorUserID != "" {
-				err = s.publisher.Publish(pubCtx, authorUserID, notification.Message{
-					UserID:    authorUserID,
-					Type:      notification.PostLiked,
-					Data:      postID,
-					CreatedAt: time.Now().UTC(),
-				})
+				event := notification.NewMessage(
+					notification.PostLiked,
+					authorUserID,
+					customerID,
+					"post",
+					postID,
+					time.Now().UTC(),
+				)
+				err = s.publisher.Publish(pubCtx, authorUserID, event)
 				if err != nil {
 					logger.ErrorKV(pubCtx, "publish post liked notification failed", "error", err)
 				}

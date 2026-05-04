@@ -35,7 +35,12 @@ func TestPostService_Like_Succeeds(t *testing.T) {
 	publisher := &publisherMock{
 		publishFn: func(ctx context.Context, target string, msg notification.Message) error {
 			assert.Equal(t, "user-1", target)
-			assert.Equal(t, notification.PostLiked, msg.Type)
+			assert.Equal(t, notification.PostLiked, msg.EventType)
+			assert.NotEmpty(t, msg.EventID)
+			assert.Equal(t, "user-1", msg.RecipientID)
+			assert.Equal(t, "customer-1", msg.ActorID)
+			assert.Equal(t, "post", msg.EntityType)
+			assert.Equal(t, "42", msg.EntityID)
 			published <- true
 			return nil
 		},
