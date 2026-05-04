@@ -8,7 +8,10 @@ ENV GOOS=linux
 RUN go build -o admin-auth cmd/admin-auth-api/main.go
 
 FROM alpine:latest
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/admin-auth .
+RUN chown appuser:appgroup admin-auth
+USER appuser
 EXPOSE 3850
 CMD ["./admin-auth"]

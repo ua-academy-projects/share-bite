@@ -8,7 +8,10 @@ ENV GOOS=linux
 RUN go build -o business ./cmd/business-api
 
 FROM alpine:latest
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/business .
+RUN chown appuser:appgroup business
+USER appuser
 EXPOSE 3900
 CMD ["./business"]

@@ -8,7 +8,10 @@ ENV GOOS=linux
 RUN go build -o guest ./cmd/guest-api
 
 FROM alpine:latest
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/guest .
+RUN chown appuser:appgroup guest
+USER appuser
 EXPOSE 3800
 CMD ["./guest"]
