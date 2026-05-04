@@ -83,36 +83,10 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 		return 0, apperror.BadRequest("business name cannot be more than 40 characters long")
 	}
 
-	if in.ProfileType == "" {
-		return 0, apperror.BadRequest("business type is required")
-	}
-	if in.ProfileType != entity.ProfileTypeBrand && in.ProfileType != entity.ProfileTypeVenue {
-		return 0, apperror.BadRequest("invalid business type")
-	}
-
-	if in.ProfileType == entity.ProfileTypeBrand && in.ParentId != nil {
-		return 0, apperror.BadRequest("BRAND cannot have a parent")
-	}
-	if in.ProfileType == entity.ProfileTypeVenue && in.ParentId == nil {
-		return 0, apperror.BadRequest("VENUE must have a parent_id")
-	}
-
-	if in.ProfileType == entity.ProfileTypeVenue {
-		parent, err := s.businessRepo.GetById(ctx, *in.ParentId)
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				return 0, apperror.BadRequest("parent_id does not exist")
-			}
-			return 0, fmt.Errorf("get parent org unit in business repository: %w", err)
-		}
-		if parent.ProfileType != entity.ProfileTypeBrand {
-			return 0, apperror.BadRequest("parent must be a BRAND, not a VENUE")
-		}
-		if parent.OrgAccountId != in.OrgAccountId {
-			return 0, apperror.BadRequest("parent must belong to same org account")
-		}
-	}
-
+	if in.ProfileType != entity.ProfileTypeBrand {
+        return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
+    }
+	
 	id, err := s.businessRepo.Create(ctx, in)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create business profile: %w", err)
@@ -125,9 +99,7 @@ func (s *service) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID,
 	if in.Name == nil &&
 		in.Avatar == nil &&
 		in.Banner == nil &&
-		in.Description == nil &&
-		in.Latitude == nil &&
-		in.Longitude == nil {
+		in.Description == nil {
 		return nil, apperror.BadRequest("at least one updatable field is required")
 	}
 

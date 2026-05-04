@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	constraintOrgAccountIDKey = "org_units_org_account_id_key"
+	constraintOrgAccountIDKey = "org_units_brand_owner_uidx"
 )
 
 var (
@@ -39,12 +39,11 @@ func (r *Repository) Create(ctx context.Context, in entity.OrgUnit) (int, error)
 	INSERT INTO business.org_units(
 		org_account_id,
 		profile_type,
-		parent_id,
 		name,
 		description,
-		latitude,
-		longitude
-	) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		avatar,
+		banner
+	) VALUES ($1, $2, $3, $4, $5, $6)
 	RETURNING id
 	`
 
@@ -56,11 +55,10 @@ func (r *Repository) Create(ctx context.Context, in entity.OrgUnit) (int, error)
 	args := []any{
 		in.OrgAccountId,
 		in.ProfileType,
-		in.ParentId,
 		in.Name,
 		in.Description,
-		in.Latitude,
-		in.Longitude,
+		in.Avatar,
+		in.Banner,
 	}
 
 	var businessOrgID int
@@ -89,11 +87,9 @@ func (r *Repository) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UU
 			name = COALESCE($1, name),
 			avatar = COALESCE($2, avatar),
 			banner = COALESCE($3, banner),
-			description = COALESCE($4, description),
-			latitude = COALESCE($5, latitude),
-			longitude = COALESCE($6, longitude)
-		WHERE id = $7 AND org_account_id = $8
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
+			description = COALESCE($4, description)
+		WHERE id = $5 AND org_account_id = $6 AND profile_type = 'BRAND'
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description
 	`
 	q := database.Query{
 		Name: "business_repository.UpdateOrg",
@@ -107,8 +103,6 @@ func (r *Repository) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UU
 		in.Avatar,
 		in.Banner,
 		in.Description,
-		in.Latitude,
-		in.Longitude,
 		id,
 		orgAccountID,
 	)
@@ -122,9 +116,6 @@ func (r *Repository) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UU
 		&ou.Avatar,
 		&ou.Banner,
 		&ou.Description,
-		&ou.ParentId,
-		&ou.Latitude,
-		&ou.Longitude,
 	)
 	if err != nil {
 		if errors.Is(err, stdsql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
@@ -140,7 +131,7 @@ func (r *Repository) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UU
 func (r *Repository) DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error {
 	sql := `
 		DELETE FROM business.org_units
-		WHERE id = $1 AND org_account_id = $2
+		WHERE id = $1 AND org_account_id = $2 AND profile_type = 'BRAND'
 	`
 	q := database.Query{
 		Name: "business_repository.DeleteOrg",

@@ -69,8 +69,6 @@ func (h *handler) updateOrgUnit(c *gin.Context) {
 		Avatar:      req.Avatar,
 		Banner:      req.Banner,
 		Description: req.Description,
-		Latitude:    req.Latitude,
-		Longitude:   req.Longitude,
 	})
 	if err != nil {
 		switch {
@@ -88,7 +86,5 @@ func (h *handler) updateOrgUnit(c *gin.Context) {
 		Avatar:      updated.Avatar,
 		Banner:      updated.Banner,
 		Description: updated.Description,
-		Latitude:    updated.Latitude,
-		Longitude:   updated.Longitude,
 	})
 }

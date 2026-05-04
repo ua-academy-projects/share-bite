@@ -1,8 +1,9 @@
 package business
 
 import (
-	"net/http"
 	"encoding/json"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -15,7 +16,7 @@ import (
 // @Tags         business
 // @Accept       json
 // @Produce      json
-// @Param        request body      dto.CreateOrgRequest  true  "Business data (parent_id required for VENUE)"
+// @Param        request body      dto.CreateOrgRequest  true  "Brand initialization data"
 // @Success      201     {object}  map[string]int    "Returns created organization ID"
 // @Failure      400     {object}  errorResponse     "Validation error"
 // @Failure      401     {object}  errorResponse     "Unauthorized (missing token)"
@@ -35,10 +36,9 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 		return
 	}
 
-
 	userUUID, ok := middleware.GetUserUUID(c)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_uuid type in context"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user_uuid type in context"})
 		return
 	}
 
@@ -47,6 +47,8 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 		ProfileType:  entity.ProfileTypeBrand,
 		Name:         req.Name,
 		Description:  req.Description,
+		Avatar:       req.Avatar,
+		Banner:       req.Banner,
 	}
 
 	id, err := h.service.Create(c.Request.Context(), orgEntity)

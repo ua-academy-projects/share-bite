@@ -54,6 +54,7 @@ func RegisterHandlers(
 	}
 
 	auth := middleware.Auth(parser)
+	r.GET("/:id", h.getOrgUnit)
 
 	orgUnits := r.Group("/org-units")
 	{
@@ -85,6 +86,7 @@ func RegisterHandlers(
 		orgMutations.PUT("/:id", h.updateOrgUnit)
 		orgMutations.PATCH("/:id", h.updateOrgUnit)
 		orgMutations.DELETE("/:id", h.deleteOrgUnit)
+	
 	}
 
 	businessLocations := r.Group("").
