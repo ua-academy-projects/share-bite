@@ -286,13 +286,15 @@ func (r *repository) GetByIDs(ctx context.Context, ids []string) ([]entity.Custo
 			last_name,
 			avatar_object_key,
 			bio,
+			is_followers_public,
+			is_following_public,
 			created_at
 		FROM guest.customers
 		WHERE id = ANY($1::uuid[])
 	`
 
 	q := database.Query{
-		Name: "customer_repository.GetByIDs",
+		Name: "customer_repository.GetFullByIDs",
 		Sql:  sql,
 	}
 
@@ -315,6 +317,8 @@ func (r *repository) GetByIDs(ctx context.Context, ids []string) ([]entity.Custo
 			&c.LastName,
 			&c.AvatarObjectKey,
 			&c.Bio,
+			&c.IsFollowersPublic,
+			&c.IsFollowingPublic,
 			&c.CreatedAt,
 		); err != nil {
 			return nil, scanRowError(err)

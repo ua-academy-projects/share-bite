@@ -102,7 +102,7 @@ func (r *Repository) GetAllowedMentions(ctx context.Context, customerID string, 
 		SELECT followed_customer_id
 		FROM guest.customer_follows
 		WHERE follower_customer_id = $1
-		  AND followed_customer_id = ANY($2)
+		  AND followed_customer_id = ANY($2::uuid[])
 	`
 
 	q := database.Query{
