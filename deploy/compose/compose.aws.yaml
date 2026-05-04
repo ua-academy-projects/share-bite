@@ -1,7 +1,7 @@
 name: compose.aws.yaml
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: share-bite-postgres
     restart: always
     environment:
@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     networks:
       - share-bite-network
     healthcheck:
@@ -30,7 +30,7 @@ services:
     networks:
       - share-bite-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-rbite}", "ping"]
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-rbite} ping | grep PONG" ]
       interval: 5s
       timeout: 3s
       retries: 5
