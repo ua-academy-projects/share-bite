@@ -29,8 +29,18 @@ export const CreatePost: React.FC = () => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files).slice(0, 5 - images.length);
-      const newImages = files.map(file => ({
+      setValidationError(null);
+      const files = Array.from(e.target.files);
+      
+      const invalidFiles = files.filter(file => !['image/jpeg', 'image/png', 'image/jpg'].includes(file.type));
+      if (invalidFiles.length > 0) {
+        setValidationError('Unsupported image type. Only JPEG and PNG are supported.');
+        e.currentTarget.value = '';
+        return;
+      }
+
+      const allowedFiles = files.slice(0, 5 - images.length);
+      const newImages = allowedFiles.map(file => ({
         file,
         previewUrl: URL.createObjectURL(file)
       }));
@@ -93,6 +103,14 @@ export const CreatePost: React.FC = () => {
       setValidationError('Rating must be between 1 and 5');
       return;
     }
+
+    // Validate images before submission
+    const invalidImage = images.find(img => !['image/jpeg', 'image/png', 'image/jpg'].includes(img.file.type));
+    if (invalidImage) {
+      setValidationError('Unsupported image type. Only JPEG and PNG are supported.');
+      return;
+    }
+
     createMutation.mutate({ parsedVenueId, parsedRating });
   };
 
@@ -137,7 +155,7 @@ export const CreatePost: React.FC = () => {
                 <input 
                   id="image-upload" 
                   type="file" 
-                  accept="image/*" 
+                  accept="image/png, image/jpeg, image/jpg" 
                   multiple
                   className={styles.hiddenInput} 
                   onChange={handleImageChange}
