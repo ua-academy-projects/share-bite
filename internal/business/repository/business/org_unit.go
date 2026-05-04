@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lib/pq"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
@@ -51,15 +53,32 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 	return &result, nil
 }
 
-func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error) {
+func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error) {
 	const op = "repository.business.ListByParentID"
+
+	where := "parent_id = $1"
+	args := []any{parentID}
+
+	if len(tags) > 0 {
+		where += `
+		AND EXISTS (
+			SELECT 1
+			FROM business.org_unit_tags ot
+			JOIN business.location_tags lt ON lt.id = ot.tag_id
+			WHERE ot.org_unit_id = business.org_units.id
+			AND lt.slug = ANY($2)
+		)
+	`
+		args = append(args, pq.Array(tags))
+	}
+
 	units, err := pagination.List(ctx, r.db.DB(), "business_repository.ListByParentID",
 		pagination.Params{
 			Table:   "business.org_units",
 			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
-			Where:   "parent_id = $1",
+			Where:   where,
 			OrderBy: "id",
-			Args:    []any{parentID},
+			Args:    args,
 			Offset:  offset,
 			Limit:   limit,
 		},

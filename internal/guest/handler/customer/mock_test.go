@@ -12,6 +12,17 @@ type mockCustomerService struct {
 	mock.Mock
 }
 
+func (m *mockCustomerService) GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error) {
+	args := m.Called(ctx, ids)
+
+	var res []entity.Customer
+	if args.Get(0) != nil {
+		res = args.Get(0).([]entity.Customer)
+	}
+
+	return res, args.Error(1)
+}
+
 func (m *mockCustomerService) Create(ctx context.Context, in entity.CreateCustomer) (string, error) {
 	args := m.Called(ctx, in)
 	return args.String(0), args.Error(1)

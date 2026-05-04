@@ -16,7 +16,7 @@ import (
 	ginswagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	businessgateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
@@ -63,7 +63,7 @@ func main() {
 
 	// for local development only
 	if err := config.Load(".env"); err != nil {
-		logger.Fatal(ctx, "load config:", err)
+		logger.Fatal(ctx, err)
 	}
 
 	// docker variant
@@ -214,12 +214,12 @@ func main() {
 		},
 	}
 
-	businessGateway, err := business.NewBusinessAPIClient(
+	businessGateway, err := businessgateway.NewBusinessAPIClient(
 		config.Config().BusinessHttpClient.BaseURL(),
 		config.Config().BusinessHttpClient.Scheme(),
 		"/",
 		httpClient,
-		business.WithResiliencePolicy(businessResiliencePolicy),
+		businessgateway.WithResiliencePolicy(businessResiliencePolicy),
 	)
 	if err != nil {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
@@ -248,9 +248,9 @@ func main() {
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	postSvc := postsvc.New(postRepo, businessGateway, storageClient, txManager, postsvc.WithPublisher(broker))
+	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithPublisher(broker))
 	commentSvc := commentsvc.New(commentRepo, postSvc)
-	collectionSvc := collectionsvc.New(collectionRepo, txManager, businessGateway)
+	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
 	followSvc := followsvc.New(followRepo, customerRepo)
 
 	// middlewares
@@ -269,6 +269,7 @@ func main() {
 		authMiddleware,
 		optionalAuthMiddleware,
 		customerMiddleware,
+		storageClient,
 	)
 	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
 

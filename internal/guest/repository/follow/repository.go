@@ -92,3 +92,42 @@ func (r *Repository) IsFollowing(
 
 	return exists, nil
 }
+
+func (r *Repository) GetAllowedMentions(ctx context.Context, customerID string, mentions []string) ([]string, error) {
+	if len(mentions) == 0 {
+		return nil, nil
+	}
+
+	sql := `
+		SELECT followed_customer_id
+		FROM guest.customer_follows
+		WHERE follower_customer_id = $1
+		  AND followed_customer_id = ANY($2::uuid[])
+	`
+
+	q := database.Query{
+		Name: "follow_repository.GetAllowedMentions",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, customerID, mentions)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, scanRowError(err)
+		}
+		ids = append(ids, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}

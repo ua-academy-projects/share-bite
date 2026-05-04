@@ -25,6 +25,15 @@ type mockUserRepository struct {
 	mock.Mock
 }
 
+func (m *mockUserRepository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
+	args := m.Called(ctx, ghUser)
+	user := args.Get(0)
+	if user == nil {
+		return nil, args.Error(1)
+	}
+	return user.(*dto.User), args.Error(1)
+}
+
 func (m *mockUserRepository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error) {
 	args := m.Called(ctx, tokenHash, passwordHash)
 	return args.String(0), args.Bool(1), args.Error(2)
@@ -89,6 +98,11 @@ func (m *mockUserRepository) CreateWithSocial(ctx context.Context, params dto.Cr
 }
 
 func (m *mockUserRepository) LinkSocialAccount(ctx context.Context, params dto.CreateSocialAccountParams) error {
+	args := m.Called(ctx, params)
+	return args.Error(0)
+}
+
+func (m *mockUserRepository) UpdateUserStatus(ctx context.Context, params user.UpdateUserStatus) error {
 	args := m.Called(ctx, params)
 	return args.Error(0)
 }
@@ -174,6 +188,19 @@ func (m *MockAuthService) OAuthLogin(ctx context.Context, provider authsvc.OAuth
 
 func (m *MockAuthService) LinkProvider(ctx context.Context, userID string, provider authsvc.OAuthProvider, code string) error {
 	args := m.Called(ctx, userID, provider, code)
+	return args.Error(0)
+}
+
+func (m *MockAuthService) GetUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (models.UserStatus, error) {
+	args := m.Called(ctx, requesterUserID, requesterRole, targetUserID)
+	if args.Get(0) != nil {
+		return args.Get(0).(models.UserStatus), args.Error(1)
+	}
+	return "", args.Error(1)
+}
+
+func (m *MockAuthService) UpdateUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string, status models.UserStatus) error {
+	args := m.Called(ctx, requesterUserID, requesterRole, targetUserID, status)
 	return args.Error(0)
 }
 
