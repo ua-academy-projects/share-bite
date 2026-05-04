@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	fileSniffSizeBytes = 512
+	fileSniffSizeBytes     = 512
+	multipartOverheadBytes = 1 << 20 // 1MB overhead for multipart boundaries and headers
 )
 
 // @Summary		Upload customer avatar
@@ -59,7 +60,7 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 		return
 	}
 
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, mediatype.DefaultMaxImageSizeBytes)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, mediatype.DefaultMaxImageSizeBytes+multipartOverheadBytes)
 	fileHeader, err := c.FormFile("image")
 	if err != nil {
 		var maxErr *http.MaxBytesError

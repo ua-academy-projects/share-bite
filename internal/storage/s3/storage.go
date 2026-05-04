@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 	"time"
 
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -126,6 +127,15 @@ func validateKey(key string) error {
 	}
 	if !safeKeyRegexp.MatchString(key) {
 		return fmt.Errorf("invalid object key is provided")
+	}
+
+	if strings.HasPrefix(key, "/") || strings.Contains(key, "//") {
+		return fmt.Errorf("invalid object key is provided")
+	}
+	for s := range strings.SplitSeq(key, "/") {
+		if s == "" || s == "." || s == ".." {
+			return fmt.Errorf("invalid object key is provided")
+		}
 	}
 
 	return nil

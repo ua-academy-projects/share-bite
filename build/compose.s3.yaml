@@ -5,8 +5,8 @@ services:
     container_name: s3
     restart: unless-stopped
     ports:
-      - "3900:3900"
-      - "3903:3903"
+      - "4300:4300"
+      - "4303:4303"
     volumes:
       - ../garage.toml:/etc/garage.toml:ro
       - garage_meta:/var/lib/garage/meta
@@ -27,12 +27,12 @@ services:
     container_name: garage-webui
     restart: unless-stopped
     ports:
-      - "3909:3909"
+      - "4309:4309"
     volumes:
       - ../garage.toml:/etc/garage.toml:ro
     environment:
-      API_BASE_URL: "http://s3:3903"
-      S3_ENDPOINT_URL: "http://s3:3900"
+      API_BASE_URL: "http://s3:4303"
+      S3_ENDPOINT_URL: "http://s3:4300"
     depends_on:
       - s3
     networks:

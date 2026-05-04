@@ -23,6 +23,7 @@ func (m *mockS3Client) PutObject(ctx context.Context, params *awss3.PutObjectInp
 	if out, ok := args.Get(0).(*awss3.PutObjectOutput); ok {
 		return out, args.Error(1)
 	}
+
 	return nil, args.Error(1)
 }
 
@@ -31,6 +32,7 @@ func (m *mockS3Client) DeleteObject(ctx context.Context, params *awss3.DeleteObj
 	if out, ok := args.Get(0).(*awss3.DeleteObjectOutput); ok {
 		return out, args.Error(1)
 	}
+
 	return nil, args.Error(1)
 }
 
@@ -41,6 +43,7 @@ func newFakePresignClient() *awss3.PresignClient {
 			return aws.Credentials{AccessKeyID: "fake", SecretAccessKey: "fake"}, nil
 		}),
 	}
+
 	client := awss3.NewFromConfig(cfg)
 	return awss3.NewPresignClient(client)
 }

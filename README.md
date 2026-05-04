@@ -57,7 +57,7 @@ make s3-up
 
 After bootstrap, copy the credentials printed in the terminal into your `.env`:
 ```env
-S3_ENDPOINT=http://localhost:3900
+S3_ENDPOINT=http://localhost:4300
 S3_REGION=garage
 S3_ACCESS_KEY=<printed by bootstrap>
 S3_SECRET_KEY=<printed by bootstrap>
@@ -71,7 +71,8 @@ S3_USE_PATH_STYLE=true
 ```bash
 make s3-ui
 ```
-Open http://localhost:3909
+
+> Open http://localhost:4309
 
 #### Production (AWS S3)
 
@@ -80,15 +81,19 @@ For real AWS deployment, configure your production `.env` like this:
 ```env
 S3_REGION=eu-central-1
 S3_BUCKET=your-production-bucket-name
+```
 
-# Note: Currently using static credentials for AWS.
-# In the future, this will be migrated to IAM Roles, and keys won't be needed.
+**Recommended: IAM Roles (no keys needed)**
+When running on AWS infrastructure (EC2, ECS, Lambda), leave `S3_ACCESS_KEY` and `S3_SECRET_KEY` empty.
+The client will automatically use the instance's IAM role.
+
+**Alternative: Static credentials**
+```env
 S3_ACCESS_KEY=your-aws-access-key
 S3_SECRET_KEY=your-aws-secret-key
-
-# DO NOT set S3_ENDPOINT for AWS.
-# S3_USE_PATH_STYLE is also NOT REQUIRED for native AWS S3.
 ```
+
+> `S3_ENDPOINT` and `S3_USE_PATH_STYLE` are not required for native AWS S3.
 
 ### 6. Notifications helper and Redis
 

@@ -67,6 +67,10 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 
 	for i, img := range in.Images {
 		ext := mediatype.ExtFromContentType(img.ContentType)
+		if ext == "" {
+			rollbackUploadedImages(s.storage, uploadedKeys)
+			return entity.Post{}, apperror.ErrUnsupportedImageType
+		}
 
 		objectKey := key.CustomerPostImageKey(in.CustomerID, uploadSessionID, uuid.NewString(), ext)
 		if err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File); err != nil {
