@@ -1,14 +1,11 @@
 package business
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
-	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 )
 
 // getOrgUnit godoc
@@ -32,26 +29,9 @@ func (h *handler) getOrgUnit(c *gin.Context) {
 	}
 
 	org, err := h.service.Get(c.Request.Context(), reqURI.ID)
-	if err != nil {
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.BadRequest:
-				c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Error()})
-				return
-			case code.NotFound:
-				c.JSON(http.StatusNotFound, gin.H{"error": appErr.Error()})
-				return
-			case code.Forbidden:
-				c.JSON(http.StatusForbidden, gin.H{"error": appErr.Error()})
-				return
-			case code.Unauthorized:
-				c.JSON(http.StatusUnauthorized, gin.H{"error": appErr.Error()})
-				return
-			}
-		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	if err != nil {
+		_ = c.Error(err)
 		return
 	}
 
