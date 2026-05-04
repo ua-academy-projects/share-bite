@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 	_ "time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
@@ -688,6 +689,165 @@ func (r *Repository) ListMentionsByPostIDs(ctx context.Context, postIDs []string
 
 	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+
+	return result, nil
+}
+
+func (r *Repository) CreatePostCollaborators(ctx context.Context, postID string, invitedBy string, customerIDs []string, expiresAt time.Time) error {
+	if len(customerIDs) == 0 {
+		return nil
+	}
+
+	q := database.Query{
+		Name: "post_collaborators.create_bulk",
+		Sql: `
+            INSERT INTO guest.post_collaborators (post_id, customer_id, invited_by, expires_at)
+            SELECT $1, unnest($2::uuid[]), $3, $4
+            ON CONFLICT (post_id, customer_id) DO NOTHING;
+        `,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, postID, customerIDs, invitedBy, expiresAt)
+	return err
+}
+
+func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error) {
+	q := database.Query{
+		Name: "post_collaborators.get_pending_by_user",
+		Sql: `
+            SELECT id, post_id, customer_id, invited_by, status, expires_at, responded_at, created_at
+            FROM guest.post_collaborators
+            WHERE customer_id = $1
+              AND status = 'pending'
+              AND expires_at > NOW();
+        `,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, customerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []entity.PostCollaborator
+
+	for rows.Next() {
+		var pc entity.PostCollaborator
+		err := rows.Scan(
+			&pc.ID,
+			&pc.PostID,
+			&pc.CustomerID,
+			&pc.InvitedBy,
+			&pc.Status,
+			&pc.ExpiresAt,
+			&pc.RespondedAt,
+			&pc.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, pc)
+	}
+
+	return result, nil
+}
+
+func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
+	q := database.Query{
+		Name: "post_collaborators.accept",
+		Sql: `
+            UPDATE guest.post_collaborators
+            SET status = 'accepted',
+                responded_at = NOW()
+            WHERE id = $1
+              AND customer_id = $2
+              AND status = 'pending'
+              AND expires_at > NOW()
+            RETURNING post_id;
+        `,
+	}
+
+	var postID string
+	err := r.db.DB().QueryRowContext(ctx, q, collaboratorID, customerID).Scan(&postID)
+	if err != nil {
+		return "", err
+	}
+
+	return postID, nil
+}
+
+func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
+	q := database.Query{
+		Name: "post_collaborators.decline",
+		Sql: `
+            UPDATE guest.post_collaborators
+            SET status = 'declined',
+                responded_at = NOW()
+            WHERE id = $1
+              AND customer_id = $2
+              AND status = 'pending'
+            RETURNING post_id;
+        `,
+	}
+
+	var postID string
+	err := r.db.DB().QueryRowContext(ctx, q, collaboratorID, customerID).Scan(&postID)
+	if err != nil {
+		return "", err
+	}
+
+	return postID, nil
+}
+
+func (r *Repository) AreAllPostCollaboratorsAccepted(ctx context.Context, postID string) (bool, error) {
+	q := database.Query{
+		Name: "post_collaborators.all_accepted",
+		Sql: `
+            SELECT NOT EXISTS (
+                SELECT 1
+                FROM guest.post_collaborators
+                WHERE post_id = $1
+                  AND status != 'accepted'
+                  AND expires_at > NOW()
+            );
+        `,
+	}
+
+	var result bool
+	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&result)
+	if err != nil {
+		return false, err
+	}
+
+	return result, nil
+}
+
+func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID string) ([]string, error) {
+	q := database.Query{
+		Name: "post_collaborators.get_accepted",
+		Sql: `
+            SELECT customer_id
+            FROM guest.post_collaborators
+            WHERE post_id = $1
+              AND status = 'accepted';
+        `,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []string
+
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		result = append(result, id)
 	}
 
 	return result, nil

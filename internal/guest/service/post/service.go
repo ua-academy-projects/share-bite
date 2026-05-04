@@ -2,7 +2,6 @@ package post
 
 import (
 	"context"
-
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
@@ -26,6 +25,16 @@ type postRepository interface {
 	GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
 	CreateMentions(ctx context.Context, mentions []entity.PostMention) error
 	ListMentionsByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
+
+	CreatePostCollaborators(ctx context.Context, postID string, invitedBy string, customerIDs []string, expiresAt time.Time) error
+	GetPendingPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error)
+	DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	GetAcceptedPostCollaborators(ctx context.Context, postID string) ([]string, error)
+	TryPublishPostIfAllAccepted(ctx context.Context, postID string) (bool, error)
+	IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error)
+
+	DeleteExpiredDraftPosts(ctx context.Context) error
 }
 
 type VenueProvider interface {
@@ -39,7 +48,6 @@ type followRepo interface {
 
 type customerRepo interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
-	GetByID(ctx context.Context, id string) (entity.Customer, error)
 }
 
 type service struct {
