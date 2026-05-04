@@ -66,6 +66,10 @@ func RegisterHandlers(
 	protected.POST("/:id/like", h.like)
 	protected.DELETE("/:id/like", h.unlike)
 
+	protected.GET("/invitations", h.getMyInvitations)
+	protected.POST("/invitations/:id/accept", h.acceptInvitation)
+	protected.POST("/invitations/:id/decline", h.declineInvitation)
+
 	r.GET("/explore", h.ExploreNearby)
 }
 

@@ -37,6 +37,7 @@ type createResponse struct {
 //	@Param			rating		formData	int		true	"Rating (1..5)"
 //	@Param			images		formData	file	false	"Post images (jpeg/png, up to 5)"
 //	@Param			mentions	formData	[]string	false	"Mentions (usernames)"
+//	@Param			invited_customer_ids	formData	[]string	false	"Collaborator customer IDs (UUID)"
 //	@Success		201			{object}	createResponse
 //	@Failure		400			{object}	response.ErrorResponse
 //	@Failure		401			{object}	response.ErrorResponse
@@ -71,6 +72,8 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
+	req.InvitedCustomerIDs = filterEmpty(req.InvitedCustomerIDs)
+
 	images, err := buildUploadImages(req.Images)
 	if err != nil {
 		c.Error(err)
@@ -87,20 +90,34 @@ func (h *handler) create(c *gin.Context) {
 	}
 
 	in := dto.CreatePostInput{
-		CustomerID: customer.ID,
-		VenueID:    req.VenueID,
-		Text:       req.Text,
-		Rating:     req.Rating,
-		Images:     dtoImages,
-		Mentions:   req.Mentions,
+		CustomerID:         customer.ID,
+		VenueID:            req.VenueID,
+		Text:               req.Text,
+		Rating:             req.Rating,
+		Images:             dtoImages,
+		Mentions:           req.Mentions,
+		InvitedCustomerIDs: req.InvitedCustomerIDs,
 	}
 
-	post, err := h.service.Create(ctx, in)
+	post, err := h.service.CreatePostWithCollaborators(ctx, in)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	resp := createResponse{Post: postToResponse(post, h.storage, customer)}
+	resp := createResponse{
+		Post: postToResponse(post, h.storage, customer, []authorResponse{}),
+	}
 	c.JSON(http.StatusCreated, resp)
+}
+
+func filterEmpty(ds []string) []string {
+	result := make([]string, 0, len(ds))
+	for _, d := range ds {
+		if s := strings.TrimSpace(d); s != "" {
+			result = append(result, s)
+		}
+	}
+
+	return result
 }
