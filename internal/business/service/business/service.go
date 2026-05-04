@@ -53,7 +53,7 @@ type businessRepository interface {
 	CreateBoxItem(ctx context.Context, boxID int64, code string) error
 	GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error)
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
-	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
+	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput, h3Hash *string) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
 	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
@@ -70,6 +70,15 @@ type businessRepository interface {
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+
+	GetTopTagsByUserLikes(ctx context.Context, userID string, tagsToFetch int) ([]string, error)
+	GetVenuesByTag(ctx context.Context, tag string, quota int, seenIDs []int, h3Hashes []string) ([]entity.OrgUnit, error)
+	GetRandomVenues(ctx context.Context, deficit int, seenIDs []int, h3Hashes []string) ([]entity.OrgUnit, error)
+}
+
+type H3Settings struct {
+	Resolution      int
+	RecommendRadius int
 }
 
 type service struct {
@@ -77,14 +86,16 @@ type service struct {
 	txManager    database.TxManager
 	storage      storage.ObjectStorage
 	h3Service    aws.H3Service
+	h3Config     H3Settings
 }
 
-func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage, h3Service aws.H3Service) *service {
+func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage, h3Service aws.H3Service, h3Config H3Settings) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
 		storage:      st,
 		h3Service:    h3Service,
+		h3Config:     h3Config,
 	}
 }
 

@@ -94,7 +94,11 @@ func main() {
 
 	// services
 	h3Service := h3.NewH3Service()
-	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service)
+	h3Settings := businesssvc.H3Settings{
+		Resolution:      config.Config().H3.Resolution(),
+		RecommendRadius:          config.Config().H3.RecommendRadius(),
+	}
+	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service, h3Settings)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),

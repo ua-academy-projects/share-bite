@@ -1,24 +1,21 @@
 -- +goose Up
 CREATE SCHEMA IF NOT EXISTS auth;
 
-CREATE TABLE auth.roles
-(
+CREATE TABLE auth.roles (
     id   SERIAL PRIMARY KEY,
     slug VARCHAR(100) UNIQUE NOT NULL,
     name VARCHAR(100)        NOT NULL
 );
 
-CREATE TABLE auth.users
-(
+CREATE TABLE auth.users (
     id            UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
     email         VARCHAR(255) UNIQUE NOT NULL,
-    password_hash TEXT                NOT NULL,
+    password_hash TEXT,
     created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE auth.user_roles
-(
+CREATE TABLE auth.user_roles (
     user_id UUID    NOT NULL,
     role_id INTEGER NOT NULL,
     PRIMARY KEY (user_id, role_id),
@@ -28,11 +25,11 @@ CREATE TABLE auth.user_roles
 
 CREATE INDEX idx_user_roles_role_id ON auth.user_roles(role_id);
 
-INSERT INTO auth.roles (slug, name)
-VALUES ('admin', 'Адміністратор'),
-       ('user', 'Користувач'),
-       ('business', 'Бізнес'),
-       ('moderator', 'Модератор');
+INSERT INTO auth.roles (slug, name) VALUES 
+('admin', 'Admin'),
+('user', 'User'),
+('business', 'Business'),
+('moderator', 'Moderator');
 
 -- +goose Down
 DROP TABLE IF EXISTS auth.user_roles;

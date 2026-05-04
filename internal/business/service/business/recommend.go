@@ -48,18 +48,38 @@ func calculateTagQuotas(tags []string, limit int) map[string]int {
 	return quotas
 }
 
-func (s *service) RecommendVenues(ctx context.Context, userID string, skip, limit int) (pagination.Result[entity.OrgUnit], error) {
+func (s *service) RecommendVenues(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnit], error) {
 	const op = "service.business.RecommendVenues"
-
 	const tagsToFetch = 5
+
+	h3Hashes := s.h3Service.GetH3Neighbors(lat, lon, s.h3Config.Resolution, s.h3Config.RecommendRadius)
+	if len(h3Hashes) == 0 {
+		return pagination.Result[entity.OrgUnit]{}, nil
+	}
 
 	topTags, err := s.businessRepo.GetTopTagsByUserLikes(ctx, userID, tagsToFetch)
 	if err != nil {
 		return pagination.Result[entity.OrgUnit]{}, err
 	}
 
-	quotas := calculateTagQuotas(topTags, limit)
+	if len(topTags) == 0 {
+		fillVenues, err := s.businessRepo.GetRandomVenues(ctx, limit, nil, h3Hashes)
+		if err != nil {
+			return pagination.Result[entity.OrgUnit]{}, err
+		}
 
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		r.Shuffle(len(fillVenues), func(i, j int) {
+			fillVenues[i], fillVenues[j] = fillVenues[j], fillVenues[i]
+		})
+
+		return pagination.Result[entity.OrgUnit]{
+			Items: fillVenues,
+			Total: len(fillVenues),
+		}, nil
+	}
+
+	quotas := calculateTagQuotas(topTags, limit)
 	var finalVenues []entity.OrgUnit
 	var seenIDs []int
 	deficit := 0
@@ -70,7 +90,7 @@ func (s *service) RecommendVenues(ctx context.Context, userID string, skip, limi
 			continue
 		}
 
-		venues, err := s.businessRepo.GetVenuesByTag(ctx, tag, quota, seenIDs)
+		venues, err := s.businessRepo.GetVenuesByTag(ctx, tag, quota, seenIDs, h3Hashes)
 		if err != nil {
 			return pagination.Result[entity.OrgUnit]{}, err
 		}
@@ -86,7 +106,7 @@ func (s *service) RecommendVenues(ctx context.Context, userID string, skip, limi
 	}
 
 	if deficit > 0 {
-		fillVenues, err := s.businessRepo.GetRandomVenues(ctx, deficit, seenIDs)
+		fillVenues, err := s.businessRepo.GetRandomVenues(ctx, deficit, seenIDs, h3Hashes)
 		if err == nil {
 			finalVenues = append(finalVenues, fillVenues...)
 		}

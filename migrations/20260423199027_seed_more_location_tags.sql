@@ -38,46 +38,17 @@ VALUES
 ON CONFLICT (slug) DO NOTHING;
 
 -- +goose Down
--- Remove only tags seeded by this migration that are not referenced by org_unit_tags.
-DELETE FROM business.location_tags lt
+DELETE FROM business.location_tags lt 
 WHERE lt.slug IN (
-  'coffee',  
-  'breakfast', 
-  'pet-friendly',
-  'wifi',  
-  'brunch',
-  'lunch',
-  'dinner',
-  'desserts',
-  'bakery',
-  'vegan-options',
-  'vegetarian-friendly',
-  'gluten-free',
-  'outdoor-seating',
-  'terrace',
-  'takeaway',
-  'delivery',
-  'drive-through',
-  'family-friendly',
-  'kid-friendly',
-  'late-night',
-  '24-hours',
-  'quiet-place',
-  'cozy',
-  'romantic',
-  'work-friendly',
-  'coworking',
-  'power-outlets',
-  'parking',
-  'bike-parking',
-  'accessible-entrance',
-  'pet-zone',
-  'live-music',
-  'events',
-  'game-zone'
-)
+    'coffee', 'breakfast', 'pet-friendly', 'wifi', 'brunch', 'lunch', 'dinner', 
+    'desserts', 'bakery', 'vegan-options', 'vegetarian-friendly', 'gluten-free', 
+    'outdoor-seating', 'terrace', 'takeaway', 'delivery', 'drive-through', 
+    'family-friendly', 'kid-friendly', 'late-night', '24-hours', 'quiet-place', 
+    'cozy', 'romantic', 'work-friendly', 'coworking', 'power-outlets', 'parking', 
+    'bike-parking', 'accessible-entrance', 'pet-zone', 'live-music', 'events', 'game-zone'
+) 
 AND NOT EXISTS (
-  SELECT 1
-  FROM business.org_unit_tags ot
-  WHERE ot.tag_id = lt.id
+    SELECT 1 
+    FROM business.org_unit_tags ot 
+    WHERE ot.tag_id = lt.id
 );

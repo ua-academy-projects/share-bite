@@ -10,8 +10,10 @@ import (
 )
 
 type recommendRequest struct {
-	Skip  int `form:"skip"`
-	Limit int `form:"limit"`
+	Skip  int     `form:"skip"`
+	Limit int     `form:"limit"`
+	Lat   float64 `form:"lat" binding:"required,latitude"`
+	Lon   float64 `form:"lon" binding:"required,longitude"`
 }
 
 type recommendVenuesResponse struct {
@@ -24,8 +26,10 @@ type recommendVenuesResponse struct {
 // @Description Returns recommended venues by user behavior using weighted tag quotas (5-3-2-1-1).
 // @Tags locations
 // @Produce json
-// @Param skip query false "Number of items to skip (default: 0)"
-// @Param limit query false "Items per page (default: 10, max: 100)"
+// @Param          lat     query       float64 true    "User latitude"
+// @Param          lon     query       float64 true    "User longitude"
+// @Param			skip	query		int	false	"Number of items to skip (default: 0)"
+// @Param			limit	query		int	false	"Items per page (default: 10, max: 100)"
 // @Success 200 {object} recommendVenuesResponse
 // @Security BearerAuth
 // @Router /business/venues/recommend [get]
@@ -61,7 +65,7 @@ func (h *handler) recommendVenues(c *gin.Context) {
 
 	log.Info("recommend venues", "user_id", userID, "skip", req.Skip, "limit", req.Limit)
 
-	venues, err := h.service.RecommendVenues(ctx, userID, req.Skip, req.Limit)
+	venues, err := h.service.RecommendVenues(ctx, userID, req.Lat, req.Lon, req.Skip, req.Limit)
 	if err != nil {
 		log.Error("failed to get recommended venues", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to recommend venues"})
