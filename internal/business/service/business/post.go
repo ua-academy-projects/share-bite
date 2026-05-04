@@ -20,6 +20,7 @@ const (
 )
 
 func (s *service) CreatePost(ctx context.Context, userID string, unitID int, description string, images []*multipart.FileHeader) (*entity.PostWithPhotos, error) {
+	const op = "service.post.CreatePost"
 	for _, file := range images {
 		if file.Size > maxImageSize {
 			return nil, biserr.FileToLargeErr
@@ -27,7 +28,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 
 		openedFile, err := file.Open()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
 		buffer := make([]byte, fileHeaderSize)
@@ -35,7 +36,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		openedFile.Close()
 
 		if err != nil && err != io.EOF {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 		contentType := http.DetectContentType(buffer)
 		if !isAllowedImageType(contentType) {
@@ -52,11 +53,17 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		}
 	}
 
+	isSuccess := false
+	defer func() {
+		if !isSuccess {
+			cleanupS3()
+		}
+	}()
+
 	for _, file := range images {
 		openedFile, err := file.Open()
 		if err != nil {
-			cleanupS3()
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
 		buffer := make([]byte, fileHeaderSize)
@@ -71,17 +78,15 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		objectKey := fmt.Sprintf("posts/%d/%s%s", unitID, uuid.New().String(), fileExt)
 
 		key, err := s.storage.Upload(ctx, objectKey, contentType, openedFile)
-
 		openedFile.Close()
 
 		if err != nil {
-			cleanupS3()
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
+		photoURL := s.storage.BuildURL(key)
+		photoURLs = append(photoURLs, photoURL)
 		uploadedKeys = append(uploadedKeys, key)
-		imageURL := s.storage.BuildURL(key)
-		photoURLs = append(photoURLs, imageURL)
 	}
 
 	var post *entity.Post
@@ -93,7 +98,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		if err != nil {
 			return fmt.Errorf("create post: %w", err)
 		}
-		err = s.businessRepo.InsertPostImages(ctxTx, post.ID, photoURLs)
+		err = s.businessRepo.InsertPostImages(ctxTx, post.ID, uploadedKeys)
 		if err != nil {
 			return fmt.Errorf("insert images: %w", err)
 		}
@@ -109,6 +114,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		return nil, fmt.Errorf("get org: %w", err)
 	}
 
+	isSuccess = true
 	return &entity.PostWithPhotos{
 		ID:          post.ID,
 		OrgID:       post.OrgID,

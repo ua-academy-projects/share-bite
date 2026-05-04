@@ -4,22 +4,34 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-type S3Storage struct {
-	client     *awss3.Client
-	bucketName string
-	endpoint   string
+type S3API interface {
+	PutObject(ctx context.Context, params *awss3.PutObjectInput, optFns ...func(*awss3.Options)) (*awss3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, params *awss3.DeleteObjectInput, optFns ...func(*awss3.Options)) (*awss3.DeleteObjectOutput, error)
 }
 
-func NewS3Storage(client *awss3.Client, bucketName string, endpoint string) *S3Storage {
+type S3Storage struct {
+	client        S3API
+	bucketName    string
+	endpoint      string
+	presignClient *awss3.PresignClient
+	urlTTL        time.Duration
+	region        string
+}
+
+func NewS3Storage(client S3API, bucketName string, endpoint string, presignClient *awss3.PresignClient, ttl time.Duration, region string) *S3Storage {
 	return &S3Storage{
-		client:     client,
-		bucketName: bucketName,
-		endpoint:   endpoint,
+		client:        client,
+		bucketName:    bucketName,
+		endpoint:      endpoint,
+		presignClient: presignClient,
+		urlTTL:        ttl,
+		region:        region,
 	}
 }
 
@@ -71,5 +83,33 @@ func (s *S3Storage) Delete(ctx context.Context, key string) error {
 }
 
 func (s *S3Storage) BuildURL(key string) string {
-	return fmt.Sprintf("%s/%s/%s", s.endpoint, s.bucketName, key)
+	if len(s.endpoint) > 0 {
+		return fmt.Sprintf("%s/%s/%s", s.endpoint, s.bucketName, key)
+	}
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.region, key)
+}
+
+func (s *S3Storage) GetPresignedURL(ctx context.Context, key string) (string, error) {
+	if key == "" {
+		return "", apperror.BadRequest("object key is required")
+	}
+	if s.presignClient == nil {
+		return "", fmt.Errorf("presign client is not configured")
+	}
+	if s.urlTTL <= 0 {
+		return "", fmt.Errorf("invalid presign URL TTL: %s", s.urlTTL)
+	}
+
+	req, err := s.presignClient.PresignGetObject(ctx, &awss3.GetObjectInput{
+		Bucket: &s.bucketName,
+		Key:    &key,
+	}, func(po *awss3.PresignOptions) {
+		po.Expires = s.urlTTL
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to get object from S3 storage: %w", err)
+	}
+
+	return req.URL, nil
 }
