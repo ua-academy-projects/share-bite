@@ -29,7 +29,7 @@ Thumbs.db
 # generated api clients
 internal/guest/gateway/business/client/
 
-aws
+/aws
 terraform/.terraform
 terraform/.terraform.lock.hcl
 terraform/session-manager-plugin.deb
