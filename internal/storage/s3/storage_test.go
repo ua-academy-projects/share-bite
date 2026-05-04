@@ -101,7 +101,7 @@ func TestS3Storage_Upload(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := &mockS3Client{putObjectErr: tt.mockErr}
-			storage := NewS3Storage(mockClient, bucket, "http://localhost", fakePresign, 15*time.Minute)
+			storage := NewS3Storage(mockClient, bucket, "http://localhost", fakePresign, 15*time.Minute, "test")
 
 			var reader io.Reader
 			if tt.data != nil {
@@ -127,7 +127,7 @@ func TestS3Storage_GetPresignedURL(t *testing.T) {
 	
 	mockClient := &mockS3Client{}
 	fakePresign := newFakePresignClient()
-	storage := NewS3Storage(mockClient, bucket, "http://localhost", fakePresign, 15*time.Minute)
+	storage := NewS3Storage(mockClient, bucket, "http://localhost", fakePresign, 15*time.Minute, "test")
 
 	t.Run("Success generation", func(t *testing.T) {
 		key := "posts/123/img.jpg"

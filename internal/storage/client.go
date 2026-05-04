@@ -48,6 +48,7 @@ func NewStorageClient(ctx context.Context, cfg config.Storage) (*s3.S3Storage, e
 	presignClient := s3sdk.NewPresignClient(s3Client)
 	
 	ttl := cfg.PresignTTL()
+	region := cfg.Region()
 
-	return s3.NewS3Storage(s3Client, cfg.Bucket(), cfg.Endpoint(), presignClient, ttl), nil
+	return s3.NewS3Storage(s3Client, cfg.Bucket(), cfg.Endpoint(), presignClient, ttl, region), nil
 }

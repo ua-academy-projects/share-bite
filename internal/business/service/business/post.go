@@ -53,10 +53,16 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		}
 	}
 
+	isSuccess := false
+	defer func() {
+		if !isSuccess{
+			cleanupS3()
+		}
+	}()
+
 	for _, file := range images {
 		openedFile, err := file.Open()
 		if err != nil {
-			cleanupS3()
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
@@ -75,17 +81,11 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		openedFile.Close()
 
 		if err != nil {
-			cleanupS3()
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
-		photoURL, err := s.storage.GetPresignedURL(ctx, key)
-		if err != nil {
-			cleanupS3()
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
+		photoURL := s.storage.BuildURL(key)
 		photoURLs = append(photoURLs, photoURL)
-
 		uploadedKeys = append(uploadedKeys, key)
 	}
 
@@ -114,6 +114,8 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		return nil, fmt.Errorf("get org: %w", err)
 	}
 
+
+	isSuccess = true
 	return &entity.PostWithPhotos{
 		ID:          post.ID,
 		OrgID:       post.OrgID,

@@ -20,16 +20,18 @@ type S3Storage struct {
 	bucketName    string
 	endpoint      string
 	presignClient *awss3.PresignClient
-	urlTTL           time.Duration
+	urlTTL        time.Duration
+	region        string
 }
 
-func NewS3Storage(client S3API, bucketName string, endpoint string, presignClient *awss3.PresignClient, ttl time.Duration) *S3Storage {
+func NewS3Storage(client S3API, bucketName string, endpoint string, presignClient *awss3.PresignClient, ttl time.Duration, region string) *S3Storage {
 	return &S3Storage{
 		client:        client,
 		bucketName:    bucketName,
 		endpoint:      endpoint,
 		presignClient: presignClient,
 		urlTTL:        ttl,
+		region: region,
 	}
 }
 
@@ -80,10 +82,11 @@ func (s *S3Storage) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-// Deprecated: use GetPresignedURL instead and save object key to db either full image string.
-// This method to be replaced with complete AWS integration
 func (s *S3Storage) BuildURL(key string) string {
-	return fmt.Sprintf("%s/%s/%s", s.endpoint, s.bucketName, key)
+	if len(s.endpoint) > 0 {
+		return fmt.Sprintf("%s/%s/%s", s.endpoint, s.bucketName, key)
+	}
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.region, key)
 }
 
 func (s *S3Storage) GetPresignedURL(ctx context.Context, key string) (string, error) {
