@@ -103,10 +103,10 @@ func (s *service) InviteCollaborator(ctx context.Context, in entity.InviteCollab
 
 			msg := notification.NewMessage(
 				notification.InvitationReceived,
-				inviteeUserID,   // recipient
-				in.InviterID,    // actor (who sent the invitation)
-				"collection",    // entity_type
-				in.CollectionID, // entity_id
+				inviteeUserID,
+				in.InviterID,
+				"collection",
+				in.CollectionID,
 				time.Now().UTC(),
 			)
 

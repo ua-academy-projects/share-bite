@@ -14,13 +14,13 @@ const (
 )
 
 type Message struct {
-	EventID     string    `json:"event_id"`
-	EventType   EventType `json:"event_type"`
-	RecipientID string    `json:"recipient_id"`
-	ActorID     string    `json:"actor_id"`
-	EntityType  string    `json:"entity_type"`
-	EntityID    string    `json:"entity_id"`
-	CreatedAt   time.Time `json:"created_at"`
+	EventID     string    `json:"event_id"`     // Unique event ID (SHA1)
+	EventType   EventType `json:"event_type"`   // Event type (e.g. "post_liked")
+	RecipientID string    `json:"recipient_id"` // Who receives the notification (user ID)
+	ActorID     string    `json:"actor_id"`     // Who triggered the event (user ID)
+	EntityType  string    `json:"entity_type"`  // Type of entity (e.g. post)
+	EntityID    string    `json:"entity_id"`    // ID of the entity (e.g. post ID)
+	CreatedAt   time.Time `json:"created_at"`   // Event timestamp
 }
 
 func NewEventID(parts ...string) string {
