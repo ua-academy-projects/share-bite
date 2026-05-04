@@ -1,7 +1,9 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -121,7 +123,7 @@ type Storage interface {
 func Load(paths ...string) error {
 	if len(paths) > 0 {
 		if err := godotenv.Load(paths...); err != nil {
-			return fmt.Errorf("load dotenv %v: %w", paths, err)
+			logger.Info(context.Background(), "No .env file found, relying on system environment variables")
 		}
 	}
 
