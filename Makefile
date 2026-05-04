@@ -46,7 +46,7 @@ s3-up:
 
 s3-ui:
 	docker compose -f build/compose.yaml up -d garage_webui
-	@echo "web_ui: http://localhost:3909"
+	@echo "web_ui: http://localhost:4309"
 
 goose-up:
 	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" up

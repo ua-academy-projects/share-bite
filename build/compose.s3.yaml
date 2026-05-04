@@ -27,7 +27,7 @@ services:
     container_name: garage-webui
     restart: unless-stopped
     ports:
-      - "4309:4309"
+      - "4309:3909"
     volumes:
       - ../garage.toml:/etc/garage.toml:ro
     environment:
