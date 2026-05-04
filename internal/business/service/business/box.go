@@ -83,6 +83,10 @@ func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, l
 
 	for i := range result.Items {
 		result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
+
+		if result.Items[i].Box.Image != "" {
+			result.Items[i].Box.Image = s.storage.BuildURL(result.Items[i].Box.Image)
+		}
 	}
 
 	return result, nil

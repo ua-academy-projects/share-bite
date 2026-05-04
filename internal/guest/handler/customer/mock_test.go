@@ -61,3 +61,8 @@ func (m *mockObjectStorage) Delete(ctx context.Context, key string) error {
 	args := m.Called(ctx, key)
 	return args.Error(0)
 }
+
+func (m *mockObjectStorage) GetPresignedURL(ctx context.Context, key string) (string, error) {
+	args := m.Called(ctx, key)
+	return args.String(0), args.Error(1)
+}

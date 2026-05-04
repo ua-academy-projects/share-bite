@@ -185,6 +185,7 @@ type storageMock struct {
 	uploadFn   func(ctx context.Context, key string, contentType string, file io.Reader) (string, error)
 	deleteFn   func(ctx context.Context, key string) error
 	buildURLFn func(key string) string
+	getPresignedURLFn func(ctx context.Context, key string) (string, error)
 }
 
 func (m *storageMock) Upload(ctx context.Context, key string, contentType string, file io.Reader) (string, error) {
@@ -208,6 +209,12 @@ func (m *storageMock) BuildURL(key string) string {
 	return key
 }
 
+func (m *storageMock) GetPresignedURL(ctx context.Context, key string) (string, error) {
+	if m.getPresignedURLFn != nil {
+		return m.getPresignedURLFn(ctx, key)
+	}
+	return "http://localhost:3900/app-dev-bucket/" + key + "?signed=true", nil
+}
 func (m *postRepositoryMock) CreateMentions(ctx context.Context, mentions []entity.PostMention) error {
 	if m.createMentionsFn != nil {
 		return m.createMentionsFn(ctx, mentions)
