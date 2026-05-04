@@ -2,6 +2,7 @@ package post
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func TestPostService_Create_SucceedsWithoutImages(t *testing.T) {
 			}, nil
 		},
 	}
-	svc := New(repo, &venueProviderMock{}, &storageMock{}, &txManagerMock{})
+	svc := New(repo, &venueProviderMock{}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	out, err := svc.Create(context.Background(), dto.CreatePostInput{
 		CustomerID: "customer-1",
@@ -51,7 +52,7 @@ func TestPostService_Create_RejectsWhenVenueDoesNotExist(t *testing.T) {
 		checkExistsFn: func(ctx context.Context, venueID int64) (bool, error) {
 			return false, nil
 		},
-	}, &storageMock{}, &txManagerMock{})
+	}, &followRepoMock{}, &customerRepoMock{}, &storageMock{}, &txManagerMock{})
 
 	_, err := svc.Create(context.Background(), dto.CreatePostInput{VenueID: 777})
 	require.Error(t, err)
@@ -59,4 +60,116 @@ func TestPostService_Create_RejectsWhenVenueDoesNotExist(t *testing.T) {
 	var appErr *apperror.Error
 	require.ErrorAs(t, err, &appErr)
 	assert.Equal(t, code.NotFound, appErr.Code)
+}
+
+func TestPostService_Create_WithMentions_Success(t *testing.T) {
+	t.Parallel()
+
+	called := false
+
+	repo := &postRepositoryMock{
+		createFn: func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
+			return entity.Post{ID: "post-1"}, nil
+		},
+		createMentionsFn: func(ctx context.Context, mentions []entity.PostMention) error {
+			called = true
+			require.Len(t, mentions, 2)
+			return nil
+		},
+	}
+
+	svc := New(
+		repo,
+		&venueProviderMock{},
+		&followRepoMock{
+			getAllowedMentionsFn: func(ctx context.Context, customerID string, ids []string) ([]string, error) {
+				return ids, nil
+			},
+		},
+		&customerRepoMock{},
+		&storageMock{},
+		&txManagerMock{},
+	)
+
+	_, err := svc.Create(context.Background(), dto.CreatePostInput{
+		CustomerID: "user-1",
+		VenueID:    1,
+		Mentions:   []string{"user-2", "user-3"},
+	})
+
+	require.NoError(t, err)
+	assert.True(t, called)
+}
+
+func TestPostService_Create_MentionYourself_Error(t *testing.T) {
+	t.Parallel()
+
+	svc := New(
+		&postRepositoryMock{},
+		&venueProviderMock{},
+		&followRepoMock{},
+		&customerRepoMock{},
+		&storageMock{},
+		&txManagerMock{},
+	)
+
+	_, err := svc.Create(context.Background(), dto.CreatePostInput{
+		CustomerID: "user-1",
+		VenueID:    1,
+		Mentions:   []string{"user-1"},
+	})
+
+	require.Error(t, err)
+}
+
+func TestPostService_Create_TooManyMentions_Error(t *testing.T) {
+	t.Parallel()
+
+	mentions := make([]string, 11)
+	for i := range mentions {
+		mentions[i] = fmt.Sprintf("user-%d", i)
+	}
+
+	svc := New(
+		&postRepositoryMock{},
+		&venueProviderMock{},
+		&followRepoMock{},
+		&customerRepoMock{},
+		&storageMock{},
+		&txManagerMock{},
+	)
+
+	_, err := svc.Create(context.Background(), dto.CreatePostInput{
+		CustomerID: "user-1",
+		VenueID:    1,
+		Mentions:   mentions,
+	})
+
+	require.Error(t, err)
+}
+
+func TestPostService_Create_ForbiddenMention_Error(t *testing.T) {
+	t.Parallel()
+
+	svc := New(
+		&postRepositoryMock{},
+		&venueProviderMock{},
+		&followRepoMock{
+			getAllowedMentionsFn: func(ctx context.Context, customerID string, ids []string) ([]string, error) {
+				return []string{}, nil
+			},
+		},
+		nil,
+		&storageMock{},
+		&txManagerMock{},
+	)
+
+	_, err := svc.Create(context.Background(), dto.CreatePostInput{
+		CustomerID: "user-1",
+		VenueID:    1,
+		Mentions:   []string{"user-2"},
+	})
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, apperror.ErrForbiddenMention)
 }

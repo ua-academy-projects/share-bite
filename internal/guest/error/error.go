@@ -44,6 +44,7 @@ var (
 
 	ErrInvitationExpired          = newError(code.BadRequest, "this invitation has expired, please ask for a new one")
 	ErrInvitationAlreadyProcessed = newError(code.AlreadyExists, "this invitation has already been processed")
+	ErrForbiddenMention = newError(code.Forbidden, "cannot mention users you don't follow")
 )
 
 type Error struct {
@@ -126,13 +127,6 @@ func VenueNotFoundInCollection(venueID int64) *Error {
 func CommentNotFoundID(commentID int64) *Error {
 	msg := fmt.Sprintf("comment with id %d was not found", commentID)
 	return newError(code.NotFound, msg)
-}
-
-func AlreadyFollowing(current, target string) *Error {
-	return newError(
-		code.AlreadyExists,
-		fmt.Sprintf("current %q is already following target %q", current, target),
-	)
 }
 
 func InvalidPostStatusTransition(from, to string) *Error {
