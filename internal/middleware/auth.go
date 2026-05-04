@@ -6,16 +6,18 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 type AccessTokenParser interface {
-	ParseAccessToken(token string) (string, string, error)
+	ParseAccessToken(token string) (string, string, jwt.UserStatus, error)
 }
 
 const (
 	authorizationHeader = "Authorization"
 	CtxUserID           = "userId"
 	CtxUserRole         = "userRole"
+	CtxUserStatus       = "userStatus"
 )
 
 func Auth(parser AccessTokenParser) gin.HandlerFunc {
@@ -34,7 +36,7 @@ func Auth(parser AccessTokenParser) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
 			return
 		}
-		userID, role, err := parser.ParseAccessToken(headerParts[1])
+		userID, role, status, err := parser.ParseAccessToken(headerParts[1])
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
@@ -42,6 +44,7 @@ func Auth(parser AccessTokenParser) gin.HandlerFunc {
 
 		c.Set(CtxUserID, userID)
 		c.Set(CtxUserRole, role)
+		c.Set(CtxUserStatus, status)
 
 		c.Next()
 	}
@@ -103,7 +106,7 @@ func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
 			return
 		}
 
-		userID, role, err := parser.ParseAccessToken(headerParts[1])
+		userID, role, status, err := parser.ParseAccessToken(headerParts[1])
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
@@ -111,6 +114,7 @@ func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
 
 		c.Set(CtxUserID, userID)
 		c.Set(CtxUserRole, role)
+		c.Set(CtxUserStatus, status)
 
 		c.Next()
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	internalmiddleware "github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 func TestPostHandler_Update(t *testing.T) {
@@ -50,12 +51,11 @@ func TestPostHandler_Update(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return "", "", "", context.Canceled
 			}
-
-			return "user-1", "customer", nil
+			return "user-1", "customer", "", nil
 		},
 	})
 
@@ -128,12 +128,12 @@ func TestPostHandler_Update_RejectsDeletedStatus(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return "", "", "", context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return "user-1", "customer", "", nil
 		},
 	})
 
@@ -162,12 +162,12 @@ func TestPostHandler_Update_InvalidContentType(t *testing.T) {
 	t.Parallel()
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return "", "", "", context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return "user-1", "customer", "", nil
 		},
 	})
 

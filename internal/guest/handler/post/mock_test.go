@@ -17,6 +17,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 type postServiceMock struct {
@@ -129,15 +130,15 @@ func (m *customerServiceMock) GetByIDs(ctx context.Context, ids []string) ([]ent
 }
 
 type tokenParserMock struct {
-	parseAccessTokenFn func(token string) (string, string, error)
+	parseAccessTokenFn func(token string) (string, string, jwt.UserStatus, error)
 }
 
-func (m tokenParserMock) ParseAccessToken(token string) (string, string, error) {
+func (m tokenParserMock) ParseAccessToken(token string) (string, string, jwt.UserStatus, error) {
 	if m.parseAccessTokenFn != nil {
 		return m.parseAccessTokenFn(token)
 	}
 
-	return "", "", nil
+	return "", "", "", nil
 }
 
 type objectStorageMock struct{}

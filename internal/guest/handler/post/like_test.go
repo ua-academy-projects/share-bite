@@ -11,6 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	internalmiddleware "github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 func TestPostHandler_Like(t *testing.T) {
@@ -32,12 +33,12 @@ func TestPostHandler_Like(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return "", "", "", context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return "user-1", "customer", jwt.UserStatusActive, nil
 		},
 	})
 
@@ -68,12 +69,12 @@ func TestPostHandler_Like_ServiceError(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return "", "", "", context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return "user-1", "customer", jwt.UserStatusActive, nil
 		},
 	})
 
@@ -108,12 +109,12 @@ func TestPostHandler_Unlike(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return "", "", "", context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return "user-1", "customer", jwt.UserStatusActive, nil
 		},
 	})
 
@@ -144,12 +145,12 @@ func TestPostHandler_Unlike_ServiceError(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return "", "", "", context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return "user-1", "customer", jwt.UserStatusActive, nil
 		},
 	})
 
