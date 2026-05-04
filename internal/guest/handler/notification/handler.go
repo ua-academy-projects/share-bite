@@ -89,7 +89,7 @@ func (h *handler) stream(c *gin.Context) {
 				return false
 			}
 
-			c.SSEvent(string(msg.EventType), msg.EntityID)
+			c.SSEvent(string(msg.EventType), msg)
 			return true
 		case <-ctx.Done():
 			return false
