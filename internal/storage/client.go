@@ -11,7 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/storage/s3"
 )
 
-func NewStorageClient(ctx context.Context, cfg config.Storage) (*s3.S3Storage, error) {
+func NewStorageClient(ctx context.Context, cfg config.Storage) (ObjectStorage, error) {
 	loaderOpts := []func(*awscfg.LoadOptions) error{
 		awscfg.WithRegion(cfg.Region()),
 	}
