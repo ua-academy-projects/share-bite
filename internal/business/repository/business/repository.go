@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("not found")
-	ErrForbidden = errors.New("forbidden")
+	ErrNotFound         = errors.New("not found")
+	ErrForbidden        = errors.New("forbidden")
+	ErrNoAvailableItems = errors.New("no available box items")
 )
 
 type Repository struct {

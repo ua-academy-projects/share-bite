@@ -10,8 +10,8 @@ db_engine    = "sqlite"
 # Single-node: no replication. Fine for dev, not for production.
 replication_factor = 1
 
-rpc_bind_addr   = "[::]:3901"
-rpc_public_addr = "127.0.0.1:3901"
+rpc_bind_addr   = "[::]:3900"
+rpc_public_addr = "127.0.0.1:3900"
 
 # Generate with: openssl rand -hex 32
 rpc_secret = "ffda88f07966c2a6d607bb1c8a007466aa55d5fc4e587700ff8385c1b20e7c98"
