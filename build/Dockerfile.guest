@@ -1,21 +1,14 @@
-FROM golang:1.25.1-bookworm AS builder
-
+FROM golang:1.25.1-alpine AS builder
 WORKDIR /app
-
 COPY go.mod go.sum ./
 RUN go mod download
-
 COPY . .
-
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 RUN go build -o guest ./cmd/guest-api
 
-FROM ubuntu:22.04
+FROM alpine:latest
 WORKDIR /app
-
 COPY --from=builder /app/guest .
-
 EXPOSE 3800
-
 CMD ["./guest"]

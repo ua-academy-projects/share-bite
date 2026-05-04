@@ -1,4 +1,4 @@
-FROM golang:1.25.1-bookworm AS builder
+FROM golang:1.25.1-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -7,7 +7,7 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 RUN go build -o migrator ./cmd/migrator
 
-FROM ubuntu:22.04
+FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/migrator .
+COPY --from=builder /app/migrations ./migrations
 CMD ["./migrator"]
