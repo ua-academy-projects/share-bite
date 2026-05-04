@@ -7,11 +7,6 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
-const (
-	maxVenuesPerCollection = 100
-	sortOrderGap           = 100.0
-)
-
 func (s *service) AddVenue(
 	ctx context.Context,
 	collectionID string,
@@ -25,8 +20,8 @@ func (s *service) AddVenue(
 		if err != nil {
 			return fmt.Errorf("get collection from repository: %w", err)
 		}
-		if collection.CustomerID != customerID {
-			return apperror.ErrCollectionAccessDenied
+		if err := s.requireCollaborator(ctx, collectionID, customerID, collection.CustomerID); err != nil {
+			return err
 		}
 
 		count, err := s.collectionRepo.CountVenues(ctx, collectionID)
@@ -34,7 +29,7 @@ func (s *service) AddVenue(
 			return fmt.Errorf("get count of collection venues from repository: %w", err)
 		}
 		if count >= maxVenuesPerCollection {
-			return apperror.ErrCollectionFull
+			return apperror.CollectionVenuesLimitReached(maxVenuesPerCollection)
 		}
 
 		maxSortOrder, err := s.collectionRepo.GetMaxSortOrder(ctx, collectionID)

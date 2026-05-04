@@ -31,10 +31,10 @@ func (s *service) Get(ctx context.Context, id int) (*entity.OrgUnit, error) {
 	return orgUnit, nil
 }
 
-func (s *service) List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error) {
+func (s *service) List(ctx context.Context, brandId, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error) {
 	const op = "service.business.List"
 
-	result, err := s.businessRepo.ListByParentID(ctx, brandId, skip, limit)
+	result, err := s.businessRepo.ListByParentID(ctx, brandId, skip, limit, tags)
 	if err != nil {
 		return pagination.Result[entity.OrgUnit]{}, fmt.Errorf("%s: %w", op, err)
 	}

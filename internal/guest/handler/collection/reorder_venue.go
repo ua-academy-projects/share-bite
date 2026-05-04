@@ -22,7 +22,7 @@ import (
 //
 // @Param			collectionId	path	string				true	"Collection ID (UUID)"
 // @Param			venueId			path	int64				true	"Venue ID"
-// @Param			request			body	reorderVenueBody	true	"Reorder details (prevVenueId and/or nextVenueId)"
+// @Param			request			body	reorderVenueRequest	true	"Reorder details (prevVenueId and/or nextVenueId)"
 //
 // @Success		204				"Venue successfully reordered"
 // @Failure		400				{object}	response.ErrorResponse		"Validation error (e.g., missing both neighbor IDs) or bad request"
@@ -33,14 +33,14 @@ import (
 //
 // @Router			/collections/{collectionId}/venues/{venueId}/reorder [post]
 func (h *handler) reorderVenue(c *gin.Context) {
-	var uri reorderVenueUri
-	if err := request.BindUri(c, &uri); err != nil {
+	var params reorderVenueParams
+	if err := request.BindUri(c, &params); err != nil {
 		c.Error(err)
 		return
 	}
 
-	var body reorderVenueBody
-	if err := request.BindJSON(c, &body); err != nil {
+	var req reorderVenueRequest
+	if err := request.BindJSON(c, &req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -52,7 +52,7 @@ func (h *handler) reorderVenue(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	in := reorderVenueRequestToReorderVenue(uri, body, customerID)
+	in := reorderVenueRequestToReorderVenue(params, req, customerID)
 
 	if err := h.service.ReorderVenue(ctx, in); err != nil {
 		c.Error(err)
@@ -62,12 +62,12 @@ func (h *handler) reorderVenue(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-type reorderVenueUri struct {
+type reorderVenueParams struct {
 	CollectionID string `uri:"collectionId" binding:"required,uuid"`
 	VenueID      int64  `uri:"venueId" binding:"required,gte=1"`
 }
 
-type reorderVenueBody struct {
+type reorderVenueRequest struct {
 	PrevVenueID *int64 `json:"prevVenueId" binding:"required_without=NextVenueID,omitempty,gte=1"`
 	NextVenueID *int64 `json:"nextVenueId" binding:"required_without=PrevVenueID,omitempty,gte=1"`
 }

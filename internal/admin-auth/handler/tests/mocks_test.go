@@ -25,6 +25,15 @@ type mockUserRepository struct {
 	mock.Mock
 }
 
+func (m *mockUserRepository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
+	args := m.Called(ctx, ghUser)
+	user := args.Get(0)
+	if user == nil {
+		return nil, args.Error(1)
+	}
+	return user.(*dto.User), args.Error(1)
+}
+
 func (m *mockUserRepository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error) {
 	args := m.Called(ctx, tokenHash, passwordHash)
 	return args.String(0), args.Bool(1), args.Error(2)

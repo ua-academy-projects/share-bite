@@ -16,6 +16,7 @@ import (
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider"
+	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
@@ -42,7 +43,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := config.Load(".env"); err != nil {
-		logger.Fatal(ctx, "load config:", err)
+		logger.Fatal(ctx, err)
 	}
 
 	googleCfg, err := env.NewGoogleConfig()
@@ -127,7 +128,17 @@ func main() {
 		cfg.RateLimit.AuthRecoverDuration(),
 	)
 
-	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter)
+	ghConfig := gh.Config{
+		ClientID:           cfg.Github.GetClientID(),
+		ClientSecret:       cfg.Github.GetClientSecret(),
+		RedirectURL:        cfg.Github.GetRedirectURL(),
+		SuccessRedirectURL: cfg.Github.GetSuccessRedirectURL(),
+	}
+
+	sessionStore := gh.NewJWTSessionStore(tokenManager)
+	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore)
+
+	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter, *ghHandler)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
