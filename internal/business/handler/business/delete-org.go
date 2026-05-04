@@ -1,11 +1,9 @@
 package business
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
@@ -54,12 +52,7 @@ func (h *handler) deleteOrgUnit(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteOrg(c.Request.Context(), reqURI.ID, orgAccountID); err != nil {
-		switch {
-		case errors.Is(err, repo.ErrForbidden):
-			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-		default:
-			_ = c.Error(err)
-		}
+		_ = c.Error(err)
 		return
 	}
 
