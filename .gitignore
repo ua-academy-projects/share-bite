@@ -39,3 +39,5 @@ terraform/terraform.tfstate.backup
 frontend/node_modules
 
 .agent
+
+frontend/.vite
