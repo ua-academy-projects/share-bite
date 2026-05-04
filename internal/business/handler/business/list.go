@@ -88,7 +88,7 @@ func (h *handler) list(c *gin.Context) {
 
 	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit, tags)
 	if err != nil {
-		log.Error("failed to list locations", "brandId", req.BrandID, "error", err)
+		log.Error("failed to list locations", "brandId", req.BrandId, "error", err)
 		c.Error(err)
 		return
 	}
