@@ -93,15 +93,18 @@ func RequireWritableAccountStatus() gin.HandlerFunc {
 		}
 
 		switch status {
+		case jwt.UserStatusActive:
+			c.Next()
 		case jwt.UserStatusMuted:
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: muted account is read-only"})
 			return
 		case jwt.UserStatusSuspended:
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: suspended account"})
 			return
+		default:
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: unknown account status"})
+			return
 		}
-
-		c.Next()
 	}
 }
 
