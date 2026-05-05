@@ -73,6 +73,38 @@ func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 	}
 }
 
+func RequireWritableAccountStatus() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		statusVal, exists := c.Get(CtxUserStatus)
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
+
+		var status jwt.UserStatus
+		switch v := statusVal.(type) {
+		case jwt.UserStatus:
+			status = v
+		case string:
+			status = jwt.UserStatus(v)
+		default:
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal error: invalid status type"})
+			return
+		}
+
+		switch status {
+		case jwt.UserStatusMuted:
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: muted account is read-only"})
+			return
+		case jwt.UserStatusSuspended:
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: suspended account"})
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func GetUserID(c *gin.Context) (string, bool) {
 	val, exists := c.Get(CtxUserID)
 	if !exists {
