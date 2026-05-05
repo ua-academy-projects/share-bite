@@ -1,0 +1,37 @@
+package post
+
+import (
+	"context"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"time"
+)
+
+func StartPostCleanupJob(ctx context.Context, svc postCleanupService) {
+	ticker := time.NewTicker(5 * time.Minute)
+	go func() {
+		defer ticker.Stop()
+		logger.InfoKV(ctx, "post cleanup job started")
+		runCleanup(ctx, svc)
+		for {
+			select {
+			case <-ctx.Done():
+				logger.InfoKV(ctx, "post cleanup job stopped")
+				return
+			case <-ticker.C:
+				runCleanup(ctx, svc)
+			}
+		}
+	}()
+
+}
+
+func runCleanup(ctx context.Context, svc postCleanupService) {
+	logger.InfoKV(ctx, "cleanup expired posts started")
+
+	if err := svc.CleanupExpiredPosts(ctx); err != nil {
+		logger.ErrorKV(ctx, "cleanup expired posts failed", "error", err)
+		return
+	}
+
+	logger.InfoKV(ctx, "cleanup expired posts finished")
+}

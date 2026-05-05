@@ -42,9 +42,13 @@ var (
 	ErrCannotListOthersOutboundInvites = newError(code.Forbidden, "you can only view your own outbound invitations")
 	ErrCannotListOthersInboundInvites  = newError(code.Forbidden, "you can only view your own inbound invitations")
 
-	ErrInvitationExpired          = newError(code.BadRequest, "this invitation has expired, please ask for a new one")
-	ErrInvitationAlreadyProcessed = newError(code.AlreadyExists, "this invitation has already been processed")
-	ErrForbiddenMention = newError(code.Forbidden, "cannot mention users you don't follow")
+	ErrInvitationExpired            = newError(code.BadRequest, "this invitation has expired, please ask for a new one")
+	ErrInvitationAlreadyProcessed   = newError(code.AlreadyExists, "this invitation has already been processed")
+	ErrForbiddenMention             = newError(code.Forbidden, "cannot mention users you don't follow")
+	ErrPostInvitationNotFound       = newError(code.NotFound, "post invitation not found")
+	ErrPostInvitationForbidden      = newError(code.Forbidden, "you cannot respond to this invitation")
+	ErrPostInvitationAlreadyHandled = newError(code.BadRequest, "invitation already handled")
+	ErrPostInvitationExpired        = newError(code.BadRequest, "invitation expired")
 )
 
 type Error struct {

@@ -771,7 +771,12 @@ func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID st
 	var postID string
 	err := r.db.DB().QueryRowContext(ctx, q, collaboratorID, customerID).Scan(&postID)
 	if err != nil {
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperror.ErrPostInvitationForbidden
+		}
 		return "", err
+
 	}
 
 	return postID, nil
@@ -794,6 +799,9 @@ func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID s
 	var postID string
 	err := r.db.DB().QueryRowContext(ctx, q, collaboratorID, customerID).Scan(&postID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperror.ErrPostInvitationForbidden
+		}
 		return "", err
 	}
 
@@ -851,4 +859,25 @@ func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID st
 	}
 
 	return result, nil
+}
+
+func (r *Repository) DeleteExpiredDraftPosts(ctx context.Context) error {
+	q := database.Query{
+		Name: "post.delete_expired_drafts",
+		Sql: `
+			UPDATE guest.posts p
+			SET status = 'deleted'
+			WHERE p.status = 'draft'
+			  AND EXISTS (
+				SELECT 1
+				FROM guest.post_collaborators pc
+				WHERE pc.post_id = p.id
+				  AND pc.status = 'pending'
+				  AND pc.expires_at < NOW()
+			  );
+		`,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q)
+	return err
 }
