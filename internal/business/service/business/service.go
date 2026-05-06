@@ -99,9 +99,9 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 	}
 
 	if in.ProfileType != entity.ProfileTypeBrand {
-        return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
-    }
-	
+		return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
+	}
+
 	id, err := s.businessRepo.Create(ctx, in)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create business profile: %w", err)

@@ -122,9 +122,6 @@ func validateKey(key string) error {
 		return fmt.Errorf("invalid object key is provided")
 	}
 
-	if strings.HasPrefix(key, "/") || strings.Contains(key, "//") {
-		return fmt.Errorf("invalid object key is provided")
-	}
 	for s := range strings.SplitSeq(key, "/") {
 		if s == "" || s == "." || s == ".." {
 			return fmt.Errorf("invalid object key is provided")

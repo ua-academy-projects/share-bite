@@ -32,7 +32,7 @@ var (
 	}
 )
 
-// NewImageValidator creates a custom ImageValidator with the given size limit and allowed MIME types.
+// NewValidator creates a custom ImageValidator with the given size limit and allowed MIME types.
 func NewValidator(maxSizeBytes int64, allowedMIMETypes ...string) *ImageValidator {
 	v := &ImageValidator{
 		maxSizeBytes: maxSizeBytes,

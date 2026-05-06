@@ -154,6 +154,9 @@ func TestGetPresignedURL(t *testing.T) {
 		require.Error(t, err)
 		require.Empty(t, url)
 	})
+
+	mockClient.AssertNotCalled(t, "PutObject")
+	mockClient.AssertNotCalled(t, "DeleteObject")
 }
 
 func TestDelete(t *testing.T) {

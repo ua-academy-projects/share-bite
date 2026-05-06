@@ -107,13 +107,16 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 		c.Error(apperror.Internal("uploaded file is not seekable"))
 		return
 	}
-
 	if _, err := seeker.Seek(0, io.SeekStart); err != nil {
 		c.Error(err)
 		return
 	}
 
-	ext := mediatype.ExtFromContentType(contentType)
+	ext, ok := mediatype.ExtFromContentType(contentType)
+	if !ok {
+		c.Error(apperror.ErrUnsupportedImageType)
+		return
+	}
 	objectKey := key.CustomerAvatarKey(currentCustomer.ID, uuid.NewString(), ext)
 
 	if err := h.storage.Upload(

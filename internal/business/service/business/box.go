@@ -16,6 +16,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/storage/mediatype"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -30,7 +31,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 		return nil, fmt.Errorf("%s: image is required", op)
 	}
 
-	if image.Size > maxImageSize {
+	if image.Size > mediatype.DefaultMaxImageSizeBytes {
 		return nil, biserr.FileToLargeErr
 	}
 
@@ -48,8 +49,16 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	}
 
 	contentType := http.DetectContentType(buffer[:n])
-	if !isAllowedImageType(contentType) {
-		return nil, biserr.WrongFileExtErr
+	if err := postImageValidator.Validate(contentType, image.Size); err != nil {
+		if errors.Is(err, mediatype.ErrUnsupportedType) {
+			return nil, biserr.WrongFileExtErr
+		}
+
+		if errors.Is(err, mediatype.ErrFileTooLarge) {
+			return nil, biserr.FileToLargeErr
+		}
+
+		return nil, err
 	}
 
 	if req.DiscountPrice.GreaterThan(req.FullPrice) {
@@ -72,7 +81,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	fileExt := filepath.Ext(image.Filename)
 	objectKey := fmt.Sprintf("boxes/%d/%s%s", req.VenueID, uuid.New().String(), fileExt)
 
-	key, err := s.storage.Upload(ctx, objectKey, contentType, openedFile)
+	err = s.storage.Upload(ctx, objectKey, contentType, openedFile)
 	openedFile.Close()
 
 	if err != nil {
@@ -85,8 +94,8 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 			cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			if err := s.storage.Delete(cleanupCtx, key); err != nil {
-				log.Printf("failed to cleanup uploaded object: key=%s err=%v", key, err)
+			if err := s.storage.Delete(cleanupCtx, objectKey); err != nil {
+				log.Printf("failed to cleanup uploaded object: key=%s err=%v", objectKey, err)
 			}
 		}
 	}()
@@ -102,7 +111,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 		box = &entity.Box{
 			VenueID:       req.VenueID,
 			CategoryID:    req.CategoryID,
-			Image:         key,
+			Image:         objectKey,
 			FullPrice:     req.FullPrice,
 			DiscountPrice: req.DiscountPrice,
 			ExpiresAt:     req.ExpiresAt,

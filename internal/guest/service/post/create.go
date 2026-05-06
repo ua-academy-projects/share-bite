@@ -66,8 +66,8 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 	uploadSessionID := uuid.New().String()
 
 	for i, img := range in.Images {
-		ext := mediatype.ExtFromContentType(img.ContentType)
-		if ext == "" {
+		ext, ok := mediatype.ExtFromContentType(img.ContentType)
+		if !ok {
 			rollbackUploadedImages(s.storage, uploadedKeys)
 			return entity.Post{}, apperror.ErrUnsupportedImageType
 		}

@@ -18,11 +18,10 @@ import (
 
 const (
 	fileHeaderSize = 512
-	maxImageSize   = 5 * 1024 * 1024
 )
 
 var (
-	postImageValidator = mediatype.NewValidator(maxImageSize, "image/jpeg", "image/png", "image/webp", "image/gif")
+	postImageValidator = mediatype.NewValidator(mediatype.DefaultMaxImageSizeBytes, "image/jpeg", "image/png", "image/webp", "image/gif")
 )
 
 func (s *service) CreatePost(ctx context.Context, userID string, unitID int, description string, images []*multipart.FileHeader) (*entity.PostWithPhotos, error) {
@@ -80,12 +79,27 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 
 		buffer := make([]byte, fileHeaderSize)
 		_, err = openedFile.Read(buffer)
+		if err != nil && err != io.EOF {
+			openedFile.Close()
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
 
 		contentType := http.DetectContentType(buffer)
-		ext := mediatype.ExtFromContentType(contentType)
+		ext, ok := mediatype.ExtFromContentType(contentType)
+		if !ok {
+			openedFile.Close()
+			return nil, biserr.WrongFileExtErr
+		}
 
-		seeker, _ := openedFile.(io.Seeker)
-		seeker.Seek(0, io.SeekStart)
+		seeker, ok := openedFile.(io.Seeker)
+		if !ok {
+			openedFile.Close()
+			return nil, fmt.Errorf("%s: uploaded file is not seekable", op)
+		}
+		if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+			openedFile.Close()
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
 
 		objectKey := key.BusinessPostImageKey(unitID, uploadSessionID, uuid.NewString(), ext)
 		err = s.storage.Upload(ctx, objectKey, contentType, openedFile)
