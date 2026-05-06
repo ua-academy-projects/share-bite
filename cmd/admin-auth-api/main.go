@@ -8,42 +8,53 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	apperror "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/error/code"
+	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
+	"github.com/ua-academy-projects/share-bite/internal/config/env"
 	"go.uber.org/zap"
 
-	"github.com/ua-academy-projects/share-bite/internal/config"
-	"github.com/ua-academy-projects/share-bite/pkg/closer"
-	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
-	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
-
-	"github.com/ua-academy-projects/share-bite/pkg/jwt"
-
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
-	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider"
+	gh "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
-	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/email"
+	"github.com/ua-academy-projects/share-bite/internal/config"
+
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	pkgmw "github.com/ua-academy-projects/share-bite/pkg/middleware"
+
+	"github.com/ua-academy-projects/share-bite/pkg/closer"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
+
+	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 )
 
-// @title Share Bite Admin Auth API
-// @version 1.0
-// @description Admin authentication API documentation.
-// @BasePath /
+// @title			Share Bite Admin Auth API
+// @version		1.0
+// @description	Admin authentication API documentation.
+// @BasePath		/
 func main() {
 	ctx := context.Background()
 
 	if err := config.Load(".env"); err != nil {
-		logger.Fatal(ctx, "load config:", err)
+		logger.Fatal(ctx, err)
+	}
+
+	googleCfg, err := env.NewGoogleConfig()
+	if err != nil {
+		logger.Fatal(ctx, "load google oauth config: ", err)
 	}
 
 	router := gin.New()
-	router.Use(common_middleware.RequestID())
-	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
+	router.Use(pkgmw.RequestID())
+	router.Use(pkgmw.RequestLogger())
 	router.Use(ErrorMiddleware())
 
 	cfg := config.Config()
@@ -75,15 +86,29 @@ func main() {
 		cfg.JwtToken.RefreshTokenTTL(),
 	)
 
+	authMw := middleware.Auth(tokenManager)
 	txManager := txmanager.NewTransactionManager(client.DB())
 	userRepo := userrepo.New(client)
 
-	provider := strings.ToLower(strings.TrimSpace(cfg.Email.SenderProviderValue()))
-	var emailSender emailsvc.Sender
+	workerManager := worker.NewManager(userRepo)
+	workerManager.Start(ctx)
+	closer.Add(func(ctx context.Context) error {
+		workerManager.Stop()
+		return nil
+	})
 
-	switch provider {
+	providerFactory := provider.NewFactory(google.Config{
+		ClientID:     googleCfg.ClientID(),
+		ClientSecret: googleCfg.ClientSecret(),
+		RedirectURL:  googleCfg.RedirectURL(),
+	})
+
+	providerStr := strings.ToLower(strings.TrimSpace(cfg.Email.SenderProviderValue()))
+	var emailSender email.Sender
+
+	switch providerStr {
 	case "", "resend":
-		emailSender, err = emailsvc.NewResendSender(
+		emailSender, err = email.NewResendSender(
 			cfg.Email.ResendAPIKeyValue(),
 			cfg.Email.ResendFromEmailValue(),
 		)
@@ -91,25 +116,33 @@ func main() {
 			logger.Fatal(ctx, "new resend email sender: ", err)
 		}
 	case "fake":
-		emailSender = emailsvc.NewFakeSender()
+		emailSender = email.NewFakeSender()
 	default:
-		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", provider))
+		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", providerStr))
 	}
+	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager, cfg.Email.PasswordResetTTLValue(), cfg.Auth.MaxSessions())
+	authHandler := authhttp.NewHandler(authSvc, providerFactory)
 
-	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager)
-
-	authHandler := authhttp.NewHandler(authSvc)
 	limiter := adminmw.NewAuthRecoveryLimiter(
 		cfg.RateLimit.AuthRecoverRequests(),
 		cfg.RateLimit.AuthRecoverDuration(),
 	)
 
-	routers.SetupRouter(router.Group("/"), authHandler, limiter)
+	ghConfig := gh.Config{
+		ClientID:           cfg.Github.GetClientID(),
+		ClientSecret:       cfg.Github.GetClientSecret(),
+		RedirectURL:        cfg.Github.GetRedirectURL(),
+		SuccessRedirectURL: cfg.Github.GetSuccessRedirectURL(),
+	}
+
+	sessionStore := gh.NewJWTSessionStore(tokenManager)
+	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore)
+
+	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter, *ghHandler)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
 		logger.Info(ctx, "auth http server is running on "+addr)
-
 		if err := router.Run(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal(ctx, "run http server: ", err)
 		}
@@ -130,19 +163,11 @@ func ErrorMiddleware() gin.HandlerFunc {
 		respCode := http.StatusInternalServerError
 		resp := authhttp.ErrorResponse{Error: "internal server error"}
 
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				respCode = http.StatusNotFound
-			case code.InvalidRequest:
-				respCode = http.StatusBadRequest
+		var appErr *apperr.AppError
+		if errors.As(err.Err, &appErr) {
+			respCode = appErr.HTTPStatus()
 
-			default:
-				respCode = http.StatusInternalServerError
-			}
-
-			resp = authhttp.ErrorResponse{Error: appErr.Error()}
+			resp = authhttp.ErrorResponse{Error: appErr.Message}
 		}
 
 		c.JSON(respCode, resp)

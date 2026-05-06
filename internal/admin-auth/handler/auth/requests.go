@@ -15,6 +15,15 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+type OAuthCallbackRequest struct {
+	Code string `json:"code" binding:"required"`
+	Slug string `json:"slug" binding:"required,oneof=user business"`
+}
+
+type OAuthLinkRequest struct {
+	Code string `json:"code" binding:"required"`
+}
+
 type RecoverAccessRequest struct {
 	Email string `json:"email" binding:"required,email,max=254"`
 }
@@ -22,6 +31,19 @@ type RecoverAccessRequest struct {
 type ResetPasswordRequest struct {
 	Token       string `json:"token" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required,min=8,max=72"`
+}
+
+type TokensResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type UpdateUserStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=active muted suspended"`
+}
+
+type UserStatusResponse struct {
+	Status string `json:"status"`
 }
 
 type MessageResponse struct {

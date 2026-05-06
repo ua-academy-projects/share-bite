@@ -1,0 +1,45 @@
+package collection
+
+import (
+	"context"
+	"fmt"
+
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+)
+
+func (s *service) RemoveVenue(
+	ctx context.Context,
+	collectionID string,
+	customerID string,
+	venueID int64,
+) error {
+	// TODO: check whether this venue exists
+
+	if txErr := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
+		collection, err := s.collectionRepo.GetCollectionForUpdate(ctx, collectionID)
+		if err != nil {
+			return fmt.Errorf("get collection from repository: %w", err)
+		}
+		if err := s.requireCollaborator(ctx, collectionID, customerID, collection.CustomerID); err != nil {
+			return err
+		}
+
+		exists, err := s.collectionRepo.CheckIfVenueInCollection(ctx, collectionID, venueID)
+		if err != nil {
+			return fmt.Errorf("check if venue is in collection from repository: %w", err)
+		}
+		if !exists {
+			return apperror.VenueNotFoundInCollection(venueID)
+		}
+
+		if err := s.collectionRepo.RemoveVenue(ctx, collectionID, venueID); err != nil {
+			return fmt.Errorf("remove venue from collection in repository: %w", err)
+		}
+
+		return nil
+	}); txErr != nil {
+		return txErr
+	}
+
+	return nil
+}

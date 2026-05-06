@@ -1,6 +1,9 @@
 package entity
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 type PostStatus string
 
@@ -8,26 +11,56 @@ const (
 	PostStatusDraft     PostStatus = "draft"
 	PostStatusPublished PostStatus = "published"
 	PostStatusArchived  PostStatus = "archived"
+	PostStatusDeleted   PostStatus = "deleted"
 )
 
 type Post struct {
 	ID string
 
 	CustomerID string
-	VenueID    string
+	VenueID    int64
 	Text       string
 	Rating     int16
 	Status     PostStatus
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	LikesCount  int
+	IsLikedByMe bool
+
+	Images []PostImage
+
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	PublishedAt *time.Time
+
+	Mentions []Customer
 }
 
 type CreatePostInput struct {
 	CustomerID string
-	VenueID    string
+	VenueID    int64
 	Text       string
 	Rating     int16
+
+	Images []UploadImageInput
+}
+
+type UploadImageInput struct {
+	File        io.Reader
+	ContentType string
+	FileSize    int64
+}
+
+type UpdatePostInput struct {
+	ID         string
+	CustomerID string
+
+	VenueID *int64
+	Text    *string
+	Rating  *int16
+	Status  *PostStatus
+
+	Images        []UploadImageInput
+	RewriteImages bool
 }
 
 type ListPostsInput struct {

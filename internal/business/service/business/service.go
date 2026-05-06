@@ -2,9 +2,14 @@ package business
 
 import (
 	"context"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -12,8 +17,6 @@ type businessRepository interface {
 	UpdatePost(ctx context.Context, postID int64, orgID int, content string) (*entity.Post, error)
 	DeletePost(ctx context.Context, id int64, orgID int) error
 	GetOrgIDByUserID(ctx context.Context, userID string) (int, error)
-	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
-	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
 	GetPostPhotos(ctx context.Context, postID int64) ([]string, error)
 	CheckOwnership(ctx context.Context, userID string, unitID int) error
 	CreatePost(ctx context.Context, userID string, unitID int, description string) (*entity.Post, error)
@@ -33,16 +36,39 @@ type businessRepository interface {
 	DeleteComment(ctx context.Context, commentID int64) error
 	ListCommentsWithAuthorsByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.CommentWithAuthor, error)
 	CountCommentsByPost(ctx context.Context, postID int64) (int, error)
+	CreateBox(ctx context.Context, box *entity.Box) (int64, time.Time, error)
+	CreateBoxItem(ctx context.Context, boxID int64, code string) error
+	GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error)
+	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
+	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
+	DeleteLocation(ctx context.Context, locationID int, brandID int) error
+	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
+	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
+	GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (map[int][]string, error)
+	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
+	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
+
+	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
+	ListByParentID(ctx context.Context, parentID, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
+	GetVenueRating(ctx context.Context, venueID int) (float32, error)
+	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 }
 
 type service struct {
 	businessRepo businessRepository
 	txManager    database.TxManager
+	storage      storage.ObjectStorage
 }
 
-func New(businessRepo businessRepository, txManager database.TxManager) *service {
+func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
+		storage:      st,
 	}
+}
+
+func generateCode() string {
+	return uuid.New().String()[:12]
 }

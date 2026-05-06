@@ -2,6 +2,7 @@ package business
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
@@ -9,9 +10,10 @@ import (
 )
 
 type listRequest struct {
-	BrandId int `uri:"id" binding:"required"`
-	Skip    int `form:"skip"`
-	Limit   int `form:"limit"`
+	BrandId int    `uri:"id" binding:"required"`
+	Skip    int    `form:"skip"`
+	Limit   int    `form:"limit"`
+	Tags    string `form:"tags"`
 }
 
 type listItem struct {
@@ -21,6 +23,7 @@ type listItem struct {
 	Description *string  `json:"description" example:"A cozy place in the city center."`
 	Latitude    *float32 `json:"latitude" example:"50.4501"`
 	Longitude   *float32 `json:"longitude" example:"30.5234"`
+	Tags        []string `json:"tags"`
 }
 
 type listResponse struct {
@@ -37,11 +40,15 @@ type listResponse struct {
 //	@Param			id		path		int	true	"Brand ID"
 //	@Param			skip	query		int	false	"Number of items to skip (default: 0)"
 //	@Param			limit	query		int	false	"Items per page (default: 10, max: 100)"
+//	@Param			tags	query		string	false	"Comma-separated location tag slugs, e.g. vegan,romantic"
 //	@Success		200		{object}	listResponse
 //	@Failure		400		{object}	errorResponse
 //	@Failure		500		{object}	errorResponse
-//	@Router			/business/{id}/locations [get]
+//	@Router			/business/org-units/{id}/locations [get]
 func (h *handler) list(c *gin.Context) {
+	ctx := c.Request.Context()
+	log := logger.FromContext(ctx)
+
 	req := new(listRequest)
 	if err := c.ShouldBindUri(req); err != nil {
 		c.Error(apperror.BadRequest("invalid brand id"))
@@ -62,12 +69,26 @@ func (h *handler) list(c *gin.Context) {
 		req.Limit = 100
 	}
 
-	ctx := c.Request.Context()
-	logger.InfoKV(ctx, "list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit)
+	var tags []string
+	if req.Tags != "" {
+		seen := make(map[string]struct{})
+		for _, tag := range strings.Split(req.Tags, ",") {
+			tag = strings.ToLower(strings.TrimSpace(tag))
+			if tag != "" {
+				if _, ok := seen[tag]; ok {
+					continue
+				}
+				seen[tag] = struct{}{}
+				tags = append(tags, tag)
+			}
+		}
+	}
 
-	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit)
+	log.Info("list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit, "tags", tags)
+
+	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit, tags)
 	if err != nil {
-		logger.ErrorKV(ctx, "failed to list locations", "brandId", req.BrandId, "error", err)
+		log.Error("failed to list locations", "brandId", req.BrandId, "error", err)
 		c.Error(err)
 		return
 	}
@@ -81,6 +102,7 @@ func (h *handler) list(c *gin.Context) {
 			Description: u.Description,
 			Latitude:    u.Latitude,
 			Longitude:   u.Longitude,
+			Tags:        normalizeTags(u.Tags),
 		})
 	}
 

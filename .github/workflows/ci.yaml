@@ -16,15 +16,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - name: Install swag
-        run: go install github.com/swaggo/swag/cmd/swag@v1.16.6
-      - name: Generate swagger
-        run: swag init -g cmd/business-api/main.go -o docs/api
+          cache: true
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Generate code (swagger docs + client)
+        run: |
+          make generate
+
       - name: Build
-        run: go build ./...
+        run: make build
+
       - name: Test
-        run: go test -v ./...
+        run: make test

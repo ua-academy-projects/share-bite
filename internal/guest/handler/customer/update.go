@@ -34,7 +34,7 @@ func (h *handler) update(c *gin.Context) {
 		return
 	}
 
-	resp := updateResponse{Customer: customerToResponse(customer)}
+	resp := updateResponse{Customer: h.toResponse(customer)}
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -43,8 +43,10 @@ type updateRequest struct {
 	FirstName *string `json:"firstName" binding:"omitempty,min=2,max=50"`
 	LastName  *string `json:"lastName" binding:"omitempty,min=2,max=50"`
 
-	Bio             *string `json:"bio" binding:"omitempty,max=500"`
-	AvatarObjectKey *string `json:"avatarObjectKey" binding:"omitempty,max=1024"`
+	Bio               *string `json:"bio" binding:"omitempty,max=500"`
+	AvatarObjectKey   *string `json:"avatarObjectKey" binding:"omitempty,max=1024"`
+	IsFollowersPublic *bool
+	IsFollowingPublic *bool
 }
 
 type updateResponse struct {

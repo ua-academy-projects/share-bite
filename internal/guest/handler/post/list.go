@@ -1,13 +1,30 @@
 package post
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
+// list returns paginated published posts.
+//
+//	@Summary		List posts
+//	@Description	Returns paginated list of published posts.
+//	@Tags			guest-posts
+//	@Produce		json
+//	@Param			limit	query		int				false	"Max items per page (1..100)"	default(20)
+//	@Param			offset	query		int				false	"Offset (0..1000)"				default(0)
+//	@Success		200		{object}	listResponse	"Successfully retrieved the collection"
+//	@Failure		400		{object}	response.ErrorResponse	"Invalid query parameters"
+//	@Failure		500		{object}	response.ErrorResponse	"Internal server error"
+//	@Router			/posts/ [get]
 func (h *handler) list(c *gin.Context) {
 	var req listRequest
 	if err := request.BindQuery(c, &req); err != nil {
@@ -16,9 +33,11 @@ func (h *handler) list(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	in := entity.ListPostsInput{
-		Limit:  req.Limit,
-		Offset: req.Offset,
+	customerID := getOptionalCustomerID(c, h.customerService)
+	in := dto.ListPostsInput{
+		Limit:      req.Limit,
+		Offset:     req.Offset,
+		CustomerID: customerID,
 	}
 	out, err := h.service.List(ctx, in)
 	if err != nil {
@@ -26,7 +45,11 @@ func (h *handler) list(c *gin.Context) {
 		return
 	}
 
-	resp := listPostsOutToResponse(out)
+	resp, err := listPostsOutToResponse(ctx, out, h.storage, h.customerService)
+	if err != nil {
+		c.Error(err)
+		return
+	}
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -40,14 +63,41 @@ type listResponse struct {
 	Total int            `json:"total"`
 }
 
-func listPostsOutToResponse(out entity.ListPostsOutput) listResponse {
-	list := make([]postResponse, 0, len(out.Posts))
+func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storage storage.ObjectStorage, customerService customerService) (listResponse, error) {
+	customerIDSet := make(map[string]struct{})
+
 	for _, p := range out.Posts {
-		list = append(list, postToResponse(p))
+		customerIDSet[p.CustomerID] = struct{}{}
+	}
+
+	customerIDs := make([]string, 0, len(customerIDSet))
+	for id := range customerIDSet {
+		customerIDs = append(customerIDs, id)
+	}
+
+	customers, err := customerService.GetByIDs(ctx, customerIDs)
+	if err != nil {
+		return listResponse{}, err
+	}
+
+	customerMap := make(map[string]entity.Customer, len(customers))
+
+	for _, c := range customers {
+		customerMap[c.ID] = c
+	}
+	list := make([]postResponse, 0, len(out.Posts))
+
+	for _, p := range out.Posts {
+		customer, ok := customerMap[p.CustomerID]
+		if !ok {
+			customer = entity.Customer{ID: p.CustomerID}
+		}
+
+		list = append(list, postToResponse(p, storage, customer))
 	}
 
 	return listResponse{
 		Posts: list,
 		Total: out.Total,
-	}
+	}, nil
 }

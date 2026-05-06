@@ -1,0 +1,84 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-2
+  AWS_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+
+jobs:
+  build-and-push:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: admin
+            ecr_repo: share-bite/admin-auth-api
+          - service: business
+            ecr_repo: share-bite/business-api
+          - service: guest
+            ecr_repo: share-bite/guest-api
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Generate swagger
+        run: make generate
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+           images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}
+           tags: |
+              type=sha,prefix=sha-
+              type=ref,event=branch
+              type=ref,event=tag
+              type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push ${{ matrix.service }} image
+        id: build-push
+        uses: docker/build-push-action@v5
+        with:
+            context: .
+            file: ./build/Dockerfile.${{ matrix.service }}
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Output Pushed Image URI
+        run: |
+            IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}@${{ steps.build-push.outputs.digest }}"
+            echo "Successfully pushed to: $IMAGE_URI"
+            echo "**${{ matrix.service }}**: \`$IMAGE_URI\`" >> $GITHUB_STEP_SUMMARY

@@ -4,35 +4,66 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/sony/gobreaker"
+	swaggerfiles "github.com/swaggo/files"
+	ginswagger "github.com/swaggo/gin-swagger"
+	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
-	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
-	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	businessgateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
+	notif_handler "github.com/ua-academy-projects/share-bite/internal/guest/handler/notification"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
+	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
+	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
+	commentrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/comment"
 	customerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
+	followrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/follow"
 	postrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/post"
+	collectionsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/collection"
+	commentsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/comment"
 	customersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
+	followsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/follow"
 	postsvc "github.com/ua-academy-projects/share-bite/internal/guest/service/post"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	redis "github.com/ua-academy-projects/share-bite/pkg/redis"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
 	"go.uber.org/zap"
 )
 
+// @title						Share Bite - Guest Service API
+// @version					1.0
+// @description				API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
+//
+// @host						localhost:3800
+// @BasePath					/
+//
+// @securityDefinitions.apikey	BearerAuth
+// @in							header
+// @name						Authorization
+// @description				Type "Bearer " followed by your JWT token.
 func main() {
 	ctx := context.Background()
 
 	// for local development only
 	if err := config.Load(".env"); err != nil {
-		logger.Fatal(ctx, "load config:", err)
+		logger.Fatal(ctx, err)
 	}
 
 	// docker variant
@@ -41,9 +72,12 @@ func main() {
 	// }
 
 	router := gin.New()
+	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
-	router.Use(ErrorMiddleware())
+	router.Use(guest_middleware.ErrorMiddleware())
+
+	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 
 	binding.Validator = validator.New("binding")
 
@@ -68,7 +102,67 @@ func main() {
 		return nil
 	})
 
-	// clients
+	rdb, err := redis.NewClient(
+		config.Config().Redis.Addr(),
+		config.Config().Redis.Password(),
+		config.Config().Redis.DB(),
+		config.Config().Redis.TLS(),
+	)
+	if err != nil {
+		logger.Fatal(ctx, "new redis client: ", err)
+	}
+	ctxPing, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = rdb.Ping(ctxPing).Result()
+	if err != nil {
+		logger.Fatal(ctx, "ping redis: ", err)
+	}
+	closer.Add(func(ctx context.Context) error {
+		rdb.Close()
+		return nil
+	})
+	notificationResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			// Very fast initial attempts (10ms -> 20ms -> 40ms) and overall goroutine lock timeout 1.5s
+			InitialInterval:     10 * time.Millisecond,
+			RandomizationFactor: 0.2,
+			Multiplier:          2.0,
+			MaxInterval:         200 * time.Millisecond,
+			MaxElapsedTime:      1500 * time.Millisecond,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "redis-pub",
+			MaxRequests: 1,                // Use 1 probe request
+			Interval:    10 * time.Second, // reset error counter every 10s
+			Timeout:     5 * time.Second,  // allow 5s for Redis recovery
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				// Open circuit after 20 consecutive publish errors to protect Redis
+				return counts.ConsecutiveFailures >= 20
+			},
+
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "redis circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				// Treat context.Canceled as success; mark Redis-specific permanent errors via resilience.IsPermanent
+				if err == nil || errors.Is(err, context.Canceled) {
+					return true
+				}
+				return resilience.IsPermanent(err)
+			},
+		}),
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.Debugf(ctx, "redis publish retry scheduled in %v: %v", nextRetryIn, err)
+		},
+	}
+	broker := notification.NewBroker(rdb, notification.WithPublishPolicy(notificationResiliencePolicy))
+
+	notifHub := notification.NewHub(broker)
+
 	clientCfg := config.Config().BusinessHttpClient
 	httpClient := &http.Client{
 		Timeout: clientCfg.Timeout(),
@@ -83,7 +177,60 @@ func main() {
 		return nil
 	})
 
-	businessGateway := business.NewBusinessAPIClient(config.Config().BusinessHttpClient.BaseURL(), httpClient)
+	businessResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     250 * time.Millisecond,
+			RandomizationFactor: 0.25,
+			Multiplier:          2,
+			MaxInterval:         3 * time.Second,
+			MaxElapsedTime:      12 * time.Second,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "guest-business-api",
+			MaxRequests: 3,
+			Interval:    30 * time.Second,
+			Timeout:     10 * time.Second,
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+
+				if errors.Is(err, context.Canceled) {
+					return true
+				}
+
+				return resilience.IsPermanent(err)
+			},
+		}),
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.Warnf(ctx, "business API retry scheduled in %v: %v", nextRetryIn, err)
+		},
+	}
+
+	businessGateway, err := businessgateway.NewBusinessAPIClient(
+		config.Config().BusinessHttpClient.BaseURL(),
+		config.Config().BusinessHttpClient.Scheme(),
+		"/",
+		httpClient,
+		businessgateway.WithResiliencePolicy(businessResiliencePolicy),
+	)
+	if err != nil {
+		logger.Fatalf(ctx, "init business gateway: %v", err)
+	}
+
+	storageClient, err := storage.NewStorageClient(ctx, config.Config().Storage)
+	if err != nil {
+		logger.Fatal(ctx, "init storage client:", err)
+	}
+
+	txManager := txmanager.NewTransactionManager(client.DB())
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -91,18 +238,40 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-	authMiddleware := middleware.Auth(tokenManager)
 
 	// repos
 	postRepo := postrepo.New(client)
 	customerRepo := customerrepo.New(client)
+	commentRepo := commentrepo.New(client)
+	collectionRepo := collectionrepo.New(client)
+	followRepo := followrepo.New(client)
 
 	// services
 	customerSvc := customersvc.New(customerRepo)
-	postSvc := postsvc.New(postRepo, businessGateway)
+	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithPublisher(broker))
+	commentSvc := commentsvc.New(commentRepo, postSvc)
+	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
+	followSvc := followsvc.New(followRepo, customerRepo)
+
+	// middlewares
+	authMiddleware := middleware.Auth(tokenManager)
+	optionalAuthMiddleware := middleware.OptionalAuth(tokenManager)
+	customerMiddleware := middleware.CustomerID(customerSvc)
+
 	// handlers
-	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware)
-	post.RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware)
+	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
+	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
+	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
+	notif_handler.RegisterHandlers(router.Group("/notification", optionalAuthMiddleware), notifHub, customerSvc, authMiddleware)
+	collection.RegisterHandlers(
+		router.Group("/collections"),
+		collectionSvc,
+		authMiddleware,
+		optionalAuthMiddleware,
+		customerMiddleware,
+		storageClient,
+	)
+	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")
@@ -112,60 +281,4 @@ func main() {
 	}()
 
 	closer.Wait()
-}
-
-func ErrorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		err := c.Errors.Last()
-		if err == nil {
-			return
-		}
-
-		respCode := http.StatusInternalServerError
-		resp := map[string]any{
-			"message": "internal server error",
-		}
-
-		var valErr *validator.ValidationError
-		if errors.As(err, &valErr) {
-			respCode = http.StatusBadRequest
-			resp = map[string]any{
-				"message": valErr.Error(),
-				"errors":  valErr.Errors,
-			}
-
-			c.JSON(respCode, resp)
-			return
-		}
-
-		var appErr *apperror.Error
-		if errors.As(err, &appErr) {
-			switch appErr.Code {
-			case code.NotFound:
-				respCode = http.StatusNotFound
-
-			case code.InvalidJSON,
-				code.InvalidRequest,
-				code.EmptyUpdate:
-				respCode = http.StatusBadRequest
-
-			case code.UpstreamError:
-				respCode = http.StatusBadGateway
-
-			case code.AlreadyExists:
-				respCode = http.StatusConflict
-
-			default:
-				respCode = http.StatusInternalServerError
-			}
-
-			resp = map[string]any{
-				"message": appErr.Error(),
-			}
-		}
-
-		c.JSON(respCode, resp)
-	}
 }

@@ -54,3 +54,7 @@ func CommentNotFound(id int64) *Error {
 func Forbidden(msg string) *Error {
 	return newError(code.Forbidden, msg)
 }
+
+func Unauthorized(msg string) *Error {
+	return newError(code.Unauthorized, msg)
+}

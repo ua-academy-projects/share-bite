@@ -2,6 +2,11 @@ package entity
 
 import "github.com/google/uuid"
 
+const (
+	ProfileTypeBrand = "BRAND"
+	ProfileTypeVenue = "VENUE"
+)
+
 type OrgUnit struct {
 	Id           int
 	OrgAccountId uuid.UUID
@@ -13,4 +18,10 @@ type OrgUnit struct {
 	ParentId     *int
 	Latitude     *float32
 	Longitude    *float32
+	Tags         []string
+}
+
+type OrgUnitWithDistance struct {
+	OrgUnit  OrgUnit
+	Distance float64
 }

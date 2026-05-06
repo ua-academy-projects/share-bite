@@ -1,9 +1,9 @@
 package business
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/errwrap"
 )
 
 type OrgUnit struct {
@@ -35,13 +35,13 @@ func (e OrgUnit) ToEntity() entity.OrgUnit {
 }
 
 func executeSQLError(err error) error {
-	return errwrap.Wrap("execute sql", err)
+	return fmt.Errorf("execute sql: %w", err)
 }
 
 func scanRowError(err error) error {
-	return errwrap.Wrap("scan row", err)
+	return fmt.Errorf("scan row: %w", err)
 }
 
 func scanRowsError(err error) error {
-	return errwrap.Wrap("scan rows", err)
+	return fmt.Errorf("scan rows: %w", err)
 }

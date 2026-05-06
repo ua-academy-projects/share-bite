@@ -2,25 +2,39 @@ package post
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 type handler struct {
 	service         postService
 	customerService customerService
+	storage         storage.ObjectStorage
 }
 
 type postService interface {
-	Create(ctx context.Context, in entity.CreatePostInput) (entity.Post, error)
-	List(ctx context.Context, in entity.ListPostsInput) (entity.ListPostsOutput, error)
-	Get(ctx context.Context, postID string) (entity.Post, error)
+	Create(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+	Update(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
+	Delete(ctx context.Context, postID, customerID string) error
+	List(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
+	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
+	Like(ctx context.Context, postID string, customerID string) error
+	Unlike(ctx context.Context, postID string, customerID string) error
+	ExploreNearby(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
 }
 
 type customerService interface {
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
+	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
 func RegisterHandlers(
@@ -28,10 +42,12 @@ func RegisterHandlers(
 	service postService,
 	customerService customerService,
 	authMiddleware gin.HandlerFunc,
+	storage storage.ObjectStorage,
 ) {
 	h := &handler{
 		service:         service,
 		customerService: customerService,
+		storage:         storage,
 	}
 
 	r.GET("/", h.list)
@@ -39,28 +55,101 @@ func RegisterHandlers(
 
 	protected := r.Group("/").Use(authMiddleware)
 	protected.POST("/", h.create)
+	protected.PATCH("/:id", h.update)
+	protected.DELETE("/:id", h.delete)
+	protected.POST("/:id/like", h.like)
+	protected.DELETE("/:id/like", h.unlike)
+
+	r.GET("/explore", h.ExploreNearby)
 }
 
 type postResponse struct {
-	ID         string            `json:"id"`
-	CustomerID string            `json:"customerId"`
-	VenueID    string            `json:"venueId"`
-	Text       string            `json:"text"`
-	Rating     int16             `json:"rating"`
-	Status     entity.PostStatus `json:"status"`
-	CreatedAt  time.Time         `json:"createdAt"`
-	UpdatedAt  time.Time         `json:"updatedAt"`
+	ID          string            `json:"id"`
+	CustomerID  string            `json:"customerId"`
+	UserName    string            `json:"userName"`
+	AvatarURL   *string           `json:"avatarURL"`
+	VenueID     int64             `json:"venueId"`
+	Text        string            `json:"text"`
+	Rating      int16             `json:"rating"`
+	Status      entity.PostStatus `json:"status"`
+	LikesCount  int               `json:"likesCount"`
+	IsLikedByMe bool              `json:"isLikedByMe"`
+	Images      []string          `json:"images"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	UpdatedAt   time.Time         `json:"updatedAt"`
+	PublishedAt *time.Time        `json:"publishedAt,omitempty"`
+	Mentions      []mentionResponse `json:"mentions"`
+	MentionsCount int               `json:"mentions_count"`
 }
 
-func postToResponse(post entity.Post) postResponse {
-	return postResponse{
-		ID:         post.ID,
-		CustomerID: post.CustomerID,
-		VenueID:    post.VenueID,
-		Text:       post.Text,
-		Rating:     post.Rating,
-		Status:     post.Status,
-		CreatedAt:  post.CreatedAt,
-		UpdatedAt:  post.UpdatedAt,
+type mentionResponse struct {
+	ID        string `json:"id"`
+	UserName  string `json:"username"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+}
+
+func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {
+	imageURLs := make([]string, 0, len(post.Images))
+	if storage != nil {
+		for _, img := range post.Images {
+			imageURLs = append(imageURLs, storage.BuildURL(img.ObjectKey))
+		}
 	}
+	var avatarURL *string
+	if customer.AvatarObjectKey != nil && storage != nil {
+		url := storage.BuildURL(*customer.AvatarObjectKey)
+		avatarURL = &url
+	}
+
+	mentions := make([]mentionResponse, 0, len(post.Mentions))
+
+	for _, m := range post.Mentions {
+		var avatarURL string
+		if m.AvatarObjectKey != nil && storage != nil {
+			avatarURL = storage.BuildURL(*m.AvatarObjectKey)
+		}
+
+		mentions = append(mentions, mentionResponse{
+			ID:        m.ID,
+			UserName:  m.UserName,
+			AvatarURL: avatarURL,
+		})
+	}
+	return postResponse{
+		ID:          post.ID,
+		CustomerID:  post.CustomerID,
+		UserName:    customer.UserName,
+		AvatarURL:   avatarURL,
+		VenueID:     post.VenueID,
+		Text:        post.Text,
+		Rating:      post.Rating,
+		Status:      post.Status,
+		LikesCount:  post.LikesCount,
+		IsLikedByMe: post.IsLikedByMe,
+		Images:      imageURLs,
+		CreatedAt:   post.CreatedAt,
+		UpdatedAt:   post.UpdatedAt,
+		PublishedAt: post.PublishedAt,
+		Mentions:      mentions,
+		MentionsCount: len(mentions),
+	}
+}
+
+func (h *handler) getAuthenticatedCustomer(c *gin.Context) (entity.Customer, error) {
+	userID, err := httpctx.GetUserID(c)
+	if err != nil {
+		return entity.Customer{}, err
+	}
+
+	customer, err := h.customerService.GetByUserID(c.Request.Context(), userID)
+	if err != nil {
+		var appErr *apperror.Error
+		if errors.As(err, &appErr) && appErr.Code == code.NotFound {
+			return entity.Customer{}, apperror.ErrForbidden
+		}
+
+		return entity.Customer{}, err
+	}
+
+	return customer, nil
 }

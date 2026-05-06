@@ -12,4 +12,11 @@ var (
 	InvalidRequest Code = "INVALID_REQUEST"
 
 	EmptyUpdate Code = "EMPTY_UPDATE"
+
+	BadRequest Code = "BAD_REQUEST"
+	Internal   Code = "INTERNAL"
+
+	TooManyRequests Code = "TOO_MANY_REQUESTS"
+
+	Forbidden Code = "PERMISSION_DENIED"
 )
