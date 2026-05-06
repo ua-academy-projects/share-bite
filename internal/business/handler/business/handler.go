@@ -5,6 +5,7 @@ import (
 	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
@@ -38,6 +39,9 @@ type businessService interface {
 	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	Rating(ctx context.Context, id int) (float32, error)
 
+	Create(ctx context.Context, in entity.OrgUnit) (int, error)
+	UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID, in entity.UpdateOrgUnitInput) (*entity.OrgUnit, error)
+	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 }
 
@@ -51,6 +55,7 @@ func RegisterHandlers(
 	}
 
 	auth := middleware.Auth(parser)
+	r.GET("/:id", h.getOrgUnit)
 
 	orgUnits := r.Group("/org-units")
 	{
@@ -71,6 +76,18 @@ func RegisterHandlers(
 		businessPosts.PUT("/:id", h.UpdatePost)
 		businessPosts.DELETE("/:id", h.DeletePost)
 		businessPosts.POST("/:id", h.CreatePost)
+	}
+
+	orgMutations := r.Group("").
+		Use(auth).
+		Use(middleware.RequireRoles("business")).
+		Use(middleware.RequireUserUUID())
+	{
+		orgMutations.POST("/", h.createOrgUnit)
+		orgMutations.PUT("/:id", h.updateOrgUnit)
+		orgMutations.PATCH("/:id", h.updateOrgUnit)
+		orgMutations.DELETE("/:id", h.deleteOrgUnit)
+	
 	}
 
 	businessLocations := r.Group("").
