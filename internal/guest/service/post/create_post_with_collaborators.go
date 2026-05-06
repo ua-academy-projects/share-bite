@@ -15,7 +15,7 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 
 	err := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 
-		post, err := s.postRepo.Create(txCtx, in)
+		post, err := s.createPost(txCtx, in)
 		if err != nil {
 			return err
 		}

@@ -11,12 +11,13 @@ import (
 
 func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, customerID string) error {
 	var postID string
+	var authorID string
 	var allAccepted bool
 
 	err := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		var err error
 
-		postID, err = s.postRepo.AcceptPostInvitation(txCtx, collaboratorID, customerID)
+		postID, authorID, err = s.postRepo.AcceptPostInvitation(txCtx, collaboratorID, customerID)
 		if err != nil {
 			return fmt.Errorf("accept invitation: %w", err)
 		}
@@ -27,7 +28,7 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 		}
 
 		if allAccepted {
-			err := s.postRepo.UpdateStatus(txCtx, postID, customerID, entity.PostStatusPublished)
+			err := s.postRepo.UpdateStatus(txCtx, postID, authorID, entity.PostStatusPublished)
 			if err != nil {
 				return fmt.Errorf("update post status: %w", err)
 			}
