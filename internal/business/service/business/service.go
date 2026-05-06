@@ -2,8 +2,6 @@ package business
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,22 +9,11 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 
-	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
-	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
-const (
-	minBusinessNameLength = 3
-	maxBusinessNameLength = 40
-)
-
 type businessRepository interface {
-	Create(ctx context.Context, in entity.OrgUnit) (int, error)
-	UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID, in entity.UpdateOrgUnitInput) (*entity.OrgUnit, error)
-	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
-
 	UpdatePost(ctx context.Context, postID int64, orgID int, content string) (*entity.Post, error)
 	DeletePost(ctx context.Context, id int64, orgID int) error
 	GetOrgIDByUserID(ctx context.Context, userID string) (int, error)
@@ -75,66 +62,4 @@ func New(businessRepo businessRepository, txManager database.TxManager, st stora
 
 func generateCode() string {
 	return uuid.New().String()[:12]
-}
-
-func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
-	nameLen := len([]rune(in.Name))
-	if nameLen < minBusinessNameLength {
-		return 0, apperror.BadRequest("business name cannot be less than 3 characters long")
-	}
-	if nameLen > maxBusinessNameLength {
-		return 0, apperror.BadRequest("business name cannot be more than 40 characters long")
-	}
-
-	if in.ProfileType != entity.ProfileTypeBrand {
-        return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
-    }
-	
-	id, err := s.businessRepo.Create(ctx, in)
-	if err != nil {
-		return 0, fmt.Errorf("failed to create business profile: %w", err)
-	}
-
-	return id, nil
-}
-
-func (s *service) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID, in entity.UpdateOrgUnitInput) (*entity.OrgUnit, error) {
-	if in.Name == nil &&
-		in.Avatar == nil &&
-		in.Banner == nil &&
-		in.Description == nil {
-		return nil, apperror.BadRequest("at least one updatable field is required")
-	}
-
-	if in.Name != nil {
-		nameLen := len([]rune(*in.Name))
-		if nameLen < minBusinessNameLength {
-			return nil, apperror.BadRequest("business name cannot be less than 3 characters long")
-		}
-		if nameLen > maxBusinessNameLength {
-			return nil, apperror.BadRequest("business name cannot be more than 40 characters long")
-		}
-	}
-
-	updated, err := s.businessRepo.UpdateOrg(ctx, id, orgAccountID, in)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return nil, apperror.OrgUnitNotFoundID(id)
-		}
-		return nil, fmt.Errorf("update org unit in business repository: %w", err)
-	}
-
-	return updated, nil
-}
-
-func (s *service) DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error {
-	err := s.businessRepo.DeleteOrg(ctx, id, orgAccountID)
-	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			return apperror.OrgUnitNotFoundID(id)
-		}
-		return fmt.Errorf("delete org unit in business repository: %w", err)
-	}
-
-	return nil
 }

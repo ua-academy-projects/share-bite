@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type AccessTokenParser interface {
@@ -17,7 +16,6 @@ const (
 	authorizationHeader = "Authorization"
 	CtxUserID           = "userId"
 	CtxUserRole         = "userRole"
-	CtxUserUUID         = "userUUID"
 )
 
 func Auth(parser AccessTokenParser) gin.HandlerFunc {
@@ -84,45 +82,6 @@ func GetUserID(c *gin.Context) (string, bool) {
 	}
 
 	return userIDStr, true
-}
-
-func GetUserUUID(c *gin.Context) (uuid.UUID, bool) {
-	val, exists := c.Get(CtxUserUUID)
-	if !exists {
-		return uuid.Nil, false
-	}
-
-	userUUID, ok := val.(uuid.UUID)
-	if !ok {
-		return uuid.Nil, false
-	}
-
-	return userUUID, true
-}
-
-func RequireUserUUID() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userIDVal, exists := c.Get(CtxUserID)
-		if !exists {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-
-		userID, ok := userIDVal.(string)
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id type in context"})
-			return
-		}
-
-		userUUID, err := uuid.Parse(userID)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid user_id format"})
-			return
-		}
-
-		c.Set(CtxUserUUID, userUUID)
-		c.Next()
-	}
 }
 
 func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
