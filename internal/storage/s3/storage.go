@@ -9,7 +9,6 @@ import (
 	"time"
 
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
-	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 )
 
 var (
@@ -97,13 +96,7 @@ func (s *S3Storage) BuildURL(key string) string {
 
 func (s *S3Storage) GetPresignedURL(ctx context.Context, key string) (string, error) {
 	if key == "" {
-		return "", apperror.BadRequest("object key is required")
-	}
-	if s.presignClient == nil {
-		return "", fmt.Errorf("presign client is not configured")
-	}
-	if s.urlTTL <= 0 {
-		return "", fmt.Errorf("invalid presign URL TTL: %s", s.urlTTL)
+		return "", fmt.Errorf("object key is required")
 	}
 
 	req, err := s.presignClient.PresignGetObject(ctx, &awss3.GetObjectInput{

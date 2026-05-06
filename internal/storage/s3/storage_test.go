@@ -233,6 +233,6 @@ func TestBuildURL(t *testing.T) {
 		t.Parallel()
 		storage := NewS3Storage(nil, testBucket, "http://localhost:4300", "", nil, 0)
 		url := storage.BuildURL(testKey)
-		require.Equal(t, "http://localhost:3900/test-bucket/customers/123/avatar/abc.jpg", url)
+		require.Equal(t, "http://localhost:4300/test-bucket/customers/123/avatar/abc.jpg", url)
 	})
 }

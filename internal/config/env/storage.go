@@ -52,4 +52,3 @@ func (c *s3StorageConfig) UsePathStyle() bool {
 func (c *s3StorageConfig) PresignTTL() time.Duration {
 	return c.StoragePresignTTL
 }
-
