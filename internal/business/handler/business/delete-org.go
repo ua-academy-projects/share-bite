@@ -4,7 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 // deleteOrgUnit godoc
@@ -22,37 +23,31 @@ import (
 // @Router       /business/{id} [delete]
 // @Security     BearerAuth
 func (h *handler) deleteOrgUnit(c *gin.Context) {
-	roleVal, exists := c.Get(middleware.CtxUserRole)
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	role, ok := roleVal.(string)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_role type in context"})
+	role, err := httpctx.GetUserRole(c)
+	if err != nil {
+		c.Error(apperror.Unauthorized("unauthorized"))
 		return
 	}
 
 	if role != "business" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can delete organizations"})
+		c.Error(apperror.Forbidden("only business accounts can delete organizations"))
 		return
 	}
 
 	reqURI := new(getRequest)
 	if err := c.ShouldBindUri(reqURI); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.Error(apperror.BadRequest("invalid id"))
 		return
 	}
 
-	orgAccountID, ok := middleware.GetUserUUID(c)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_uuid type in context"})
+	orgAccountID, err := h.extractUserUUID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
 	if err := h.service.DeleteOrg(c.Request.Context(), reqURI.ID, orgAccountID); err != nil {
-		_ = c.Error(err)
+		c.Error(err)
 		return
 	}
 

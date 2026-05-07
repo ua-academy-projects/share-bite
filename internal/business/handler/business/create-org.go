@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 )
 
 // createOrgUnit godoc
@@ -32,13 +32,13 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid contract: " + err.Error()})
+		c.Error(apperror.BadRequest("invalid contract"))
 		return
 	}
 
-	userUUID, ok := middleware.GetUserUUID(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user_uuid type in context"})
+	userUUID, err := h.extractUserUUID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 

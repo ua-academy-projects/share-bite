@@ -1,14 +1,13 @@
 package business
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
-	repo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
-	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
 
 // updateOrgUnit godoc
@@ -29,38 +28,32 @@ import (
 // @Router       /business/{id} [patch]
 // @Security     BearerAuth
 func (h *handler) updateOrgUnit(c *gin.Context) {
-	roleVal, exists := c.Get(middleware.CtxUserRole)
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	role, ok := roleVal.(string)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_role type in context"})
+	role, err := httpctx.GetUserRole(c)
+	if err != nil {
+		c.Error(apperror.Unauthorized("unauthorized"))
 		return
 	}
 
 	if role != "business" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "only business accounts can update organizations"})
+		c.Error(apperror.Forbidden("only business accounts can update organizations"))
 		return
 	}
 
 	reqURI := new(getRequest)
 	if err := c.ShouldBindUri(reqURI); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.Error(apperror.BadRequest("invalid id"))
 		return
 	}
 
-	orgAccountID, ok := middleware.GetUserUUID(c)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_uuid type in context"})
+	orgAccountID, err := h.extractUserUUID(c)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
 	var req dto.UpdateOrgRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		c.Error(apperror.BadRequest("invalid request"))
 		return
 	}
 
@@ -71,12 +64,7 @@ func (h *handler) updateOrgUnit(c *gin.Context) {
 		Description: req.Description,
 	})
 	if err != nil {
-		switch {
-		case errors.Is(err, repo.ErrForbidden):
-			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
-		default:
-			_ = c.Error(err)
-		}
+		c.Error(err)
 		return
 	}
 
