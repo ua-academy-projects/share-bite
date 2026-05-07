@@ -35,6 +35,8 @@ jobs:
             ecr_repo: share-bite/guest-api
           - service: migrator
             ecr_repo: share-bite/migrator
+          - service: notifications-lambda
+            ecr_repo: share-bite/notifications-worker
 
     steps:
       - name: Checkout repository

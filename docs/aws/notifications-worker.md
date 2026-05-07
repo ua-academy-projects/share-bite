@@ -1,16 +1,3 @@
-# notifications-worker — AWS deployment and runtime details
-
-This document summarizes the deployed `notifications-worker` container, Lambda configuration, SQS queues
-
----
-
-## ECR image
-- Repository: `share-bite/notifications-worker`
-- Registry/account: `<AWS_ACCOUNT_ID>` (replace with your AWS account ID)
-- Notable image tag: `<IMAGE_TAG>` (example: `20ab157`)
-- Full image URI (example to deploy):
-
-```
 # notifications-worker — deployment & operational guide
 
 Short, practical reference for deploying and operating the `notifications-worker` Lambda (container image).
@@ -18,7 +5,7 @@ Short, practical reference for deploying and operating the `notifications-worker
 ---
 
 ## Overview
-- Purpose: consume SQS notification messages, validate and process them (current `Processor` republishes to Redis and can be extended to email/push). 
+- Purpose: consume SQS notification messages, validate and process them (current `Processor` republishes to Redis and can be extended to email/push).
 - Package type: `Image` (ECR image)
 
 ---
@@ -28,7 +15,7 @@ Short, practical reference for deploying and operating the `notifications-worker
 - Repository: `share-bite/notifications-worker`
 - Image URI pattern:
 
-```
+```text
 <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/<REPO>:<TAG>
 ```
 
@@ -115,14 +102,15 @@ If mapping exists, list/update via `aws lambda list-event-source-mappings`.
 
 ## IAM role (Lambda) — example policy statements
 
-Lambda role must allow CloudWatch logging and, if in VPC, ENI actions. Minimal statements:
+Lambda role must allow CloudWatch logging and, if in VPC, ENI actions. Also ensure SQS permissions are included so the function can poll and acknowledge messages. Minimal statements:
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     { "Effect": "Allow", "Action": ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"], "Resource": "arn:aws:logs:*:*:*" },
-    { "Effect": "Allow", "Action": ["ec2:CreateNetworkInterface","ec2:DescribeNetworkInterfaces","ec2:DeleteNetworkInterface"], "Resource": "*" }
+    { "Effect": "Allow", "Action": ["ec2:CreateNetworkInterface","ec2:DescribeNetworkInterfaces","ec2:DeleteNetworkInterface"], "Resource": "*" },
+    { "Effect": "Allow", "Action": ["sqs:ReceiveMessage","sqs:DeleteMessage","sqs:ChangeMessageVisibility","sqs:GetQueueAttributes","sqs:GetQueueUrl"], "Resource": "<SQS_QUEUE_ARN>" }
   ]
 }
 ```

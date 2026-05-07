@@ -39,4 +39,4 @@ Since SSH is disabled, all server management is done via AWS Systems Manager (SS
 ### Connect to the EC2 Instance
 Use the AWS CLI on your local machine to start a session:
 ```bash
-sudo aws ssm start-session --target i-<YOUR_INSTANCE_ID>
+aws ssm start-session --target i-<YOUR_INSTANCE_ID>
