@@ -108,7 +108,8 @@ func TestHandler_UpdateUserStatus(t *testing.T) {
 		})
 		r.PUT("/users/:userId/status", h.UpdateUserStatus)
 
-		body, _ := json.Marshal(handler.UpdateUserStatusRequest{Status: "muted"})
+		body, err := json.Marshal(handler.UpdateUserStatusRequest{Status: "muted"})
+		assert.NoError(t, err)
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPut, "/users/user-1/status", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -135,7 +136,8 @@ func TestHandler_UpdateUserStatus(t *testing.T) {
 		})
 		r.PUT("/users/:userId/status", h.UpdateUserStatus)
 
-		body, _ := json.Marshal(handler.UpdateUserStatusRequest{Status: "suspended"})
+		body, err := json.Marshal(handler.UpdateUserStatusRequest{Status: "suspended"})
+		assert.NoError(t, err)
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPut, "/users/user-404/status", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")

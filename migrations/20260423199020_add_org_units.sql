@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS business.org_units (
 
   CONSTRAINT org_units_coordinates_pair_chk
     CHECK (
-      (latitude IS NULL AND longitude IS NULL) OR 
+      (latitude IS NULL AND longitude IS NULL) OR
       (latitude IS NOT NULL AND longitude IS NOT NULL)
     )
 );
