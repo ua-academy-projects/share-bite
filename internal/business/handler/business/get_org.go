@@ -37,7 +37,7 @@ func (h *handler) getOrgUnit(c *gin.Context) {
 	}
 
 	if org.ProfileType != entity.ProfileTypeBrand {
-		_ = c.Error(apperror.BadRequest("target org unit is not a brand"))
+		_ = c.Error(apperror.NotFound("target org unit is not a brand"))
 		return
 	}
 
