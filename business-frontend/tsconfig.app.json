@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
@@ -21,7 +22,8 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
-    /* Налаштування аліасів без baseUrl */
+    /* Paths */
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
