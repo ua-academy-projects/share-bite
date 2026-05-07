@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 )
 
 // getOrgUnit godoc
@@ -24,7 +25,7 @@ import (
 func (h *handler) getOrgUnit(c *gin.Context) {
 	reqURI := new(getRequest)
 	if err := c.ShouldBindUri(reqURI); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		_ = c.Error(apperror.BadRequest("invalid id: " + err.Error()))
 		return
 	}
 
@@ -36,7 +37,7 @@ func (h *handler) getOrgUnit(c *gin.Context) {
 	}
 
 	if org.ProfileType != entity.ProfileTypeBrand {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "target org unit is not a brand"})
+		_ = c.Error(apperror.BadRequest("target org unit is not a brand"))
 		return
 	}
 
