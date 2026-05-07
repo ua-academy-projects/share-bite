@@ -95,7 +95,7 @@ func RegisterHandlers(
 		Use(auth).
 		Use(middleware.RequireRoles("business"))
 	{
-		orgMutations.POST("/", h.createOrgUnit)
+		orgMutations.POST("", h.createOrgUnit)
 		orgMutations.PUT("/:id", h.updateOrgUnit)
 		orgMutations.PATCH("/:id", h.updateOrgUnit)
 		orgMutations.DELETE("/:id", h.deleteOrgUnit)
