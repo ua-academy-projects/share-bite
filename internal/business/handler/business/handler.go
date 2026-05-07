@@ -19,7 +19,6 @@ type handler struct {
 	service businessService
 }
 
-
 func (h *handler) extractUserUUID(c *gin.Context) (uuid.UUID, error) {
 	userUUID, err := httpctx.GetUserUUID(c)
 	if err != nil {
