@@ -14,6 +14,12 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+variable "image_tag" {
+  description = "Image tag to deploy for the notifications-worker Lambda"
+  type        = string
+  default     = "latest"
+}
+
 resource "aws_ecr_repository" "repo" {
   name                 = "share-bite/notifications-worker"
   image_tag_mutability = "MUTABLE"
@@ -24,16 +30,18 @@ resource "aws_ecr_repository" "repo" {
 }
 
 resource "aws_sns_topic" "notifications" {
-  name = "notifications"
+  name              = "notifications"
   kms_master_key_id = "alias/aws/sns"
 }
 
 resource "aws_sqs_queue" "dlq_sse" {
-  name = "notifications-sse-dlq"
+  name                    = "notifications-sse-dlq"
+  sqs_managed_sse_enabled = true
 }
 
 resource "aws_sqs_queue" "dlq_lambda" {
-  name = "notifications-lambda-dlq"
+  name                    = "notifications-lambda-dlq"
+  sqs_managed_sse_enabled = true
 }
 
 resource "aws_sqs_queue" "notifications_sse" {
@@ -67,7 +75,7 @@ resource "aws_sqs_queue_policy" "sse_policy" {
     Statement = [{
       Sid       = "Allow-SNS-SendMessage",
       Effect    = "Allow",
-      Principal = {"Service":"sns.amazonaws.com"},
+      Principal = { "Service" : "sns.amazonaws.com" },
       Action    = "sqs:SendMessage",
       Resource  = aws_sqs_queue.notifications_sse.arn,
       Condition = { ArnEquals = { "aws:SourceArn" = aws_sns_topic.notifications.arn } }
@@ -82,7 +90,7 @@ resource "aws_sqs_queue_policy" "lambda_policy" {
     Statement = [{
       Sid       = "Allow-SNS-SendMessage",
       Effect    = "Allow",
-      Principal = {"Service":"sns.amazonaws.com"},
+      Principal = { "Service" : "sns.amazonaws.com" },
       Action    = "sqs:SendMessage",
       Resource  = aws_sqs_queue.notifications_lambda.arn,
       Condition = { ArnEquals = { "aws:SourceArn" = aws_sns_topic.notifications.arn } }
@@ -276,7 +284,7 @@ resource "aws_iam_policy_attachment" "attach_ecr_pull" {
 resource "aws_lambda_function" "worker" {
   function_name = "notifications-worker"
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.repo.repository_url}:20ab157"
+  image_uri     = "${aws_ecr_repository.repo.repository_url}:${var.image_tag}"
   role          = aws_iam_role.training_lambda_role.arn
   memory_size   = 256
   timeout       = 30
@@ -284,10 +292,10 @@ resource "aws_lambda_function" "worker" {
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
-  event_source_arn = aws_sqs_queue.notifications_lambda.arn
-  function_name    = aws_lambda_function.worker.arn
-  batch_size       = 10
-  enabled          = true
+  event_source_arn        = aws_sqs_queue.notifications_lambda.arn
+  function_name           = aws_lambda_function.worker.arn
+  batch_size              = 10
+  enabled                 = true
   function_response_types = ["ReportBatchItemFailures"]
 }
 

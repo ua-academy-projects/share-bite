@@ -35,7 +35,7 @@ func main() {
 	broker := notification.NewBroker(rdb)
 
 	validator := worker.NewDefaultValidator()
-	processor := worker.NewPublisherProcessor(broker, 5*time.Second)
+	processor := worker.NewPublisherProcessor(broker, 3*time.Second)
 	h := worker.New(validator, processor)
 
 	lambda.Start(h.HandleBatch)
