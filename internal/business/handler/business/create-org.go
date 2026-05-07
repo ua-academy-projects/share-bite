@@ -35,6 +35,10 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 		c.Error(apperror.BadRequest("invalid contract"))
 		return
 	}
+	if req.Name == "" {
+		c.Error(apperror.BadRequest("name is required"))
+		return
+	}
 
 	userUUID, err := h.extractUserUUID(c)
 	if err != nil {
