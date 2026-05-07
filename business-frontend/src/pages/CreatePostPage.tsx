@@ -31,6 +31,7 @@ type CreatePostFormValues = z.infer<typeof createPostSchema>;
 
 export default function CreatePostPage() {
   const { id } = useParams<{ id: string }>();
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [loading, setLoading] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
@@ -61,7 +62,13 @@ export default function CreatePostPage() {
       setLoading(true);
 
       const apiBase = import.meta.env.VITE_API_URL;
-      const url = `${apiBase}/business/posts/${encodeURIComponent(id)}`;
+      if (!apiBase) {
+        setErrorMessage("Не налаштовано VITE_API_URL.");
+        setLoading(false);
+        return;
+      }
+      
+      const url = new URL(`/business/posts/${encodeURIComponent(id)}`, apiBase).toString();
 
       const fd = new FormData();
       fd.append("content", values.textData);
@@ -93,8 +100,9 @@ export default function CreatePostPage() {
       setSuccessMessage("Допис успішно створено.");
 
       form.reset({ textData: "" });
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      if (fileInput) fileInput.value = "";
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : "Сталася невідома помилка");
     } finally {
@@ -123,6 +131,7 @@ export default function CreatePostPage() {
 
           <CardContent className="pt-6">
             <Form {...form}>
+              {/* eslint-disable-next-line react-hooks/refs */}
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
@@ -159,6 +168,7 @@ export default function CreatePostPage() {
                           </div>
                           <span className="text-sm text-gray-300 font-medium">Натисніть сюди, щоб обрати файли</span>
                           <Input
+                            ref={fileInputRef}
                             type="file"
                             accept="image/*"
                             multiple
