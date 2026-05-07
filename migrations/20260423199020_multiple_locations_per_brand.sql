@@ -1,5 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
+ALTER TABLE IF EXISTS business.org_units DROP CONSTRAINT IF EXISTS org_units_org_account_id_key;
+DO $$
+-- +goose StatementBegin
 ALTER TABLE IF EXISTS business.org_units
 DROP CONSTRAINT IF EXISTS org_units_org_account_id_key;
 

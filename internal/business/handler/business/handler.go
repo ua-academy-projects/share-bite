@@ -35,6 +35,7 @@ type businessService interface {
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
+	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	Rating(ctx context.Context, id int) (float32, error)
 
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
@@ -89,6 +90,12 @@ func RegisterHandlers(
 	}
 
 	r.GET("/locations/nearby", h.ListNearbyVenues)
+	
+	reservations := r.Group("/boxes").
+		Use(auth)
+	{
+		reservations.PATCH("/:boxID/reserve", h.reserveBox)
+	}
 }
 
 type errorResponse struct {
