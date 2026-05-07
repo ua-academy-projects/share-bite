@@ -1,0 +1,96 @@
+package main
+
+import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/sony/gobreaker"
+	"github.com/ua-academy-projects/share-bite/internal/config"
+	"github.com/ua-academy-projects/share-bite/pkg/closer"
+	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
+	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	outboxpkg "github.com/ua-academy-projects/share-bite/pkg/outbox"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
+)
+
+func main() {
+	baseCtx := context.Background()
+	ctx, stop := signal.NotifyContext(baseCtx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	if err := config.Load(".env"); err != nil {
+		logger.Fatal(ctx, "config load:", err)
+	}
+
+	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
+	if err != nil {
+		logger.Fatal(ctx, "new database client:", err)
+	}
+	if err := client.DB().Ping(ctx); err != nil {
+		logger.Fatal(ctx, "ping database:", err)
+	}
+	closer.Add(func(ctx context.Context) error {
+		client.Close()
+		return nil
+	})
+
+	topicArn := configFromEnvOrPanic("OUTBOX_SNS_TOPIC_ARN")
+
+	snsPub, err := outboxpkg.NewSNSPublisher(ctx, topicArn)
+	if err != nil {
+		logger.Fatal(ctx, "new sns publisher:", err)
+	}
+
+	relay := outboxpkg.NewRelay(
+		txmanager.NewTransactionManager(client.DB()),
+		outboxpkg.NewStore(client.DB()),
+		snsPub,
+		outboxpkg.WithRelayPollInterval(2*time.Second),
+	)
+
+	if err := relay.Run(ctx); err != nil && err != context.Canceled {
+		logger.Fatal(ctx, "outbox relay stopped:", err)
+	}
+}
+
+func notificationResiliencePolicy() resilience.Policy {
+	return resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     25 * time.Millisecond,
+			RandomizationFactor: 0.2,
+			Multiplier:          2,
+			MaxInterval:         500 * time.Millisecond,
+			MaxElapsedTime:      3 * time.Second,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "outbox-worker-sns-pub",
+			MaxRequests: 1,
+			Interval:    10 * time.Second,
+			Timeout:     5 * time.Second,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures >= 10
+			},
+		}),
+	}
+}
+
+func configFromEnvOrPanic(key string) string {
+	v := configFromEnv(key)
+	if v == "" {
+		panic(key + " is required")
+	}
+	return v
+}
+
+func configFromEnv(key string) string {
+	// prefer the config package if it exposes the value later; for now read env
+	return getenv(key)
+}
+
+func getenv(k string) string {
+	return os.Getenv(k)
+}
