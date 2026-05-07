@@ -2,18 +2,33 @@ package business
 
 import (
 	"context"
+	"errors"
 	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 type handler struct {
 	service businessService
+}
+
+
+func (h *handler) extractUserUUID(c *gin.Context) (uuid.UUID, error) {
+	userUUID, err := httpctx.GetUserUUID(c)
+	if err != nil {
+		if errors.Is(err, httpctx.ErrMissingContext) {
+			return uuid.Nil, apperror.Unauthorized("unauthorized")
+		}
+		return uuid.Nil, apperror.Unauthorized("invalid user identity")
+	}
+	return userUUID, nil
 }
 
 type businessService interface {
@@ -79,14 +94,13 @@ func RegisterHandlers(
 
 	orgMutations := r.Group("").
 		Use(auth).
-		Use(middleware.RequireRoles("business")).
-		Use(middleware.RequireUserUUID())
+		Use(middleware.RequireRoles("business"))
 	{
 		orgMutations.POST("/", h.createOrgUnit)
 		orgMutations.PUT("/:id", h.updateOrgUnit)
 		orgMutations.PATCH("/:id", h.updateOrgUnit)
 		orgMutations.DELETE("/:id", h.deleteOrgUnit)
-	
+
 	}
 
 	businessLocations := r.Group("").
