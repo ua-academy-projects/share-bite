@@ -7,7 +7,9 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
-func RequireWritableAccountStatus(statusContextKey string) gin.HandlerFunc {
+const statusContextKey = "userStatus"
+
+func RequireWritableAccountStatus() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		statusVal, exists := c.Get(statusContextKey)
 		if !exists {
