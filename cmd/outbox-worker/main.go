@@ -22,7 +22,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(baseCtx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	if err := config.Load(".env"); err != nil {
+	// for local development only; .env is optional
+	if err := config.Load(".env"); err != nil && !os.IsNotExist(err) {
 		logger.Fatal(ctx, "config load:", err)
 	}
 
@@ -37,8 +38,12 @@ func main() {
 		client.Close()
 		return nil
 	})
+	closer.SetShutdownTimeout(5 * time.Second)
 
-	topicArn := configFromEnvOrPanic("OUTBOX_SNS_TOPIC_ARN")
+	topicArn := os.Getenv("OUTBOX_SNS_TOPIC_ARN")
+	if topicArn == "" {
+		logger.Fatal(ctx, "OUTBOX_SNS_TOPIC_ARN is required")
+	}
 
 	snsPub, err := outboxpkg.NewSNSPublisher(ctx, topicArn)
 	if err != nil {
@@ -49,15 +54,37 @@ func main() {
 		txmanager.NewTransactionManager(client.DB()),
 		outboxpkg.NewStore(client.DB()),
 		snsPub,
+		outboxpkg.WithRelayPolicy(resilience.Policy{
+			RetryConfig: resilience.RetryConfig{
+				InitialInterval:     25 * time.Millisecond,
+				RandomizationFactor: 0.2,
+				Multiplier:          2,
+				MaxInterval:         500 * time.Millisecond,
+				MaxElapsedTime:      3 * time.Second,
+			},
+			Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+				Name:        "outbox-sns-publish",
+				MaxRequests: 1,
+				Interval:    10 * time.Second,
+				Timeout:     5 * time.Second,
+				ReadyToTrip: func(counts gobreaker.Counts) bool {
+					return counts.ConsecutiveFailures >= 10
+				},
+			}),
+		}),
 		outboxpkg.WithRelayPollInterval(2*time.Second),
 	)
 
-	if err := relay.Run(ctx); err != nil && err != context.Canceled {
-		logger.Fatal(ctx, "outbox relay stopped:", err)
-	}
+	go func() {
+		if err := relay.Run(ctx); err != nil && err != context.Canceled {
+			logger.Error(ctx, "outbox relay stopped:", err)
+		}
+	}()
+
+	closer.Wait()
 }
 
-func notificationResiliencePolicy() resilience.Policy {
+func snsPublishResiliencePolicy() resilience.Policy {
 	return resilience.Policy{
 		RetryConfig: resilience.RetryConfig{
 			InitialInterval:     25 * time.Millisecond,
@@ -67,7 +94,7 @@ func notificationResiliencePolicy() resilience.Policy {
 			MaxElapsedTime:      3 * time.Second,
 		},
 		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
-			Name:        "outbox-worker-sns-pub",
+			Name:        "outbox-sns-publish",
 			MaxRequests: 1,
 			Interval:    10 * time.Second,
 			Timeout:     5 * time.Second,
@@ -76,21 +103,4 @@ func notificationResiliencePolicy() resilience.Policy {
 			},
 		}),
 	}
-}
-
-func configFromEnvOrPanic(key string) string {
-	v := configFromEnv(key)
-	if v == "" {
-		panic(key + " is required")
-	}
-	return v
-}
-
-func configFromEnv(key string) string {
-	// prefer the config package if it exposes the value later; for now read env
-	return getenv(key)
-}
-
-func getenv(k string) string {
-	return os.Getenv(k)
 }

@@ -2,9 +2,10 @@ package post
 
 import (
 	"context"
+
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
-	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -47,14 +48,14 @@ type service struct {
 	customerRepo  customerRepo
 	storage       storage.ObjectStorage
 	txManager     database.TxManager
-	publisher     notification.Publisher
+	outboxWriter  outbox.Writer
 }
 
 type Option func(*service)
 
-func WithPublisher(publisher notification.Publisher) Option {
+func WithOutboxWriter(writer outbox.Writer) Option {
 	return func(s *service) {
-		s.publisher = publisher
+		s.outboxWriter = writer
 	}
 }
 
