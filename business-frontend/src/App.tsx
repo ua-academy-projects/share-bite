@@ -1,7 +1,9 @@
 // src/App.tsx
 import { Routes, Route } from "react-router-dom";
-import { Sidebar } from "@/components/ui/sidebar"; // Виправлено регістр файлу
+import { Sidebar } from "@/components/ui/sidebar";
 import { BoxesPage } from "@/pages/BoxesPage";
+import { CreateBoxPage } from "@/pages/CreateBoxPage";
+
 
 function Home() {
   return <div className="p-8"><h1 className="text-2xl font-bold">Home Feed 🔥</h1></div>;
@@ -20,6 +22,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/boxes" element={<BoxesPage />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/venue/:id/create-box" element={<CreateBoxPage />} />
         </Routes>
       </main>
     </div>
