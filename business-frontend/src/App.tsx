@@ -2,6 +2,7 @@
 import { Routes, Route } from "react-router-dom";
 import { Sidebar } from "@/components/ui/sidebar";
 import { BoxesPage } from "@/pages/BoxesPage";
+import  CreatePostPage from "@/pages/CreatePostPage";
 import { CreateBoxPage } from "@/pages/CreateBoxPage";
 
 
@@ -22,6 +23,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/boxes" element={<BoxesPage />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/venue/:id/create-post" element={<CreatePostPage />} />
           <Route path="/venue/:id/create-box" element={<CreateBoxPage />} />
         </Routes>
       </main>

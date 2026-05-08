@@ -79,7 +79,8 @@ export function CreateBoxPage() {
   const onSubmit = async (values: CreateBoxFormValues) => {
     setSuccessMessage(null);
     setErrorMessage(null);
-    if (!id) return setErrorMessage("ID закладу не знайдено.");
+    const venueId = parseInt(id ?? "", 10);
+    if (isNaN(venueId)) return setErrorMessage("ID закладу не знайдено.");
 
     const token = localStorage.getItem("token") || "";
 
@@ -88,8 +89,8 @@ export function CreateBoxPage() {
       const base64Image = await fileToBase64(values.images[0]);
 
       await businessApi.createBox({
-        venue_id: parseInt(id),
-        category_id: parseInt(values.categoryId),
+        venue_id: venueId,
+        category_id: parseInt(values.categoryId, 10),
         image: base64Image,
         price_full: values.priceFull,
         price_discount: values.priceDiscount,
@@ -237,7 +238,11 @@ export function CreateBoxPage() {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
+                              disabled={(date) => {
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              return date < today;
+                              }}
                               className="text-white"
                             />
                           </PopoverContent>
