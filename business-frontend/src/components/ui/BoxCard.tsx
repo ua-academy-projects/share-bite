@@ -13,18 +13,23 @@ const CATEGORY_MAP: Record<number, string> = {
 };
 
 export function BoxCard({ box }: BoxCardProps) {
+  // Видалено небезпечний split по amazonaws, тепер нормальні URL не ламаються
   const formatImageUrl = (url: string) => {
     if (!url) return "https://placehold.co/600x400/163d32/FFF?text=Magic+Box";
-    if (url.includes("amazonaws.com/")) {
-      return url.split("amazonaws.com/")[1];
-    }
     return url;
   };
 
   const categoryName = box.category_id ? CATEGORY_MAP[box.category_id] || "Secret Box" : "Secret Box";
 
+  // Захист для дати (якщо прийде Invalid Date, покажемо "N/A")
   const expireDate = new Date(box.expires_at);
-  const formattedTime = expireDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  const formattedTime = Number.isNaN(expireDate.getTime())
+    ? "N/A"
+    : expireDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+  // Захист для цін
+  const fullPrice = Number(box.full_price);
+  const discountPrice = Number(box.discount_price);
 
   return (
     <div className="bg-white dark:bg-[#163d32] border border-gray-100 dark:border-[#2f5e50] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-lg dark:hover:shadow-[#98FF98]/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
@@ -76,10 +81,10 @@ export function BoxCard({ box }: BoxCardProps) {
         <div className="mt-auto pt-4 border-t border-gray-100 dark:border-[#2f5e50]/50 flex justify-between items-end">
           <div className="flex flex-col">
             <span className="text-gray-400 dark:text-gray-400 text-sm line-through mb-0.5 font-medium">
-              {Number(box.full_price).toFixed(2)} ₴
+              {Number.isFinite(fullPrice) ? fullPrice.toFixed(2) : "—"} ₴
             </span>
             <span className="text-emerald-600 dark:text-[#98FF98] text-2xl font-bold leading-none">
-              {Number(box.discount_price).toFixed(2)} ₴
+              {Number.isFinite(discountPrice) ? discountPrice.toFixed(2) : "—"} ₴
             </span>
           </div>
           <Button className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200] dark:hover:bg-[#FFD700]/80 font-bold rounded-xl px-6 py-5 shadow-md dark:shadow-lg dark:shadow-[#FFD700]/20 transition-all">
