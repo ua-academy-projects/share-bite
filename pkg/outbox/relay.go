@@ -75,6 +75,7 @@ func (r *Relay) Run(ctx context.Context) error {
 	if r == nil {
 		return fmt.Errorf("outbox relay is nil")
 	}
+	logger.InfoKV(ctx, "outbox relay started", "poll_interval", r.pollInterval, "batch_size", r.batchSize)
 	ticker := time.NewTicker(r.pollInterval)
 	defer ticker.Stop()
 
@@ -95,27 +96,37 @@ func (r *Relay) ProcessOnce(ctx context.Context) error {
 	if r == nil {
 		return fmt.Errorf("outbox relay is nil")
 	}
-	if r.txManager == nil || r.store == nil || r.publisher == nil {
-		return fmt.Errorf("outbox relay is not configured")
-	}
 
 	return r.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		records, err := r.store.FetchPending(txCtx, r.batchSize)
 		if err != nil {
 			return err
 		}
-
+		if len(records) > 0 {
+			logger.InfoKV(txCtx, "outbox relay fetched records", "count", len(records))
+		}
 		for _, record := range records {
 			rec := record
-			if err := r.policy.Execute(txCtx, func() error {
+			err := r.policy.Execute(txCtx, func() error {
 				return r.publisher.Publish(txCtx, rec.Payload)
-			}); err != nil {
-				return fmt.Errorf("publish outbox record %s: %w", rec.ID, err)
+			})
+			if err != nil {
+				logger.ErrorKV(txCtx, "failed to publish outbox record after retries",
+					"record_id", rec.ID,
+					"error", err)
+				continue
 			}
 
 			if err := r.store.MarkProcessed(txCtx, rec.ID); err != nil {
-				return err
+				return fmt.Errorf("mark processed %s: %w", rec.ID, err)
 			}
+
+			logger.InfoKV(txCtx,
+				"outbox record processed",
+				"record_id", rec.ID,
+				"event_id", rec.Payload.EventID,
+				"event_type", rec.EventType,
+			)
 		}
 
 		return nil

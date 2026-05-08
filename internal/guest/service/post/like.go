@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
@@ -15,8 +16,13 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 	}
 
 	return s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
-		if err := s.postRepo.Like(txCtx, postID, customerID); err != nil {
+		inserted, err := s.postRepo.Like(txCtx, postID, customerID)
+		if err != nil {
 			return fmt.Errorf("like post in repository: %w", err)
+		}
+		if !inserted {
+			logger.DebugKV(txCtx, "like already exists, skip outbox enqueue", "post_id", postID, "customer_id", customerID)
+			return nil
 		}
 
 		if s.outboxWriter == nil || post.CustomerID == "" || post.CustomerID == customerID {

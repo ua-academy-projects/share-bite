@@ -83,24 +83,3 @@ func main() {
 
 	closer.Wait()
 }
-
-func snsPublishResiliencePolicy() resilience.Policy {
-	return resilience.Policy{
-		RetryConfig: resilience.RetryConfig{
-			InitialInterval:     25 * time.Millisecond,
-			RandomizationFactor: 0.2,
-			Multiplier:          2,
-			MaxInterval:         500 * time.Millisecond,
-			MaxElapsedTime:      3 * time.Second,
-		},
-		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
-			Name:        "outbox-sns-publish",
-			MaxRequests: 1,
-			Interval:    10 * time.Second,
-			Timeout:     5 * time.Second,
-			ReadyToTrip: func(counts gobreaker.Counts) bool {
-				return counts.ConsecutiveFailures >= 10
-			},
-		}),
-	}
-}

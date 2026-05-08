@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
 const DefaultSourceService = "guest-api"
@@ -56,6 +57,12 @@ func (w *SQLWriter) Enqueue(ctx context.Context, event Event) error {
 	if _, err := w.db.ExecContext(ctx, q, event.EventType, string(payloadBytes), event.SourceService); err != nil {
 		return fmt.Errorf("insert outbox event: %w", err)
 	}
+
+	logger.DebugKV(ctx,
+		"outbox event enqueued",
+		"event_type", event.EventType,
+		"source_service", event.SourceService,
+	)
 
 	return nil
 }

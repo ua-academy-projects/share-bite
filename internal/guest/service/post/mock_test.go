@@ -17,7 +17,7 @@ type postRepositoryMock struct {
 	getByIDFn            func(ctx context.Context, postID string) (entity.Post, error)
 	getAuthorUserIDFn    func(ctx context.Context, postID string) (string, error)
 	updateFn             func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
-	likeFn               func(ctx context.Context, postID string, customerID string) error
+	likeFn               func(ctx context.Context, postID string, customerID string) (bool, error)
 	unlikeFn             func(ctx context.Context, postID string, customerID string) error
 	outboxFn             func(ctx context.Context, event outbox.Event) error
 	updateStatusFn       func(ctx context.Context, postID, customerID string, status entity.PostStatus) error
@@ -87,11 +87,11 @@ func (m *postRepositoryMock) DeleteImagesByPostID(ctx context.Context, postID st
 	return nil
 }
 
-func (m *postRepositoryMock) Like(ctx context.Context, postID string, customerID string) error {
+func (m *postRepositoryMock) Like(ctx context.Context, postID string, customerID string) (bool, error) {
 	if m.likeFn != nil {
 		return m.likeFn(ctx, postID, customerID)
 	}
-	return nil
+	return true, nil
 }
 
 func (m *postRepositoryMock) Unlike(ctx context.Context, postID string, customerID string) error {

@@ -103,6 +103,10 @@ resource "aws_sns_topic_subscription" "to_sse" {
   protocol             = "sqs"
   endpoint             = aws_sqs_queue.notifications_sse.arn
   raw_message_delivery = true
+
+  filter_policy = jsonencode({
+    event_type = ["post_liked"]
+  })
 }
 
 resource "aws_sns_topic_subscription" "to_lambda" {
@@ -110,6 +114,10 @@ resource "aws_sns_topic_subscription" "to_lambda" {
   protocol             = "sqs"
   endpoint             = aws_sqs_queue.notifications_lambda.arn
   raw_message_delivery = true
+
+  filter_policy = jsonencode({
+    event_type = ["registration_confirmed"]
+  })
 }
 
 resource "aws_iam_role" "ec2_ecr_role" {
