@@ -10,8 +10,6 @@ services:
       - ${GUEST_HTTP_SERVER_PORT}:${GUEST_HTTP_SERVER_PORT}
     env_file:
       - ../.env
-    volumes:
-      - ../.env:/app/.env:ro
     depends_on:
       - pg
     networks:
@@ -27,9 +25,6 @@ services:
       - ${ADMIN_HTTP_SERVER_PORT}:${ADMIN_HTTP_SERVER_PORT}
     env_file:
       - ../.env
-    volumes:
-      - ../.env:/app/.env:ro
-      - ../internal/admin-auth/provider/email/templates:/app/internal/admin-auth/provider/email/templates:ro
     depends_on:
       - pg
     networks:
@@ -45,8 +40,6 @@ services:
       - ${BUSINESS_HTTP_SERVER_PORT}:${BUSINESS_HTTP_SERVER_PORT}
     env_file:
       - ../.env
-    volumes:
-      - ../.env:/app/.env:ro
     depends_on:
       - pg
     networks:
