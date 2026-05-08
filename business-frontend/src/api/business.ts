@@ -1,10 +1,14 @@
-// src/api/business.ts
-
 export type Box = {
   id: number;
+  venue_id: number;
+  category_id?: number;
   image: string;
-  full_price: string;
-  discount_price: string;
+  full_price: string | number;
+  discount_price: string | number;
+  created_at: string;
+  expires_at: string;
+  availability_status: string;
+  distance: number;
 };
 
 export type CreateBoxRequest = {
@@ -33,7 +37,6 @@ export const businessApi = {
   },
 
   createBox: async (data: CreateBoxRequest, token: string) => {
-    // Виправлено шлях: додано префікс /business
     const response = await fetch(`${API_BASE_URL}/business/boxes`, {
       method: "POST",
       headers: {
