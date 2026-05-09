@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/gin-gonic/gin"
@@ -127,16 +128,25 @@ func main() {
 		}
 	}()
 
-	sqsQueueURL := os.Getenv("NOTIFICATION_SQS_QUEUE_URL")
-	if sqsQueueURL == "" {
-		logger.Fatal(ctx, "NOTIFICATION_SQS_QUEUE_URL is required")
-	}
-
 	awsCfg, err := loadSQSConfig(ctx)
 	if err != nil {
 		logger.Fatal(ctx, "load aws config:", err)
 	}
 	sqsClient := sqs.NewFromConfig(awsCfg)
+
+	queueRef := os.Getenv("NOTIFICATION_SQS_QUEUE_ARN")
+	if queueRef == "" {
+		queueRef = os.Getenv("NOTIFICATION_SQS_QUEUE_URL")
+	}
+	if queueRef == "" {
+		logger.Fatal(ctx, "NOTIFICATION_SQS_QUEUE_ARN or NOTIFICATION_SQS_QUEUE_URL is required")
+	}
+
+	sqsQueueURL, err := resolveQueueURL(ctx, sqsClient, queueRef)
+	if err != nil {
+		logger.Fatal(ctx, "resolve sqs queue url:", err)
+	}
+
 	processor := notificationservice.NewProcessor(notifSvc)
 	consumer := notificationconsumer.New(sqsClient, sqsQueueURL, processor)
 
@@ -148,6 +158,35 @@ func main() {
 	}()
 
 	closer.Wait()
+}
+
+func resolveQueueURL(ctx context.Context, client *sqs.Client, queueRef string) (string, error) {
+	if strings.HasPrefix(queueRef, "https://") || strings.HasPrefix(queueRef, "http://") {
+		return queueRef, nil
+	}
+
+	parsedARN, err := arn.Parse(queueRef)
+	if err != nil {
+		return "", fmt.Errorf("invalid queue URL or ARN: %w", err)
+	}
+
+	// SQS ARN format: arn:aws:sqs:region:account-id:queue-name
+	parts := strings.Split(parsedARN.Resource, ":")
+	queueName := parts[len(parts)-1]
+
+	out, err := client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
+		QueueName:              aws.String(queueName),
+		QueueOwnerAWSAccountId: aws.String(parsedARN.AccountID),
+	})
+	if err != nil {
+		return "", fmt.Errorf("get queue URL from ARN: %w", err)
+	}
+
+	if out.QueueUrl == nil {
+		return "", fmt.Errorf("get queue URL returned nil")
+	}
+
+	return *out.QueueUrl, nil
 }
 
 func notificationsServerAddr() string {
