@@ -67,15 +67,6 @@ export function CreateBoxPage() {
     } as any,
   });
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
   const onSubmit = async (values: CreateBoxFormValues) => {
     setSuccessMessage(null);
     setErrorMessage(null);
@@ -86,12 +77,12 @@ export function CreateBoxPage() {
 
     try {
       setLoading(true);
-      const base64Image = await fileToBase64(values.images[0]);
+      const imageFile = values.images[0];
 
       await businessApi.createBox({
         venue_id: venueId,
         category_id: parseInt(values.categoryId, 10),
-        image: base64Image,
+        image: imageFile,
         price_full: values.priceFull,
         price_discount: values.priceDiscount,
         quantity: values.quantity,
@@ -109,9 +100,7 @@ export function CreateBoxPage() {
     }
   };
 
-  // Оновлений базовий клас для адаптації під тему
   const inputClass = "bg-gray-50 dark:bg-[#163d32] border border-gray-200 dark:border-transparent text-[#1A3C34] dark:text-white focus-visible:ring-emerald-500 dark:focus-visible:ring-green-500 rounded-xl placeholder:text-gray-400 transition-colors duration-300";
-  // Клас для вимкнення стрілочок у number-інпутах
   const noSpinnersClass = "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
   return (
@@ -140,7 +129,7 @@ export function CreateBoxPage() {
                 <FormField
                   control={form.control as any}
                   name="categoryId"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700 dark:text-gray-200 font-medium">Category</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
@@ -149,7 +138,6 @@ export function CreateBoxPage() {
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                         </FormControl>
-                        {/* Стилізований випадаючий список */}
                         <SelectContent className="bg-white dark:bg-[#163d32] border-gray-200 dark:border-[#2f5e50] text-[#1A3C34] dark:text-white rounded-xl">
                           {CATEGORIES.map((cat) => (
                             <SelectItem 
@@ -171,7 +159,7 @@ export function CreateBoxPage() {
                   <FormField
                     control={form.control as any}
                     name="priceFull"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700 dark:text-gray-200 font-medium">Price ($)</FormLabel>
                         <FormControl>
@@ -184,7 +172,7 @@ export function CreateBoxPage() {
                   <FormField
                     control={form.control as any}
                     name="priceDiscount"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700 dark:text-gray-200 font-medium">Discounted Price ($)</FormLabel>
                         <FormControl>
@@ -200,7 +188,7 @@ export function CreateBoxPage() {
                   <FormField
                     control={form.control as any}
                     name="quantity"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700 dark:text-gray-200 font-medium">Quantity</FormLabel>
                         <FormControl>
@@ -213,7 +201,7 @@ export function CreateBoxPage() {
                   <FormField
                     control={form.control as any}
                     name="expiresAt"
-                    render={({ field }) => (
+                    render={({ field }: { field: any }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel className="mb-2 text-gray-700 dark:text-gray-200 font-medium">Expires At</FormLabel>
                         <Popover>
@@ -232,16 +220,15 @@ export function CreateBoxPage() {
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          {/* Стилізований календар */}
                           <PopoverContent className="w-auto p-0 bg-white dark:bg-[#163d32] border-gray-200 dark:border-[#2f5e50] text-[#1A3C34] dark:text-white rounded-xl" align="start">
                             <Calendar
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) => {
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              return date < today;
+                              disabled={(date: Date) => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                return date < today;
                               }}
                               className="text-[#1A3C34] dark:text-white"
                             />
@@ -256,7 +243,7 @@ export function CreateBoxPage() {
                 <FormField
                   control={form.control as any}
                   name="images"
-                  render={({ field }) => (
+                  render={({ field }: { field: any }) => (
                     <FormItem>
                       <FormLabel className="text-gray-700 dark:text-gray-200 font-medium">Photo</FormLabel>
                       <FormControl>
