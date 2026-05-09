@@ -1,6 +1,7 @@
 package post
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -42,7 +43,15 @@ func (h *handler) get(c *gin.Context) {
 	if err != nil {
 		customer = entity.Customer{ID: post.CustomerID}
 	}
-	resp := getResponse{Post: postToResponse(post, h.storage, customer)}
+
+	authors, err := h.buildAuthors(ctx, post.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	resp := getResponse{
+		Post: postToResponse(post, h.storage, customer, authors),
+	}
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -63,4 +72,34 @@ func getOptionalCustomerID(c *gin.Context, custSvc customerService) string {
 		}
 	}
 	return ""
+}
+
+func (h *handler) buildAuthors(ctx context.Context, postID string) ([]authorResponse, error) {
+	authorIDs, err := h.service.GetPostAuthors(ctx, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	authorsCustomers, err := h.customerService.GetByIDs(ctx, authorIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	authors := make([]authorResponse, 0, len(authorsCustomers))
+
+	for _, author := range authorsCustomers {
+		var avatarURL *string
+
+		if author.AvatarObjectKey != nil && h.storage != nil {
+			url := h.storage.BuildURL(*author.AvatarObjectKey)
+			avatarURL = &url
+		}
+
+		authors = append(authors, authorResponse{
+			ID:        author.ID,
+			UserName:  author.UserName,
+			AvatarURL: avatarURL,
+		})
+	}
+	return authors, nil
 }

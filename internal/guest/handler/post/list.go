@@ -45,7 +45,13 @@ func (h *handler) list(c *gin.Context) {
 		return
 	}
 
-	resp, err := listPostsOutToResponse(ctx, out, h.storage, h.customerService)
+	resp, err := listPostsOutToResponse(
+		ctx,
+		out,
+		h.storage,
+		h.customerService,
+		h.service,
+	)
 	if err != nil {
 		c.Error(err)
 		return
@@ -63,14 +69,28 @@ type listResponse struct {
 	Total int            `json:"total"`
 }
 
-func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storage storage.ObjectStorage, customerService customerService) (listResponse, error) {
+func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storage storage.ObjectStorage, customerService customerService, postService postService) (listResponse, error) {
 	customerIDSet := make(map[string]struct{})
+
+	postAuthors := make(map[string][]string)
 
 	for _, p := range out.Posts {
 		customerIDSet[p.CustomerID] = struct{}{}
+
+		authorIDs, err := postService.GetPostAuthors(ctx, p.ID)
+		if err != nil {
+			return listResponse{}, err
+		}
+
+		postAuthors[p.ID] = authorIDs
+
+		for _, authorID := range authorIDs {
+			customerIDSet[authorID] = struct{}{}
+		}
 	}
 
 	customerIDs := make([]string, 0, len(customerIDSet))
+
 	for id := range customerIDSet {
 		customerIDs = append(customerIDs, id)
 	}
@@ -85,6 +105,7 @@ func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storag
 	for _, c := range customers {
 		customerMap[c.ID] = c
 	}
+
 	list := make([]postResponse, 0, len(out.Posts))
 
 	for _, p := range out.Posts {
@@ -93,7 +114,34 @@ func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storag
 			customer = entity.Customer{ID: p.CustomerID}
 		}
 
-		list = append(list, postToResponse(p, storage, customer))
+		authorResponses := make([]authorResponse, 0)
+
+		for _, authorID := range postAuthors[p.ID] {
+			author, ok := customerMap[authorID]
+			if !ok {
+				continue
+			}
+
+			var avatarURL *string
+
+			if author.AvatarObjectKey != nil && storage != nil {
+				url := storage.BuildURL(*author.AvatarObjectKey)
+				avatarURL = &url
+			}
+
+			authorResponses = append(authorResponses, authorResponse{
+				ID:        author.ID,
+				UserName:  author.UserName,
+				AvatarURL: avatarURL,
+			})
+		}
+
+		list = append(list, postToResponse(
+			p,
+			storage,
+			customer,
+			authorResponses,
+		))
 	}
 
 	return listResponse{

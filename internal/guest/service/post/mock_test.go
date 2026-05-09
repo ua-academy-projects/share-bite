@@ -3,6 +3,7 @@ package post
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -24,6 +25,15 @@ type postRepositoryMock struct {
 	getPostsByVenueIDsFn func(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
 	createMentionsFn     func(ctx context.Context, mentions []entity.PostMention) error
 	listMentionsFn       func(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
+
+	createPostCollaboratorsFn         func(ctx context.Context, postID string, invitedBy string, customerIDs []string, expiresAt time.Time) error
+	getPendingPostInvitationsFn       func(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	acceptPostInvitationFn            func(ctx context.Context, collaboratorID string, customerID string) (string, string, error)
+	declinePostInvitationFn           func(ctx context.Context, collaboratorID string, customerID string) (string, error)
+	areAllPostCollaboratorsAcceptedFn func(ctx context.Context, postID string) (bool, error)
+	getAcceptedPostCollaboratorsFn    func(ctx context.Context, postID string) ([]string, error)
+
+	deleteExpiredDraftPostsFn func(ctx context.Context) error
 
 	lastCreateInput dto.CreatePostInput
 	lastListInput   dto.ListPostsInput
@@ -236,4 +246,83 @@ func (m *postRepositoryMock) ListMentionsByPostIDs(ctx context.Context, postIDs 
 		return m.listMentionsFn(ctx, postIDs)
 	}
 	return map[string][]entity.PostMention{}, nil
+}
+
+func (m *postRepositoryMock) CreatePostCollaborators(
+	ctx context.Context,
+	postID string,
+	invitedBy string,
+	customerIDs []string,
+	expiresAt time.Time,
+) error {
+	if m.createPostCollaboratorsFn != nil {
+		return m.createPostCollaboratorsFn(ctx, postID, invitedBy, customerIDs, expiresAt)
+	}
+
+	return nil
+}
+
+func (m *postRepositoryMock) GetPendingPostInvitations(
+	ctx context.Context,
+	customerID string,
+) ([]entity.PostCollaborator, error) {
+	if m.getPendingPostInvitationsFn != nil {
+		return m.getPendingPostInvitationsFn(ctx, customerID)
+	}
+
+	return []entity.PostCollaborator{}, nil
+}
+
+func (m *postRepositoryMock) AcceptPostInvitation(
+	ctx context.Context,
+	collaboratorID string,
+	customerID string,
+) (string, string, error) {
+	if m.acceptPostInvitationFn != nil {
+		return m.acceptPostInvitationFn(ctx, collaboratorID, customerID)
+	}
+
+	return "", "", nil
+}
+
+func (m *postRepositoryMock) DeclinePostInvitation(
+	ctx context.Context,
+	collaboratorID string,
+	customerID string,
+) (string, error) {
+	if m.declinePostInvitationFn != nil {
+		return m.declinePostInvitationFn(ctx, collaboratorID, customerID)
+	}
+
+	return "", nil
+}
+
+func (m *postRepositoryMock) AreAllPostCollaboratorsAccepted(
+	ctx context.Context,
+	postID string,
+) (bool, error) {
+	if m.areAllPostCollaboratorsAcceptedFn != nil {
+		return m.areAllPostCollaboratorsAcceptedFn(ctx, postID)
+	}
+
+	return true, nil
+}
+
+func (m *postRepositoryMock) GetAcceptedPostCollaborators(
+	ctx context.Context,
+	postID string,
+) ([]string, error) {
+	if m.getAcceptedPostCollaboratorsFn != nil {
+		return m.getAcceptedPostCollaboratorsFn(ctx, postID)
+	}
+
+	return []string{}, nil
+}
+
+func (m *postRepositoryMock) DeleteExpiredDraftPosts(ctx context.Context) error {
+	if m.deleteExpiredDraftPostsFn != nil {
+		return m.deleteExpiredDraftPostsFn(ctx)
+	}
+
+	return nil
 }

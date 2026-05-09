@@ -90,22 +90,32 @@ type postResponse struct {
 	PublishedAt   *time.Time        `json:"publishedAt,omitempty"`
 	Mentions      []mentionResponse `json:"mentions"`
 	MentionsCount int               `json:"mentionsCount"`
+	Authors       []authorResponse  `json:"authors"`
+}
+
+type authorResponse struct {
+	ID        string  `json:"id"`
+	UserName  string  `json:"username"`
+	AvatarURL string `json:"avatarURL,omitempty"`
 }
 
 type mentionResponse struct {
 	ID        string `json:"id"`
 	UserName  string `json:"username"`
-	AvatarURL string `json:"avatarURL,omitempty"`
+	AvatarURL string `json:"avatar_url,omitempty"`
 }
 
-func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {
+func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer, authors []authorResponse) postResponse {
 	imageURLs := make([]string, 0, len(post.Images))
+
 	if storage != nil {
 		for _, img := range post.Images {
 			imageURLs = append(imageURLs, storage.BuildURL(img.ObjectKey))
 		}
 	}
+
 	var avatarURL *string
+
 	if customer.AvatarObjectKey != nil && storage != nil {
 		url := storage.BuildURL(*customer.AvatarObjectKey)
 		avatarURL = &url
@@ -114,17 +124,19 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 	mentions := make([]mentionResponse, 0, len(post.Mentions))
 
 	for _, m := range post.Mentions {
-		var avatarURL string
+		var mentionAvatarURL string
+
 		if m.AvatarObjectKey != nil && storage != nil {
-			avatarURL = storage.BuildURL(*m.AvatarObjectKey)
+			mentionAvatarURL = storage.BuildURL(*m.AvatarObjectKey)
 		}
 
 		mentions = append(mentions, mentionResponse{
 			ID:        m.ID,
 			UserName:  m.UserName,
-			AvatarURL: avatarURL,
+			AvatarURL: mentionAvatarURL,
 		})
 	}
+
 	return postResponse{
 		ID:            post.ID,
 		CustomerID:    post.CustomerID,
@@ -142,6 +154,7 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 		PublishedAt:   post.PublishedAt,
 		Mentions:      mentions,
 		MentionsCount: len(mentions),
+		Authors:       authors,
 	}
 }
 
