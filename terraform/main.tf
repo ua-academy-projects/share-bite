@@ -341,6 +341,8 @@ resource "aws_instance" "notifications_sse" {
 
 output "ecr_repository_url" { value = aws_ecr_repository.repo.repository_url }
 output "sns_topic_arn" { value = aws_sns_topic.notifications.arn }
+output "notifications_sse_queue_url" { value = aws_sqs_queue.notifications_sse.id }
+output "notifications_lambda_queue_url" { value = aws_sqs_queue.notifications_lambda.id }
 output "notifications_sse_queue_arn" { value = aws_sqs_queue.notifications_sse.arn }
 output "notifications_lambda_queue_arn" { value = aws_sqs_queue.notifications_lambda.arn }
 output "notifications_sse_dlq_arn" { value = aws_sqs_queue.dlq_sse.arn }

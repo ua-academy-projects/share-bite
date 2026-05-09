@@ -9,18 +9,20 @@ import (
 type EventType string
 
 const (
-	PostLiked          EventType = "post_liked"
-	InvitationReceived EventType = "invitation_received"
+	PostLiked             EventType = "post_liked"
+	RegistrationConfirmed EventType = "registration_confirmed"
+	InvitationReceived    EventType = "invitation_received"
 )
 
 type Message struct {
-	EventID     string    `json:"event_id"`     // Unique event ID (SHA1)
-	EventType   EventType `json:"event_type"`   // Event type (e.g. "post_liked")
-	RecipientID string    `json:"recipient_id"` // Who receives the notification (user ID)
-	ActorID     string    `json:"actor_id"`     // Who triggered the event (user ID)
-	EntityType  string    `json:"entity_type"`  // Type of entity (e.g. post)
-	EntityID    string    `json:"entity_id"`    // ID of the entity (e.g. post ID)
-	CreatedAt   time.Time `json:"created_at"`   // Event timestamp
+	EventID     string         `json:"event_id"`     // Unique event ID (SHA1)
+	EventType   EventType      `json:"event_type"`   // Event type (e.g. "post_liked")
+	RecipientID string         `json:"recipient_id"` // Who receives the notification (user ID)
+	ActorID     string         `json:"actor_id"`     // Who triggered the event (user ID)
+	EntityType  string         `json:"entity_type"`  // Type of entity (e.g. post)
+	EntityID    string         `json:"entity_id"`    // ID of the entity (e.g. post ID)
+	Metadata    map[string]any `json:"metadata,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"` // Event timestamp
 }
 
 func NewEventID(parts ...string) string {
@@ -32,6 +34,10 @@ func NewEventID(parts ...string) string {
 }
 
 func NewMessage(eventType EventType, recipientID, actorID, entityType, entityID string, createdAt time.Time) Message {
+	return NewMessageWithMetadata(eventType, recipientID, actorID, entityType, entityID, nil, createdAt)
+}
+
+func NewMessageWithMetadata(eventType EventType, recipientID, actorID, entityType, entityID string, metadata map[string]any, createdAt time.Time) Message {
 	return Message{
 		EventID:     NewEventID(string(eventType), recipientID, actorID, entityType, entityID),
 		EventType:   eventType,
@@ -39,6 +45,7 @@ func NewMessage(eventType EventType, recipientID, actorID, entityType, entityID 
 		ActorID:     actorID,
 		EntityType:  entityType,
 		EntityID:    entityID,
+		Metadata:    metadata,
 		CreatedAt:   createdAt,
 	}
 }
