@@ -28,3 +28,6 @@ Thumbs.db
 
 # generated api clients
 internal/guest/gateway/business/client/
+
+#frontend
+frontend/node_modules
