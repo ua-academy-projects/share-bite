@@ -39,6 +39,7 @@ type businessService interface {
 	Rating(ctx context.Context, id int) (float32, error)
 
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
+	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 }
 
 func RegisterHandlers(
@@ -63,6 +64,7 @@ func RegisterHandlers(
 	r.GET("/posts", h.GetPosts)
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 	r.GET("/location-tags", h.listLocationTags)
+	r.GET("/venues/search", h.searchVenues)
 
 	businessPosts := r.Group("/posts").
 		Use(auth).
