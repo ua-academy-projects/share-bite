@@ -2,7 +2,7 @@
 ALTER TABLE auth.users
     ALTER COLUMN password_hash DROP NOT NULL;
 
-CREATE TABLE auth.social_accounts
+CREATE TABLE IF NOT EXISTS auth.social_accounts
 (
     id          UUID PRIMARY KEY         DEFAULT gen_random_uuid(),
     user_id     UUID         NOT NULL,
@@ -17,6 +17,6 @@ CREATE TABLE auth.social_accounts
         UNIQUE (provider, provider_id)
 );
 
-CREATE INDEX idx_social_accounts_user_id ON auth.social_accounts (user_id);
+CREATE INDEX IF NOT EXISTS idx_social_accounts_user_id ON auth.social_accounts (user_id);
 -- +goose Down
 DROP TABLE IF EXISTS auth.social_accounts;

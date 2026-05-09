@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
+	"github.com/lib/pq"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
@@ -51,15 +54,32 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 	return &result, nil
 }
 
-func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error) {
+func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error) {
 	const op = "repository.business.ListByParentID"
+
+	where := "parent_id = $1"
+	args := []any{parentID}
+
+	if len(tags) > 0 {
+		where += `
+		AND EXISTS (
+			SELECT 1
+			FROM business.org_unit_tags ot
+			JOIN business.location_tags lt ON lt.id = ot.tag_id
+			WHERE ot.org_unit_id = business.org_units.id
+			AND lt.slug = ANY($2)
+		)
+	`
+		args = append(args, pq.Array(tags))
+	}
+
 	units, err := pagination.List(ctx, r.db.DB(), "business_repository.ListByParentID",
 		pagination.Params{
 			Table:   "business.org_units",
 			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
-			Where:   "parent_id = $1",
+			Where:   where,
 			OrderBy: "id",
-			Args:    []any{parentID},
+			Args:    args,
 			Offset:  offset,
 			Limit:   limit,
 		},
@@ -194,7 +214,8 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 
 	var ou OrgUnit
 	err := r.db.DB().QueryRowContext(
-		ctx, q,
+		ctx,
+		q,
 		ownerUserID,
 		entity.ProfileTypeVenue,
 		brandID,
@@ -246,7 +267,8 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 
 	var ou OrgUnit
 	err := r.db.DB().QueryRowContext(
-		ctx, q,
+		ctx,
+		q,
 		in.Name,
 		in.Avatar,
 		in.Banner,
@@ -300,4 +322,114 @@ func (r *Repository) DeleteLocation(ctx context.Context, locationID int, brandID
 	}
 
 	return nil
+}
+
+func (r *Repository) ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error) {
+	const op = "repository.business.ListNearbyVenues"
+
+	dynamicColumns := fmt.Sprintf(
+		"id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, "+
+			"point(%f, %f) <@> point(longitude, latitude) AS distance",
+		lon, lat,
+	)
+
+	p := pagination.Params{
+		Table:   "business.org_units",
+		Columns: dynamicColumns,
+		Where:   "profile_type = 'VENUE' AND latitude IS NOT NULL AND longitude IS NOT NULL",
+		OrderBy: "distance ASC",
+		Args:    []any{},
+		Offset:  offset,
+		Limit:   limit,
+	}
+
+	scanner := func(rows pgx.Rows) (entity.OrgUnitWithDistance, error) {
+		var item entity.OrgUnitWithDistance
+		var ou OrgUnit
+
+		err := rows.Scan(
+			&ou.Id,
+			&ou.OrgAccountId,
+			&ou.ProfileType,
+			&ou.Name,
+			&ou.Avatar,
+			&ou.Banner,
+			&ou.Description,
+			&ou.ParentId,
+			&ou.Latitude,
+			&ou.Longitude,
+			&item.Distance,
+		)
+		if err != nil {
+			return entity.OrgUnitWithDistance{}, fmt.Errorf("%s: %w", op, err)
+		}
+
+		item.OrgUnit = ou.ToEntity()
+		return item, nil
+	}
+
+	return pagination.List(ctx, r.db.DB(), "business_repository.ListNearbyVenues", p, scanner)
+}
+
+func (r *Repository) SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error) {
+	const op = "repository.business.SearchVenues"
+
+	where := "profile_type = 'VENUE'"
+	args := make([]any, 0)
+
+	query = strings.TrimSpace(query)
+	if query != "" {
+		args = append(args, "%"+query+"%")
+		p := len(args)
+		where += fmt.Sprintf(" AND (name ILIKE $%d OR COALESCE(description, '') ILIKE $%d)", p, p)
+	}
+
+	if len(tags) > 0 {
+		args = append(args, pq.Array(tags))
+		p := len(args)
+		where += fmt.Sprintf(`
+		AND EXISTS (
+			SELECT 1
+			FROM business.org_unit_tags ot
+			JOIN business.location_tags lt ON lt.id = ot.tag_id
+			WHERE ot.org_unit_id = business.org_units.id
+			  AND lt.slug = ANY($%d)
+		)`, p)
+	}
+
+	units, err := pagination.List(ctx, r.db.DB(), "business_repository.SearchVenues",
+		pagination.Params{
+			Table:   "business.org_units",
+			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
+			Where:   where,
+			OrderBy: "id",
+			Args:    args,
+			Offset:  offset,
+			Limit:   limit,
+		},
+		func(rows pgx.Rows) (entity.OrgUnit, error) {
+			var ou OrgUnit
+			err := rows.Scan(
+				&ou.Id,
+				&ou.OrgAccountId,
+				&ou.ProfileType,
+				&ou.Name,
+				&ou.Avatar,
+				&ou.Banner,
+				&ou.Description,
+				&ou.ParentId,
+				&ou.Latitude,
+				&ou.Longitude,
+			)
+			if err != nil {
+				return entity.OrgUnit{}, fmt.Errorf("%s: %w", op, err)
+			}
+			return ou.ToEntity(), nil
+		},
+	)
+	if err != nil {
+		return pagination.Result[entity.OrgUnit]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return units, nil
 }

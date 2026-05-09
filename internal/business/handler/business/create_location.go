@@ -24,6 +24,7 @@ type createLocationRequest struct {
 	Description *string  `json:"description"`
 	Latitude    *float32 `json:"latitude" binding:"omitempty,gte=-90,lte=90"`
 	Longitude   *float32 `json:"longitude" binding:"omitempty,gte=-180,lte=180"`
+	TagIDs      []int    `json:"tagIds"`
 }
 
 type locationResponse struct {
@@ -37,6 +38,7 @@ type locationResponse struct {
 	ParentId     *int     `json:"parentId,omitempty"`
 	Latitude     *float32 `json:"latitude"`
 	Longitude    *float32 `json:"longitude"`
+	Tags         []string `json:"tags"`
 }
 
 func toLocationResponse(loc *entity.OrgUnit) locationResponse {
@@ -51,6 +53,7 @@ func toLocationResponse(loc *entity.OrgUnit) locationResponse {
 		ParentId:     loc.ParentId,
 		Latitude:     loc.Latitude,
 		Longitude:    loc.Longitude,
+		Tags:         normalizeTags(loc.Tags),
 	}
 }
 
@@ -101,6 +104,7 @@ func (h *handler) createLocation(c *gin.Context) {
 		Description: req.Description,
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
+		TagIDs:      req.TagIDs,
 	})
 	if err != nil {
 		sum := sha256.Sum256([]byte(userID))
@@ -112,4 +116,11 @@ func (h *handler) createLocation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, toLocationResponse(location))
+}
+
+func normalizeTags(tags []string) []string {
+	if tags == nil {
+		return []string{}
+	}
+	return tags
 }

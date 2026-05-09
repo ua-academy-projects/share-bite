@@ -33,6 +33,19 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=8,max=72"`
 }
 
+type TokensResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type UpdateUserStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=active muted suspended"`
+}
+
+type UserStatusResponse struct {
+	Status string `json:"status"`
+}
+
 type MessageResponse struct {
 	Message string `json:"message"`
 }

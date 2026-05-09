@@ -4,9 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
+
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 )
 
 // @Summary		Create a customer profile

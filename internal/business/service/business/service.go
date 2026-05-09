@@ -30,12 +30,21 @@ type businessRepository interface {
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
-	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
+	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
+	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
+	GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (map[int][]string, error)
+	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
+	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
+
+	GetBox(ctx context.Context, boxID int64) (*entity.Box, error)
+	ReserveBoxItem(ctx context.Context, boxID int64, userID string) (string, error)
 
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
-	ListByParentID(ctx context.Context, parentID, offset, limit int) (pagination.Result[entity.OrgUnit], error)
+	ListByParentID(ctx context.Context, parentID, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
+	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
+	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 }
 
 type service struct {

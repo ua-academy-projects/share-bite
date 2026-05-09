@@ -29,10 +29,12 @@ type postService interface {
 	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
 	Like(ctx context.Context, postID string, customerID string) error
 	Unlike(ctx context.Context, postID string, customerID string) error
+	ExploreNearby(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
 }
 
 type customerService interface {
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
+	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
 func RegisterHandlers(
@@ -57,6 +59,8 @@ func RegisterHandlers(
 	protected.DELETE("/:id", h.delete)
 	protected.POST("/:id/like", h.like)
 	protected.DELETE("/:id/like", h.unlike)
+
+	r.GET("/explore", h.ExploreNearby)
 }
 
 type postResponse struct {
@@ -74,11 +78,14 @@ type postResponse struct {
 	CreatedAt   time.Time         `json:"createdAt"`
 	UpdatedAt   time.Time         `json:"updatedAt"`
 	PublishedAt *time.Time        `json:"publishedAt,omitempty"`
+	Mentions      []mentionResponse `json:"mentions"`
+	MentionsCount int               `json:"mentions_count"`
 }
 
-// errorResponse describes guest API error payload.
-type errorResponse struct {
-	Message string `json:"message" example:"invalid request"`
+type mentionResponse struct {
+	ID        string `json:"id"`
+	UserName  string `json:"username"`
+	AvatarURL string `json:"avatar_url,omitempty"`
 }
 
 func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {
@@ -92,6 +99,21 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 	if customer.AvatarObjectKey != nil && storage != nil {
 		url := storage.BuildURL(*customer.AvatarObjectKey)
 		avatarURL = &url
+	}
+
+	mentions := make([]mentionResponse, 0, len(post.Mentions))
+
+	for _, m := range post.Mentions {
+		var avatarURL string
+		if m.AvatarObjectKey != nil && storage != nil {
+			avatarURL = storage.BuildURL(*m.AvatarObjectKey)
+		}
+
+		mentions = append(mentions, mentionResponse{
+			ID:        m.ID,
+			UserName:  m.UserName,
+			AvatarURL: avatarURL,
+		})
 	}
 	return postResponse{
 		ID:          post.ID,
@@ -108,6 +130,8 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 		CreatedAt:   post.CreatedAt,
 		UpdatedAt:   post.UpdatedAt,
 		PublishedAt: post.PublishedAt,
+		Mentions:      mentions,
+		MentionsCount: len(mentions),
 	}
 }
 

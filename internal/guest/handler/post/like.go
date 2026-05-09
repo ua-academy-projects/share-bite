@@ -1,30 +1,30 @@
 package post
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
+	"net/http"
 )
 
 type likeUriRequest struct {
 	ID string `uri:"id" binding:"required,numeric"`
 }
 
-// like likes a post on behalf of authenticated customer.
+// like adds a like to a post.
 //
 //	@Summary		Like post
-//	@Description	Adds authenticated customer like to the post.
+//	@Description	Adds a like to the specified post.
 //	@Tags			guest-posts
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id	path	int	true	"Post ID"
-//	@Success		204	"Successfully liked the post"
-//	@Failure		400	{object}	errorResponse	"Invalid post ID format"
-//	@Failure		401	{object}	errorResponse	"Unauthorized: token is missing, invalid, or expired"
-//	@Failure		403	{object}	errorResponse	"Forbidden: customer profile was not found"
-//	@Failure		404	{object}	errorResponse	"Not found: post not found or not accessible"
-//	@Failure		500	{object}	errorResponse	"Internal server error"
+//	@Success 		200 {object} 	nil
+//	@Failure		400	{object}	response.ErrorResponse
+//	@Failure		401	{object}	response.ErrorResponse
+//	@Failure		404	{object}	response.ErrorResponse
+//	@Failure		500	{object}	response.ErrorResponse
 //	@Router			/posts/{id}/like [post]
 func (h *handler) like(c *gin.Context) {
 	var uriReq likeUriRequest
@@ -34,7 +34,13 @@ func (h *handler) like(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	customer, err := h.getAuthenticatedCustomer(c)
+	userID, err := httpctx.GetUserID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	customer, err := h.customerService.GetByUserID(ctx, userID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -48,20 +54,19 @@ func (h *handler) like(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// unlike removes authenticated customer like from a post.
+// unlike removes a like from a post.
 //
 //	@Summary		Unlike post
-//	@Description	Removes authenticated customer like from the post.
+//	@Description	Removes a like from the specified post.
 //	@Tags			guest-posts
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id	path	int	true	"Post ID"
-//	@Success		200	"Successfully unliked the post"
-//	@Failure		400	{object}	errorResponse	"Invalid post ID format"
-//	@Failure		401	{object}	errorResponse	"Unauthorized: token is missing, invalid, or expired"
-//	@Failure		403	{object}	errorResponse	"Forbidden: customer profile was not found"
-//	@Failure		404	{object}	errorResponse	"Not found: post not found or not accessible"
-//	@Failure		500	{object}	errorResponse	"Internal server error"
+//	@Success 		204 {object} 	nil
+//	@Failure		400	{object}	response.ErrorResponse
+//	@Failure		401	{object}	response.ErrorResponse
+//	@Failure		404	{object}	response.ErrorResponse
+//	@Failure		500	{object}	response.ErrorResponse
 //	@Router			/posts/{id}/like [delete]
 func (h *handler) unlike(c *gin.Context) {
 	var uriReq likeUriRequest
@@ -71,7 +76,13 @@ func (h *handler) unlike(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	customer, err := h.getAuthenticatedCustomer(c)
+	userID, err := httpctx.GetUserID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	customer, err := h.customerService.GetByUserID(ctx, userID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -82,5 +93,5 @@ func (h *handler) unlike(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.Status(http.StatusNoContent)
 }

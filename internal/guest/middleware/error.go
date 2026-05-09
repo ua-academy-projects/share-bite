@@ -72,6 +72,8 @@ func appErrStatus(c code.Code) int {
 		return http.StatusConflict
 	case code.Forbidden:
 		return http.StatusForbidden
+	case code.TooManyRequests:
+		return http.StatusTooManyRequests
 	default:
 		return http.StatusInternalServerError
 	}

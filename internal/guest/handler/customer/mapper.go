@@ -63,7 +63,11 @@ func updateRequestToUpdateCustomer(req updateRequest, userID string) (entity.Upd
 		FirstName: trimSpacePtr(req.FirstName),
 		LastName:  trimSpacePtr(req.LastName),
 
-		Bio: bio,
+		Bio:             bio,
+		AvatarObjectKey: req.AvatarObjectKey,
+
+		IsFollowersPublic: req.IsFollowersPublic,
+		IsFollowingPublic: req.IsFollowingPublic,
 	}
 
 	var valErrors []validator.ValidationErrorItem

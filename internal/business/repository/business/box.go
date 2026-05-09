@@ -96,7 +96,7 @@ func (r *Repository) CreateBoxItem(ctx context.Context, boxID int64, code string
 	return nil
 }
 
-func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error) {
+func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
 	var args []any
 
 	where := `boxes.expires_at > NOW()
@@ -113,6 +113,10 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 		args = append(args, *categoryID)
 		where += fmt.Sprintf(" AND boxes.category_id=$%d", len(args))
 	}
+	if orgID != nil {
+		args = append(args, *orgID)
+		where += fmt.Sprintf(" AND (org_units.id=$%d OR org_units.parent_id=$%d)", len(args), len(args))
+	}
 
 	scanner := func(rows pgx.Rows) (entity.BoxWithDistance, error) {
 		var item entity.BoxWithDistance
@@ -126,6 +130,7 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 			&item.Box.DiscountPrice,
 			&item.Box.CreatedAt,
 			&item.Box.ExpiresAt,
+			&item.AvailabilityCount,
 			&item.Distance,
 		)
 
@@ -136,13 +141,12 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 		return item, nil
 	}
 
-	dynamicColumns := fmt.Sprintf(
-		"boxes.id, boxes.venue_id, boxes.category_id, "+
-			"boxes.image, boxes.price_full, boxes.price_discount, "+
-			"boxes.created_at, boxes.expires_at, "+
-			"point(%f, %f) <@> point(org_units.longitude, org_units.latitude) AS distance",
-		lon, lat,
-	)
+	dynamicColumns := fmt.Sprintf("boxes.id, boxes.venue_id, boxes.category_id, "+
+		"boxes.image, boxes.price_full, boxes.price_discount, "+
+		"boxes.created_at, boxes.expires_at, "+
+		"(SELECT COUNT(*) FROM business.box_items bi WHERE reserved_by_user_id IS NULL AND bi.box_id=boxes.id) AS availability_count, "+
+		"point(%f, %f) <@> point(org_units.longitude, org_units.latitude) AS distance",
+		lon, lat)
 
 	p := pagination.Params{
 		Table:   "business.org_units JOIN business.boxes on boxes.venue_id=org_units.id",
@@ -155,4 +159,68 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 	}
 
 	return pagination.List(ctx, r.db.DB(), "business_repository.ListNearbyBoxes", p, scanner)
+}
+
+func (r *Repository) GetBox(ctx context.Context, boxID int64) (*entity.Box, error) {
+	const op = "repository.box.GetBox"
+
+	q := database.Query{
+		Name: "get_box",
+		Sql: `
+		SELECT id, venue_id, category_id, image, price_full, price_discount, created_at, expires_at
+		FROM business.boxes
+		WHERE id = $1
+	`,
+	}
+
+	var box entity.Box
+	err := r.db.DB().QueryRowContext(ctx, q, boxID).Scan(
+		&box.ID,
+		&box.VenueID,
+		&box.CategoryID,
+		&box.Image,
+		&box.FullPrice,
+		&box.DiscountPrice,
+		&box.CreatedAt,
+		&box.ExpiresAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &box, nil
+}
+
+func (r *Repository) ReserveBoxItem(ctx context.Context, boxID int64, userID string) (string, error) {
+	const op = "repository.box.ReserveBoxItem"
+
+	q := database.Query{
+		Name: "reserve_box_item",
+		Sql: `
+		UPDATE business.box_items
+		SET reserved_by_user_id = $1
+		WHERE box_code = (
+			SELECT box_code
+			FROM business.box_items
+			WHERE box_id = $2 AND reserved_by_user_id IS NULL
+			LIMIT 1
+			FOR UPDATE SKIP LOCKED
+		)
+		RETURNING box_code
+	`,
+	}
+
+	var boxCode string
+	err := r.db.DB().QueryRowContext(ctx, q, userID, boxID).Scan(&boxCode)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("%s: %w", op, ErrNoAvailableItems)
+		}
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return boxCode, nil
 }

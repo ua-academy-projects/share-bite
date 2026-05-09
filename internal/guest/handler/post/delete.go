@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/util/request"
 )
 
@@ -20,11 +21,11 @@ type deleteURIRequest struct {
 //	@Security		BearerAuth
 //	@Param			id	path	int	true	"Post ID"
 //	@Success		204	"Successfully deleted the post"
-//	@Failure		400	{object}	errorResponse	"Invalid post ID format"
-//	@Failure		401	{object}	errorResponse	"Unauthorized: token is missing, invalid, or expired"
-//	@Failure		403	{object}	errorResponse	"Forbidden: customer profile was not found"
-//	@Failure		404	{object}	errorResponse	"Not found: post does not exist, is private, or does not belong to the user"
-//	@Failure		500	{object}	errorResponse	"Internal server error"
+//	@Failure		400	{object}	response.ErrorResponse	"Invalid post ID format"
+//	@Failure		401	{object}	response.ErrorResponse	"Unauthorized: token is missing, invalid, or expired"
+//	@Failure		403	{object}	response.ErrorResponse	"Forbidden: customer profile was not found"
+//	@Failure		404	{object}	response.ErrorResponse	"Not found: post does not exist, is private, or does not belong to the user"
+//	@Failure		500	{object}	response.ErrorResponse	"Internal server error"
 //	@Router			/posts/{id} [delete]
 func (h *handler) delete(c *gin.Context) {
 	var uriReq deleteURIRequest

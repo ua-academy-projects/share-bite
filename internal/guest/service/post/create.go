@@ -3,12 +3,11 @@ package post
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
@@ -26,7 +25,67 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 		return entity.Post{}, apperror.Internal("storage is not configured")
 	}
 
+	// mentions validation
+	if len(in.Mentions) > 0 {
+		mentions := UniqueStrings(in.Mentions)
+
+		if len(mentions) > 10 {
+			return entity.Post{}, apperror.BadRequest("too many mentions")
+		}
+
+		for _, m := range mentions {
+			if m == in.CustomerID {
+				return entity.Post{}, apperror.BadRequest("cannot mention yourself")
+			}
+		}
+
+		followedIDs, err := s.followRepo.GetAllowedMentions(ctx, in.CustomerID, mentions)
+		if err != nil {
+			return entity.Post{}, err
+		}
+
+		allowedSet := make(map[string]struct{}, len(followedIDs))
+		for _, id := range followedIDs {
+			allowedSet[id] = struct{}{}
+		}
+
+		for _, m := range mentions {
+			if _, ok := allowedSet[m]; !ok {
+				return entity.Post{}, apperror.ErrForbiddenMention
+			}
+		}
+
+		in.Mentions = mentions
+	}
+
+	// upload images BEFORE tx
 	var uploadedKeys []string
+	postImages := make([]entity.PostImage, 0, len(in.Images))
+	uploadSessionID := uuid.New().String()
+
+	for i, img := range in.Images {
+		ext := extensionFromContentType(img.ContentType)
+		if ext == "" {
+			rollbackUploadedImages(s.storage, uploadedKeys)
+			return entity.Post{}, apperror.ErrUnsupportedImageType
+		}
+
+		objectKey := generatePostImageKey(in.CustomerID, uploadSessionID, ext)
+		uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
+		if err != nil {
+			rollbackUploadedImages(s.storage, uploadedKeys)
+			return entity.Post{}, fmt.Errorf("upload post image to storage: %w", err)
+		}
+
+		uploadedKeys = append(uploadedKeys, uploadedKey)
+
+		postImages = append(postImages, entity.PostImage{
+			ObjectKey:   uploadedKey,
+			ContentType: img.ContentType,
+			FileSize:    img.FileSize,
+			SortOrder:   int16(i),
+		})
+	}
 
 	var post entity.Post
 
@@ -36,35 +95,32 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 			return fmt.Errorf("create post in post repository: %w", err)
 		}
 
-		postImages := make([]entity.PostImage, 0, len(in.Images))
-		for i, img := range in.Images {
-			ext := extensionFromContentType(img.ContentType)
-			if ext == "" {
-				return apperror.ErrUnsupportedImageType
-			}
-
-			objectKey := generatePostImageKey(in.CustomerID, createdPost.ID, ext)
-			uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
-			if err != nil {
-				return fmt.Errorf("upload post image to storage: %w", err)
-			}
-
-			uploadedKeys = append(uploadedKeys, uploadedKey)
-			postImages = append(postImages, entity.PostImage{
-				PostID:      createdPost.ID,
-				ObjectKey:   uploadedKey,
-				ContentType: img.ContentType,
-				FileSize:    img.FileSize,
-				SortOrder:   int16(i),
-			})
-		}
-
+		// attach images
 		if len(postImages) > 0 {
+			for i := range postImages {
+				postImages[i].PostID = createdPost.ID
+			}
+
 			if err := s.postRepo.CreateImages(txCtx, postImages); err != nil {
 				return fmt.Errorf("create post images in post repository: %w", err)
 			}
 
 			createdPost.Images = postImages
+		}
+
+		// create mentions
+		if len(in.Mentions) > 0 {
+			mentions := make([]entity.PostMention, 0, len(in.Mentions))
+			for _, m := range in.Mentions {
+				mentions = append(mentions, entity.PostMention{
+					PostID:     createdPost.ID,
+					CustomerID: m,
+				})
+			}
+
+			if err := s.postRepo.CreateMentions(txCtx, mentions); err != nil {
+				return fmt.Errorf("create mentions: %w", err)
+			}
 		}
 
 		post = createdPost
@@ -114,4 +170,17 @@ func extensionFromContentType(contentType string) string {
 	default:
 		return ""
 	}
+}
+
+func UniqueStrings(input []string) []string {
+	set := make(map[string]struct{}, len(input))
+	res := make([]string, 0, len(input))
+	for _, v := range input {
+		if _, ok := set[v]; ok {
+			continue
+		}
+		set[v] = struct{}{}
+		res = append(res, v)
+	}
+	return res
 }

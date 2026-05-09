@@ -4,12 +4,21 @@ import (
 	"time"
 )
 
+type UserStatus string
+
+const (
+	UserStatusActive    UserStatus = "active"
+	UserStatusMuted     UserStatus = "muted"
+	UserStatusSuspended UserStatus = "suspended"
+)
+
 type User struct {
-	ID           string    `db:"id" json:"id"`
-	Email        string    `db:"email" json:"email"`
-	PasswordHash *string   `db:"password_hash" json:"-"`
-	CreatedAt    time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
+	ID           string     `db:"id" json:"id"`
+	Email        string     `db:"email" json:"email"`
+	PasswordHash *string    `db:"password_hash" json:"-"`
+	Status       UserStatus `db:"status" json:"status"`
+	CreatedAt    time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt    time.Time  `db:"updated_at" json:"updated_at"`
 }
 
 type Role struct {
@@ -30,4 +39,12 @@ type SocialAccount struct {
 	ProviderID string    `db:"provider_id"`
 	Email      string    `db:"email"`
 	CreatedAt  time.Time `db:"created_at"`
+}
+
+type RefreshToken struct {
+	TokenHash string     `db:"token_hash"`
+	UserID    string     `db:"user_id"`
+	CreatedAt time.Time  `db:"created_at"`
+	ExpiresAt time.Time  `db:"expires_at"`
+	RevokedAt *time.Time `db:"revoked_at"`
 }

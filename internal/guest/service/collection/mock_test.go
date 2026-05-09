@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
 type mockCollectionRepository struct {
@@ -101,6 +102,68 @@ func (m *mockCollectionRepository) HasVenuesBetween(ctx context.Context, collect
 	return args.Bool(0), args.Error(1)
 }
 
+//
+
+func (m *mockCollectionRepository) ListCollaborators(ctx context.Context, collectionID string) ([]entity.Collaborator, error) {
+	args := m.Called(ctx, collectionID)
+	return args.Get(0).([]entity.Collaborator), args.Error(1)
+}
+
+func (m *mockCollectionRepository) CountCollaborators(ctx context.Context, collectionID string) (int, error) {
+	args := m.Called(ctx, collectionID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *mockCollectionRepository) CreateCollaborator(ctx context.Context, collectionID string, customerID string) error {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Error(0)
+}
+
+func (m *mockCollectionRepository) DeleteCollaborator(ctx context.Context, collectionID string, customerID string) error {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Error(0)
+}
+
+func (m *mockCollectionRepository) CheckIfCollaborator(ctx context.Context, collectionID string, customerID string) (bool, error) {
+	args := m.Called(ctx, collectionID, customerID)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockCollectionRepository) GetInvitation(ctx context.Context, invitationID string) (entity.Invitation, error) {
+	args := m.Called(ctx, invitationID)
+	return args.Get(0).(entity.Invitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) GetInvitationForUpdate(ctx context.Context, invitationID string) (entity.Invitation, error) {
+	args := m.Called(ctx, invitationID)
+	return args.Get(0).(entity.Invitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) GetInvitationByInvitee(ctx context.Context, collectionID string, inviteeID string) (entity.Invitation, error) {
+	args := m.Called(ctx, collectionID, inviteeID)
+	return args.Get(0).(entity.Invitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) ListInvitations(ctx context.Context, in entity.ListInvitationsInput) ([]entity.EnrichedInvitation, error) {
+	args := m.Called(ctx, in)
+	return args.Get(0).([]entity.EnrichedInvitation), args.Error(1)
+}
+
+func (m *mockCollectionRepository) CreateInvitation(ctx context.Context, in entity.InviteCollaboratorInput) (string, error) {
+	args := m.Called(ctx, in)
+	return args.String(0), args.Error(1)
+}
+
+func (m *mockCollectionRepository) UpdateInvitationStatus(ctx context.Context, invitationID string, status entity.InvitationStatus) error {
+	args := m.Called(ctx, invitationID, status)
+	return args.Error(0)
+}
+
+func (m *mockCollectionRepository) RefreshInvitation(ctx context.Context, invitationID string, newExpiry time.Time) error {
+	args := m.Called(ctx, invitationID, newExpiry)
+	return args.Error(0)
+}
+
 type mockBusinessClient struct {
 	mock.Mock
 }
@@ -125,4 +188,22 @@ func (m *mockTxManager) ReadCommitted(ctx context.Context, fn database.Handler) 
 	}
 
 	return fn(ctx)
+}
+
+type mockCustomerRepository struct {
+	mock.Mock
+}
+
+func (m *mockCustomerRepository) GetByID(ctx context.Context, customerID string) (entity.Customer, error) {
+	args := m.Called(ctx, customerID)
+	return args.Get(0).(entity.Customer), args.Error(1)
+}
+
+type mockPublisher struct {
+	mock.Mock
+}
+
+func (m *mockPublisher) Publish(ctx context.Context, ch string, msg notification.Message) error {
+	args := m.Called(ctx, ch, msg)
+	return args.Error(0)
 }

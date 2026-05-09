@@ -22,18 +22,24 @@ type businessService interface {
 	DeletePost(ctx context.Context, postID int64, userID string) error
 
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
-	List(ctx context.Context, brandId, skip, limit int) (pagination.Result[entity.OrgUnit], error)
+	List(ctx context.Context, brandId, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
 
-	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int) (pagination.Result[entity.BoxWithDistance], error)
+	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
+
+	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
+	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	Rating(ctx context.Context, id int) (float32, error)
+
+	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
+	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 }
 
 func RegisterHandlers(
@@ -57,6 +63,8 @@ func RegisterHandlers(
 
 	r.GET("/posts", h.GetPosts)
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
+	r.GET("/location-tags", h.listLocationTags)
+	r.GET("/venues/search", h.searchVenues)
 
 	businessPosts := r.Group("/posts").
 		Use(auth).
@@ -81,6 +89,14 @@ func RegisterHandlers(
 		Use(middleware.RequireRoles("business"))
 	{
 		boxes.POST("", h.CreateBox)
+	}
+
+	r.GET("/locations/nearby", h.ListNearbyVenues)
+
+	reservations := r.Group("/boxes").
+		Use(auth)
+	{
+		reservations.PATCH("/:boxID/reserve", h.reserveBox)
 	}
 }
 

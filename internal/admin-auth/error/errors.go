@@ -45,6 +45,7 @@ var (
 	ErrUserNotFound       = New(http.StatusNotFound, "user not found")
 	ErrUserAlreadyExists  = New(http.StatusConflict, "user with this email already exists")
 	ErrRoleNotFound       = New(http.StatusUnprocessableEntity, "role not found")
+	ErrForbidden          = New(http.StatusForbidden, "user doesn't have permission to access this resource")
 
 	ErrProviderExchangeFail  = New(http.StatusBadGateway, "failed to exchange code with provider")
 	ErrProviderUserInfoFail  = New(http.StatusBadGateway, "failed to fetch user info from provider")
@@ -52,6 +53,10 @@ var (
 	ErrUnsupportedProvider   = New(http.StatusBadRequest, "unsupported social provider")
 	ErrEmailNotVerified      = New(http.StatusForbidden, "email not verified by social provider")
 	ErrInvalidResetToken     = New(http.StatusBadRequest, "invalid or expired reset token")
+	ErrAccountSuspended      = New(http.StatusForbidden, "account is suspended")
+	ErrInvalidUserStatus     = New(http.StatusBadRequest, "invalid user status")
+	ErrStatusNotAllowedRole  = New(http.StatusForbidden, "status change is not allowed for this role")
+	ErrForbiddenStatusRead   = New(http.StatusForbidden, "forbidden to read user status")
 )
 
 func UserNotFoundEmail(email string) *AppError {

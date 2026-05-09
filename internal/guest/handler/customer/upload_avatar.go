@@ -2,6 +2,7 @@ package customer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,18 +59,16 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 		return
 	}
 
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxAvatarSizeBytes)
+
 	fileHeader, err := c.FormFile("image")
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.Error(apperror.BadRequest("image file is too large"))
+			return
+		}
 		c.Error(apperror.ErrImageRequired)
-		return
-	}
-
-	if fileHeader.Size <= 0 {
-		c.Error(apperror.BadRequest("image file is empty"))
-		return
-	}
-	if fileHeader.Size > maxAvatarSizeBytes {
-		c.Error(apperror.BadRequest("image file is too large"))
 		return
 	}
 
