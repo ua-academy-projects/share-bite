@@ -44,6 +44,7 @@ type businessRepository interface {
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
+	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 }
 
 type service struct {
