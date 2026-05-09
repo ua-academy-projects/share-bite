@@ -8,7 +8,7 @@ func (s *service) GetPostAuthors(ctx context.Context, postID string) ([]string, 
 		return nil, err
 	}
 
-	authorID, err := s.postRepo.GetAuthorUserID(ctx, postID)
+	authorID, err := s.postRepo.GetAuthorCustomerID(ctx, postID)
 	if err != nil {
 		return nil, err
 	}

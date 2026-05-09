@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	postInvitationTTL      = 24 * time.Hour
+	notificationPublishTTL = 5 * time.Second
+)
+
 func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
 	var result entity.Post
 	var invited []string
@@ -25,15 +30,26 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 		invited = uniqueAndExcludeSelf(in.CustomerID, in.InvitedCustomerIDs)
 
 		if len(invited) == 0 {
-			return s.postRepo.UpdateStatus(
+
+			err := s.postRepo.UpdateStatus(
 				txCtx,
 				post.ID,
 				in.CustomerID,
 				entity.PostStatusPublished,
 			)
+			if err != nil {
+				return err
+			}
+			updatedPost, err := s.postRepo.GetByID(txCtx, post.ID)
+			if err != nil {
+				return err
+			}
+			result = updatedPost
+			return nil
+
 		}
 
-		expiresAt := time.Now().Add(24 * time.Hour)
+		expiresAt := time.Now().Add(postInvitationTTL)
 
 		return s.postRepo.CreatePostCollaborators(
 			txCtx,
@@ -47,7 +63,7 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 	if err == nil && s.publisher != nil && len(invited) > 0 {
 		go func() {
 			detached := context.WithoutCancel(ctx)
-			publishCtx, cancel := context.WithTimeout(detached, 5*time.Second)
+			publishCtx, cancel := context.WithTimeout(detached, notificationPublishTTL)
 			defer cancel()
 
 			for _, customerID := range invited {

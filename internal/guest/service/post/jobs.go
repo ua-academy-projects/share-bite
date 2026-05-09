@@ -6,8 +6,12 @@ import (
 	"time"
 )
 
+const (
+	postCleanupInterval = 5 * time.Minute
+)
+
 func StartPostCleanupJob(ctx context.Context, svc postCleanupService) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(postCleanupInterval)
 	go func() {
 		defer ticker.Stop()
 		logger.InfoKV(ctx, "post cleanup job started")

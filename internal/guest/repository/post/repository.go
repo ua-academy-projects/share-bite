@@ -337,20 +337,19 @@ func (r *Repository) GetByID(ctx context.Context, postID string) (entity.Post, e
 	return result, nil
 }
 
-func (r *Repository) GetAuthorUserID(ctx context.Context, postID string) (string, error) {
+func (r *Repository) GetAuthorCustomerID(ctx context.Context, postID string) (string, error) {
 	sql := `
-		SELECT c.user_id
-		FROM guest.posts p
-		JOIN guest.customers c ON p.customer_id = c.id
-		WHERE p.id = $1
+		SELECT customer_id
+		FROM guest.posts
+		WHERE id = $1;
 	`
 	q := database.Query{
 		Name: "post_repository.GetAuthorUserID",
 		Sql:  sql,
 	}
 
-	var userID string
-	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&userID)
+	var customerID string
+	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&customerID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", apperror.PostNotFoundID(postID)
@@ -363,7 +362,7 @@ func (r *Repository) GetAuthorUserID(ctx context.Context, postID string) (string
 		return "", scanRowError(err)
 	}
 
-	return userID, nil
+	return customerID, nil
 }
 
 func translatePostInsertError(err error, in dto.CreatePostInput) error {
@@ -753,39 +752,36 @@ func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID s
 	return result, nil
 }
 
-func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, string, error) {
+func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
 	q := database.Query{
 		Name: "post_collaborators.accept",
 		Sql: `
-			UPDATE guest.post_collaborators pc
+			UPDATE guest.post_collaborators
 			SET status = 'accepted',
 			    responded_at = NOW()
-			FROM guest.posts p
-			WHERE pc.id = $1
-			  AND pc.customer_id = $2
-			  AND pc.status = 'pending'
-			  AND pc.expires_at > NOW()
-			  AND p.id = pc.post_id
-			RETURNING pc.post_id, p.customer_id;
+			WHERE id = $1
+			  AND customer_id = $2
+			  AND status = 'pending'
+			  AND expires_at > NOW()
+			RETURNING post_id;
 		`,
 	}
 
 	var postID string
-	var authorID string
 
 	err := r.db.DB().
 		QueryRowContext(ctx, q, collaboratorID, customerID).
-		Scan(&postID, &authorID)
+		Scan(&postID)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", "", apperror.ErrPostInvitationForbidden
+			return "", apperror.ErrPostInvitationForbidden
 		}
 
-		return "", "", err
+		return "", err
 	}
 
-	return postID, authorID, nil
+	return postID, nil
 }
 
 func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
@@ -814,27 +810,35 @@ func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID s
 	return postID, nil
 }
 
-func (r *Repository) AreAllPostCollaboratorsAccepted(ctx context.Context, postID string) (bool, error) {
+func (r *Repository) TryPublishPostIfAllAccepted(ctx context.Context, postID string) (bool, error) {
 	q := database.Query{
-		Name: "post_collaborators.all_accepted",
+		Name: "posts.try_publish_if_all_accepted",
 		Sql: `
-            SELECT NOT EXISTS (
-                SELECT 1
-                FROM guest.post_collaborators
-                WHERE post_id = $1
-                  AND status != 'accepted'
-                  AND expires_at > NOW()
-            );
-        `,
+			UPDATE guest.posts
+			SET status = 'published'
+			WHERE id = $1
+			  AND status = 'draft'
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM guest.post_collaborators
+				WHERE post_id = $1
+				  AND status != 'accepted'
+				  AND expires_at > NOW()
+			  )
+			RETURNING id;
+		`,
 	}
 
-	var result bool
-	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&result)
+	var id string
+	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
 		return false, err
 	}
 
-	return result, nil
+	return true, nil
 }
 
 func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID string) ([]string, error) {

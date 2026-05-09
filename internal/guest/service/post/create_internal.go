@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
@@ -41,7 +40,11 @@ func (s *service) createPost(ctx context.Context, in dto.CreatePostInput) (entit
 			}
 		}
 
-		followedIDs, err := s.followRepo.GetAllowedMentions(ctx, in.CustomerID, mentions)
+		followedIDs, err := s.followRepo.GetAllowedMentions(
+			ctx,
+			in.CustomerID,
+			mentions,
+		)
 		if err != nil {
 			return entity.Post{}, err
 		}
@@ -60,40 +63,23 @@ func (s *service) createPost(ctx context.Context, in dto.CreatePostInput) (entit
 		in.Mentions = mentions
 	}
 
-	// upload images
-	var uploadedKeys []string
-	postImages := make([]entity.PostImage, 0, len(in.Images))
-	uploadSessionID := uuid.New().String()
-
-	for i, img := range in.Images {
-		ext := extensionFromContentType(img.ContentType)
-		if ext == "" {
-			rollbackUploadedImages(s.storage, uploadedKeys)
-			return entity.Post{}, apperror.ErrUnsupportedImageType
-		}
-
-		objectKey := generatePostImageKey(in.CustomerID, uploadSessionID, ext)
-
-		uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
-		if err != nil {
-			rollbackUploadedImages(s.storage, uploadedKeys)
-			return entity.Post{}, fmt.Errorf("upload post image to storage: %w", err)
-		}
-
-		uploadedKeys = append(uploadedKeys, uploadedKey)
-
-		postImages = append(postImages, entity.PostImage{
-			ObjectKey:   uploadedKey,
-			ContentType: img.ContentType,
-			FileSize:    img.FileSize,
-			SortOrder:   int16(i),
-		})
+	postImages, uploadedKeys, err := s.uploadPostImages(
+		ctx,
+		in.CustomerID,
+		in.Images,
+	)
+	if err != nil {
+		return entity.Post{}, err
 	}
 
 	createdPost, err := s.postRepo.Create(ctx, in)
 	if err != nil {
 		rollbackUploadedImages(s.storage, uploadedKeys)
-		return entity.Post{}, fmt.Errorf("create post in repository: %w", err)
+
+		return entity.Post{}, fmt.Errorf(
+			"create post in repository: %w",
+			err,
+		)
 	}
 
 	// images
@@ -104,7 +90,11 @@ func (s *service) createPost(ctx context.Context, in dto.CreatePostInput) (entit
 
 		if err := s.postRepo.CreateImages(ctx, postImages); err != nil {
 			rollbackUploadedImages(s.storage, uploadedKeys)
-			return entity.Post{}, fmt.Errorf("create post images: %w", err)
+
+			return entity.Post{}, fmt.Errorf(
+				"create post images: %w",
+				err,
+			)
 		}
 
 		createdPost.Images = postImages
@@ -123,7 +113,11 @@ func (s *service) createPost(ctx context.Context, in dto.CreatePostInput) (entit
 
 		if err := s.postRepo.CreateMentions(ctx, mentions); err != nil {
 			rollbackUploadedImages(s.storage, uploadedKeys)
-			return entity.Post{}, fmt.Errorf("create mentions: %w", err)
+
+			return entity.Post{}, fmt.Errorf(
+				"create mentions: %w",
+				err,
+			)
 		}
 	}
 
