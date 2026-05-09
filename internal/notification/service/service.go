@@ -58,7 +58,7 @@ func (s *Service) ProcessMessage(ctx context.Context, msg notification.Message) 
 	if err != nil {
 		return err
 	}
-	msg.Metadata = metadata
+	msg.Metadata = mergeMetadata(msg.Metadata, metadata)
 
 	inserted, err := s.repo.Save(ctx, notificationentity.FromMessage(msg))
 	if err != nil {
@@ -77,6 +77,38 @@ func (s *Service) ProcessMessage(ctx context.Context, msg notification.Message) 
 
 	logger.InfoKV(ctx, "notification processed", "notification_id", msg.EventID, "recipient_id", msg.RecipientID, "event_type", msg.EventType)
 	return nil
+}
+
+func mergeMetadata(existing, enriched map[string]any) map[string]any {
+	if len(existing) == 0 && len(enriched) == 0 {
+		return nil
+	}
+
+	merged := make(map[string]any, len(existing)+len(enriched))
+	for key, value := range existing {
+		merged[key] = value
+	}
+	for key, value := range enriched {
+		if current, ok := existing[key]; ok && hasMeaningfulMetadataValue(current) {
+			continue
+		}
+		merged[key] = value
+	}
+
+	return merged
+}
+
+func hasMeaningfulMetadataValue(value any) bool {
+	switch typed := value.(type) {
+	case nil:
+		return false
+	case string:
+		return strings.TrimSpace(typed) != ""
+	case []string:
+		return len(typed) > 0
+	default:
+		return true
+	}
 }
 
 func (s *Service) GetHistory(ctx context.Context, recipientID string, limit, offset int) ([]notificationentity.NotificationDTO, error) {

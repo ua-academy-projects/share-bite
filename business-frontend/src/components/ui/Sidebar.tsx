@@ -29,6 +29,7 @@ export function Sidebar() {
           <NavLink to="/" end className={linkClass}>Home Feed</NavLink>
           <NavLink to="/boxes" className={linkClass}>Magic Boxes</NavLink>
           <NavLink to="/discover" className={linkClass}>Discover</NavLink>
+          <NavLink to="/notifications-lab" className={linkClass}>Notifications Lab</NavLink>
           <span className="text-gray-400 px-3 py-2 text-sm">Social Bites</span>
           <span className="text-gray-400 px-3 py-2 text-sm">Settings</span>
         </nav>

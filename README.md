@@ -82,6 +82,35 @@ Start the Redis service using the provided docker-compose configuration:
 docker compose -f build/compose.infra.yaml up -d
 ```
 
+### 7. Notifications service
+
+The `notifications-service` consumes UI notifications from the SQS queue, enriches them with actor metadata, stores them in `notifications_history`, and forwards them to SSE clients.
+
+Add the notifications-specific env vars to `.env`:
+
+```env
+NOTIFICATIONS_HTTP_SERVER_HOST=0.0.0.0
+NOTIFICATIONS_HTTP_SERVER_PORT=4005
+NOTIFICATION_SQS_QUEUE_URL=<terraform output notifications_sse_queue_url>
+```
+
+Run it locally:
+
+```bash
+go run cmd/notifications-service/main.go
+```
+
+For local SQS testing, point the service to a local emulator or your AWS queue with:
+
+```env
+NOTIFICATION_AWS_REGION=us-east-2
+NOTIFICATION_SQS_ENDPOINT_URL=http://localhost:4566
+```
+
+If you are using localstack, create the queue in the `notifications-service` consumer path and keep the SSE/UI queue separated as in Terraform.
+
+If you deploy infrastructure with Terraform, export the queue URL from the outputs and point the service at the SSE queue.
+
 ### Web UI (optional)
 
 ```bash
@@ -90,7 +119,16 @@ make s3-ui
 
 Open http://localhost:3909
 
-### 7. Code Generation & API Clients
+### Notifications test page
+
+The frontend includes a notifications lab at `/notifications-lab`.
+Use it in two browsers with two different bearer tokens to:
+
+1. Open an SSE stream for the author account.
+2. Like a post from another account.
+3. Watch the author receive the notification with enriched `actor_name` and `actor_avatar`.
+
+### 8. Code Generation & API Clients
 
 To prevent excessive git churn, **generated Swagger documentation and API clients are not committed to the repository**. You must generate them locally before building or running tests.
 
@@ -111,7 +149,7 @@ This orchestrates the correct execution order:
 
 ---
 
-### 8. Testing
+### 9. Testing
 
 > Ensure API clients are generated (step 7) before running tests.
 

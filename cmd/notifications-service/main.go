@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/gin-gonic/gin"
@@ -107,7 +109,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	notificationhandler.RegisterHandlers(router.Group("/notifications"), notifSvc, hub, customerSvc, authMw)
+	notificationhandler.RegisterHandlers(router.Group("/notifications"), notifSvc, hub, customerSvc, authMw, streamAuthMiddleware(tokenManager))
 
 	serverAddr := notificationsServerAddr()
 	httpServer := &http.Server{
@@ -130,7 +132,7 @@ func main() {
 		logger.Fatal(ctx, "NOTIFICATION_SQS_QUEUE_URL is required")
 	}
 
-	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
+	awsCfg, err := loadSQSConfig(ctx)
 	if err != nil {
 		logger.Fatal(ctx, "load aws config:", err)
 	}
@@ -158,4 +160,66 @@ func notificationsServerAddr() string {
 		port = "4005"
 	}
 	return fmt.Sprintf("%s:%s", host, port)
+}
+
+func loadSQSConfig(ctx context.Context) (aws.Config, error) {
+	region := os.Getenv("NOTIFICATION_AWS_REGION")
+	if region == "" {
+		region = os.Getenv("AWS_REGION")
+	}
+	if region == "" {
+		region = os.Getenv("AWS_DEFAULT_REGION")
+	}
+	if region == "" {
+		region = "us-east-2"
+	}
+
+	opts := []func(*awsconfig.LoadOptions) error{
+		awsconfig.WithRegion(region),
+	}
+
+	if endpoint := os.Getenv("NOTIFICATION_SQS_ENDPOINT_URL"); endpoint != "" {
+		opts = append(opts, awsconfig.WithEndpointResolverWithOptions(
+			aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
+				if !strings.EqualFold(service, sqs.ServiceID) {
+					return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+				}
+				return aws.Endpoint{URL: endpoint, HostnameImmutable: true}, nil
+			}),
+		))
+	}
+
+	return awsconfig.LoadDefaultConfig(ctx, opts...)
+}
+
+func streamAuthMiddleware(parser interface {
+	ParseAccessToken(string) (string, string, error)
+}) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := strings.TrimSpace(c.GetHeader("Authorization"))
+		if token != "" {
+			if !strings.HasPrefix(token, "Bearer ") {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
+				return
+			}
+			token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+		}
+		if token == "" {
+			token = strings.TrimSpace(c.Query("access_token"))
+		}
+		if token == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing access token"})
+			return
+		}
+
+		userID, role, err := parser.ParseAccessToken(token)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			return
+		}
+
+		c.Set(middleware.CtxUserID, userID)
+		c.Set(middleware.CtxUserRole, role)
+		c.Next()
+	}
 }

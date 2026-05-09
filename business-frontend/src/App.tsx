@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { BoxesPage } from "@/pages/BoxesPage";
+import { NotificationsLabPage } from "@/pages/NotificationsLabPage";
 
 function Home() {
   return <div className="p-8 text-white"><h1>Home Feed 🔥</h1></div>;
@@ -19,6 +20,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/boxes" element={<BoxesPage />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/notifications-lab" element={<NotificationsLabPage />} />
         </Routes>
       </main>
     </div>

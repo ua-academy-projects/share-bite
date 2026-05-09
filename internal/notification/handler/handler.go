@@ -29,7 +29,7 @@ type handler struct {
 	runsMu     sync.Mutex
 }
 
-func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificationpkg.Hub, customers customerService, authMiddleware gin.HandlerFunc) {
+func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificationpkg.Hub, customers customerService, authMiddleware gin.HandlerFunc, streamAuthMiddleware gin.HandlerFunc) {
 	h := &handler{
 		svc:        svc,
 		hub:        hub,
@@ -40,7 +40,8 @@ func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificatio
 	protected := r.Group("/").Use(authMiddleware)
 	protected.GET("/", h.getHistory)
 	protected.POST("/mark-read", h.markAsRead)
-	protected.GET("/stream", h.stream)
+	stream := r.Group("/").Use(streamAuthMiddleware)
+	stream.GET("/stream", h.stream)
 }
 
 type notificationResponse struct {
