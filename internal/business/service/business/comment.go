@@ -58,7 +58,21 @@ func (s *service) DeleteComment(ctx context.Context, commentID int64, authorID s
 	}
 
 	if comment.AuthorID != authorID {
-		return apperror.Forbidden("you can only delete your own comments")
+		post, err := s.businessRepo.GetPostByID(ctx, comment.PostID)
+		if err != nil {
+			if errors.Is(err, business.ErrNotFound) {
+				return apperror.PostNotFound(comment.PostID)
+			}
+			return fmt.Errorf("get post for comment: %w", err)
+		}
+
+		err = s.businessRepo.CheckOwnership(ctx, authorID, post.OrgID)
+		if err != nil {
+			if errors.Is(err, business.ErrForbidden) {
+				return apperror.Forbidden("you can only delete your own comments or comments on your posts")
+			}
+			return fmt.Errorf("check ownership: %w", err)
+		}
 	}
 
 	err = s.businessRepo.DeleteComment(ctx, commentID)
