@@ -10,30 +10,23 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	guestentity "github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/notification/service"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	notificationpkg "github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
-type customerService interface {
-	GetByUserID(ctx context.Context, userID string) (guestentity.Customer, error)
-}
-
 type handler struct {
 	svc        *service.Service
 	hub        *notificationpkg.Hub
-	customers  customerService
 	activeRuns map[string]bool
 	runsMu     sync.Mutex
 }
 
-func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificationpkg.Hub, customers customerService, authMiddleware gin.HandlerFunc, streamAuthMiddleware gin.HandlerFunc) {
+func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificationpkg.Hub, authMiddleware gin.HandlerFunc, streamAuthMiddleware gin.HandlerFunc) {
 	h := &handler{
 		svc:        svc,
 		hub:        hub,
-		customers:  customers,
 		activeRuns: make(map[string]bool),
 	}
 
@@ -57,13 +50,6 @@ func (h *handler) getHistory(c *gin.Context) {
 	if err != nil {
 		c.Error(err)
 		return
-	}
-
-	if h.customers != nil {
-		if _, err := h.customers.GetByUserID(c.Request.Context(), userID); err != nil {
-			c.Error(err)
-			return
-		}
 	}
 
 	limit := 20
@@ -134,12 +120,7 @@ func (h *handler) stream(c *gin.Context) {
 		return
 	}
 
-	if h.customers != nil {
-		if _, err := h.customers.GetByUserID(ctx, userID); err != nil {
-			c.Error(err)
-			return
-		}
-	}
+	logger.InfoKV(ctx, "new sse connection", "user_id", userID)
 
 	client := &notificationpkg.Client{
 		UserID: userID,
@@ -168,19 +149,26 @@ func (h *handler) stream(c *gin.Context) {
 	_, _ = fmt.Fprint(c.Writer, ": connected\n\n")
 	c.Writer.Flush()
 
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
 	c.Stream(func(w io.Writer) bool {
 		select {
 		case msg, ok := <-client.Send:
 			if !ok {
 				return false
 			}
-			c.SSEvent(string(msg.EventType), notificationResponse{
+			logger.InfoKV(ctx, "sending sse event", "user_id", userID, "event_id", msg.EventID, "type", msg.EventType)
+			c.SSEvent("message", notificationResponse{
 				ID:        msg.EventID,
 				Type:      string(msg.EventType),
 				EntityID:  msg.EntityID,
 				Metadata:  msg.Metadata,
 				CreatedAt: msg.CreatedAt,
 			})
+			return true
+		case <-ticker.C:
+			c.SSEvent("ping", "heartbeat")
 			return true
 		case <-ctx.Done():
 			return false

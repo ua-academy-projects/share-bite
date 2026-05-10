@@ -55,9 +55,40 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 		return entity.Post{}, apperror.Internal("transaction manager is not configured")
 	}
 
-	var uploadedKeys []string
-	newImages := make([]entity.PostImage, 0, len(in.Images))
+	var preservedImages []entity.PostImage
+	var keysToDelete []string
+	if in.RewriteImages {
+		for _, oldImg := range currentPost.Images {
+			fullURL := s.storage.BuildURL(oldImg.ObjectKey)
+			isKept := false
+			for _, keptURL := range in.KeptImages {
+				if keptURL == fullURL {
+					isKept = true
+					break
+				}
+			}
+			if isKept {
+				preservedImages = append(preservedImages, oldImg)
+			} else {
+				keysToDelete = append(keysToDelete, oldImg.ObjectKey)
+			}
+		}
+	}
 
+	var uploadedKeys []string
+	newImages := make([]entity.PostImage, 0, len(preservedImages)+len(in.Images))
+
+	// Re-add preserved images first
+	for i, img := range preservedImages {
+		newImages = append(newImages, entity.PostImage{
+			ObjectKey:   img.ObjectKey,
+			ContentType: img.ContentType,
+			FileSize:    img.FileSize,
+			SortOrder:   int16(i),
+		})
+	}
+
+	// Add new uploads
 	for i, img := range in.Images {
 		ext := extensionFromContentType(img.ContentType)
 		if ext == "" {
@@ -77,11 +108,9 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 			ObjectKey:   uploadedKey,
 			ContentType: img.ContentType,
 			FileSize:    img.FileSize,
-			SortOrder:   int16(i),
+			SortOrder:   int16(len(preservedImages) + i),
 		})
 	}
-
-	oldKeys := extractImageKeys(currentPost.Images)
 
 	var post entity.Post
 	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
@@ -121,7 +150,7 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 		return entity.Post{}, fmt.Errorf("execute post update transaction: %w", err)
 	}
 
-	for _, key := range oldKeys {
+	for _, key := range keysToDelete {
 		cleanupDelete(s.storage, key)
 	}
 

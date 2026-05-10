@@ -11,13 +11,14 @@ const (
 )
 
 type Message struct {
-	EventID     string    `json:"event_id"`
-	EventType   string    `json:"event_type"`
-	RecipientID string    `json:"recipient_id"`
-	ActorID     string    `json:"actor_id"`
-	EntityType  string    `json:"entity_type"`
-	EntityID    string    `json:"entity_id"`
-	CreatedAt   time.Time `json:"created_at"`
+	EventID     string         `json:"event_id"`
+	EventType   string         `json:"event_type"`
+	RecipientID string         `json:"recipient_id"`
+	ActorID     string         `json:"actor_id"`
+	EntityType  string         `json:"entity_type"`
+	EntityID    string         `json:"entity_id"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
 }
 
 func NewEventID(parts ...string) string {

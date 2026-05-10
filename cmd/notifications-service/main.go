@@ -17,14 +17,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sony/gobreaker"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	guestcustomerrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/customer"
-	guestcustomersvc "github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	notificationconsumer "github.com/ua-academy-projects/share-bite/internal/notification/consumer"
 	notificationhandler "github.com/ua-academy-projects/share-bite/internal/notification/handler"
 	notificationrepo "github.com/ua-academy-projects/share-bite/internal/notification/repository"
 	notificationservice "github.com/ua-academy-projects/share-bite/internal/notification/service"
-	storageclient "github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
@@ -56,11 +53,6 @@ func main() {
 		client.Close()
 		return nil
 	})
-
-	storageClient, err := storageclient.NewStorageClient(ctx, config.Config().Storage)
-	if err != nil {
-		logger.Fatal(ctx, "new storage client:", err)
-	}
 
 	rdb, err := redispkg.NewClient(
 		config.Config().Redis.Addr(),
@@ -94,10 +86,8 @@ func main() {
 	}))
 	hub := notification.NewHub(broker)
 
-	customerRepo := guestcustomerrepo.New(client)
-	customerSvc := guestcustomersvc.New(customerRepo)
 	notifRepo := notificationrepo.New(client.DB())
-	notifSvc := notificationservice.New(notifRepo, customerSvc, broker, storageClient)
+	notifSvc := notificationservice.New(notifRepo, broker)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -110,7 +100,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	notificationhandler.RegisterHandlers(router.Group("/notifications"), notifSvc, hub, customerSvc, authMw, streamAuthMiddleware(tokenManager))
+	notificationhandler.RegisterHandlers(router.Group("/notifications"), notifSvc, hub, authMw, streamAuthMiddleware(tokenManager))
 
 	serverAddr := notificationsServerAddr()
 	httpServer := &http.Server{
@@ -144,18 +134,18 @@ func main() {
 
 	sqsQueueURL, err := resolveQueueURL(ctx, sqsClient, queueRef)
 	if err != nil {
-		logger.Fatal(ctx, "resolve sqs queue url:", err)
+		logger.ErrorKV(ctx, "failed to resolve sqs queue url, consumer will not start", "error", err)
+	} else {
+		processor := notificationservice.NewProcessor(notifSvc)
+		consumer := notificationconsumer.New(sqsClient, sqsQueueURL, processor)
+
+		go func() {
+			logger.InfoKV(ctx, "notifications sqs consumer starting", "queue_url", sqsQueueURL)
+			if err := consumer.Run(ctx); err != nil && err != context.Canceled {
+				logger.ErrorKV(ctx, "notifications sqs consumer stopped", "error", err)
+			}
+		}()
 	}
-
-	processor := notificationservice.NewProcessor(notifSvc)
-	consumer := notificationconsumer.New(sqsClient, sqsQueueURL, processor)
-
-	go func() {
-		logger.InfoKV(ctx, "notifications sqs consumer starting", "queue_url", sqsQueueURL)
-		if err := consumer.Run(ctx); err != nil && err != context.Canceled {
-			logger.ErrorKV(ctx, "notifications sqs consumer stopped", "error", err)
-		}
-	}()
 
 	closer.Wait()
 }

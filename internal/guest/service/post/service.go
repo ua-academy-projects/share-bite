@@ -39,6 +39,7 @@ type followRepo interface {
 
 type customerRepo interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
+	GetByID(ctx context.Context, id string) (entity.Customer, error)
 }
 
 type service struct {

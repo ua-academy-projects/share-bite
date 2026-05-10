@@ -36,7 +36,7 @@ func (h *handler) getByUserName(c *gin.Context) {
 		return
 	}
 
-	resp := getByUserNameResponse{Customer: h.toResponse(customer)}
+	resp := getByUserNameResponse{Customer: h.toResponse(ctx, customer)}
 	c.JSON(http.StatusOK, resp)
 }
 

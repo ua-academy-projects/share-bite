@@ -59,11 +59,17 @@ type customerResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func (h *handler) toResponse(customer entity.Customer) customerResponse {
+func (h *handler) toResponse(ctx context.Context, customer entity.Customer) customerResponse {
 	var avatarURL *string
 	if customer.AvatarObjectKey != nil && h.storage != nil {
-		url := h.storage.BuildURL(*customer.AvatarObjectKey)
-		avatarURL = &url
+		url, err := h.storage.GetPresignedURL(ctx, *customer.AvatarObjectKey)
+		if err != nil {
+			// fallback to public URL if presign fails
+			buildURL := h.storage.BuildURL(*customer.AvatarObjectKey)
+			avatarURL = &buildURL
+		} else {
+			avatarURL = &url
+		}
 	}
 
 	return customerResponse{

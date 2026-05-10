@@ -13,11 +13,12 @@ import (
 )
 
 type updateRequest struct {
-	VenueID *int64                  `form:"venue_id" binding:"omitempty"`
-	Text    *string                 `form:"text" binding:"omitempty,max=2000"`
-	Rating  *int16                  `form:"rating" binding:"omitempty,min=1,max=5"`
-	Status  *entity.PostStatus      `form:"status" binding:"omitempty,oneof=draft published archived"`
-	Images  []*multipart.FileHeader `form:"images" binding:"omitempty"`
+	VenueID    *int64                  `form:"venue_id" binding:"omitempty"`
+	Text       *string                 `form:"text" binding:"omitempty,max=2000"`
+	Rating     *int16                  `form:"rating" binding:"omitempty,min=1,max=5"`
+	Status     *entity.PostStatus      `form:"status" binding:"omitempty,oneof=draft published archived"`
+	Images     []*multipart.FileHeader `form:"images" binding:"omitempty"`
+	KeptImages []string                `form:"kept_images" binding:"omitempty"`
 }
 
 type updateURIRequest struct {
@@ -101,6 +102,7 @@ func (h *handler) update(c *gin.Context) {
 		Rating:        req.Rating,
 		Status:        req.Status,
 		Images:        images,
+		KeptImages:    req.KeptImages,
 		RewriteImages: rewriteImages,
 	}
 

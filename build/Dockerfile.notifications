@@ -1,0 +1,16 @@
+FROM golang:1.25.9-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+RUN go build -o notifications ./cmd/notifications-service
+
+FROM alpine:3.21
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+WORKDIR /app
+COPY --from=builder --chown=appuser:appgroup /app/notifications .
+USER appuser
+EXPOSE 4005
+CMD ["./notifications"]

@@ -37,6 +37,22 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 			return nil
 		}
 
+		// Get actor's profile for notification enrichment
+		actor, err := s.customerRepo.GetByID(txCtx, customerID)
+		if err != nil {
+			return fmt.Errorf("get actor for notification: %w", err)
+		}
+
+		actorName := actor.UserName
+		if actor.FirstName != "" || actor.LastName != "" {
+			actorName = fmt.Sprintf("%s %s", actor.FirstName, actor.LastName)
+		}
+
+		var actorAvatar string
+		if actor.AvatarObjectKey != nil {
+			actorAvatar = s.storage.BuildURL(*actor.AvatarObjectKey)
+		}
+
 		eventType := outbox.EventTypePostLiked
 		eventID := outbox.NewEventID(eventType, authorUserID, customerID, "post", postID)
 
@@ -47,7 +63,12 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 			ActorID:     customerID,
 			EntityType:  "post",
 			EntityID:    postID,
-			CreatedAt:   time.Now().UTC(),
+			Metadata: map[string]any{
+				"actor_name":     actorName,
+				"actor_avatar":   actorAvatar,
+				"actor_username": actor.UserName,
+			},
+			CreatedAt: time.Now().UTC(),
 		}
 
 		if err := s.outboxWriter.Enqueue(txCtx, outbox.Event{
