@@ -48,7 +48,17 @@ func (s *service) UpdateComment(ctx context.Context, commentID int64, authorID, 
 	return updatedComment, nil
 }
 
-func (s *service) DeleteComment(ctx context.Context, commentID int64, authorID string) error {
+func (s *service) DeleteComment(ctx context.Context, postID, commentID int64, authorID string) error {
+
+	post, err := s.businessRepo.GetPostByID(ctx, postID)
+	if err != nil {
+		if errors.Is(err, business.ErrNotFound) {
+			return apperror.PostNotFound(postID)
+		}
+		return fmt.Errorf("get post: %w", err)
+	}
+
+
 	comment, err := s.businessRepo.GetCommentByID(ctx, commentID)
 	if err != nil {
 		if errors.Is(err, business.ErrNotFound) {
@@ -57,15 +67,11 @@ func (s *service) DeleteComment(ctx context.Context, commentID int64, authorID s
 		return fmt.Errorf("get comment: %w", err)
 	}
 
-	if comment.AuthorID != authorID {
-		post, err := s.businessRepo.GetPostByID(ctx, comment.PostID)
-		if err != nil {
-			if errors.Is(err, business.ErrNotFound) {
-				return apperror.PostNotFound(comment.PostID)
-			}
-			return fmt.Errorf("get post for comment: %w", err)
-		}
+	if comment.PostID != postID {
+		return apperror.CommentNotFound(commentID)
+	}
 
+	if comment.AuthorID != authorID {
 		err = s.businessRepo.CheckOwnership(ctx, authorID, post.OrgID)
 		if err != nil {
 			if errors.Is(err, business.ErrForbidden) {

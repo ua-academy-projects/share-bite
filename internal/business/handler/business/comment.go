@@ -87,7 +87,7 @@ func (h *handler) GetComments(c *gin.Context) {
 	offset := 0
 
 	if l := c.Query("limit"); l != "" {
-		if parsedLimit, err := strconv.Atoi(l); err == nil && parsedLimit > 0 {
+		if parsedLimit, err := strconv.Atoi(l); err == nil && parsedLimit >= 0 {
 			limit = parsedLimit
 			if limit > 100 {
 				limit = 100
@@ -175,6 +175,12 @@ func (h *handler) UpdateComment(c *gin.Context) {
 //	@Failure		500			{object}	errorResponse
 //	@Router			/business/posts/{id}/comments/{comment_id} [delete]
 func (h *handler) DeleteComment(c *gin.Context) {
+	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || postID <= 0 {
+		c.Error(apperror.BadRequest("invalid post id"))
+		return
+	}
+
 	commentID, err := strconv.ParseInt(c.Param("comment_id"), 10, 64)
 	if err != nil || commentID <= 0 {
 		c.Error(apperror.BadRequest("invalid comment id"))
@@ -187,7 +193,7 @@ func (h *handler) DeleteComment(c *gin.Context) {
 		return
 	}
 
-	err = h.service.DeleteComment(c.Request.Context(), commentID, userID)
+	err = h.service.DeleteComment(c.Request.Context(), postID, commentID, userID)
 	if err != nil {
 		c.Error(err)
 		return

@@ -40,7 +40,7 @@ type businessService interface {
 	GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error)
 	CreateComment(ctx context.Context, postID int64, authorID, content string) (*entity.Comment, error)
 	UpdateComment(ctx context.Context, commentID int64, authorID, content string) (*entity.Comment, error)
-	DeleteComment(ctx context.Context, commentID int64, authorID string) error
+	DeleteComment(ctx context.Context, postID, commentID int64, authorID string) error
 	GetComments(ctx context.Context, postID int64, limit, offset int) ([]entity.CommentWithAuthor, error)
 	List(ctx context.Context, brandId, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
