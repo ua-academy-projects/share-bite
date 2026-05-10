@@ -5,56 +5,65 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* shadcn theme variables (OKLCH) */
+
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: #F9F7F2;
+  --foreground: #1A3C34;
+  --card: #FFFFFF;
+  --card-foreground: #1A3C34;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A3C34;
+  
+  --primary: #1A3C34; 
+  --primary-foreground: #F9F7F2; 
+  
+  --secondary: #98FF98;
+  --secondary-foreground: #1A3C34;
+  
+  --muted: #E2E8F0;
+  --muted-foreground: #64748B;
+  
+  --accent: #FFD700;
+  --accent-foreground: #1A3C34;
+  
+  --destructive: #EF4444;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #1A3C34;
   --radius: 0.625rem;
 }
 
+
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #0b0f0e;
+  --foreground: #F9F7F2;
+  --card: #163d32;
+  --card-foreground: #F9F7F2;
+  --popover: #163d32;
+  --popover-foreground: #F9F7F2;
+  
+  --primary: #98FF98;
+  --primary-foreground: #0b0f0e;
+  
+  --secondary: #1A3C34;
+  --secondary-foreground: #F9F7F2;
+  
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  
+  --accent: #FFD700;
+  --accent-foreground: #0b0f0e;
+  
+  --destructive: #7f1d1d;
+  --border: #2f5e50;
+  --input: #2f5e50;
+  --ring: #98FF98;
 }
 
 @layer base {
   body {
-    background: var(--background);
+    background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans, system-ui, sans-serif);
   }
 }
-
-/* (optional) keep any legacy css you want here */
