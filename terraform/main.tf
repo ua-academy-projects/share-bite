@@ -29,6 +29,24 @@ resource "aws_ecr_repository" "repo" {
   }
 }
 
+resource "aws_ecr_repository" "notifications_service" {
+  name                 = "share-bite/notifications-service"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "outbox_worker" {
+  name                 = "share-bite/outbox-worker"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 resource "aws_sns_topic" "notifications" {
   name              = "notifications"
   kms_master_key_id = "alias/aws/sns"
