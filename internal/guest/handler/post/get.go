@@ -18,10 +18,10 @@ import (
 //	@Description	Returns a published post by its numeric ID.
 //	@Tags			guest-posts
 //	@Produce		json
-//	@Param			id	path		int				true	"Post ID"
-//	@Success		200	{object}	getResponse		"Successfully retrieved the post"
+//	@Param			id	path		int						true	"Post ID"
+//	@Success		200	{object}	getResponse			"Successfully retrieved the post"
 //	@Failure		400	{object}	response.ErrorResponse	"Invalid post ID format"
-//	@Failure		404	{object}	response.ErrorResponse	"Not found: post does not exist, is private, or is not published"
+//	@Failure		404	{object}	response.ErrorResponse	"Post not found"
 //	@Failure		500	{object}	response.ErrorResponse	"Internal server error"
 //	@Router			/posts/{id} [get]
 func (h *handler) get(c *gin.Context) {
@@ -76,17 +76,6 @@ type getRequest struct {
 
 type getResponse struct {
 	Post postResponse `json:"post"`
-}
-
-func getOptionalCustomerID(c *gin.Context, custSvc customerService) string {
-	userID, err := httpctx.GetUserID(c)
-	if err == nil && userID != "" {
-		customer, err := custSvc.GetByUserID(c.Request.Context(), userID)
-		if err == nil {
-			return customer.ID
-		}
-	}
-	return ""
 }
 
 func (h *handler) buildAuthors(ctx context.Context, postID string) ([]authorResponse, error) {

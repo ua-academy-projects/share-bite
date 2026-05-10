@@ -26,10 +26,10 @@ type createResponse struct {
 	Post postResponse `json:"post"`
 }
 
-// create creates a guest post with optional images.
+// create creates a guest post with optional images and collaborators.
 //
 //	@Summary		Create post
-//	@Description	Creates a post for the authenticated customer.
+//	@Description	Creates a post for the authenticated customer. If invited_customer_ids are provided, the post will remain in draft status until all invited collaborators accept the invitation.
 //	@Tags			guest-posts
 //	@Accept			mpfd
 //	@Produce		json

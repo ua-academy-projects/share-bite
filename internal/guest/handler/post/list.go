@@ -2,6 +2,7 @@ package post
 
 import (
 	"context"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"net/http"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
@@ -16,12 +17,12 @@ import (
 // list returns paginated published posts.
 //
 //	@Summary		List posts
-//	@Description	Returns paginated list of published posts.
+//	@Description	Returns paginated list of published posts with authors information.
 //	@Tags			guest-posts
 //	@Produce		json
-//	@Param			limit	query		int				false	"Max items per page (1..100)"	default(20)
-//	@Param			offset	query		int				false	"Offset (0..1000)"				default(0)
-//	@Success		200		{object}	listResponse	"Successfully retrieved the collection"
+//	@Param			limit	query		int						false	"Max items per page (1..100)"	default(20)
+//	@Param			offset	query		int						false	"Offset (0..1000)"				default(0)
+//	@Success		200		{object}	listResponse			"Successfully retrieved posts"
 //	@Failure		400		{object}	response.ErrorResponse	"Invalid query parameters"
 //	@Failure		500		{object}	response.ErrorResponse	"Internal server error"
 //	@Router			/posts/ [get]
@@ -33,7 +34,17 @@ func (h *handler) list(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	customerID := getOptionalCustomerID(c, h.customerService)
+
+	var customerID string
+	optionalCustomerID, err := httpctx.GetOptionalCustomerID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if optionalCustomerID != nil {
+		customerID = *optionalCustomerID
+	}
+
 	in := dto.ListPostsInput{
 		Limit:      req.Limit,
 		Offset:     req.Offset,
@@ -114,7 +125,7 @@ func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storag
 			customer = entity.Customer{ID: p.CustomerID}
 		}
 
-		authorResponses := make([]authorResponse, 0)
+		authorResponses := make([]authorResponse, 0, len(postAuthors[p.ID]))
 
 		for _, authorID := range postAuthors[p.ID] {
 			author, ok := customerMap[authorID]

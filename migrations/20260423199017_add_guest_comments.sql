@@ -1,8 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS guest.comments (
-                                              id BIGSERIAL PRIMARY KEY,
-                                              post_id BIGINT NOT NULL REFERENCES guest.posts(id) ON DELETE CASCADE,
+    id BIGSERIAL PRIMARY KEY,
+    post_id BIGINT NOT NULL REFERENCES guest.posts(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES guest.customers(id) ON DELETE CASCADE,
 
     comment_text varchar(1000) NOT NULL,

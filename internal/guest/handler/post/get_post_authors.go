@@ -2,9 +2,22 @@ package post
 
 import (
 	"github.com/gin-gonic/gin"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"net/http"
 )
 
+// getAuthors returns all authors of a collaborative post.
+//
+//	@Summary		Get post authors
+//	@Description	Returns all authors (owner and accepted collaborators) of the post.
+//	@Tags			guest-posts
+//	@Produce		json
+//	@Param			id	path		int						true	"Post ID"
+//	@Success		200	{object}	getAuthorsResponse
+//	@Failure		400	{object}	response.ErrorResponse
+//	@Failure		404	{object}	response.ErrorResponse
+//	@Failure		500	{object}	response.ErrorResponse
+//	@Router			/posts/{id}/authors [get]
 func (h *handler) getAuthors(c *gin.Context) {
 	postID := c.Param("id")
 	authors, err := h.service.GetPostAuthors(
@@ -17,6 +30,7 @@ func (h *handler) getAuthors(c *gin.Context) {
 	}
 	resp := getAuthorsResponse{
 		Authors: authors,
+		Count:   len(authors),
 	}
 	c.JSON(http.StatusOK, resp)
 }

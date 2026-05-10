@@ -3,10 +3,23 @@ package post
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"net/http"
 	"time"
 )
 
+// getMyInvitations returns pending collaborative post invitations
+// for the authenticated customer.
+//
+//	@Summary		Get my post invitations
+//	@Description	Returns all pending collaborative post invitations for the authenticated customer.
+//	@Tags			guest-posts
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	getInvitationsResponse
+//	@Failure		401	{object}	response.ErrorResponse
+//	@Failure		500	{object}	response.ErrorResponse
+//	@Router			/posts/invitations [get]
 func (h *handler) getMyInvitations(c *gin.Context) {
 	customer, err := h.getAuthenticatedCustomer(c)
 	if err != nil {
