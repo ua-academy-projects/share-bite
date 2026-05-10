@@ -2,17 +2,32 @@ package business
 
 import (
 	"context"
+	"errors"
 	"mime/multipart"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 type handler struct {
 	service businessService
+}
+
+func (h *handler) extractUserUUID(c *gin.Context) (uuid.UUID, error) {
+	userUUID, err := httpctx.GetUserUUID(c)
+	if err != nil {
+		if errors.Is(err, httpctx.ErrMissingContext) {
+			return uuid.Nil, apperror.Unauthorized("unauthorized")
+		}
+		return uuid.Nil, apperror.Unauthorized("invalid user identity")
+	}
+	return userUUID, nil
 }
 
 type businessService interface {
@@ -43,7 +58,11 @@ type businessService interface {
 	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	Rating(ctx context.Context, id int) (float32, error)
 
+	Create(ctx context.Context, in entity.OrgUnit) (int, error)
+	UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UUID, in entity.UpdateOrgUnitInput) (*entity.OrgUnit, error)
+	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
+	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 }
 
 func RegisterHandlers(
@@ -56,6 +75,7 @@ func RegisterHandlers(
 	}
 
 	auth := middleware.Auth(parser)
+	r.GET("/:id", h.getOrgUnit)
 
 	orgUnits := r.Group("/org-units")
 	{
@@ -71,6 +91,7 @@ func RegisterHandlers(
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 	r.GET("/location-tags", h.listLocationTags)
 	r.GET("/locations/nearby", h.ListNearbyVenues)
+	r.GET("/venues/search", h.searchVenues)
 
 	businessPosts := r.Group("/posts").
 		Use(auth).
@@ -79,6 +100,17 @@ func RegisterHandlers(
 		businessPosts.PUT("/:id", h.UpdatePost)
 		businessPosts.DELETE("/:id", h.DeletePost)
 		businessPosts.POST("/:id", h.CreatePost)
+	}
+
+	orgMutations := r.Group("").
+		Use(auth).
+		Use(middleware.RequireRoles("business"))
+	{
+		orgMutations.POST("", h.createOrgUnit)
+		orgMutations.PUT("/:id", h.updateOrgUnit)
+		orgMutations.PATCH("/:id", h.updateOrgUnit)
+		orgMutations.DELETE("/:id", h.deleteOrgUnit)
+
 	}
 
 	businessLocations := r.Group("").
