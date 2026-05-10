@@ -149,7 +149,15 @@ func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, l
 
 		if result.Items[i].Box.Image != "" {
 			imageURL, err := s.storage.GetPresignedURL(ctx, result.Items[i].Box.Image)
-			if err == nil {
+			if err != nil {
+				log.Printf(
+					"failed to generate presigned URL for box %d: %v",
+					result.Items[i].Box.ID,
+					err,
+				)
+
+				result.Items[i].Box.Image = ""
+			} else {
 				result.Items[i].Box.Image = imageURL
 			}
 		}
