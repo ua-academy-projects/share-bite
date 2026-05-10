@@ -37,6 +37,10 @@ func LocationNotFoundID(id int) *Error {
 	return newError(code.NotFound, msg)
 }
 
+func NotFound(msg string) *Error {
+	return newError(code.NotFound, msg)
+}
+
 func BadRequest(msg string) *Error {
 	return newError(code.BadRequest, msg)
 }

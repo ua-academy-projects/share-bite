@@ -155,6 +155,10 @@ func (objectStorageMock) BuildURL(key string) string {
 	return "https://cdn.example/" + key
 }
 
+func (objectStorageMock) GetPresignedURL(ctx context.Context, key string) (string, error) {
+    return "http://localhost:3900/app-dev-bucket/" + key + "?signed=true", nil
+}
+
 func testRouter(postSvc postService, customerSvc customerService, authMiddleware gin.HandlerFunc) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
