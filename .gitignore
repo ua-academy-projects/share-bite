@@ -18,7 +18,6 @@ coverage.html
 .DS_Store
 Thumbs.db
 
-/frontend/node_modules
 /.agent/
 
 .env*

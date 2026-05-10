@@ -25,10 +25,10 @@ type handler struct {
 	runsMu     sync.Mutex
 }
 
-func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificationpkg.Hub, authMiddleware gin.HandlerFunc, streamAuthMiddleware gin.HandlerFunc) {
+func RegisterHandlers(r *gin.RouterGroup, notificationService *service.Service, notificationHub *notificationpkg.Hub, authMiddleware gin.HandlerFunc) {
 	h := &handler{
-		svc:        svc,
-		hub:        hub,
+		svc:        notificationService,
+		hub:        notificationHub,
 		userSubs:   make(map[string]int),
 		userCancel: make(map[string]context.CancelFunc),
 	}
@@ -37,11 +37,7 @@ func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificatio
 	{
 		auth.GET("/history", h.getHistory)
 		auth.POST("/mark-read", h.markAsRead)
-	}
-
-	stream := r.Group("/").Use(streamAuthMiddleware)
-	{
-		stream.GET("/stream", h.stream)
+		auth.GET("/stream", h.stream)
 	}
 }
 

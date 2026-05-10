@@ -41,9 +41,6 @@ func (s *Service) ProcessMessage(ctx context.Context, msg notification.Message) 
 		return fmt.Errorf("recipient_id is required")
 	}
 
-	// We no longer call enrich here. The service is now generic.
-	// It expects the sender to provide all necessary metadata (actor_name, actor_avatar, etc.)
-
 	inserted, err := s.repo.Save(ctx, notificationentity.FromMessage(msg))
 	if err != nil {
 		return err

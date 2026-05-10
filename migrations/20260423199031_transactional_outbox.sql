@@ -12,10 +12,8 @@ CREATE TABLE IF NOT EXISTS outbox (
 	-- Source service for observability: 'guest-api', 'business-api'
 	source_service VARCHAR(100) NOT NULL,
 
-	-- Processing status
 	status VARCHAR(50) DEFAULT 'pending' NOT NULL,
 
-	-- Service fields
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

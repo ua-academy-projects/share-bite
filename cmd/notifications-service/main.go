@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -84,10 +83,10 @@ func main() {
 			ReadyToTrip: func(counts gobreaker.Counts) bool { return counts.ConsecutiveFailures >= 10 },
 		}),
 	}))
-	hub := notification.NewHub(broker)
+	notificationHub := notification.NewHub(broker)
 
-	notifRepo := notificationrepo.New(client.DB())
-	notifSvc := notificationservice.New(notifRepo, broker)
+	notificationRepo := notificationrepo.New(client.DB())
+	notificationService := notificationservice.New(notificationRepo, broker)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -95,14 +94,15 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-	authMw := middleware.Auth(tokenManager)
+	authMiddleware := middleware.Auth(tokenManager)
 
 	router := gin.New()
-	router.Use(gin.Recovery())
+	notificationhandler.RegisterHandlers(router.Group("/"), notificationService, notificationHub, authMiddleware)
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
-	notificationhandler.RegisterHandlers(router.Group("/notifications"), notifSvc, hub, authMw, streamAuthMiddleware(tokenManager))
-
-	serverAddr := notificationsServerAddr()
+	serverAddr := config.Config().NotificationHttpServer.Address()
 	httpServer := &http.Server{
 		Addr:    serverAddr,
 		Handler: router,
@@ -114,29 +114,53 @@ func main() {
 	go func() {
 		logger.InfoKV(ctx, "notifications http server starting", "addr", serverAddr)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal(ctx, "notifications http server:", err)
+			logger.Fatal(ctx, "notifications http server error:", err)
 		}
 	}()
 
-	awsCfg, err := loadSQSConfig(ctx)
+	// SQS Configuration
+	sqsCfg := config.Config().NotificationSQS
+	region := sqsCfg.Region()
+	if region == "" {
+		logger.Fatal(ctx, "NOTIFICATION_AWS_REGION is required")
+	}
+
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
 	if err != nil {
 		logger.Fatal(ctx, "load aws config:", err)
 	}
-	sqsClient := sqs.NewFromConfig(awsCfg)
 
-	queueRef := os.Getenv("NOTIFICATION_SQS_QUEUE_ARN")
-	if queueRef == "" {
-		queueRef = os.Getenv("NOTIFICATION_SQS_QUEUE_URL")
-	}
-	if queueRef == "" {
-		logger.Fatal(ctx, "NOTIFICATION_SQS_QUEUE_ARN or NOTIFICATION_SQS_QUEUE_URL is required")
-	}
+	sqsClient := sqs.NewFromConfig(awsCfg, func(o *sqs.Options) {
+		if endpoint := sqsCfg.Endpoint(); endpoint != "" {
+			o.BaseEndpoint = &endpoint
+		}
+	})
 
-	sqsQueueURL, err := resolveQueueURL(ctx, sqsClient, queueRef)
-	if err != nil {
-		logger.ErrorKV(ctx, "failed to resolve sqs queue url, consumer will not start", "error", err)
-	} else {
-		processor := notificationservice.NewProcessor(notifSvc)
+	queueRef := sqsCfg.Queue()
+	if queueRef != "" {
+		sqsQueueURL := queueRef
+		if strings.HasPrefix(queueRef, "arn:aws:sqs") {
+			parsedARN, err := arn.Parse(queueRef)
+			if err != nil {
+				logger.Fatal(ctx, "invalid SQS ARN:", err)
+			}
+
+			_, queueName, _ := strings.Cut(parsedARN.Resource, ":")
+			if queueName == "" {
+				queueName = parsedARN.Resource
+			}
+
+			out, err := sqsClient.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
+				QueueName:              aws.String(queueName),
+				QueueOwnerAWSAccountId: aws.String(parsedARN.AccountID),
+			})
+			if err != nil {
+				logger.Fatal(ctx, "failed to resolve SQS queue URL from ARN:", err)
+			}
+			sqsQueueURL = *out.QueueUrl
+		}
+
+		processor := notificationservice.NewProcessor(notificationService)
 		consumer := notificationconsumer.New(sqsClient, sqsQueueURL, processor)
 
 		go func() {
@@ -145,110 +169,9 @@ func main() {
 				logger.ErrorKV(ctx, "notifications sqs consumer stopped", "error", err)
 			}
 		}()
+	} else {
+		logger.Warn(ctx, "SQS queue not provided")
 	}
 
 	closer.Wait()
-}
-
-func resolveQueueURL(ctx context.Context, client *sqs.Client, queueRef string) (string, error) {
-	if strings.HasPrefix(queueRef, "https://") || strings.HasPrefix(queueRef, "http://") {
-		return queueRef, nil
-	}
-
-	parsedARN, err := arn.Parse(queueRef)
-	if err != nil {
-		return "", fmt.Errorf("invalid queue URL or ARN: %w", err)
-	}
-
-	// SQS ARN format: arn:aws:sqs:region:account-id:queue-name
-	parts := strings.Split(parsedARN.Resource, ":")
-	queueName := parts[len(parts)-1]
-
-	out, err := client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
-		QueueName:              aws.String(queueName),
-		QueueOwnerAWSAccountId: aws.String(parsedARN.AccountID),
-	})
-	if err != nil {
-		return "", fmt.Errorf("get queue URL from ARN: %w", err)
-	}
-
-	if out.QueueUrl == nil {
-		return "", fmt.Errorf("get queue URL returned nil")
-	}
-
-	return *out.QueueUrl, nil
-}
-
-func notificationsServerAddr() string {
-	host := os.Getenv("NOTIFICATIONS_HTTP_SERVER_HOST")
-	if host == "" {
-		host = "0.0.0.0"
-	}
-	port := os.Getenv("NOTIFICATIONS_HTTP_SERVER_PORT")
-	if port == "" {
-		port = "4005"
-	}
-	return fmt.Sprintf("%s:%s", host, port)
-}
-
-func loadSQSConfig(ctx context.Context) (aws.Config, error) {
-	region := os.Getenv("NOTIFICATION_AWS_REGION")
-	if region == "" {
-		region = os.Getenv("AWS_REGION")
-	}
-	if region == "" {
-		region = os.Getenv("AWS_DEFAULT_REGION")
-	}
-	if region == "" {
-		region = "us-east-2"
-	}
-
-	opts := []func(*awsconfig.LoadOptions) error{
-		awsconfig.WithRegion(region),
-	}
-
-	if endpoint := os.Getenv("NOTIFICATION_SQS_ENDPOINT_URL"); endpoint != "" {
-		opts = append(opts, awsconfig.WithEndpointResolverWithOptions(
-			aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
-				if !strings.EqualFold(service, sqs.ServiceID) {
-					return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-				}
-				return aws.Endpoint{URL: endpoint, HostnameImmutable: true}, nil
-			}),
-		))
-	}
-
-	return awsconfig.LoadDefaultConfig(ctx, opts...)
-}
-
-func streamAuthMiddleware(parser interface {
-	ParseAccessToken(string) (string, string, error)
-}) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := strings.TrimSpace(c.GetHeader("Authorization"))
-		if token != "" {
-			if !strings.HasPrefix(token, "Bearer ") {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
-				return
-			}
-			token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-		}
-		if token == "" {
-			token = strings.TrimSpace(c.Query("access_token"))
-		}
-		if token == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing access token"})
-			return
-		}
-
-		userID, role, err := parser.ParseAccessToken(token)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
-			return
-		}
-
-		c.Set(middleware.CtxUserID, userID)
-		c.Set(middleware.CtxUserRole, role)
-		c.Next()
-	}
 }
