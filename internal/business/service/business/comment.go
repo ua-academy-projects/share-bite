@@ -21,6 +21,9 @@ func (s *service) CreateComment(ctx context.Context, postID int64, authorID, con
 
 	comment, err := s.businessRepo.CreateComment(ctx, postID, authorID, content)
 	if err != nil {
+		if errors.Is(err, business.ErrNotFound) {
+			return nil, business.ErrNotFound
+		}
 		return nil, fmt.Errorf("create comment: %w", err)
 	}
 
@@ -42,6 +45,9 @@ func (s *service) UpdateComment(ctx context.Context, commentID int64, authorID, 
 
 	updatedComment, err := s.businessRepo.UpdateComment(ctx, commentID, content)
 	if err != nil {
+		if errors.Is(err, business.ErrNotFound) {
+			return nil, business.ErrNotFound
+		}
 		return nil, fmt.Errorf("update comment: %w", err)
 	}
 
@@ -83,6 +89,9 @@ func (s *service) DeleteComment(ctx context.Context, postID, commentID int64, au
 
 	err = s.businessRepo.DeleteComment(ctx, commentID)
 	if err != nil {
+		if errors.Is(err, business.ErrNotFound) {
+			return business.ErrNotFound
+		}
 		return fmt.Errorf("delete comment: %w", err)
 	}
 

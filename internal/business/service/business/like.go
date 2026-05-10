@@ -8,13 +8,13 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
-	"github.com/ua-academy-projects/share-bite/internal/business/repository/business"
+	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 )
 
 func (s *service) ToggleLike(ctx context.Context, postID int64, authorID string) (bool, error) {
 	_, err := s.businessRepo.GetPostByID(ctx, postID)
 	if err != nil {
-		if errors.Is(err, business.ErrNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			return false, apperror.PostNotFound(postID)
 		}
 		return false, fmt.Errorf("get post: %w", err)
@@ -28,6 +28,9 @@ func (s *service) ToggleLike(ctx context.Context, postID int64, authorID string)
 	if liked {
 		err = s.businessRepo.DeleteLike(ctx, postID, authorID)
 		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return false, nil
+			}
 			return false, fmt.Errorf("delete like: %w", err)
 		}
 		return false, nil
