@@ -2,9 +2,9 @@
 CREATE SCHEMA IF NOT EXISTS business;
 
 CREATE TABLE IF NOT EXISTS business.org_units (
-                                                  id SERIAL PRIMARY KEY,
-                                                  org_account_id UUID NOT NULL UNIQUE
-                                                  REFERENCES auth.users(id) ON DELETE CASCADE,
+    id SERIAL PRIMARY KEY,
+    org_account_id UUID NOT NULL UNIQUE
+    REFERENCES auth.users(id) ON DELETE CASCADE,
     profile_type TEXT NOT NULL CHECK (profile_type IN ('BRAND', 'VENUE')),
 
     parent_id INT NULL

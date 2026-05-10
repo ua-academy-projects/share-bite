@@ -373,7 +373,7 @@ func (r *Repository) GetAuthorCustomerID(ctx context.Context, postID string) (st
 		WHERE id = $1;
 	`
 	q := database.Query{
-		Name: "post_repository.GetAuthorUserID",
+		Name: "post_repository.GetAuthorCustomerID",
 		Sql:  sql,
 	}
 
@@ -728,7 +728,7 @@ func (r *Repository) CreatePostCollaborators(ctx context.Context, postID string,
 	}
 
 	q := database.Query{
-		Name: "post_collaborators.create_bulk",
+		Name: "post_collaborators.createBulk",
 		Sql: `
             INSERT INTO guest.post_collaborators (post_id, customer_id, invited_by, expires_at)
             SELECT $1, unnest($2::uuid[]), $3, $4
@@ -742,14 +742,22 @@ func (r *Repository) CreatePostCollaborators(ctx context.Context, postID string,
 
 func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error) {
 	q := database.Query{
-		Name: "post_collaborators.get_pending_by_user",
+		Name: "postCollaborators.getPendingByUser",
 		Sql: `
-            SELECT id, post_id, customer_id, invited_by, status, expires_at, responded_at, created_at
-            FROM guest.post_collaborators
-            WHERE customer_id = $1
-              AND status = 'pending'
-              AND expires_at > NOW();
-        `,
+			SELECT
+				id,
+				post_id,
+				customer_id,
+				invited_by,
+				status,
+				expires_at,
+				responded_at,
+				created_at
+			FROM guest.post_collaborators
+			WHERE customer_id = $1
+			  AND status = 'pending'
+			  AND expires_at > NOW();
+		`,
 	}
 
 	rows, err := r.db.DB().QueryContext(ctx, q, customerID)
@@ -758,27 +766,13 @@ func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID s
 	}
 	defer rows.Close()
 
-	var result []entity.PostCollaborator
+	var collaborators []entity.PostCollaborator
 
-	for rows.Next() {
-		var pc entity.PostCollaborator
-		err := rows.Scan(
-			&pc.ID,
-			&pc.PostID,
-			&pc.CustomerID,
-			&pc.InvitedBy,
-			&pc.Status,
-			&pc.ExpiresAt,
-			&pc.RespondedAt,
-			&pc.CreatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, pc)
+	if err := pgxscan.ScanAll(&collaborators, rows); err != nil {
+		return nil, err
 	}
 
-	return result, nil
+	return collaborators, nil
 }
 
 func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
@@ -813,35 +807,34 @@ func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID st
 	return postID, nil
 }
 
-func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
+func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) error {
 	q := database.Query{
-		Name: "post_collaborators.decline",
+		Name: "postCollaborators.decline",
 		Sql: `
-            UPDATE guest.post_collaborators
-            SET status = 'declined',
-                responded_at = NOW()
-            WHERE id = $1
-              AND customer_id = $2
-              AND status = 'pending'
-            RETURNING post_id;
-        `,
+			UPDATE guest.post_collaborators
+			SET status = 'declined',
+			    responded_at = NOW()
+			WHERE id = $1
+			  AND customer_id = $2
+			  AND status = 'pending';
+		`,
 	}
 
-	var postID string
-	err := r.db.DB().QueryRowContext(ctx, q, collaboratorID, customerID).Scan(&postID)
+	tag, err := r.db.DB().ExecContext(ctx, q, collaboratorID, customerID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", apperror.ErrPostInvitationForbidden
-		}
-		return "", err
+		return err
 	}
 
-	return postID, nil
+	if tag.RowsAffected() == 0 {
+		return apperror.ErrPostInvitationForbidden
+	}
+
+	return nil
 }
 
 func (r *Repository) TryPublishPostIfAllAccepted(ctx context.Context, postID string) (bool, error) {
 	q := database.Query{
-		Name: "posts.try_publish_if_all_accepted",
+		Name: "posts.tryPublishIfAllAccepted",
 		Sql: `
 			UPDATE guest.posts
 			SET status = 'published'
@@ -872,13 +865,13 @@ func (r *Repository) TryPublishPostIfAllAccepted(ctx context.Context, postID str
 
 func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID string) ([]string, error) {
 	q := database.Query{
-		Name: "post_collaborators.get_accepted",
+		Name: "postCollaborators.getAccepted",
 		Sql: `
-            SELECT customer_id
-            FROM guest.post_collaborators
-            WHERE post_id = $1
-              AND status = 'accepted';
-        `,
+			SELECT customer_id
+			FROM guest.post_collaborators
+			WHERE post_id = $1
+			  AND status = 'accepted';
+		`,
 	}
 
 	rows, err := r.db.DB().QueryContext(ctx, q, postID)
@@ -887,14 +880,9 @@ func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID st
 	}
 	defer rows.Close()
 
-	var result []string
-
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		result = append(result, id)
+	result, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, err
 	}
 
 	return result, nil
@@ -902,7 +890,7 @@ func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID st
 
 func (r *Repository) DeleteExpiredDraftPosts(ctx context.Context) error {
 	q := database.Query{
-		Name: "post.delete_expired_drafts",
+		Name: "post.deleteExpiredDrafts",
 		Sql: `
 			UPDATE guest.posts p
 			SET status = 'deleted'
@@ -918,5 +906,5 @@ func (r *Repository) DeleteExpiredDraftPosts(ctx context.Context) error {
 	}
 
 	_, err := r.db.DB().ExecContext(ctx, q)
-	return err
+	return executeSQLError(err)
 }

@@ -18,6 +18,8 @@ type createRequest struct {
 	Rating   int16                   `form:"rating" binding:"required,gte=1,lte=5"`
 	Images   []*multipart.FileHeader `form:"images" binding:"omitempty"`
 	Mentions []string                `form:"mentions" binding:"omitempty"`
+
+	InvitedCustomerIDs []string `form:"invitedCustomerIds" binding:"omitempty,dive,uuid"`
 }
 
 type createResponse struct {

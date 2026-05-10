@@ -4,12 +4,6 @@ import "time"
 
 type PostCollaboratorStatus string
 
-const (
-	PostCollaboratorStatusPending  PostCollaboratorStatus = "pending"
-	PostCollaboratorStatusAccepted PostCollaboratorStatus = "accepted"
-	PostCollaboratorStatusDeclined PostCollaboratorStatus = "declined"
-)
-
 type PostCollaborator struct {
 	ID          int64
 	PostID      int64

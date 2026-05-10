@@ -26,13 +26,26 @@ import (
 //	@Router			/posts/{id} [get]
 func (h *handler) get(c *gin.Context) {
 	var req getRequest
+
 	if err := request.BindUri(c, &req); err != nil {
 		c.Error(err)
 		return
 	}
 
 	ctx := c.Request.Context()
-	customerID := getOptionalCustomerID(c, h.customerService)
+
+	var customerID string
+
+	optionalCustomerID, err := httpctx.GetOptionalCustomerID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	if optionalCustomerID != nil {
+		customerID = *optionalCustomerID
+	}
+
 	post, err := h.service.Get(ctx, req.ID, customerID)
 	if err != nil {
 		c.Error(err)
@@ -49,9 +62,11 @@ func (h *handler) get(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+
 	resp := getResponse{
 		Post: postToResponse(post, h.storage, customer, authors),
 	}
+
 	c.JSON(http.StatusOK, resp)
 }
 

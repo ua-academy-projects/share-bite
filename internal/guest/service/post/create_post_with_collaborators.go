@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	postInvitationTTL      = 24 * time.Hour
-	notificationPublishTTL = 5 * time.Second
+	postInvitationTTL          = 24 * time.Hour
+	notificationPublishTimeout = 5 * time.Second
 )
 
 func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
@@ -63,7 +63,7 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 	if err == nil && s.publisher != nil && len(invited) > 0 {
 		go func() {
 			detached := context.WithoutCancel(ctx)
-			publishCtx, cancel := context.WithTimeout(detached, notificationPublishTTL)
+			publishCtx, cancel := context.WithTimeout(detached, notificationPublishTimeout)
 			defer cancel()
 
 			for _, customerID := range invited {

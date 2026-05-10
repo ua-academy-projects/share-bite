@@ -7,14 +7,21 @@ import (
 
 func (h *handler) getAuthors(c *gin.Context) {
 	postID := c.Param("id")
-
-	authors, err := h.service.GetPostAuthors(c.Request.Context(), postID)
+	authors, err := h.service.GetPostAuthors(
+		c.Request.Context(),
+		postID,
+	)
 	if err != nil {
 		c.Error(err)
 		return
 	}
+	resp := getAuthorsResponse{
+		Authors: authors,
+	}
+	c.JSON(http.StatusOK, resp)
+}
 
-	c.JSON(http.StatusOK, gin.H{
-		"authors": authors,
-	})
+type getAuthorsResponse struct {
+	Authors []string `json:"authors"`
+	Count   int      `json:"count"`
 }

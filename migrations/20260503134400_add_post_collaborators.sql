@@ -1,9 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS guest.post_collaborators (
-                                                        id BIGSERIAL PRIMARY KEY,
-
-                                                        post_id BIGINT NOT NULL REFERENCES guest.posts(id) ON DELETE CASCADE,
+    id BIGSERIAL PRIMARY KEY,
+    post_id BIGINT NOT NULL REFERENCES guest.posts(id) ON DELETE CASCADE,
     customer_id UUID NOT NULL REFERENCES guest.customers(id) ON DELETE CASCADE,
 
     status VARCHAR(20) NOT NULL DEFAULT 'pending',

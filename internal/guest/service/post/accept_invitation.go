@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
 	"time"
 )
@@ -34,7 +35,7 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 
 	go func() {
 		detached := context.WithoutCancel(ctx)
-		publishCtx, cancel := context.WithTimeout(detached, 5*time.Second)
+		publishCtx, cancel := context.WithTimeout(detached, notificationPublishTimeout)
 		defer cancel()
 
 		// TODO: notify author that user accepted invitation
@@ -45,7 +46,7 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 				return
 			}
 
-			authorID, err := s.postRepo.GetAuthorUserID(publishCtx, postID)
+			authorID, err := s.postRepo.GetAuthorCustomerID(publishCtx, postID)
 			if err == nil {
 				collaborators = append(collaborators, authorID)
 			}
@@ -67,7 +68,18 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 					"post_id": postID,
 				}
 
-				dataBytes, _ := json.Marshal(data)
+				dataBytes, err := json.Marshal(data)
+				if err != nil {
+					logger.ErrorKV(
+						publishCtx,
+						"marshal post published notification failed",
+						"post_id",
+						postID,
+						"error",
+						err,
+					)
+					continue
+				}
 
 				msg := notification.Message{
 					UserID:    customer.UserID,
@@ -76,7 +88,22 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 					CreatedAt: time.Now().UTC(),
 				}
 
-				_ = s.publisher.Publish(publishCtx, customer.UserID, msg)
+				if err := s.publisher.Publish(
+					publishCtx,
+					customer.UserID,
+					msg,
+				); err != nil {
+					logger.ErrorKV(
+						publishCtx,
+						"publish post published notification failed",
+						"user_id",
+						customer.UserID,
+						"post_id",
+						postID,
+						"error",
+						err,
+					)
+				}
 			}
 		}
 	}()

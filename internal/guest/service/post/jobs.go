@@ -14,12 +14,12 @@ func StartPostCleanupJob(ctx context.Context, svc postCleanupService) {
 	ticker := time.NewTicker(postCleanupInterval)
 	go func() {
 		defer ticker.Stop()
-		logger.InfoKV(ctx, "post cleanup job started")
+		logger.Info(ctx, "post cleanup job started")
 		runCleanup(ctx, svc)
 		for {
 			select {
 			case <-ctx.Done():
-				logger.InfoKV(ctx, "post cleanup job stopped")
+				logger.Info(ctx, "post cleanup job stopped")
 				return
 			case <-ticker.C:
 				runCleanup(ctx, svc)
@@ -30,12 +30,12 @@ func StartPostCleanupJob(ctx context.Context, svc postCleanupService) {
 }
 
 func runCleanup(ctx context.Context, svc postCleanupService) {
-	logger.InfoKV(ctx, "cleanup expired posts started")
+	logger.Info(ctx, "cleanup expired posts started")
 
 	if err := svc.CleanupExpiredPosts(ctx); err != nil {
 		logger.ErrorKV(ctx, "cleanup expired posts failed", "error", err)
 		return
 	}
 
-	logger.InfoKV(ctx, "cleanup expired posts finished")
+	logger.Info(ctx, "cleanup expired posts finished")
 }
