@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/notification/service"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	notificationpkg "github.com/ua-academy-projects/share-bite/pkg/notification"
 )
@@ -19,7 +20,8 @@ import (
 type handler struct {
 	svc        *service.Service
 	hub        *notificationpkg.Hub
-	activeRuns map[string]bool
+	userSubs   map[string]int
+	userCancel map[string]context.CancelFunc
 	runsMu     sync.Mutex
 }
 
@@ -27,14 +29,20 @@ func RegisterHandlers(r *gin.RouterGroup, svc *service.Service, hub *notificatio
 	h := &handler{
 		svc:        svc,
 		hub:        hub,
-		activeRuns: make(map[string]bool),
+		userSubs:   make(map[string]int),
+		userCancel: make(map[string]context.CancelFunc),
 	}
 
-	protected := r.Group("/").Use(authMiddleware)
-	protected.GET("/", h.getHistory)
-	protected.POST("/mark-read", h.markAsRead)
+	auth := r.Group("/").Use(authMiddleware)
+	{
+		auth.GET("/history", h.getHistory)
+		auth.POST("/mark-read", h.markAsRead)
+	}
+
 	stream := r.Group("/").Use(streamAuthMiddleware)
-	stream.GET("/stream", h.stream)
+	{
+		stream.GET("/stream", h.stream)
+	}
 }
 
 type notificationResponse struct {
@@ -69,7 +77,7 @@ func (h *handler) getHistory(c *gin.Context) {
 	items, err := h.svc.GetHistory(c.Request.Context(), userID, limit, offset)
 	if err != nil {
 		logger.ErrorKV(c.Request.Context(), "get notification history", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get notifications"})
+		c.Error(err)
 		return
 	}
 
@@ -97,14 +105,14 @@ func (h *handler) markAsRead(c *gin.Context) {
 	var req struct {
 		NotificationIDs []string `json:"notification_ids"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+	if err := request.BindJSON(c, &req); err != nil {
+		c.Error(err)
 		return
 	}
 
 	if err := h.svc.MarkAsRead(c.Request.Context(), userID, req.NotificationIDs); err != nil {
 		logger.ErrorKV(c.Request.Context(), "mark notifications as read", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark notifications as read"})
+		c.Error(err)
 		return
 	}
 
@@ -127,19 +135,30 @@ func (h *handler) stream(c *gin.Context) {
 		Send:   make(chan notificationpkg.Message, 16),
 	}
 	h.hub.Register(client)
-	defer h.hub.Unregister(client)
-
 	h.runsMu.Lock()
-	if !h.activeRuns[userID] {
-		h.activeRuns[userID] = true
+	h.userSubs[userID]++
+	if h.userSubs[userID] == 1 {
+		ctxRun, cancel := context.WithCancel(context.Background())
+		h.userCancel[userID] = cancel
 		go func() {
-			_ = h.hub.Run(context.Background(), userID)
-			h.runsMu.Lock()
-			delete(h.activeRuns, userID)
-			h.runsMu.Unlock()
+			_ = h.hub.Run(ctxRun, userID)
 		}()
 	}
 	h.runsMu.Unlock()
+
+	defer func() {
+		h.hub.Unregister(client)
+		h.runsMu.Lock()
+		h.userSubs[userID]--
+		if h.userSubs[userID] == 0 {
+			if cancel, ok := h.userCancel[userID]; ok {
+				cancel()
+				delete(h.userCancel, userID)
+			}
+			delete(h.userSubs, userID)
+		}
+		h.runsMu.Unlock()
+	}()
 
 	c.Header("Content-Type", "text/event-stream;charset=utf-8")
 	c.Header("Cache-Control", "no-cache")

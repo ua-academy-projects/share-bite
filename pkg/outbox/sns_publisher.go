@@ -53,8 +53,8 @@ func parseTopicArn(topicArn string) (region string, err error) {
 	return parts[3], nil
 }
 
-func (p *SNSPublisher) Publish(ctx context.Context, event Message) error {
-	b, err := json.Marshal(event)
+func (p *SNSPublisher) Publish(ctx context.Context, event Record) error {
+	b, err := json.Marshal(event.Payload)
 	if err != nil {
 		return fmt.Errorf("marshal sns message: %w", err)
 	}
@@ -67,6 +67,10 @@ func (p *SNSPublisher) Publish(ctx context.Context, event Message) error {
 				DataType:    aws.String("String"),
 				StringValue: aws.String(event.EventType),
 			},
+			"source_service": {
+				DataType:    aws.String("String"),
+				StringValue: aws.String(event.SourceService),
+			},
 		},
 	})
 	if err != nil {
@@ -77,9 +81,10 @@ func (p *SNSPublisher) Publish(ctx context.Context, event Message) error {
 		"sns publish succeeded",
 		"topic_arn", p.topicArn,
 		"message_id", aws.ToString(res.MessageId),
-		"event_id", event.EventID,
+		"event_id", event.Payload.EventID,
 		"event_type", event.EventType,
-		"recipient_id", event.RecipientID,
+		"recipient_id", event.Payload.RecipientID,
+		"source_service", event.SourceService,
 	)
 
 	return nil

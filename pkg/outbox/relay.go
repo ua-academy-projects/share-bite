@@ -13,7 +13,7 @@ import (
 )
 
 type Publisher interface {
-	Publish(ctx context.Context, event Message) error
+	Publish(ctx context.Context, event Record) error
 }
 
 type Relay struct {
@@ -97,38 +97,36 @@ func (r *Relay) ProcessOnce(ctx context.Context) error {
 		return fmt.Errorf("outbox relay is nil")
 	}
 
-	return r.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
-		records, err := r.store.FetchPending(txCtx, r.batchSize)
+	records, err := r.store.FetchPending(ctx, r.batchSize)
+	if err != nil {
+		return err
+	}
+	if len(records) > 0 {
+		logger.InfoKV(ctx, "outbox relay fetched records", "count", len(records))
+	}
+	for _, record := range records {
+		rec := record
+		err := r.policy.Execute(ctx, func() error {
+			return r.publisher.Publish(ctx, rec)
+		})
 		if err != nil {
-			return err
-		}
-		if len(records) > 0 {
-			logger.InfoKV(txCtx, "outbox relay fetched records", "count", len(records))
-		}
-		for _, record := range records {
-			rec := record
-			err := r.policy.Execute(txCtx, func() error {
-				return r.publisher.Publish(txCtx, rec.Payload)
-			})
-			if err != nil {
-				logger.ErrorKV(txCtx, "failed to publish outbox record after retries",
-					"record_id", rec.ID,
-					"error", err)
-				continue
-			}
-
-			if err := r.store.MarkProcessed(txCtx, rec.ID); err != nil {
-				return fmt.Errorf("mark processed %s: %w", rec.ID, err)
-			}
-
-			logger.InfoKV(txCtx,
-				"outbox record processed",
+			logger.ErrorKV(ctx, "failed to publish outbox record after retries",
 				"record_id", rec.ID,
-				"event_id", rec.Payload.EventID,
-				"event_type", rec.EventType,
-			)
+				"error", err)
+			continue
 		}
 
-		return nil
-	})
+		if err := r.store.MarkProcessed(ctx, rec.ID); err != nil {
+			return fmt.Errorf("mark processed %s: %w", rec.ID, err)
+		}
+
+		logger.InfoKV(ctx,
+			"outbox record processed",
+			"record_id", rec.ID,
+			"event_id", rec.Payload.EventID,
+			"event_type", rec.EventType,
+		)
+	}
+
+	return nil
 }

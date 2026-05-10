@@ -20,7 +20,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
-	notif_handler "github.com/ua-academy-projects/share-bite/internal/guest/handler/notification"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
 	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
@@ -162,8 +161,6 @@ func main() {
 	}
 	broker := notification.NewBroker(rdb, notification.WithPublishPolicy(notificationResiliencePolicy))
 
-	notifHub := notification.NewHub(broker)
-
 	clientCfg := config.Config().BusinessHttpClient
 	httpClient := &http.Client{
 		Timeout: clientCfg.Timeout(),
@@ -264,7 +261,6 @@ func main() {
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
-	notif_handler.RegisterHandlers(router.Group("/notification", optionalAuthMiddleware), notifHub, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
 		router.Group("/collections"),
 		collectionSvc,

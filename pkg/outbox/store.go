@@ -87,8 +87,7 @@ func (s *SQLStore) MarkProcessed(ctx context.Context, id string) error {
 	q := database.Query{
 		Name: "outbox_store.MarkProcessed",
 		Sql: `
-			UPDATE outbox
-			SET status = 'processed', processed_at = NOW()
+			DELETE FROM outbox
 			WHERE id = $1
 		`,
 	}
