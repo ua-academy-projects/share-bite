@@ -28,3 +28,9 @@ Thumbs.db
 
 # generated api clients
 internal/guest/gateway/business/client/
+
+#frontend
+frontend/node_modules
+
+# Node lockfiles (this repo currently doesn't commit them)
+package-lock.json

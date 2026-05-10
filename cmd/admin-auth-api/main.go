@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
@@ -42,7 +43,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	if err := config.Load(".env"); err != nil {
+	if err := config.Load("./../../.env"); err != nil {
 		logger.Fatal(ctx, err)
 	}
 
@@ -58,6 +59,14 @@ func main() {
 	router.Use(ErrorMiddleware())
 
 	cfg := config.Config()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.AdminHttpServer.AllowedOrigins(),
+		AllowMethods:     cfg.AdminHttpServer.AllowedMethods(),
+		AllowHeaders:     cfg.AdminHttpServer.AllowedHeaders(),
+		ExposeHeaders:    cfg.AdminHttpServer.ExposeHeaders(),
+		AllowCredentials: true,
+	}))
 
 	if cfg.App.IsProd() {
 		logger.SetLevel(zap.InfoLevel)

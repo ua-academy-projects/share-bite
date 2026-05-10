@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { authApi } from "@/api/auth";
+import { parseGoogleOAuthState } from "@/lib/googleOAuth";
 import { Loader2 } from "lucide-react";
 
 export function OAuthCallbackPage() {
@@ -13,14 +14,25 @@ export function OAuthCallbackPage() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const oauthError = searchParams.get("error");
+    const oauthErrorDescription = searchParams.get("error_description");
+
+    if (oauthError) {
+      const details = oauthErrorDescription ? `: ${oauthErrorDescription}` : "";
+      setError(`OAuth provider returned an error (${oauthError}${details})`);
+      return;
+    }
+
     if (!code || !provider) {
       setError("Missing authorization code or provider");
       return;
     }
 
+    const slug = parseGoogleOAuthState(searchParams.get("state")) || "user";
+
     const exchange = async () => {
       try {
-        const tokens = await authApi.oauthCallback(provider, code, "user");
+        const tokens = await authApi.oauthCallback(provider, code, slug);
         saveTokens(tokens.access_token, tokens.refresh_token);
         navigate("/", { replace: true });
       } catch (err) {
