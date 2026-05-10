@@ -6,4 +6,4 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_posts_published_created_id_desc
     WHERE status = 'published';
 
 -- +goose Down
-DROP INDEX CONCURRENTLY IF EXISTS idx_posts_published_created_id_desc;
+DROP INDEX CONCURRENTLY IF EXISTS guest.idx_posts_published_created_id_desc;
