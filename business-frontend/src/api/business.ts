@@ -14,7 +14,7 @@ export type Box = {
 export type CreateBoxRequest = {
   venue_id: number;
   category_id?: number;
-  image: string;
+  image: File;
   price_full: number;
   price_discount: number;
   expires_at: string;
@@ -37,18 +37,33 @@ export const businessApi = {
   },
 
   createBox: async (data: CreateBoxRequest, token: string) => {
+    const formData = new FormData();
+    
+    const formattedDate = new Date(data.expires_at).toISOString();
+    
+    formData.append("venue_id", String(data.venue_id));
+    formData.append("category_id", String(data.category_id || 1));
+    formData.append("price_full", String(data.price_full));
+    formData.append("price_discount", String(data.price_discount));
+    formData.append("expires_at", formattedDate);
+    formData.append("quantity", String(data.quantity));
+    
+    // Передаємо файл зображення
+    if (data.image) {
+      formData.append("image", data.image, data.image.name);
+    }
+
     const response = await fetch(`${API_BASE_URL}/business/boxes`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify(data),
+      body: formData,
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.message || `Помилка створення боксу (${response.status})`);
+      throw new Error(err.error || err.message || `Помилка: ${response.status}`);
     }
 
     return response.json();
