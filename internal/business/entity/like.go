@@ -8,3 +8,15 @@ type Like struct {
 	AuthorID  string
 	CreatedAt time.Time
 }
+
+type LikeWithAuthor struct {
+	ID        int64
+	PostID    int64
+	CreatedAt time.Time
+
+	AuthorID        string
+	AuthorUsername  string
+	AuthorFirstName string
+	AuthorLastName  string
+	AuthorAvatarURL *string
+}
