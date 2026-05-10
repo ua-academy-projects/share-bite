@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+
+:root {
+  --background: #F9F7F2;
+  --foreground: #1A3C34;
+  --card: #FFFFFF;
+  --card-foreground: #1A3C34;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A3C34;
+  
+  --primary: #1A3C34; 
+  --primary-foreground: #F9F7F2; 
+  
+  --secondary: #98FF98;
+  --secondary-foreground: #1A3C34;
+  
+  --muted: #E2E8F0;
+  --muted-foreground: #64748B;
+  
+  --accent: #FFD700;
+  --accent-foreground: #1A3C34;
+  
+  --destructive: #EF4444;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #1A3C34;
+  --radius: 0.625rem;
+}
+
+
+.dark {
+  --background: #0b0f0e;
+  --foreground: #F9F7F2;
+  --card: #163d32;
+  --card-foreground: #F9F7F2;
+  --popover: #163d32;
+  --popover-foreground: #F9F7F2;
+  
+  --primary: #98FF98;
+  --primary-foreground: #0b0f0e;
+  
+  --secondary: #1A3C34;
+  --secondary-foreground: #F9F7F2;
+  
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  
+  --accent: #FFD700;
+  --accent-foreground: #0b0f0e;
+  
+  --destructive: #7f1d1d;
+  --border: #2f5e50;
+  --input: #2f5e50;
+  --ring: #98FF98;
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans, system-ui, sans-serif);
+  }
+}

@@ -100,3 +100,32 @@ func (s *service) ListLocationTags(ctx context.Context) ([]entity.LocationTag, e
 
 	return tags, nil
 }
+
+func (s *service) SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error) {
+	const op = "service.business.SearchVenues"
+
+	result, err := s.businessRepo.SearchVenues(ctx, query, skip, limit, tags)
+	if err != nil {
+		return pagination.Result[entity.OrgUnit]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if len(result.Items) == 0 {
+		return result, nil
+	}
+
+	ids := make([]int, 0, len(result.Items))
+	for _, item := range result.Items {
+		ids = append(ids, item.Id)
+	}
+
+	tagsByOrgUnitID, err := s.businessRepo.GetOrgUnitTagsByOrgUnitID(ctx, ids)
+	if err != nil {
+		return pagination.Result[entity.OrgUnit]{}, fmt.Errorf("%s: get org unit tags: %w", op, err)
+	}
+
+	for i := range result.Items {
+		result.Items[i].Tags = tagsByOrgUnitID[result.Items[i].Id]
+	}
+
+	return result, nil
+}
