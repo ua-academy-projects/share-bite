@@ -35,19 +35,18 @@ export function Sidebar() {
           <NavLink to="/" end className={linkClass}>Home Feed</NavLink>
           <NavLink to="/boxes" className={linkClass}>Magic Boxes</NavLink>
           <NavLink to="/discover" className={linkClass}>Discover</NavLink>
-          <NavLink to="/notifications-lab" className={linkClass}>Notifications Lab</NavLink>
-
-        <div className="mt-4 flex flex-col gap-2">
-          <span className="text-gray-400 px-3 py-2 text-sm font-medium">Social Bites</span>
-          <span className="text-gray-400 px-3 py-2 text-sm font-medium">Settings</span>
-        </div>
+          
+          <div className="mt-4 flex flex-col gap-2">
+            <span className="text-gray-400 px-3 py-2 text-sm font-medium">Social Bites</span>
+            <span className="text-gray-400 px-3 py-2 text-sm font-medium">Settings</span>
+          </div>
         </nav>
       </div>
 
       <div className="flex flex-col gap-4">
         {/* Кнопка перемикання теми */}
-        <Button
-          variant="ghost"
+        <Button 
+          variant="ghost" 
           className="justify-start px-3 text-gray-300 hover:text-white hover:bg-[#2f5e50]/50"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         >
