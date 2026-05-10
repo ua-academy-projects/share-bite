@@ -102,7 +102,7 @@ func main() {
 	)
 
 	// handlers
-	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager)
+	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient)
 
 	go func() {
 		logger.Info(ctx, "business http server is running")

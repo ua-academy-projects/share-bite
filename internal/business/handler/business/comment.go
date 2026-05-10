@@ -115,7 +115,7 @@ func (h *handler) GetComments(c *gin.Context) {
 
 	items := make([]dto.CommentWithAuthorResponse, len(comments))
 	for i, comment := range comments {
-		items[i] = mapper.ToCommentWithAuthorResponse(comment)
+		items[i] = mapper.ToCommentWithAuthorResponse(comment, h.storage)
 	}
 
 	c.JSON(http.StatusOK, dto.GetCommentsResponse{Comments: items})
@@ -137,6 +137,12 @@ func (h *handler) GetComments(c *gin.Context) {
 //	@Failure		500			{object}	errorResponse
 //	@Router			/business/posts/{id}/comments/{comment_id} [patch]
 func (h *handler) UpdateComment(c *gin.Context) {
+	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || postID <= 0 {
+		c.Error(apperror.BadRequest("invalid post id"))
+		return
+	}
+
 	commentID, err := strconv.ParseInt(c.Param("comment_id"), 10, 64)
 	if err != nil || commentID <= 0 {
 		c.Error(apperror.BadRequest("invalid comment id"))
@@ -155,7 +161,7 @@ func (h *handler) UpdateComment(c *gin.Context) {
 		return
 	}
 
-	comment, err := h.service.UpdateComment(c.Request.Context(), commentID, userID, req.Content)
+	comment, err := h.service.UpdateComment(c.Request.Context(), postID, commentID, userID, req.Content)
 	if err != nil {
 		if errors.Is(err, repo.ErrNotFound) {
 			c.Error(apperror.CommentNotFound(commentID))

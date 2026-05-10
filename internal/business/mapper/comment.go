@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 )
 
 func ToCommentResponse(comment entity.Comment) dto.CommentResponse {
@@ -15,7 +16,15 @@ func ToCommentResponse(comment entity.Comment) dto.CommentResponse {
 	}
 }
 
-func ToCommentWithAuthorResponse(comment entity.CommentWithAuthor) dto.CommentWithAuthorResponse {
+func ToCommentWithAuthorResponse(comment entity.CommentWithAuthor, st storage.ObjectStorage) dto.CommentWithAuthorResponse {
+	var avatarURL *string
+	if comment.AuthorAvatarURL != nil && *comment.AuthorAvatarURL != "" && st != nil {
+		url := st.BuildURL(*comment.AuthorAvatarURL)
+		avatarURL = &url
+	} else {
+		avatarURL = comment.AuthorAvatarURL
+	}
+
 	return dto.CommentWithAuthorResponse{
 		ID:        comment.ID,
 		PostID:    comment.PostID,
@@ -26,7 +35,7 @@ func ToCommentWithAuthorResponse(comment entity.CommentWithAuthor) dto.CommentWi
 			Username:  comment.AuthorUsername,
 			FirstName: comment.AuthorFirstName,
 			LastName:  comment.AuthorLastName,
-			AvatarURL: comment.AuthorAvatarURL,
+			AvatarURL: avatarURL,
 		},
 	}
 }

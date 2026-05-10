@@ -3,9 +3,18 @@ package mapper
 import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 )
 
-func ToLikeItem(like entity.LikeWithAuthor) dto.LikeItem {
+func ToLikeItem(like entity.LikeWithAuthor, st storage.ObjectStorage) dto.LikeItem {
+	var avatarURL *string
+	if like.AuthorAvatarURL != nil && *like.AuthorAvatarURL != "" && st != nil {
+		url := st.BuildURL(*like.AuthorAvatarURL)
+		avatarURL = &url
+	} else {
+		avatarURL = like.AuthorAvatarURL
+	}
+
 	return dto.LikeItem{
 		ID:              like.ID,
 		PostID:          like.PostID,
@@ -13,7 +22,7 @@ func ToLikeItem(like entity.LikeWithAuthor) dto.LikeItem {
 		AuthorUsername:  like.AuthorUsername,
 		AuthorFirstName: like.AuthorFirstName,
 		AuthorLastName:  like.AuthorLastName,
-		AuthorAvatarURL: like.AuthorAvatarURL,
+		AuthorAvatarURL: avatarURL,
 		CreatedAt:       like.CreatedAt,
 	}
 }

@@ -54,12 +54,5 @@ func (s *service) GetLikes(ctx context.Context, postID int64, limit, offset int)
 		return nil, fmt.Errorf("get likes: %w", err)
 	}
 
-	for i := range likes {
-		if likes[i].AuthorAvatarURL != nil && *likes[i].AuthorAvatarURL != "" {
-			url := s.storage.BuildURL(*likes[i].AuthorAvatarURL)
-			likes[i].AuthorAvatarURL = &url
-		}
-	}
-
 	return likes, nil
 }

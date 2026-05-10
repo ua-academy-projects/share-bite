@@ -30,13 +30,17 @@ func (s *service) CreateComment(ctx context.Context, postID int64, authorID, con
 	return comment, nil
 }
 
-func (s *service) UpdateComment(ctx context.Context, commentID int64, authorID, content string) (*entity.Comment, error) {
+func (s *service) UpdateComment(ctx context.Context, postID, commentID int64, authorID, content string) (*entity.Comment, error) {
 	comment, err := s.businessRepo.GetCommentByID(ctx, commentID)
 	if err != nil {
 		if errors.Is(err, business.ErrNotFound) {
 			return nil, apperror.CommentNotFound(commentID)
 		}
 		return nil, fmt.Errorf("get comment: %w", err)
+	}
+
+	if comment.PostID != postID {
+		return nil, apperror.CommentNotFound(commentID)
 	}
 
 	if comment.AuthorID != authorID {
@@ -102,14 +106,6 @@ func (s *service) GetComments(ctx context.Context, postID int64, limit, offset i
 	comments, err := s.businessRepo.ListCommentsWithAuthorsByPost(ctx, postID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("list comments: %w", err)
-	}
-
-
-	for i := range comments {
-		if comments[i].AuthorAvatarURL != nil && *comments[i].AuthorAvatarURL != "" {
-			url := s.storage.BuildURL(*comments[i].AuthorAvatarURL)
-			comments[i].AuthorAvatarURL = &url
-		}
 	}
 
 	return comments, nil

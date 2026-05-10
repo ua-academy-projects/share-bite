@@ -91,7 +91,7 @@ func (h *handler) GetLikes(c *gin.Context) {
 
 	items := make([]dto.LikeItem, len(likes))
 	for i, like := range likes {
-		items[i] = mapper.ToLikeItem(like)
+		items[i] = mapper.ToLikeItem(like, h.storage)
 	}
 
 	c.JSON(http.StatusOK, dto.GetLikesResponse{Likes: items})
