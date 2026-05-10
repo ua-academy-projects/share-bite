@@ -89,6 +89,9 @@ func (h *handler) GetComments(c *gin.Context) {
 	if l := c.Query("limit"); l != "" {
 		if parsedLimit, err := strconv.Atoi(l); err == nil && parsedLimit > 0 {
 			limit = parsedLimit
+			if limit > 100 {
+				limit = 100
+			}
 		}
 	}
 
