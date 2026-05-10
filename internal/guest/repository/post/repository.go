@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	_ "time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
@@ -728,7 +727,7 @@ func (r *Repository) CreatePostCollaborators(ctx context.Context, postID string,
 	}
 
 	q := database.Query{
-		Name: "post_collaborators.createBulk",
+		Name: "postCollaborators.createBulk",
 		Sql: `
             INSERT INTO guest.post_collaborators (post_id, customer_id, invited_by, expires_at)
             SELECT $1, unnest($2::uuid[]), $3, $4
@@ -737,7 +736,11 @@ func (r *Repository) CreatePostCollaborators(ctx context.Context, postID string,
 	}
 
 	_, err := r.db.DB().ExecContext(ctx, q, postID, customerIDs, invitedBy, expiresAt)
-	return err
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	return nil
 }
 
 func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error) {
@@ -762,14 +765,14 @@ func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID s
 
 	rows, err := r.db.DB().QueryContext(ctx, q, customerID)
 	if err != nil {
-		return nil, err
+		return nil, executeSQLError(err)
 	}
 	defer rows.Close()
 
 	var collaborators []entity.PostCollaborator
 
 	if err := pgxscan.ScanAll(&collaborators, rows); err != nil {
-		return nil, err
+		return nil, scanRowsError(err)
 	}
 
 	return collaborators, nil
@@ -777,7 +780,7 @@ func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID s
 
 func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
 	q := database.Query{
-		Name: "post_collaborators.accept",
+		Name: "postCollaborators.accept",
 		Sql: `
 			UPDATE guest.post_collaborators
 			SET status = 'accepted',
@@ -800,8 +803,7 @@ func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID st
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", apperror.ErrPostInvitationForbidden
 		}
-
-		return "", err
+		return "", scanRowError(err)
 	}
 
 	return postID, nil
@@ -816,13 +818,19 @@ func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID s
 			    responded_at = NOW()
 			WHERE id = $1
 			  AND customer_id = $2
-			  AND status = 'pending';
+			  AND status = 'pending'
+			  AND expires_at > NOW();
 		`,
 	}
 
-	tag, err := r.db.DB().ExecContext(ctx, q, collaboratorID, customerID)
+	tag, err := r.db.DB().ExecContext(
+		ctx,
+		q,
+		collaboratorID,
+		customerID,
+	)
 	if err != nil {
-		return err
+		return executeSQLError(err)
 	}
 
 	if tag.RowsAffected() == 0 {
@@ -857,7 +865,7 @@ func (r *Repository) TryPublishPostIfAllAccepted(ctx context.Context, postID str
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, nil
 		}
-		return false, err
+		return false, scanRowError(err)
 	}
 
 	return true, nil
@@ -882,7 +890,7 @@ func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID st
 
 	result, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	if err != nil {
-		return nil, err
+		return nil, executeSQLError(err)
 	}
 
 	return result, nil

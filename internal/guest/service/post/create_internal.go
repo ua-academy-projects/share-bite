@@ -12,6 +12,8 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
+const cleanupTimeout = 5 * time.Second
+
 func (s *service) createPost(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
 	exists, err := s.venueProvider.CheckExists(ctx, in.VenueID)
 	if err != nil {
@@ -124,24 +126,35 @@ func (s *service) createPost(ctx context.Context, in dto.CreatePostInput) (entit
 	return createdPost, nil
 }
 
-func rollbackUploadedImages(storage storage.ObjectStorage, keys []string) {
-	for _, key := range keys {
-		cleanupDelete(storage, key)
-	}
-}
-
-func cleanupDelete(objectStorage storage.ObjectStorage, key string) {
-	if objectStorage == nil || key == "" {
+func rollbackUploadedImages(objectStorage storage.ObjectStorage, keys []string) {
+	if objectStorage == nil || len(keys) == 0 {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		cleanupTimeout,
+	)
 	defer cancel()
 
+	for _, key := range keys {
+		cleanupDelete(ctx, objectStorage, key)
+	}
+}
+
+func cleanupDelete(ctx context.Context, objectStorage storage.ObjectStorage, key string) {
+	if key == "" {
+		return
+	}
+
 	if err := objectStorage.Delete(ctx, key); err != nil {
-		logger.WarnKV(ctx, "failed to cleanup post image object",
-			"key", key,
-			"error", err,
+		logger.WarnKV(
+			ctx,
+			"failed to cleanup post image object",
+			"key",
+			key,
+			"error",
+			err,
 		)
 	}
 }
