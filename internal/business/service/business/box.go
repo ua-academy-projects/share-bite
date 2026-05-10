@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -38,14 +40,14 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	}
 
 	buffer := make([]byte, fileHeaderSize)
-	_, err = openedFile.Read(buffer)
+	n, err := openedFile.Read(buffer)
 	openedFile.Close()
 
 	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	contentType := http.DetectContentType(buffer)
+	contentType := http.DetectContentType(buffer[:n])
 	if !isAllowedImageType(contentType) {
 		return nil, biserr.WrongFileExtErr
 	}
@@ -80,7 +82,12 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	isSuccess := false
 	defer func() {
 		if !isSuccess {
-			s.storage.Delete(ctx, key)
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := s.storage.Delete(cleanupCtx, key); err != nil {
+				log.Printf("failed to cleanup uploaded object: key=%s err=%v", key, err)
+			}
 		}
 	}()
 
@@ -141,7 +148,10 @@ func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, l
 		result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
 
 		if result.Items[i].Box.Image != "" {
-			result.Items[i].Box.Image = s.storage.BuildURL(result.Items[i].Box.Image)
+			imageURL, err := s.storage.GetPresignedURL(ctx, result.Items[i].Box.Image)
+			if err == nil {
+				result.Items[i].Box.Image = imageURL
+			}
 		}
 	}
 
