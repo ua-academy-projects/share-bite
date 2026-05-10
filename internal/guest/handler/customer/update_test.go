@@ -71,8 +71,8 @@ func TestUpdate(t *testing.T) {
 					Return(expectedCustomer, nil).
 					Once()
 
-				st.On("BuildURL", avatarObjectKey).
-					Return(baseURL + avatarObjectKey).
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return(baseURL+avatarObjectKey, nil).
 					Once()
 			},
 			wantCode: http.StatusOK,
@@ -107,8 +107,8 @@ func TestUpdate(t *testing.T) {
 					Return(expectedCustomer, nil).
 					Once()
 
-				st.On("BuildURL", avatarObjectKey).
-					Return(baseURL + avatarObjectKey).
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return(baseURL+avatarObjectKey, nil).
 					Once()
 			},
 			wantCode: http.StatusOK,

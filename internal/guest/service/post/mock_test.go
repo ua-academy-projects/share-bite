@@ -158,6 +158,7 @@ func (m *followRepoMock) GetAllowedMentions(ctx context.Context, customerID stri
 
 type customerRepoMock struct {
 	getByIDsFn func(ctx context.Context, customerIDs []string) ([]entity.Customer, error)
+	getByIDFn  func(ctx context.Context, customerID string) (entity.Customer, error)
 }
 
 func (m *customerRepoMock) GetByIDs(ctx context.Context, customerIDs []string) ([]entity.Customer, error) {
@@ -169,6 +170,13 @@ func (m *customerRepoMock) GetByIDs(ctx context.Context, customerIDs []string) (
 		customers[i] = entity.Customer{ID: id}
 	}
 	return customers, nil
+}
+
+func (m *customerRepoMock) GetByID(ctx context.Context, customerID string) (entity.Customer, error) {
+	if m.getByIDFn != nil {
+		return m.getByIDFn(ctx, customerID)
+	}
+	return entity.Customer{ID: customerID}, nil
 }
 
 type txManagerMock struct {

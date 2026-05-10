@@ -54,8 +54,8 @@ func TestGetMe(t *testing.T) {
 					}, nil).
 					Once()
 
-				st.On("BuildURL", avatarObjectKey).
-					Return(baseURL + avatarObjectKey).
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return(baseURL+avatarObjectKey, nil).
 					Once()
 			},
 			wantBody: getMeResponse{
