@@ -56,6 +56,10 @@ func (h *handler) CreateComment(c *gin.Context) {
 
 	comment, err := h.service.CreateComment(c.Request.Context(), postID, userID, req.Content)
 	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			c.Error(apperror.PostNotFound(postID))
+			return
+		}
 		c.Error(err)
 		return
 	}
@@ -153,6 +157,10 @@ func (h *handler) UpdateComment(c *gin.Context) {
 
 	comment, err := h.service.UpdateComment(c.Request.Context(), commentID, userID, req.Content)
 	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			c.Error(apperror.CommentNotFound(commentID))
+			return
+		}
 		c.Error(err)
 		return
 	}
@@ -197,6 +205,10 @@ func (h *handler) DeleteComment(c *gin.Context) {
 
 	err = h.service.DeleteComment(c.Request.Context(), postID, commentID, userID)
 	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			c.Error(apperror.CommentNotFound(commentID))
+			return
+		}
 		c.Error(err)
 		return
 	}
