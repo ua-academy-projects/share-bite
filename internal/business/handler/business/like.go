@@ -11,6 +11,18 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
+// ToggleLike adds or removes a like from a post.
+//
+//	@Summary		Toggle like
+//	@Description	Adds a like if it doesn't exist, otherwise removes it.
+//	@Tags			posts
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			id	path		int	true	"Post ID"
+//	@Success		200	{object}	dto.ToggleLikeResponse
+//	@Failure		400	{object}	errorResponse
+//	@Failure		500	{object}	errorResponse
+//	@Router			/business/posts/{id}/likes [post]
 func (h *handler) ToggleLike(c *gin.Context) {
 	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil || postID <= 0 {
@@ -33,9 +45,22 @@ func (h *handler) ToggleLike(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.ToggleLikeResponse{Liked: liked})
 }
 
+// GetLikes returns a list of likes for a post.
+//
+//	@Summary		Get likes
+//	@Description	Returns a paginated list of likes for the specified post.
+//	@Tags			posts
+//	@Produce		json
+//	@Param			id		path		int	true	"Post ID"
+//	@Param			limit	query		int	false	"Limit"
+//	@Param			offset	query		int	false	"Offset"
+//	@Success		200		{object}	dto.GetLikesResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Router			/business/posts/{id}/likes [get]
 func (h *handler) GetLikes(c *gin.Context) {
 	postID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	if err != nil || postID <= 0 {
 		c.Error(apperror.BadRequest("invalid post id"))
 		return
 	}

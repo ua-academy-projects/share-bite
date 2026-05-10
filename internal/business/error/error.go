@@ -62,3 +62,10 @@ func Forbidden(msg string) *Error {
 func Unauthorized(msg string) *Error {
 	return newError(code.Unauthorized, msg)
 }
+
+
+
+
+func Conflict(msg string) *Error {
+	return newError(code.Conflict, msg)
+}

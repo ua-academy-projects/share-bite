@@ -161,9 +161,12 @@ func (r *Repository) ListCommentsWithAuthorsByPost(ctx context.Context, postID i
 			SELECT 
 				c.id, c.post_id, c.content, c.created_at,
 				c.author_id,
-				cu.username, cu.first_name, cu.last_name, cu.avatar_object_key
+				COALESCE(cu.username, 'User'), 
+				COALESCE(cu.first_name, ''), 
+				COALESCE(cu.last_name, ''), 
+				cu.avatar_object_key
 			FROM business.comments c
-			JOIN guest.customers cu ON c.author_id = cu.user_id
+			LEFT JOIN guest.customers cu ON c.author_id = cu.user_id
 			WHERE c.post_id = $1
 			ORDER BY c.created_at DESC
 			LIMIT $2 OFFSET $3

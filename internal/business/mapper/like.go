@@ -7,9 +7,9 @@ import (
 
 func ToLikeItem(like entity.Like) dto.LikeItem {
 	return dto.LikeItem{
-		ID:         like.ID,
-		PostID:     like.PostID,
-		CustomerID: like.CustomerID,
-		CreatedAt:  like.CreatedAt,
+		ID:        like.ID,
+		PostID:    like.PostID,
+		AuthorID:  like.AuthorID,
+		CreatedAt: like.CreatedAt,
 	}
 }

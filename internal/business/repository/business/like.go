@@ -4,44 +4,49 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
-func (r *Repository) CreateLike(ctx context.Context, postID int64, customerID string) (*entity.Like, error) {
+func (r *Repository) CreateLike(ctx context.Context, postID int64, authorID string) (*entity.Like, error) {
 	q := database.Query{
 		Name: "create_like",
 		Sql: `
-			INSERT INTO business.likes (post_id, customer_id, created_at)
+			INSERT INTO business.likes (post_id, author_id, created_at)
 			VALUES ($1, $2, NOW())
-			RETURNING id, post_id, customer_id, created_at
+			RETURNING id, post_id, author_id, created_at
 		`,
 	}
 
 	var like entity.Like
-	err := r.db.DB().QueryRowContext(ctx, q, postID, customerID).Scan(
+	err := r.db.DB().QueryRowContext(ctx, q, postID, authorID).Scan(
 		&like.ID,
 		&like.PostID,
-		&like.CustomerID,
+		&like.AuthorID,
 		&like.CreatedAt,
 	)
 	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+			return nil, apperror.Conflict("post already liked by this user")
+		}
 		return nil, fmt.Errorf("create like: %w", err)
 	}
 
 	return &like, nil
 }
 
-func (r *Repository) DeleteLike(ctx context.Context, postID int64, customerID string) error {
+func (r *Repository) DeleteLike(ctx context.Context, postID int64, authorID string) error {
 	q := database.Query{
 		Name: "delete_like",
 		Sql: `
 			DELETE FROM business.likes
-			WHERE post_id = $1 AND customer_id = $2
+			WHERE post_id = $1 AND author_id = $2
 		`,
 	}
 
-	result, err := r.db.DB().ExecContext(ctx, q, postID, customerID)
+	result, err := r.db.DB().ExecContext(ctx, q, postID, authorID)
 	if err != nil {
 		return fmt.Errorf("delete like: %w", err)
 	}
@@ -53,19 +58,19 @@ func (r *Repository) DeleteLike(ctx context.Context, postID int64, customerID st
 	return nil
 }
 
-func (r *Repository) CheckUserLiked(ctx context.Context, postID int64, customerID string) (bool, error) {
+func (r *Repository) CheckUserLiked(ctx context.Context, postID int64, authorID string) (bool, error) {
 	q := database.Query{
 		Name: "check_user_liked",
 		Sql: `
 			SELECT EXISTS(
 				SELECT 1 FROM business.likes
-				WHERE post_id = $1 AND customer_id = $2
+				WHERE post_id = $1 AND author_id = $2
 			)
 		`,
 	}
 
 	var exists bool
-	err := r.db.DB().QueryRowContext(ctx, q, postID, customerID).Scan(&exists)
+	err := r.db.DB().QueryRowContext(ctx, q, postID, authorID).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("check user liked: %w", err)
 	}
@@ -95,7 +100,7 @@ func (r *Repository) GetLikesByPost(ctx context.Context, postID int64, limit, of
 	q := database.Query{
 		Name: "get_likes_by_post",
 		Sql: `
-			SELECT id, post_id, customer_id, created_at
+			SELECT id, post_id, author_id, created_at
 			FROM business.likes
 			WHERE post_id = $1
 			ORDER BY created_at DESC
@@ -115,7 +120,7 @@ func (r *Repository) GetLikesByPost(ctx context.Context, postID int64, limit, of
 		if err := rows.Scan(
 			&like.ID,
 			&like.PostID,
-			&like.CustomerID,
+			&like.AuthorID,
 			&like.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan like row: %w", err)

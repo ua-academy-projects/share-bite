@@ -140,6 +140,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 			case code.Unauthorized:
 				c.JSON(http.StatusUnauthorized, gin.H{"error": appErr.Error()})
 				return
+			case code.Conflict:
+				c.JSON(http.StatusConflict, gin.H{"error": appErr.Error()})
+				return
 			}
 		}
 

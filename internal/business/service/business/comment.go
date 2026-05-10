@@ -75,6 +75,14 @@ func (s *service) GetComments(ctx context.Context, postID int64, limit, offset i
 		return nil, fmt.Errorf("list comments: %w", err)
 	}
 
+
+	for i := range comments {
+		if comments[i].AuthorAvatarURL != nil && *comments[i].AuthorAvatarURL != "" {
+			url := s.storage.BuildURL(*comments[i].AuthorAvatarURL)
+			comments[i].AuthorAvatarURL = &url
+		}
+	}
+
 	return comments, nil
 }
 

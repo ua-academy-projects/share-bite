@@ -7,10 +7,10 @@ type ToggleLikeResponse struct {
 }
 
 type LikeItem struct {
-	ID         int64     `json:"id" example:"1"`
-	PostID     int64     `json:"postId" example:"42"`
-	CustomerID string    `json:"customerId" example:"550e8400-e29b-41d4-a716-446655440000"`
-	CreatedAt  time.Time `json:"createdAt" example:"2024-04-06T10:00:00Z"`
+	ID        int64     `json:"id" example:"1"`
+	PostID    int64     `json:"postId" example:"42"`
+	AuthorID  string    `json:"authorId" example:"550e8400-e29b-41d4-a716-446655440000"`
+	CreatedAt time.Time `json:"createdAt" example:"2024-04-06T10:00:00Z"`
 }
 
 type GetLikesResponse struct {

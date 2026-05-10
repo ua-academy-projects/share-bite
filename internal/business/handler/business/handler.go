@@ -136,8 +136,8 @@ func RegisterHandlers(
 		authenticated.PATCH("/posts/:id/comments/:comment_id", h.UpdateComment)
 		authenticated.DELETE("/posts/:id/comments/:comment_id", h.DeleteComment)
 	}
-	r.GET("/locations/nearby", h.ListNearbyVenues)
 
+	
 	reservations := r.Group("/boxes").
 		Use(auth)
 	{
