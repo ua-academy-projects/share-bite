@@ -8,6 +8,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -65,7 +66,8 @@ func RegisterHandlers(
 
 	businessPosts := r.Group("/posts").
 		Use(auth).
-		Use(middleware.RequireRoles("business"))
+		Use(middleware.RequireRoles("business")).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		businessPosts.PUT("/:id", h.UpdatePost)
 		businessPosts.DELETE("/:id", h.DeletePost)
@@ -74,7 +76,8 @@ func RegisterHandlers(
 
 	businessLocations := r.Group("").
 		Use(auth).
-		Use(middleware.RequireRoles("business"))
+		Use(middleware.RequireRoles("business")).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		businessLocations.POST("/:id/locations", h.createLocation)
 		businessLocations.PATCH("/locations/:id", h.updateLocation)
@@ -83,7 +86,8 @@ func RegisterHandlers(
 
 	boxes := r.Group("/boxes").
 		Use(auth).
-		Use(middleware.RequireRoles("business"))
+		Use(middleware.RequireRoles("business")).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		boxes.POST("", h.CreateBox)
 	}
