@@ -44,7 +44,7 @@ func (h *handler) CreateComment(c *gin.Context) {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		c.Error(apperror.BadRequest("unauthorized"))
+		c.Error(apperror.Unauthorized("unauthorized"))
 		return
 	}
 
@@ -145,7 +145,7 @@ func (h *handler) UpdateComment(c *gin.Context) {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		c.Error(apperror.BadRequest("unauthorized"))
+		c.Error(apperror.Unauthorized("unauthorized"))
 		return
 	}
 
@@ -199,7 +199,7 @@ func (h *handler) DeleteComment(c *gin.Context) {
 
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		c.Error(apperror.BadRequest("unauthorized"))
+		c.Error(apperror.Unauthorized("unauthorized"))
 		return
 	}
 
