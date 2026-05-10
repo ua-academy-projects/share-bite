@@ -4,10 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"path/filepath"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -15,23 +23,77 @@ const (
 	kilometerIndex = 1.60934
 )
 
-func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error) {
+func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest, image *multipart.FileHeader) (*entity.Box, error) {
 	const op = "service.box.CreateBox"
+
+	if image == nil {
+		return nil, fmt.Errorf("%s: image is required", op)
+	}
+
+	if image.Size > maxImageSize {
+		return nil, biserr.FileToLargeErr
+	}
+
+	openedFile, err := image.Open()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	buffer := make([]byte, fileHeaderSize)
+	n, err := openedFile.Read(buffer)
+	openedFile.Close()
+
+	if err != nil && err != io.EOF {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	contentType := http.DetectContentType(buffer[:n])
+	if !isAllowedImageType(contentType) {
+		return nil, biserr.WrongFileExtErr
+	}
 
 	if req.DiscountPrice.GreaterThan(req.FullPrice) {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("invalid price"))
 	}
+
 	if req.FullPrice.LessThanOrEqual(decimal.Zero) || req.DiscountPrice.LessThan(decimal.Zero) {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("price values are out of range"))
 	}
+
 	if req.Quantity <= 0 {
 		return nil, fmt.Errorf("%s: %w", op, errors.New("quantity must be at least 1"))
 	}
 
+	openedFile, err = image.Open()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	fileExt := filepath.Ext(image.Filename)
+	objectKey := fmt.Sprintf("boxes/%d/%s%s", req.VenueID, uuid.New().String(), fileExt)
+
+	key, err := s.storage.Upload(ctx, objectKey, contentType, openedFile)
+	openedFile.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	isSuccess := false
+	defer func() {
+		if !isSuccess {
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			if err := s.storage.Delete(cleanupCtx, key); err != nil {
+				log.Printf("failed to cleanup uploaded object: key=%s err=%v", key, err)
+			}
+		}
+	}()
+
 	var box *entity.Box
 
-	err := s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
-
+	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
 		err := s.businessRepo.CheckOwnership(ctxTx, userID, req.VenueID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", op, err)
@@ -40,7 +102,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 		box = &entity.Box{
 			VenueID:       req.VenueID,
 			CategoryID:    req.CategoryID,
-			Image:         req.Image,
+			Image:         key,
 			FullPrice:     req.FullPrice,
 			DiscountPrice: req.DiscountPrice,
 			ExpiresAt:     req.ExpiresAt,
@@ -70,6 +132,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	isSuccess = true
 	return box, nil
 }
 
@@ -85,7 +148,18 @@ func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, l
 		result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
 
 		if result.Items[i].Box.Image != "" {
-			result.Items[i].Box.Image = s.storage.BuildURL(result.Items[i].Box.Image)
+			imageURL, err := s.storage.GetPresignedURL(ctx, result.Items[i].Box.Image)
+			if err != nil {
+				log.Printf(
+					"failed to generate presigned URL for box %d: %v",
+					result.Items[i].Box.ID,
+					err,
+				)
+
+				result.Items[i].Box.Image = ""
+			} else {
+				result.Items[i].Box.Image = imageURL
+			}
 		}
 	}
 

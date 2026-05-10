@@ -49,7 +49,7 @@ type businessService interface {
 	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
 	GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.OrgUnit, error)
 
-	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest) (*entity.Box, error)
+	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest, image *multipart.FileHeader) (*entity.Box, error)
 	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	Rating(ctx context.Context, id int) (float32, error)
 
