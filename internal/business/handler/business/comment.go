@@ -163,13 +163,15 @@ func (h *handler) UpdateComment(c *gin.Context) {
 // DeleteComment removes a comment from a post.
 //
 //	@Summary		Delete comment
-//	@Description	Deletes an existing comment.
+//	@Description	Deletes an existing comment. Authors can delete their own comments, and business owners can delete any comment on their posts.
 //	@Tags			posts
 //	@Security		BearerAuth
 //	@Param			id			path	int	true	"Post ID"
 //	@Param			comment_id	path	int	true	"Comment ID"
 //	@Success		204			"No Content"
 //	@Failure		400			{object}	errorResponse
+//	@Failure		403			{object}	errorResponse
+//	@Failure		404			{object}	errorResponse
 //	@Failure		500			{object}	errorResponse
 //	@Router			/business/posts/{id}/comments/{comment_id} [delete]
 func (h *handler) DeleteComment(c *gin.Context) {

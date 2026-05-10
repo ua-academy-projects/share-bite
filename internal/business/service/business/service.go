@@ -41,7 +41,7 @@ type businessRepository interface {
 	DeleteLike(ctx context.Context, postID int64, authorID string) error
 	CheckUserLiked(ctx context.Context, postID int64, authorID string) (bool, error)
 	CountLikesByPost(ctx context.Context, postID int64) (int, error)
-	GetLikesByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.Like, error)
+	GetLikesByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error)
 	CreateComment(ctx context.Context, postID int64, authorID, content string) (*entity.Comment, error)
 	GetCommentByID(ctx context.Context, commentID int64) (*entity.Comment, error)
 	UpdateComment(ctx context.Context, commentID int64, content string) (*entity.Comment, error)

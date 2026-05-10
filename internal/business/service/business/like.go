@@ -45,10 +45,17 @@ func (s *service) ToggleLike(ctx context.Context, postID int64, authorID string)
 	return true, nil
 }
 
-func (s *service) GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.Like, error) {
+func (s *service) GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error) {
 	likes, err := s.businessRepo.GetLikesByPost(ctx, postID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("get likes: %w", err)
+	}
+
+	for i := range likes {
+		if likes[i].AuthorAvatarURL != nil && *likes[i].AuthorAvatarURL != "" {
+			url := s.storage.BuildURL(*likes[i].AuthorAvatarURL)
+			likes[i].AuthorAvatarURL = &url
+		}
 	}
 
 	return likes, nil

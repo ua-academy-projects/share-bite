@@ -96,14 +96,21 @@ func (r *Repository) CountLikesByPost(ctx context.Context, postID int64) (int, e
 	return count, nil
 }
 
-func (r *Repository) GetLikesByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.Like, error) {
+func (r *Repository) GetLikesByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error) {
 	q := database.Query{
-		Name: "get_likes_by_post",
+		Name: "get_likes_with_authors_by_post",
 		Sql: `
-			SELECT id, post_id, author_id, created_at
-			FROM business.likes
-			WHERE post_id = $1
-			ORDER BY created_at DESC
+			SELECT
+				l.id, l.post_id, l.created_at,
+				l.author_id,
+				COALESCE(cu.username, 'User'),
+				COALESCE(cu.first_name, ''),
+				COALESCE(cu.last_name, ''),
+				cu.avatar_object_key
+			FROM business.likes l
+			LEFT JOIN guest.customers cu ON l.author_id = cu.user_id
+			WHERE l.post_id = $1
+			ORDER BY l.created_at DESC
 			LIMIT $2 OFFSET $3
 		`,
 	}
@@ -114,14 +121,18 @@ func (r *Repository) GetLikesByPost(ctx context.Context, postID int64, limit, of
 	}
 	defer rows.Close()
 
-	var likes []entity.Like
+	var likes []entity.LikeWithAuthor
 	for rows.Next() {
-		var like entity.Like
+		var like entity.LikeWithAuthor
 		if err := rows.Scan(
 			&like.ID,
 			&like.PostID,
-			&like.AuthorID,
 			&like.CreatedAt,
+			&like.AuthorID,
+			&like.AuthorUsername,
+			&like.AuthorFirstName,
+			&like.AuthorLastName,
+			&like.AuthorAvatarURL,
 		); err != nil {
 			return nil, fmt.Errorf("scan like row: %w", err)
 		}

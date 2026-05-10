@@ -37,7 +37,7 @@ type businessService interface {
 	DeletePost(ctx context.Context, postID int64, userID string) error
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ToggleLike(ctx context.Context, postID int64, customerID string) (bool, error)
-	GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.Like, error)
+	GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error)
 	CreateComment(ctx context.Context, postID int64, authorID, content string) (*entity.Comment, error)
 	UpdateComment(ctx context.Context, commentID int64, authorID, content string) (*entity.Comment, error)
 	DeleteComment(ctx context.Context, commentID int64, authorID string) error
