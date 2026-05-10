@@ -11,6 +11,7 @@ import { UsersPage } from "@/pages/UsersPage";
 import { UserStatusPage } from "@/pages/UserStatusPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
+import { GitHubSuccessPage } from "@/pages/GitHubSuccessPage";
 
 function AdminLayout() {
   return (
@@ -32,6 +33,7 @@ function App() {
       <Route path="/recover-access" element={<RecoverAccessPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/oauth/:provider/callback" element={<OAuthCallbackPage />} />
+      <Route path="/oauth/github/success" element={<GitHubSuccessPage />} />
 
       {/* Protected routes with sidebar */}
       <Route element={<ProtectedRoute />}>

@@ -63,12 +63,3 @@ type GitHubUser struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
-
-type User struct {
-	ID        int64
-	GitHubID  int64
-	Login     string
-	Email     string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}

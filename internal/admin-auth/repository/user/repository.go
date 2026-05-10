@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
@@ -32,29 +33,62 @@ type Repository interface {
 	RevokeAllUserTokens(ctx context.Context, userID string) error
 	EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error
 	DeleteExpiredTokens(ctx context.Context) error
-	UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error)
+	UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (string, error)
 }
 
-func (r *repository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
-	q := database.Query{
-		Name: "user.UpsertByGitHubID",
-		Sql: `
-			INSERT INTO github.users (github_id, login)
-			VALUES ($1, $2)
-			ON CONFLICT (github_id) DO UPDATE
-			SET login = EXCLUDED.login, updated_at = NOW()
-			RETURNING id, github_id, login, created_at, updated_at
-		`,
+const githubProviderName = "github"
+
+// UpsertByGitHubID returns the auth.users.id (UUID) for a GitHub identity,
+// reusing auth.social_accounts (provider, provider_id) as the lookup key —
+// the same table Google OAuth uses. Order of resolution:
+//  1. existing social link for ("github", ghUser.ID)        → return user
+//  2. existing user with same email                         → link & return
+//  3. otherwise create a new user with the default "user" role
+func (r *repository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (string, error) {
+	providerID := strconv.FormatInt(ghUser.ID, 10)
+
+	if existing, err := r.FindBySocialProvider(ctx, githubProviderName, providerID); err != nil {
+		return "", fmt.Errorf("find by github social: %w", err)
+	} else if existing != nil {
+		return existing.ID, nil
 	}
 
-	row := r.client.DB().QueryRowContext(ctx, q, ghUser.ID, ghUser.Login)
-	u := new(dto.User)
-	if err := row.Scan(&u.ID, &u.GitHubID, &u.Login, &u.CreatedAt, &u.UpdatedAt); err != nil {
-		return nil, fmt.Errorf("upsert by github id: %w", err)
+	if ghUser.Email == "" {
+		return "", apperr.Wrap(http.StatusBadGateway, "github account has no email", nil)
 	}
-	u.Email = ghUser.Email
 
-	return u, nil
+	if byEmail, err := r.FindByEmail(ctx, ghUser.Email); err != nil {
+		return "", fmt.Errorf("find by email for github: %w", err)
+	} else if byEmail != nil {
+		if err := r.LinkSocialAccount(ctx, dto.CreateSocialAccountParams{
+			UserID:     byEmail.ID,
+			Provider:   githubProviderName,
+			ProviderID: providerID,
+			Email:      ghUser.Email,
+		}); err != nil {
+			return "", fmt.Errorf("link github to existing user: %w", err)
+		}
+		return byEmail.ID, nil
+	}
+
+	role, err := r.FindRoleBySlug(ctx, "user")
+	if err != nil {
+		return "", fmt.Errorf("find default role: %w", err)
+	}
+	if role == nil {
+		return "", apperr.ErrRoleNotFound
+	}
+
+	created, err := r.CreateWithSocial(ctx, dto.CreateUserWithSocialParams{
+		Email:      ghUser.Email,
+		Provider:   githubProviderName,
+		ProviderID: providerID,
+		RoleID:     role.ID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("create github user: %w", err)
+	}
+	return created.ID, nil
 }
 
 type repository struct {

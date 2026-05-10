@@ -5,15 +5,19 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"html/template"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	_ "embed"
 )
+
+//go:embed templates/success-tmp.html
+var githubSuccessPageHTML string
 
 type Config struct {
 	ClientID           string
@@ -118,41 +122,53 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.users.UpsertByGitHubID(ctx, *ghUser)
+	if ghUser.Email == "" {
+		primary, err := h.gh.getPrimaryEmail(ctx, accessToken)
+		if err != nil {
+			http.Error(w, "failed to get github user email", http.StatusBadGateway)
+			return
+		}
+		ghUser.Email = primary
+	}
+
+	userID, err := h.users.UpsertByGitHubID(ctx, *ghUser)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
 
-	token, err := h.session.Create(ctx, fmt.Sprintf("%d", user.ID))
+	accessToken, refreshToken, err := h.session.Create(ctx, userID)
 	if err != nil {
 		http.Error(w, "session error", http.StatusInternalServerError)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    token,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-		Path:     "/",
-	})
-
 	redirectURL := h.cfg.SuccessRedirectURL
 	if redirectURL == "" {
 		redirectURL = "/auth/github/success"
 	}
+
+	// Pass tokens to the frontend via URL fragment so they never hit the
+	// network logs and the frontend can stash them in localStorage.
+	tokens := url.Values{}
+	tokens.Set("access_token", accessToken)
+	tokens.Set("refresh_token", refreshToken)
+	redirectURL += "#" + tokens.Encode()
+
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *Handler) Success(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("internal/admin-auth/provider/github/templates/success-tmp.html")
-  if err != nil{
-    http.Error(w, "Template error", http.StatusInternalServerError)
-  }
-  w.Header().Set("Context-Type", "text/html; charser=utf-8")
-  t.Execute(w, nil)
+	t, err := template.New("github-success").Parse(githubSuccessPageHTML)
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := t.Execute(w, nil); err != nil {
+		http.Error(w, "render failed", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) generateState() (string, error) {
