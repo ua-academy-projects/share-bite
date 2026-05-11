@@ -7,7 +7,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
-	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 type postRepositoryMock struct {
@@ -17,8 +17,9 @@ type postRepositoryMock struct {
 	getByIDFn            func(ctx context.Context, postID string) (entity.Post, error)
 	getAuthorUserIDFn    func(ctx context.Context, postID string) (string, error)
 	updateFn             func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
-	likeFn               func(ctx context.Context, postID string, customerID string) error
+	likeFn               func(ctx context.Context, postID string, customerID string) (bool, error)
 	unlikeFn             func(ctx context.Context, postID string, customerID string) error
+	outboxFn             func(ctx context.Context, event outbox.Event) error
 	updateStatusFn       func(ctx context.Context, postID, customerID string, status entity.PostStatus) error
 	getPostsByVenueIDsFn func(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
 	createMentionsFn     func(ctx context.Context, mentions []entity.PostMention) error
@@ -86,16 +87,27 @@ func (m *postRepositoryMock) DeleteImagesByPostID(ctx context.Context, postID st
 	return nil
 }
 
-func (m *postRepositoryMock) Like(ctx context.Context, postID string, customerID string) error {
+func (m *postRepositoryMock) Like(ctx context.Context, postID string, customerID string) (bool, error) {
 	if m.likeFn != nil {
 		return m.likeFn(ctx, postID, customerID)
 	}
-	return nil
+	return true, nil
 }
 
 func (m *postRepositoryMock) Unlike(ctx context.Context, postID string, customerID string) error {
 	if m.unlikeFn != nil {
 		return m.unlikeFn(ctx, postID, customerID)
+	}
+	return nil
+}
+
+type outboxWriterMock struct {
+	enqueueFn func(ctx context.Context, event outbox.Event) error
+}
+
+func (m *outboxWriterMock) Enqueue(ctx context.Context, event outbox.Event) error {
+	if m.enqueueFn != nil {
+		return m.enqueueFn(ctx, event)
 	}
 	return nil
 }
@@ -146,6 +158,7 @@ func (m *followRepoMock) GetAllowedMentions(ctx context.Context, customerID stri
 
 type customerRepoMock struct {
 	getByIDsFn func(ctx context.Context, customerIDs []string) ([]entity.Customer, error)
+	getByIDFn  func(ctx context.Context, customerID string) (entity.Customer, error)
 }
 
 func (m *customerRepoMock) GetByIDs(ctx context.Context, customerIDs []string) ([]entity.Customer, error) {
@@ -159,6 +172,13 @@ func (m *customerRepoMock) GetByIDs(ctx context.Context, customerIDs []string) (
 	return customers, nil
 }
 
+func (m *customerRepoMock) GetByID(ctx context.Context, customerID string) (entity.Customer, error) {
+	if m.getByIDFn != nil {
+		return m.getByIDFn(ctx, customerID)
+	}
+	return entity.Customer{ID: customerID}, nil
+}
+
 type txManagerMock struct {
 	readCommittedFn func(ctx context.Context, fn database.Handler) error
 }
@@ -170,21 +190,10 @@ func (m *txManagerMock) ReadCommitted(ctx context.Context, fn database.Handler) 
 	return fn(ctx)
 }
 
-type publisherMock struct {
-	publishFn func(ctx context.Context, target string, msg notification.Message) error
-}
-
-func (m *publisherMock) Publish(ctx context.Context, target string, msg notification.Message) error {
-	if m.publishFn != nil {
-		return m.publishFn(ctx, target, msg)
-	}
-	return nil
-}
-
 type storageMock struct {
-	uploadFn   func(ctx context.Context, key string, contentType string, file io.Reader) error
-	deleteFn   func(ctx context.Context, key string) error
-	buildURLFn func(key string) string
+	uploadFn          func(ctx context.Context, key string, contentType string, file io.Reader) error
+	deleteFn          func(ctx context.Context, key string) error
+	buildURLFn        func(key string) string
 	getPresignedURLFn func(ctx context.Context, key string) (string, error)
 }
 

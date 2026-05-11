@@ -24,7 +24,7 @@ func Get[T any](c *gin.Context, key string) (T, error) {
 	}
 
 	typedVal, ok := val.(T)
-	if !ok {	
+	if !ok {
 		return zero, fmt.Errorf("%w: %s", ErrInvalidType, key)
 	}
 

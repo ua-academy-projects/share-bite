@@ -523,7 +523,7 @@ func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) 
 	return grouped, nil
 }
 
-func (r *Repository) Like(ctx context.Context, postID string, customerID string) error {
+func (r *Repository) Like(ctx context.Context, postID string, customerID string) (bool, error) {
 	sql := `
         INSERT INTO guest.post_likes (post_id, customer_id) 
         VALUES ($1, $2) 
@@ -534,12 +534,12 @@ func (r *Repository) Like(ctx context.Context, postID string, customerID string)
 		Sql:  sql,
 	}
 
-	_, err := r.db.DB().ExecContext(ctx, q, postID, customerID)
+	result, err := r.db.DB().ExecContext(ctx, q, postID, customerID)
 	if err != nil {
-		return executeSQLError(err)
+		return false, executeSQLError(err)
 	}
 
-	return nil
+	return result.RowsAffected() > 0, nil
 }
 
 func (r *Repository) Unlike(ctx context.Context, postID string, customerID string) error {

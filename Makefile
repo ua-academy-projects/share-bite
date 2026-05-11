@@ -50,13 +50,13 @@ s3-ui:
 	@echo "web_ui: http://localhost:4309"
 
 goose-up:
-	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" up
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$(DB_DSN)" goose -dir $(MIGRATIONS_DIR) up
 
 goose-down:
-	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" down
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$(DB_DSN)" goose -dir $(MIGRATIONS_DIR) down
 
 goose-status:
-	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" status
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$(DB_DSN)" goose -dir $(MIGRATIONS_DIR) status
 
 goose-create:
 	@if [ -z "$(name)" ]; then \

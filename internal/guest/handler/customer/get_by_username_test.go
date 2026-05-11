@@ -54,8 +54,8 @@ func TestGetByUserName(t *testing.T) {
 					}, nil).
 					Once()
 
-				st.On("BuildURL", avatarObjectKey).
-					Return(baseURL + avatarObjectKey).
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return(baseURL+avatarObjectKey, nil).
 					Once()
 			},
 			wantBody: getByUserNameResponse{
@@ -117,6 +117,43 @@ func TestGetByUserName(t *testing.T) {
 			},
 			wantCode: http.StatusNotFound,
 			wantBody: response.ErrorResponse{Message: apperror.CustomerNotFoundUserName("sharebitefake").Error()},
+		},
+		{
+			name:     "success with fallback",
+			userName: userName,
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
+				s.On("GetByUserName", mock.Anything, userName).
+					Return(entity.Customer{
+						ID:              customerID,
+						UserID:          userID,
+						UserName:        userName,
+						FirstName:       firstName,
+						LastName:        lastName,
+						AvatarObjectKey: &avatarObjectKey,
+						Bio:             &bio,
+					}, nil).
+					Once()
+
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return("", errors.New("presign failed")).
+					Once()
+
+				st.On("BuildURL", avatarObjectKey).
+					Return(baseURL + avatarObjectKey).
+					Once()
+			},
+			wantBody: getByUserNameResponse{
+				Customer: customerResponse{
+					ID:        customerID,
+					UserID:    userID,
+					UserName:  userName,
+					FirstName: firstName,
+					LastName:  lastName,
+					Bio:       &bio,
+					AvatarURL: strPtr(baseURL + avatarObjectKey),
+				},
+			},
+			wantCode: http.StatusOK,
 		},
 		{
 			name:     "service unknown error",

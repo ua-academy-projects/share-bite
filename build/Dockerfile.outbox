@@ -1,0 +1,15 @@
+FROM golang:1.26.1-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+RUN go build -o outbox-worker ./cmd/outbox-worker
+
+FROM alpine:3.21
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+WORKDIR /app
+COPY --from=builder --chown=appuser:appgroup /app/outbox-worker .
+USER appuser
+CMD ["./outbox-worker"]

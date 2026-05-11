@@ -93,5 +93,5 @@ func TestPostHandler_Delete_UnauthorizedWithoutHeader(t *testing.T) {
 	router.ServeHTTP(res, req)
 
 	require.Equal(t, http.StatusUnauthorized, res.Code)
-	assert.Contains(t, res.Body.String(), "empty auth header")
+	assert.Contains(t, res.Body.String(), "unauthorized: missing token")
 }

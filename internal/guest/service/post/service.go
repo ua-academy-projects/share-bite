@@ -2,9 +2,10 @@ package post
 
 import (
 	"context"
+
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
-	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -17,7 +18,7 @@ type postRepository interface {
 	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
 	GetByID(ctx context.Context, postID string) (entity.Post, error)
 	GetAuthorUserID(ctx context.Context, postID string) (string, error)
-	Like(ctx context.Context, postID string, customerID string) error
+	Like(ctx context.Context, postID string, customerID string) (bool, error)
 	Unlike(ctx context.Context, postID string, customerID string) error
 	CreateImages(ctx context.Context, images []entity.PostImage) error
 	DeleteImagesByPostID(ctx context.Context, postID string) error
@@ -38,6 +39,7 @@ type followRepo interface {
 
 type customerRepo interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
+	GetByID(ctx context.Context, id string) (entity.Customer, error)
 }
 
 type service struct {
@@ -47,14 +49,14 @@ type service struct {
 	customerRepo  customerRepo
 	storage       storage.ObjectStorage
 	txManager     database.TxManager
-	publisher     notification.Publisher
+	outboxWriter  outbox.Writer
 }
 
 type Option func(*service)
 
-func WithPublisher(publisher notification.Publisher) Option {
+func WithOutboxWriter(writer outbox.Writer) Option {
 	return func(s *service) {
-		s.publisher = publisher
+		s.outboxWriter = writer
 	}
 }
 

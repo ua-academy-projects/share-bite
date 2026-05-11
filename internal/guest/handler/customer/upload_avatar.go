@@ -143,7 +143,7 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 		go cleanupDelete(h.storage, *currentCustomer.AvatarObjectKey)
 	}
 
-	c.JSON(http.StatusOK, h.toResponse(customer))
+	c.JSON(http.StatusOK, h.toResponse(c.Request.Context(), customer))
 }
 
 func cleanupDelete(storage storage.ObjectStorage, key string) {

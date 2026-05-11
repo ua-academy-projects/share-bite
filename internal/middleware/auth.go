@@ -28,7 +28,7 @@ func Auth(parser AccessTokenParser) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader(authorizationHeader)
 		if header == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "empty auth header"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: missing token"})
 			return
 		}
 		headerParts := strings.Split(header, " ")
@@ -93,20 +93,24 @@ func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		header := c.GetHeader(authorizationHeader)
-		if header == "" {
-			// no header -> skip validation below
+		var token string
+		if authHeader := c.GetHeader(authorizationHeader); authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				token = parts[1]
+			}
+		}
+
+		if token == "" {
+			token = c.Query("access_token")
+		}
+
+		if token == "" {
 			c.Next()
 			return
 		}
 
-		headerParts := strings.Split(header, " ")
-		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
-			return
-		}
-
-		payload, err := parser.ParseAccessToken(headerParts[1])
+		payload, err := parser.ParseAccessToken(token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return

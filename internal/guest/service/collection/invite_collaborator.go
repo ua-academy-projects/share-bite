@@ -2,7 +2,6 @@ package collection
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -102,23 +101,15 @@ func (s *service) InviteCollaborator(ctx context.Context, in entity.InviteCollab
 
 			logger.InfoKV(publishCtx, "publishing invitation event to redis..")
 
-			data := map[string]string{
-				"collection_id": in.CollectionID,
-				"inviter_id":    in.InviterID,
-				"invitation_id": invitationID,
-			}
-			dataBytes, err := json.Marshal(data)
-			if err != nil {
-				logger.ErrorKV(publishCtx, "marshal invitation event data failed", "error", err)
-				return
-			}
+			msg := notification.NewMessage(
+				notification.InvitationReceived,
+				inviteeUserID,
+				in.InviterID,
+				"collection",
+				in.CollectionID,
+				time.Now().UTC(),
+			)
 
-			msg := notification.Message{
-				UserID:    inviteeUserID,
-				Type:      notification.InvitationReceived,
-				Data:      string(dataBytes),
-				CreatedAt: time.Now().UTC(),
-			}
 			if err := s.publisher.Publish(publishCtx, inviteeUserID, msg); err != nil {
 				logger.ErrorKV(publishCtx, "publishing invitation event to redis failed", "error", err)
 				return

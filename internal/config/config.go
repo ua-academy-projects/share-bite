@@ -3,17 +3,19 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"time"
+
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 
 	"github.com/joho/godotenv"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
 )
 
 const (
-	adminPrefix    = "ADMIN_"
-	guestPrefix    = "GUEST_"
-	businessPrefix = "BUSINESS_"
+	adminPrefix        = "ADMIN_"
+	guestPrefix        = "GUEST_"
+	businessPrefix     = "BUSINESS_"
+	notificationPrefix = "NOTIFICATION_"
 )
 
 type config struct {
@@ -36,6 +38,15 @@ type config struct {
 	Storage Storage
 
 	Auth AuthConfig
+
+	NotificationHttpServer HttpServer
+	NotificationSQS        SQS
+}
+
+type SQS interface {
+	Queue() string
+	Region() string
+	Endpoint() string
 }
 
 var cfg *config
@@ -190,7 +201,17 @@ func Load(paths ...string) error {
 
 	ghcfg, err := env.NewGitHubConfig()
 	if err != nil {
-		return fmt.Errorf("Errorl load github config: %w", err)
+		return fmt.Errorf("github config: %w", err)
+	}
+
+	notificationHttpServerConfig, err := env.NewHttpServerConfig(notificationPrefix)
+	if err != nil {
+		return fmt.Errorf("notification http server config: %w", err)
+	}
+
+	notificationSQSConfig, err := env.NewSQSConfig(notificationPrefix)
+	if err != nil {
+		return fmt.Errorf("notification sqs config: %w", err)
 	}
 
 	cfg = &config{
@@ -211,6 +232,9 @@ func Load(paths ...string) error {
 		RateLimit: rateLimitConfig,
 
 		Storage: storageConfig,
+
+		NotificationHttpServer: notificationHttpServerConfig,
+		NotificationSQS:        notificationSQSConfig,
 	}
 
 	return nil

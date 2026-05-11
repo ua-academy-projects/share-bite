@@ -13,9 +13,9 @@ import (
 )
 
 type createRequest struct {
-	VenueID  int64                   `form:"venue_id" binding:"required"`
+	VenueID  int64                   `form:"venueId" binding:"required"`
 	Text     string                  `form:"text" binding:"required,max=2000"`
-	Rating   int16                   `form:"rating" binding:"required,min=1,max=5"`
+	Rating   int16                   `form:"rating" binding:"required,gte=1,lte=5"`
 	Images   []*multipart.FileHeader `form:"images" binding:"omitempty"`
 	Mentions []string                `form:"mentions" binding:"omitempty"`
 }
@@ -32,7 +32,7 @@ type createResponse struct {
 //	@Accept			mpfd
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			venue_id	formData	int		true	"Venue ID"
+//	@Param			venueId		formData	int		true	"Venue ID"
 //	@Param			text		formData	string	true	"Post text"
 //	@Param			rating		formData	int		true	"Rating (1..5)"
 //	@Param			images		formData	file	false	"Post images (jpeg/png, up to 5)"

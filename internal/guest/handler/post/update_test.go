@@ -63,7 +63,7 @@ func TestPostHandler_Update(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	require.NoError(t, writer.WriteField("venue_id", "456"))
+	require.NoError(t, writer.WriteField("venueId", "456"))
 	require.NoError(t, writer.WriteField("text", "updated text"))
 	require.NoError(t, writer.WriteField("rating", "4"))
 	require.NoError(t, writer.WriteField("status", "archived"))
@@ -114,7 +114,7 @@ func TestPostHandler_Update_UnauthorizedWithoutHeader(t *testing.T) {
 	router.ServeHTTP(res, req)
 
 	require.Equal(t, http.StatusUnauthorized, res.Code)
-	assert.Contains(t, res.Body.String(), "empty auth header")
+	assert.Contains(t, res.Body.String(), "unauthorized: missing token")
 }
 
 func TestPostHandler_Update_RejectsDeletedStatus(t *testing.T) {

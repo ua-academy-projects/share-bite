@@ -60,6 +60,7 @@ type UpdatePostInput struct {
 	Status  *PostStatus
 
 	Images        []UploadImageInput
+	KeptImages    []string
 	RewriteImages bool
 }
 

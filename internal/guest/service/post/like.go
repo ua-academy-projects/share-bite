@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 func (s *service) Like(ctx context.Context, postID string, customerID string) error {
@@ -15,33 +15,76 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 		return fmt.Errorf("validate post for like: %w", err)
 	}
 
-	if err := s.postRepo.Like(ctx, postID, customerID); err != nil {
-		return fmt.Errorf("like post in repository: %w", err)
-	}
+	return s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+		inserted, err := s.postRepo.Like(txCtx, postID, customerID)
+		if err != nil {
+			return fmt.Errorf("like post in repository: %w", err)
+		}
+		if !inserted {
+			logger.DebugKV(txCtx, "like already exists, skip outbox enqueue", "post_id", postID, "customer_id", customerID)
+			return nil
+		}
 
-	if s.publisher != nil && post.CustomerID != "" && post.CustomerID != customerID {
-		go func() {
-			pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+		if s.outboxWriter == nil || post.CustomerID == "" || post.CustomerID == customerID {
+			return nil
+		}
 
-			authorUserID, err := s.postRepo.GetAuthorUserID(pubCtx, postID)
-			if err == nil && authorUserID != "" {
-				err = s.publisher.Publish(pubCtx, authorUserID, notification.Message{
-					UserID:    authorUserID,
-					Type:      notification.PostLiked,
-					Data:      postID,
-					CreatedAt: time.Now().UTC(),
-				})
-				if err != nil {
-					logger.ErrorKV(pubCtx, "publish post liked notification failed", "error", err)
-				}
-			} else if err != nil {
-				logger.ErrorKV(pubCtx, "failed to get author user ID for notification", "error", err)
-			}
-		}()
-	}
+		authorUserID, err := s.postRepo.GetAuthorUserID(txCtx, postID)
+		if err != nil {
+			logger.ErrorKV(txCtx, "failed to get author user ID for notification, skipping", "post_id", postID, "error", err)
+			return nil
+		}
+		if authorUserID == "" {
+			return nil
+		}
 
-	return nil
+		// Get actor's profile for notification enrichment
+		actor, err := s.customerRepo.GetByID(txCtx, customerID)
+		if err != nil {
+			logger.ErrorKV(txCtx, "failed to get actor for notification, using partial data", "customer_id", customerID, "error", err)
+			// fallback to basic data
+			actor.ID = customerID
+			actor.UserName = "Anonymous"
+		}
+
+		actorName := actor.UserName
+		if actor.FirstName != "" || actor.LastName != "" {
+			actorName = fmt.Sprintf("%s %s", actor.FirstName, actor.LastName)
+		}
+
+		var actorAvatar string
+		if actor.AvatarObjectKey != nil {
+			actorAvatar = s.storage.BuildURL(*actor.AvatarObjectKey)
+		}
+
+		eventType := outbox.EventTypePostLiked
+		eventID := outbox.NewEventID(eventType, authorUserID, customerID, "post", postID)
+
+		evt := outbox.Message{
+			EventID:     eventID,
+			EventType:   eventType,
+			RecipientID: authorUserID,
+			ActorID:     customerID,
+			EntityType:  "post",
+			EntityID:    postID,
+			Metadata: map[string]any{
+				"actor_name":     actorName,
+				"actor_avatar":   actorAvatar,
+				"actor_username": actor.UserName,
+			},
+			CreatedAt: time.Now().UTC(),
+		}
+
+		if err := s.outboxWriter.Enqueue(txCtx, outbox.Event{
+			EventType:     eventType,
+			Payload:       evt,
+			SourceService: outbox.DefaultSourceService,
+		}); err != nil {
+			return fmt.Errorf("enqueue outbox event: %w", err)
+		}
+
+		return nil
+	})
 }
 
 func (s *service) Unlike(ctx context.Context, postID string, customerID string) error {

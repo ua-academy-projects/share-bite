@@ -57,7 +57,7 @@ func TestPostHandler_Create(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	require.NoError(t, writer.WriteField("venue_id", "123"))
+	require.NoError(t, writer.WriteField("venueId", "123"))
 	require.NoError(t, writer.WriteField("text", "nice food"))
 	require.NoError(t, writer.WriteField("rating", "5"))
 	require.NoError(t, writer.Close())
@@ -87,7 +87,7 @@ func TestPostHandler_Create_UnauthorizedWithoutHeader(t *testing.T) {
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{})
 	router := testRouter(&postServiceMock{}, &customerServiceMock{}, authMiddleware)
 
-	body := `{"venue_id":123,"text":"nice food","rating":5}`
+	body := `{"venueId":123,"text":"nice food","rating":5}`
 	req := httptest.NewRequest(http.MethodPost, "/posts/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -95,7 +95,7 @@ func TestPostHandler_Create_UnauthorizedWithoutHeader(t *testing.T) {
 	router.ServeHTTP(res, req)
 
 	require.Equal(t, http.StatusUnauthorized, res.Code)
-	assert.Contains(t, res.Body.String(), "empty auth header")
+	assert.Contains(t, res.Body.String(), "unauthorized: missing token")
 }
 
 func TestPostHandler_Create_InvalidPayload(t *testing.T) {
@@ -121,7 +121,7 @@ func TestPostHandler_Create_InvalidPayload(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	require.NoError(t, writer.WriteField("venue_id", "123"))
+	require.NoError(t, writer.WriteField("venueId", "123"))
 	require.NoError(t, writer.WriteField("rating", "5"))
 	require.NoError(t, writer.Close())
 
@@ -152,7 +152,7 @@ func TestPostHandler_Create_InvalidContentType(t *testing.T) {
 
 	router := testRouter(&postServiceMock{}, &customerServiceMock{}, authMiddleware)
 
-	req := httptest.NewRequest(http.MethodPost, "/posts/", strings.NewReader(`{"venue_id":123,"text":"nice food","rating":5}`))
+	req := httptest.NewRequest(http.MethodPost, "/posts/", strings.NewReader(`{"venueId":123,"text":"nice food","rating":5}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer valid-token")
 

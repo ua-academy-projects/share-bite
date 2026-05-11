@@ -52,3 +52,15 @@ func (c *s3StorageConfig) UsePathStyle() bool {
 func (c *s3StorageConfig) PresignTTL() time.Duration {
 	return c.StoragePresignTTL
 }
+
+func convertTTLIntoDuration(str string) time.Duration {
+	tempDur := 15 * time.Minute
+	if str == "" {
+		return tempDur
+	}
+	duration, err := time.ParseDuration(str)
+	if err != nil {
+		return tempDur
+	}
+	return duration
+}
