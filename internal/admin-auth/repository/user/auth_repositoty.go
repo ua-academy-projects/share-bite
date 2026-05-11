@@ -14,7 +14,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
-type Repository interface {
+type AuthRepository interface {
 	FindByID(ctx context.Context, userID string) (*dto.UserWithRole, error)
 	FindByEmail(ctx context.Context, email string) (*dto.UserWithRole, error)
 	FindRoleBySlug(ctx context.Context, slug string) (*models.Role, error)
@@ -61,7 +61,7 @@ type repository struct {
 	client database.Client
 }
 
-func New(client database.Client) Repository {
+func New(client database.Client) AuthRepository {
 	return &repository{client: client}
 }
 

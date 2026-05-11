@@ -1,8 +1,12 @@
-FROM golang:1.25.1-alpine AS builder
+FROM golang:1.25.9-alpine AS builder
+
 WORKDIR /app
+
 COPY go.mod go.sum ./
 RUN go mod download
+
 COPY . .
+
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 RUN go build -o business ./cmd/business-api
@@ -10,8 +14,11 @@ RUN go build -o business ./cmd/business-api
 FROM alpine:3.21
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
+
 COPY --from=builder /app/business .
 RUN chown appuser:appgroup business
 USER appuser
+
 EXPOSE 3900
+
 CMD ["./business"]
