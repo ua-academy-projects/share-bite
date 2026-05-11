@@ -3,6 +3,7 @@ package post
 import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
+	"github.com/ua-academy-projects/share-bite/internal/util/request"
 	"net/http"
 )
 
@@ -19,10 +20,14 @@ import (
 //	@Failure		500	{object}	response.ErrorResponse
 //	@Router			/posts/{id}/authors [get]
 func (h *handler) getAuthors(c *gin.Context) {
-	postID := c.Param("id")
+	var req getRequest
+	if err := request.BindUri(c, &req); err != nil {
+		c.Error(err)
+		return
+	}
 	authors, err := h.service.GetPostAuthors(
 		c.Request.Context(),
-		postID,
+		req.ID,
 	)
 	if err != nil {
 		c.Error(err)

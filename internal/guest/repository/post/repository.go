@@ -117,7 +117,7 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (ent
 	}
 
 	sql += fmt.Sprintf(
-		" %s WHERE id=@id AND customer_id=@customer_id RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at, published_at",
+		" %s WHERE id=@id RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at, published_at",
 		strings.Join(updates, ", "),
 	)
 	args["id"] = in.ID
@@ -551,6 +551,30 @@ func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) 
 	return grouped, nil
 }
 
+func (r *Repository) DeleteImagesByPostIDReturningKeys(ctx context.Context, postID string) ([]string, error) {
+	q := database.Query{
+		Name: "postImages.deleteByPostIDReturningKeys",
+		Sql: `
+			DELETE FROM guest.post_images
+			WHERE post_id = $1
+			RETURNING object_key;
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postID)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	keys, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	return keys, nil
+}
+
 func (r *Repository) Like(ctx context.Context, postID string, customerID string) (bool, error) {
 	sql := `
         INSERT INTO guest.post_likes (post_id, customer_id) 
@@ -915,4 +939,42 @@ func (r *Repository) DeleteExpiredDraftPosts(ctx context.Context) error {
 
 	_, err := r.db.DB().ExecContext(ctx, q)
 	return executeSQLError(err)
+}
+
+func (r *Repository) IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error) {
+	q := database.Query{
+		Name: "post_collaborators.isAcceptedCollaborator",
+		Sql: `
+			SELECT EXISTS (
+				SELECT 1
+				FROM guest.post_collaborators
+				WHERE post_id = $1
+				  AND customer_id = $2
+				  AND status = 'accepted'
+			)
+		`,
+	}
+
+	row, err := r.db.DB().QueryContext(
+		ctx,
+		q,
+		postID,
+		customerID,
+	)
+	if err != nil {
+		return false, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var exists bool
+
+	if row.Next() {
+		if err := row.Scan(&exists); err != nil {
+			return false, scanRowError(err)
+		}
+
+		return exists, nil
+	}
+
+	return false, nil
 }
