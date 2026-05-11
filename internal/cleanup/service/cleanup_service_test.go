@@ -50,6 +50,7 @@ func (m *MockCleanupRepository) DeleteExpiredPasswordResetTokens(ctx context.Con
 func TestExpireOldPostsDryRun(t *testing.T) {
 	mockRepo := new(MockCleanupRepository)
 	mockRepo.On("CountExpiredPosts", mock.Anything, mock.Anything).Return(int64(150), nil)
+	mockRepo.On("ExpireOldPosts", mock.Anything, mock.Anything, 100, true).Return(int64(150), nil)
 
 	service := NewCleanupService(mockRepo)
 	ctx := context.Background()
@@ -66,6 +67,7 @@ func TestExpireOldPostsDryRun(t *testing.T) {
 	assert.Empty(t, result.Errors)
 
 	mockRepo.AssertCalled(t, "CountExpiredPosts", mock.Anything, mock.Anything)
+	mockRepo.AssertCalled(t, "ExpireOldPosts", mock.Anything, mock.Anything, 100, true)
 }
 
 func TestExpireOldPostsProduction(t *testing.T) {
@@ -115,6 +117,7 @@ func TestCleanExpiredPasswordResetTokensDryRun(t *testing.T) {
 	// Setup
 	mockRepo := new(MockCleanupRepository)
 	mockRepo.On("CountPasswordResetTokens", mock.Anything, mock.Anything).Return(int64(50), nil)
+	mockRepo.On("DeleteExpiredPasswordResetTokens", mock.Anything, mock.Anything, 100, true).Return(int64(50), nil)
 
 	service := NewCleanupService(mockRepo)
 	ctx := context.Background()
@@ -133,6 +136,7 @@ func TestCleanExpiredPasswordResetTokensDryRun(t *testing.T) {
 	assert.Empty(t, result.Errors)
 
 	mockRepo.AssertCalled(t, "CountPasswordResetTokens", mock.Anything, mock.Anything)
+	mockRepo.AssertCalled(t, "DeleteExpiredPasswordResetTokens", mock.Anything, mock.Anything, 100, true)
 }
 
 func TestCleanExpiredPasswordResetTokensProduction(t *testing.T) {
