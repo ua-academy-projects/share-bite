@@ -191,7 +191,7 @@ func (m *txManagerMock) ReadCommitted(ctx context.Context, fn database.Handler) 
 }
 
 type storageMock struct {
-	uploadFn          func(ctx context.Context, key string, contentType string, file io.Reader) (string, error)
+	uploadFn          func(ctx context.Context, key string, contentType string, file io.Reader) error
 	deleteFn          func(ctx context.Context, key string) error
 	buildURLFn        func(key string) string
 	getPresignedURLFn func(ctx context.Context, key string) (string, error)
