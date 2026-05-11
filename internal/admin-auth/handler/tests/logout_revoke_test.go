@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
@@ -51,7 +52,7 @@ func TestHandler_Logout(t *testing.T) {
 		})
 		r.POST("/auth/logout", h.Logout)
 
-		body, _ := json.Marshal(auth.RefreshRequest{RefreshToken: "valid-refresh-token"})
+		body, _ := json.Marshal(handler.RefreshRequest{RefreshToken: "valid-refresh-token"})
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/auth/logout", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -77,7 +78,7 @@ func TestHandler_Logout(t *testing.T) {
 		})
 		r.POST("/auth/logout", h.Logout)
 
-		body, _ := json.Marshal(auth.RefreshRequest{RefreshToken: "expired-token"})
+		body, _ := json.Marshal(handler.RefreshRequest{RefreshToken: "expired-token"})
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/auth/logout", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -103,7 +104,7 @@ func TestHandler_Logout(t *testing.T) {
 		})
 		r.POST("/auth/logout", h.Logout)
 
-		body, _ := json.Marshal(auth.RefreshRequest{RefreshToken: "some-token"})
+		body, _ := json.Marshal(handler.RefreshRequest{RefreshToken: "some-token"})
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/auth/logout", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
