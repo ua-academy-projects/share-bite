@@ -98,7 +98,8 @@ func RegisterHandlers(
 
 	orgMutations := r.Group("").
 		Use(auth).
-		Use(middleware.RequireRoles(RoleBusiness))
+		Use(middleware.RequireRoles(RoleBusiness)).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		orgMutations.POST("", h.createOrgUnit)
 		orgMutations.PUT("/:id", h.updateOrgUnit)
