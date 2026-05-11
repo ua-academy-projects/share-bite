@@ -54,15 +54,6 @@ func (r *SQLRepository) Save(ctx context.Context, notification entity.Notificati
 }
 
 func (r *SQLRepository) GetHistory(ctx context.Context, recipientID string, limit, offset int) ([]entity.Notification, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
 
 	q := database.Query{
 		Name: "notification_repository.GetHistory",
@@ -103,10 +94,6 @@ func (r *SQLRepository) GetHistory(ctx context.Context, recipientID string, limi
 }
 
 func (r *SQLRepository) MarkAsRead(ctx context.Context, recipientID string, notificationIDs []string) error {
-	if len(notificationIDs) == 0 {
-		return nil
-	}
-
 	q := database.Query{
 		Name: "notification_repository.MarkAsRead",
 		Sql: `
