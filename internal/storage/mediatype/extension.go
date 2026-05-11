@@ -1,11 +1,18 @@
 package mediatype
 
-import "strings"
+import (
+	"mime"
+	"strings"
+)
 
 // ExtFromContentType returns the file extension for the given MIME type.
 // The second return value is false if the content type is not supported.
 func ExtFromContentType(contentType string) (string, bool) {
-	normalized := strings.ToLower(strings.TrimSpace(contentType))
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return "", false
+	}
+	normalized := strings.ToLower(mediaType)
 
 	switch normalized {
 	case "image/jpeg", "image/jpg":

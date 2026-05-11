@@ -31,10 +31,6 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 		return nil, fmt.Errorf("%s: image is required", op)
 	}
 
-	if image.Size > mediatype.DefaultMaxImageSizeBytes {
-		return nil, biserr.FileToLargeErr
-	}
-
 	openedFile, err := image.Open()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -58,7 +54,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 			return nil, biserr.FileToLargeErr
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("%s: validation failed: %w", op, err)
 	}
 
 	if req.DiscountPrice.GreaterThan(req.FullPrice) {
