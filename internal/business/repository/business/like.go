@@ -1,0 +1,147 @@
+package business
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
+)
+
+func (r *Repository) CreateLike(ctx context.Context, postID int64, authorID string) (*entity.Like, error) {
+	q := database.Query{
+		Name: "create_like",
+		Sql: `
+			INSERT INTO business.likes (post_id, author_id, created_at)
+			VALUES ($1, $2, NOW())
+			RETURNING id, post_id, author_id, created_at
+		`,
+	}
+
+	var like entity.Like
+	err := r.db.DB().QueryRowContext(ctx, q, postID, authorID).Scan(
+		&like.ID,
+		&like.PostID,
+		&like.AuthorID,
+		&like.CreatedAt,
+	)
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+			return nil, apperror.Conflict("post already liked by this user")
+		}
+		return nil, fmt.Errorf("create like: %w", err)
+	}
+
+	return &like, nil
+}
+
+func (r *Repository) DeleteLike(ctx context.Context, postID int64, authorID string) error {
+	q := database.Query{
+		Name: "delete_like",
+		Sql: `
+			DELETE FROM business.likes
+			WHERE post_id = $1 AND author_id = $2
+		`,
+	}
+
+	result, err := r.db.DB().ExecContext(ctx, q, postID, authorID)
+	if err != nil {
+		return fmt.Errorf("delete like: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) CheckUserLiked(ctx context.Context, postID int64, authorID string) (bool, error) {
+	q := database.Query{
+		Name: "check_user_liked",
+		Sql: `
+			SELECT EXISTS(
+				SELECT 1 FROM business.likes
+				WHERE post_id = $1 AND author_id = $2
+			)
+		`,
+	}
+
+	var exists bool
+	err := r.db.DB().QueryRowContext(ctx, q, postID, authorID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check user liked: %w", err)
+	}
+
+	return exists, nil
+}
+
+func (r *Repository) CountLikesByPost(ctx context.Context, postID int64) (int, error) {
+	q := database.Query{
+		Name: "count_likes_by_post",
+		Sql: `
+			SELECT COUNT(*) FROM business.likes
+			WHERE post_id = $1
+		`,
+	}
+
+	var count int
+	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count likes by post: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *Repository) GetLikesByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error) {
+	q := database.Query{
+		Name: "get_likes_with_authors_by_post",
+		Sql: `
+			SELECT
+				l.id, l.post_id, l.created_at,
+				l.author_id,
+				COALESCE(cu.username, 'User'),
+				COALESCE(cu.first_name, ''),
+				COALESCE(cu.last_name, ''),
+				cu.avatar_object_key
+			FROM business.likes l
+			LEFT JOIN guest.customers cu ON l.author_id = cu.user_id
+			WHERE l.post_id = $1
+			ORDER BY l.created_at DESC
+			LIMIT $2 OFFSET $3
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("get likes by post: %w", err)
+	}
+	defer rows.Close()
+
+	var likes []entity.LikeWithAuthor
+	for rows.Next() {
+		var like entity.LikeWithAuthor
+		if err := rows.Scan(
+			&like.ID,
+			&like.PostID,
+			&like.CreatedAt,
+			&like.AuthorID,
+			&like.AuthorUsername,
+			&like.AuthorFirstName,
+			&like.AuthorLastName,
+			&like.AuthorAvatarURL,
+		); err != nil {
+			return nil, fmt.Errorf("scan like row: %w", err)
+		}
+		likes = append(likes, like)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate likes: %w", err)
+	}
+
+	return likes, nil
+}

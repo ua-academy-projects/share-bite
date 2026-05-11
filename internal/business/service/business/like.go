@@ -1,0 +1,58 @@
+package business
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/ua-academy-projects/share-bite/internal/business/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
+	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
+)
+
+func (s *service) ToggleLike(ctx context.Context, postID int64, authorID string) (bool, error) {
+	_, err := s.businessRepo.GetPostByID(ctx, postID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return false, apperror.PostNotFound(postID)
+		}
+		return false, fmt.Errorf("get post: %w", err)
+	}
+
+	liked, err := s.businessRepo.CheckUserLiked(ctx, postID, authorID)
+	if err != nil {
+		return false, fmt.Errorf("check user liked: %w", err)
+	}
+
+	if liked {
+		err = s.businessRepo.DeleteLike(ctx, postID, authorID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return false, nil
+			}
+			return false, fmt.Errorf("delete like: %w", err)
+		}
+		return false, nil
+	}
+
+	_, err = s.businessRepo.CreateLike(ctx, postID, authorID)
+	if err != nil {
+
+		var appErr *apperror.Error
+		if errors.As(err, &appErr) && appErr.Code == code.Conflict {
+			return true, nil
+		}
+		return false, fmt.Errorf("create like: %w", err)
+	}
+	return true, nil
+}
+
+func (s *service) GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error) {
+	likes, err := s.businessRepo.GetLikesByPost(ctx, postID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("get likes: %w", err)
+	}
+
+	return likes, nil
+}

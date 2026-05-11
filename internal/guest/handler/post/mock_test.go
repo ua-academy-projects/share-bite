@@ -106,8 +106,10 @@ func (m *postServiceMock) ExploreNearby(ctx context.Context, lat, lon float64, l
 
 type customerServiceMock struct {
 	getByUserIDFn func(ctx context.Context, userID string) (entity.Customer, error)
+	getByIDsFn    func(ctx context.Context, ids []string) ([]entity.Customer, error)
 
 	lastUserID string
+	lastIDs    []string
 }
 
 func (m *customerServiceMock) GetByUserID(ctx context.Context, userID string) (entity.Customer, error) {
@@ -115,8 +117,15 @@ func (m *customerServiceMock) GetByUserID(ctx context.Context, userID string) (e
 	if m.getByUserIDFn != nil {
 		return m.getByUserIDFn(ctx, userID)
 	}
-
 	return entity.Customer{}, nil
+}
+
+func (m *customerServiceMock) GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error) {
+	m.lastIDs = ids
+	if m.getByIDsFn != nil {
+		return m.getByIDsFn(ctx, ids)
+	}
+	return []entity.Customer{}, nil
 }
 
 type tokenParserMock struct {
@@ -143,6 +152,10 @@ func (objectStorageMock) Delete(context.Context, string) error {
 
 func (objectStorageMock) BuildURL(key string) string {
 	return "https://cdn.example/" + key
+}
+
+func (objectStorageMock) GetPresignedURL(ctx context.Context, key string) (string, error) {
+    return "http://localhost:3900/app-dev-bucket/" + key + "?signed=true", nil
 }
 
 func testRouter(postSvc postService, customerSvc customerService, authMiddleware gin.HandlerFunc) *gin.Engine {

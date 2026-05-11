@@ -37,8 +37,22 @@ func LocationNotFoundID(id int) *Error {
 	return newError(code.NotFound, msg)
 }
 
+func NotFound(msg string) *Error {
+	return newError(code.NotFound, msg)
+}
+
 func BadRequest(msg string) *Error {
 	return newError(code.BadRequest, msg)
+}
+
+func PostNotFound(id int64) *Error {
+	msg := fmt.Sprintf("post with id %d was not found", id)
+	return newError(code.NotFound, msg)
+}
+
+func CommentNotFound(id int64) *Error {
+	msg := fmt.Sprintf("comment with id %d was not found", id)
+	return newError(code.NotFound, msg)
 }
 
 func Forbidden(msg string) *Error {
@@ -47,4 +61,11 @@ func Forbidden(msg string) *Error {
 
 func Unauthorized(msg string) *Error {
 	return newError(code.Unauthorized, msg)
+}
+
+
+
+
+func Conflict(msg string) *Error {
+	return newError(code.Conflict, msg)
 }

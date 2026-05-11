@@ -34,6 +34,7 @@ type postService interface {
 
 type customerService interface {
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
+	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
 func RegisterHandlers(
@@ -77,6 +78,14 @@ type postResponse struct {
 	CreatedAt   time.Time         `json:"createdAt"`
 	UpdatedAt   time.Time         `json:"updatedAt"`
 	PublishedAt *time.Time        `json:"publishedAt,omitempty"`
+	Mentions      []mentionResponse `json:"mentions"`
+	MentionsCount int               `json:"mentions_count"`
+}
+
+type mentionResponse struct {
+	ID        string `json:"id"`
+	UserName  string `json:"username"`
+	AvatarURL string `json:"avatar_url,omitempty"`
 }
 
 func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {
@@ -90,6 +99,21 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 	if customer.AvatarObjectKey != nil && storage != nil {
 		url := storage.BuildURL(*customer.AvatarObjectKey)
 		avatarURL = &url
+	}
+
+	mentions := make([]mentionResponse, 0, len(post.Mentions))
+
+	for _, m := range post.Mentions {
+		var avatarURL string
+		if m.AvatarObjectKey != nil && storage != nil {
+			avatarURL = storage.BuildURL(*m.AvatarObjectKey)
+		}
+
+		mentions = append(mentions, mentionResponse{
+			ID:        m.ID,
+			UserName:  m.UserName,
+			AvatarURL: avatarURL,
+		})
 	}
 	return postResponse{
 		ID:          post.ID,
@@ -106,6 +130,8 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 		CreatedAt:   post.CreatedAt,
 		UpdatedAt:   post.UpdatedAt,
 		PublishedAt: post.PublishedAt,
+		Mentions:      mentions,
+		MentionsCount: len(mentions),
 	}
 }
 

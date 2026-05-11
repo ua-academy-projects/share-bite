@@ -1,7 +1,9 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -29,7 +31,7 @@ type config struct {
 	JwtToken  JwtToken
 	Email     Email
 	RateLimit RateLimit
-	Github GitHub
+	Github    GitHub
 
 	Storage Storage
 
@@ -116,12 +118,13 @@ type Storage interface {
 	SecretKey() string
 	Bucket() string
 	UsePathStyle() bool
+	PresignTTL() time.Duration
 }
 
 func Load(paths ...string) error {
 	if len(paths) > 0 {
 		if err := godotenv.Load(paths...); err != nil {
-			return fmt.Errorf("load config: %w", err)
+			logger.Info(context.Background(), "No .env file found, relying on system environment variables")
 		}
 	}
 
@@ -184,15 +187,15 @@ func Load(paths ...string) error {
 	if err != nil {
 		return fmt.Errorf("auth config: %w", err)
 	}
-	
+
 	ghcfg, err := env.NewGitHubConfig()
-	if err != nil {	
+	if err != nil {
 		return fmt.Errorf("Errorl load github config: %w", err)
 	}
 
 	cfg = &config{
-		App:  appConfig,
-		Auth: authConfig,
+		App:    appConfig,
+		Auth:   authConfig,
 		Github: ghcfg,
 
 		GuestHttpServer:    guestHttpServerConfig,

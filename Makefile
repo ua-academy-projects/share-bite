@@ -42,7 +42,7 @@ test-cover:
 	go tool cover -html=coverage.out -o coverage.html
 
 s3-up:
-	docker compose -f docker/compose.yaml up -d s3
+	docker compose -f build/compose.yaml up -d s3
 	bash scripts/bootstrap.sh
 
 s3-ui:
