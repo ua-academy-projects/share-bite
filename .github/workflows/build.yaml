@@ -37,6 +37,7 @@ jobs:
             ecr_repo: share-bite/migrator
           - service: notifications-lambda
             ecr_repo: share-bite/notifications-worker
+            platform: linux/arm64
           - service: notifications
             ecr_repo: share-bite/notifications-service
           - service: outbox
@@ -71,9 +72,7 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}
           tags: |
             type=sha,prefix=sha-
-            type=ref,event=branch
-            type=ref,event=tag
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=long
 
       - name: Build and push ${{ matrix.service }} image
         id: build-push
@@ -81,6 +80,7 @@ jobs:
         with:
           context: .
           file: ./build/Dockerfile.${{ matrix.service }}
+          platforms: ${{ matrix.platform || 'linux/amd64' }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -23,7 +23,9 @@ type NotificationDTO struct {
 	Type      string         `json:"type"`
 	EntityID  string         `json:"entityID"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
+	IsRead    bool           `json:"isRead"`
 	CreatedAt time.Time      `json:"createdAt"`
+	ReadAt    *time.Time     `json:"readAt,omitempty"`
 }
 
 func (n Notification) ToDTO() NotificationDTO {
@@ -32,7 +34,9 @@ func (n Notification) ToDTO() NotificationDTO {
 		Type:      n.EventType,
 		EntityID:  n.EntityID,
 		Metadata:  n.Metadata,
+		IsRead:    n.IsRead,
 		CreatedAt: n.CreatedAt,
+		ReadAt:    n.ReadAt,
 	}
 }
 

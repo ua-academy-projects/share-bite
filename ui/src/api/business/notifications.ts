@@ -18,7 +18,7 @@ function authHeaders(token: string) {
 }
 
 export async function fetchNotifications(token: string, limit = 20): Promise<NotificationItem[]> {
-  const response = await fetch(`${API_BASE_URL}/?limit=${limit}`, {
+  const response = await fetch(`${API_BASE_URL}/history?limit=${limit}`, {
     headers: authHeaders(token),
   });
 

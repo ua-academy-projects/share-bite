@@ -3,7 +3,7 @@
     {
       "messageId": "msg-001",
       "receiptHandle": "handle-001",
-      "body": "{\"event_id\":\"e1a2b3c4\",\"event_type\":\"post_liked\",\"recipient_id\":\"user-42\",\"actor_id\":\"user-99\",\"entity_type\":\"post\",\"entity_id\":\"post-123\",\"created_at\":\"2026-05-01T12:00:00Z\"}",
+      "body": "{\"eventID\":\"e1a2b3c4\",\"eventType\":\"post_liked\",\"recipientID\":\"user-42\",\"actorID\":\"user-99\",\"entityType\":\"post\",\"entityID\":\"post-123\",\"createdAt\":\"2026-05-01T12:00:00Z\"}",
       "attributes": {
         "ApproximateReceiveCount": "1",
         "SentTimestamp": "1714555200000",

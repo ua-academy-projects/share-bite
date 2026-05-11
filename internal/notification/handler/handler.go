@@ -46,7 +46,9 @@ type notificationResponse struct {
 	Type      string         `json:"type"`
 	EntityID  string         `json:"entityID"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
+	IsRead    bool           `json:"isRead"`
 	CreatedAt time.Time      `json:"createdAt"`
+	ReadAt    *time.Time     `json:"readAt,omitempty"`
 }
 
 type getHistoryRequest struct {
@@ -81,7 +83,9 @@ func (h *handler) getHistory(c *gin.Context) {
 			Type:      item.Type,
 			EntityID:  item.EntityID,
 			Metadata:  item.Metadata,
+			IsRead:    item.IsRead,
 			CreatedAt: item.CreatedAt,
+			ReadAt:    item.ReadAt,
 		})
 	}
 
@@ -176,7 +180,9 @@ func (h *handler) stream(c *gin.Context) {
 				Type:      string(msg.EventType),
 				EntityID:  msg.EntityID,
 				Metadata:  msg.Metadata,
+				IsRead:    false, // SSE messages are always new/unread
 				CreatedAt: msg.CreatedAt,
+				ReadAt:    nil,
 			})
 			return true
 		case <-ticker.C:

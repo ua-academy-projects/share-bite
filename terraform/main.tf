@@ -17,12 +17,11 @@ data "aws_ami" "ubuntu" {
 variable "image_tag" {
   description = "Image tag to deploy for the notifications-worker Lambda"
   type        = string
-  default     = "latest"
 }
 
 resource "aws_ecr_repository" "repo" {
   name                 = "share-bite/notifications-worker"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -31,7 +30,7 @@ resource "aws_ecr_repository" "repo" {
 
 resource "aws_ecr_repository" "notifications_service" {
   name                 = "share-bite/notifications-service"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -40,7 +39,7 @@ resource "aws_ecr_repository" "notifications_service" {
 
 resource "aws_ecr_repository" "outbox_worker" {
   name                 = "share-bite/outbox-worker"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -51,6 +50,33 @@ resource "aws_kms_key" "sns_cmk" {
   description             = "KMS key for SNS topic encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow SNS to use the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "sns.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 resource "aws_kms_alias" "sns_cmk_alias" {
@@ -134,7 +160,7 @@ resource "aws_sns_topic_subscription" "to_sse" {
   raw_message_delivery = true
 
   filter_policy = jsonencode({
-    event_type = ["post_liked"]
+    eventType = ["post_liked", "comment_added", "follow_added", "invitation_received"]
   })
 }
 
@@ -145,7 +171,7 @@ resource "aws_sns_topic_subscription" "to_lambda" {
   raw_message_delivery = true
 
   filter_policy = jsonencode({
-    event_type = ["registration_confirmed"]
+    eventType = ["registration_confirmed", "invitation_received"]
   })
 }
 
@@ -365,7 +391,6 @@ resource "aws_lambda_function" "worker" {
   memory_size   = 256
   timeout       = 30
   architectures = ["arm64"]
-  code_signing_config_arn = aws_lambda_code_signing_config.lambda_signing_config.arn
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {

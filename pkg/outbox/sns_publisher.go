@@ -63,7 +63,7 @@ func (p *SNSPublisher) Publish(ctx context.Context, event Record) error {
 		TopicArn: aws.String(p.topicArn),
 		Message:  aws.String(string(b)),
 		MessageAttributes: map[string]types.MessageAttributeValue{
-			"event_type": {
+			"eventType": {
 				DataType:    aws.String("String"),
 				StringValue: aws.String(event.EventType),
 			},

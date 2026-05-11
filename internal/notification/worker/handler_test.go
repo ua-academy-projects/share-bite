@@ -88,7 +88,7 @@ func TestHandler_HandleBatch_InvalidEvent(t *testing.T) {
 			{
 				MessageId:     "msg-001",
 				ReceiptHandle: "handle-001",
-				Body:          `{"event_type":"post_liked"}`,
+				Body:          `{"eventType":"post_liked"}`,
 			},
 		},
 	}
@@ -130,7 +130,7 @@ func TestHandler_HandleBatch_PartialFailure(t *testing.T) {
 			{
 				MessageId:     "msg-invalid",
 				ReceiptHandle: "handle-invalid",
-				Body:          `{"event_type":"unknown"}`,
+				Body:          `{"eventType":"unknown"}`,
 			},
 		},
 	}

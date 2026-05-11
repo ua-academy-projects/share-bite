@@ -1,9 +1,9 @@
 package notification
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type EventType string
@@ -25,15 +25,8 @@ type Message struct {
 	CreatedAt   time.Time      `json:"createdAt"` // Event timestamp
 }
 
-func NewEventID(parts ...string) string {
-	h := sha256.New()
-	for i, p := range parts {
-		if i > 0 {
-			h.Write([]byte{0}) // null byte delimiter
-		}
-		h.Write([]byte(p))
-	}
-	return fmt.Sprintf("%x", h.Sum(nil))[:32]
+func NewEventID() string {
+	return uuid.NewString()
 }
 
 func NewMessage(eventType EventType, recipientID, actorID, entityType, entityID string, createdAt time.Time) Message {
@@ -50,7 +43,7 @@ func NewMessageWithMetadata(eventType EventType, recipientID, actorID, entityTyp
 	}
 
 	return Message{
-		EventID:     NewEventID(string(eventType), recipientID, actorID, entityType, entityID),
+		EventID:     NewEventID(),
 		EventType:   eventType,
 		RecipientID: recipientID,
 		ActorID:     actorID,
