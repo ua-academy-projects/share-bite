@@ -10,7 +10,7 @@ import (
 )
 
 type AccessTokenParser interface {
-	ParseAccessToken(token string) (string, string, jwt.UserStatus, error)
+	ParseAccessToken(token string) (jwt.AccessTokenPayload, error)
 }
 
 const (
@@ -36,15 +36,15 @@ func Auth(parser AccessTokenParser) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid auth header"})
 			return
 		}
-		userID, role, status, err := parser.ParseAccessToken(headerParts[1])
+		payload, err := parser.ParseAccessToken(headerParts[1])
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
 
-		c.Set(CtxUserID, userID)
-		c.Set(CtxUserRole, role)
-		c.Set(CtxUserStatus, status)
+		c.Set(CtxUserID, payload.UserID)
+		c.Set(CtxUserRole, payload.Role)
+		c.Set(CtxUserStatus, payload.Status)
 
 		c.Next()
 	}
@@ -106,15 +106,15 @@ func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
 			return
 		}
 
-		userID, role, status, err := parser.ParseAccessToken(headerParts[1])
+		payload, err := parser.ParseAccessToken(headerParts[1])
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
 
-		c.Set(CtxUserID, userID)
-		c.Set(CtxUserRole, role)
-		c.Set(CtxUserStatus, status)
+		c.Set(CtxUserID, payload.UserID)
+		c.Set(CtxUserRole, payload.Role)
+		c.Set(CtxUserStatus, payload.Status)
 
 		c.Next()
 	}

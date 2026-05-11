@@ -44,12 +44,12 @@ func TestPostHandler_Create(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", jwt.UserStatusActive, nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 
@@ -108,12 +108,12 @@ func TestPostHandler_Create_InvalidPayload(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", jwt.UserStatusActive, nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 
@@ -141,12 +141,12 @@ func TestPostHandler_Create_InvalidContentType(t *testing.T) {
 	t.Parallel()
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", jwt.UserStatusActive, nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 

@@ -24,6 +24,13 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
+// AccessTokenPayload holds subject fields extracted from a validated access JWT.
+type AccessTokenPayload struct {
+	UserID string
+	Role   string
+	Status UserStatus
+}
+
 type TokenManager struct {
 	accessSecret  string
 	refreshSecret string
@@ -52,8 +59,12 @@ func (m *TokenManager) GenerateToken(userID string, role string, status UserStat
 	return accessToken, refreshToken, nil
 }
 
-func (m *TokenManager) ParseAccessToken(token string) (string, string, UserStatus, error) {
-	return m.parse(token, m.accessSecret, "access")
+func (m *TokenManager) ParseAccessToken(token string) (AccessTokenPayload, error) {
+	userID, role, status, err := m.parse(token, m.accessSecret, "access")
+	if err != nil {
+		return AccessTokenPayload{}, err
+	}
+	return AccessTokenPayload{UserID: userID, Role: role, Status: status}, nil
 }
 
 func (m *TokenManager) ParseRefreshToken(token string) (string, string, error) {

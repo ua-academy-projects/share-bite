@@ -17,12 +17,12 @@ import (
 
 func validAuthMiddleware() gin.HandlerFunc {
 	return internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, jwt.UserStatus, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", jwt.UserStatusActive, nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 }

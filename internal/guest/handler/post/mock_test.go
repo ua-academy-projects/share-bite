@@ -130,15 +130,15 @@ func (m *customerServiceMock) GetByIDs(ctx context.Context, ids []string) ([]ent
 }
 
 type tokenParserMock struct {
-	parseAccessTokenFn func(token string) (string, string, jwt.UserStatus, error)
+	parseAccessTokenFn func(token string) (jwt.AccessTokenPayload, error)
 }
 
-func (m tokenParserMock) ParseAccessToken(token string) (string, string, jwt.UserStatus, error) {
+func (m tokenParserMock) ParseAccessToken(token string) (jwt.AccessTokenPayload, error) {
 	if m.parseAccessTokenFn != nil {
 		return m.parseAccessTokenFn(token)
 	}
 
-	return "", "", "", nil
+	return jwt.AccessTokenPayload{}, nil
 }
 
 type objectStorageMock struct{}
