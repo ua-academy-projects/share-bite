@@ -18,7 +18,6 @@ WORKDIR /app
 COPY --from=builder /app/business .
 RUN chown appuser:appgroup business
 USER appuser
-
 EXPOSE 3900
 
 CMD ["./business"]

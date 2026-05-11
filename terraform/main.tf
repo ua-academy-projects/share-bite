@@ -154,14 +154,12 @@ resource "aws_iam_role" "ec2_ecr_role" {
   permissions_boundary = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/GolangBound"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
-        Principal = { Service = "ec2.amazonaws.com" }
-      }
-    ]
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
   })
 }
 
@@ -245,8 +243,9 @@ resource "aws_security_group" "share_bite_sg" {
 }
 
 resource "aws_instance" "app_server" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.small"
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.small"
+
   vpc_security_group_ids = [aws_security_group.share_bite_sg.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
@@ -264,13 +263,13 @@ resource "aws_instance" "app_server" {
   user_data = <<-EOF
               #!/bin/bash
               apt-get update && apt-get upgrade -y
+              apt-get install -y curl unzip
+              snap install aws-cli --classic
               apt-get install -y awscli curl golang-go
 
               curl -fsSL https://get.docker.com -o get-docker.sh
               sh get-docker.sh
               usermod -aG docker ubuntu
-
-              echo "export PATH=\$PATH:\$HOME/go/bin" >> /home/ubuntu/.bashrc
 
               mkdir -p /home/ubuntu/share-bite
               chown -R ubuntu:ubuntu /home/ubuntu/share-bite

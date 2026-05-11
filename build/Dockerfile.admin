@@ -17,6 +17,9 @@ WORKDIR /app
 COPY --from=builder --chown=appuser:appgroup /app/admin-auth .
 USER appuser
 
+COPY --from=builder /app/admin-auth .
+RUN chown appuser:appgroup admin-auth
+USER appuser
 EXPOSE 3850
 
 CMD ["./admin-auth"]
