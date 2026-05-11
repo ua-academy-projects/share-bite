@@ -12,7 +12,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
 RUN make generate
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
