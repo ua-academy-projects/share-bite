@@ -53,7 +53,7 @@ func TestListNearbyBoxes_InvalidCoordinates(t *testing.T) {
 	mockService := &MockBusinessService{}
 	parser := dummyTokenParser{}
 
-	RegisterHandlers(router.Group("/"), mockService, parser, nil)
+	RegisterHandlers(router.Group("/"), mockService, parser)
 
 	req, _ := http.NewRequest(http.MethodGet, "/nearby-boxes?lat=999&lon=30.5&limit=10", nil)
 
@@ -73,7 +73,7 @@ func TestListNearbyBoxes_Positive_Success(t *testing.T) {
 	mockService := &MockBusinessService{}
 	parser := dummyTokenParser{}
 
-	RegisterHandlers(router.Group("/"), mockService, parser, nil)
+	RegisterHandlers(router.Group("/"), mockService, parser)
 
 	req, _ := http.NewRequest(http.MethodGet, "/nearby-boxes?lat=50.45&lon=30.52&limit=10&skip=0", nil)
 

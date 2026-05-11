@@ -81,7 +81,7 @@ func setupSearchVenuesRouter(s businessService) *gin.Engine {
 	r := gin.New()
 	r.Use(testBusinessErrorMiddleware())
 
-	RegisterHandlers(r.Group("/"), s, dummyTokenParser{}, nil)
+	RegisterHandlers(r.Group("/"), s, dummyTokenParser{})
 
 	return r
 }
