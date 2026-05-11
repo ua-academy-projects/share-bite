@@ -3,9 +3,8 @@ package config
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
@@ -32,7 +31,6 @@ type config struct {
 	Redis    Redis
 
 	JwtToken  JwtToken
-	H3        H3
 	Email     Email
 	RateLimit RateLimit
 	Github    GitHub
@@ -41,6 +39,8 @@ type config struct {
 
 	Auth AuthConfig
 
+	Cleanup Cleanup
+	
 	NotificationHttpServer HttpServer
 	NotificationSQS        SQS
 
@@ -110,11 +110,6 @@ type JwtToken interface {
 	RefreshTokenTTL() time.Duration
 }
 
-type H3 interface {
-	Resolution() int
-	RecommendRadius() int
-}
-
 type Email interface {
 	SenderProviderValue() string
 	ResendAPIKeyValue() string
@@ -139,6 +134,13 @@ type Storage interface {
 	Bucket() string
 	UsePathStyle() bool
 	PresignTTL() time.Duration
+}
+
+type Cleanup interface {
+	GetRetentionPeriod() time.Duration
+	GetBatchSize() int
+	IsDryRun() bool
+	IsScheduleEnabled() bool
 }
 
 func Load(paths ...string) error {
@@ -215,10 +217,7 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 	if err != nil {
 		return fmt.Errorf("rate limit config: %w", err)
 	}
-	h3Config, err := env.NewH3Config()
-	if err != nil {
-		return fmt.Errorf("h3 config: %w", err)
-	}
+
 	storageConfig, err := env.NewS3StorageConfig()
 	if err != nil {
 		return fmt.Errorf("storage config: %w", err)
@@ -231,17 +230,12 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 
 	ghcfg, err := env.NewGitHubConfig()
 	if err != nil {
-		return fmt.Errorf("github config: %w", err)
+		return fmt.Errorf("Errorl load github config: %w", err)
 	}
 
-	notificationHttpServerConfig, err := env.NewHttpServerConfig(notificationPrefix)
+	cleanupConfig, err := env.NewCleanupConfig()
 	if err != nil {
-		return fmt.Errorf("notification http server config: %w", err)
-	}
-
-	notificationSQSConfig, err := env.NewSQSConfig(notificationPrefix)
-	if err != nil {
-		return fmt.Errorf("notification sqs config: %w", err)
+		return fmt.Errorf("cleanup config: %w", err)
 	}
 
 	imageProcessingSQSConfig, err := env.NewSQSConfig(imageProcessingPrefix)
@@ -263,7 +257,6 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		Postgres:  postgresConfig,
 		Redis:     redisConfig,
 		JwtToken:  jwtTokenConfig,
-		H3:        h3Config,
 		Email:     emailConfig,
 		RateLimit: rateLimitConfig,
 
@@ -273,6 +266,7 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		NotificationSQS:        notificationSQSConfig,
 
 		ImageProcessingSQS: imageProcessingSQSConfig,
+		Cleanup: cleanupConfig,
 	}
 
 	return nil
