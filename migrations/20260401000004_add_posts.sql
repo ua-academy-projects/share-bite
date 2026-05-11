@@ -1,8 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS guest.posts (
-    id BIGSERIAL PRIMARY KEY,
-    customer_id UUID NOT NULL REFERENCES guest.customers(id) ON DELETE CASCADE,
+                                           id BIGSERIAL PRIMARY KEY,
+                                           customer_id UUID NOT NULL REFERENCES guest.customers(id) ON DELETE CASCADE,
 
     venue_id BIGINT NOT NULL,
     text TEXT NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS guest.posts (
 
     CONSTRAINT posts_status_chk
     CHECK (status IN ('draft', 'published', 'archived'))
-);
+    );
 -- +goose StatementEnd
 
 -- +goose Down
