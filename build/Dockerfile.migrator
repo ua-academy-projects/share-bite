@@ -1,16 +1,27 @@
 FROM golang:1.25.7-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
 WORKDIR /app
+
 COPY go.mod go.sum ./
 RUN go mod download
-COPY . .
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-RUN go build -o migrator ./cmd/migrator
 
-FROM alpine:latest
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -o app ./cmd/migrator
+
+FROM alpine:3.20
+
+RUN adduser -D appuser
+
 WORKDIR /app
-COPY --from=builder /app/migrator .
-RUN chown appuser:appgroup migrator
+
+COPY --from=builder /app/app .
+COPY --from=builder /app/migrations /app/migrations
+
 USER appuser
-CMD ["./migrator"]
+
+CMD ["./app"]
