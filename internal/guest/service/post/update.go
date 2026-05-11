@@ -112,8 +112,6 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 		})
 	}
 
-	oldKeys := extractImageKeys(currentPost.Images)
-
 	var post entity.Post
 	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		updatedPost, err := s.postRepo.Update(txCtx, in)

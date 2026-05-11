@@ -41,7 +41,6 @@ func NewS3Storage(client s3Client, bucketName string, endpoint string, region st
 
 		presignClient: presignClient,
 		urlTTL:        ttl,
-		region:        region,
 	}
 }
 

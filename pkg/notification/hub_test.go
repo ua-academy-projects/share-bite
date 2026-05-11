@@ -106,7 +106,7 @@ func TestHub_Run(t *testing.T) {
 	}
 
 	msg := Message{
-		EventID:     NewEventID(string(PostLiked), "user1", "customer-1", "post", "123"),
+		EventID:     NewEventID(),
 		EventType:   PostLiked,
 		RecipientID: "user1",
 		ActorID:     "customer-1",
