@@ -81,7 +81,8 @@ resource "aws_instance" "app_server" {
   user_data = <<-EOF
               #!/bin/bash
               apt-get update && apt-get upgrade -y
-              apt-get install -y awscli curl
+              apt-get install -y curl unzip
+              snap install aws-cli --classic
 
               curl -fsSL https://get.docker.com -o get-docker.sh
               sh get-docker.sh
