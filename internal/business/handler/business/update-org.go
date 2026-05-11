@@ -34,7 +34,7 @@ func (h *handler) updateOrgUnit(c *gin.Context) {
 		return
 	}
 
-	if role != "business" {
+	if role != RoleBusiness {
 		c.Error(apperror.Forbidden("only business accounts can update organizations"))
 		return
 	}

@@ -18,7 +18,7 @@ func NewJWTSessionStore(tokenManager *jwt.TokenManager) *JWTSessionStore {
 }
 
 func (s *JWTSessionStore) Create(ctx context.Context, userID string) (string, error) {
-	accessToken, _, err := s.tokenManager.GenerateToken(userID, "admin")
+	accessToken, _, err := s.tokenManager.GenerateToken(userID, "admin", jwt.UserStatusActive)
 	if err != nil {
 		return "", fmt.Errorf("generate session token: %w", err)
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 type MockBusinessService struct {
@@ -19,8 +20,8 @@ type MockBusinessService struct {
 
 type dummyTokenParser struct{}
 
-func (d dummyTokenParser) ParseAccessToken(token string) (string, string, error) {
-	return "", "", nil
+func (d dummyTokenParser) ParseAccessToken(token string) (jwt.AccessTokenPayload, error) {
+	return jwt.AccessTokenPayload{}, nil
 }
 
 func (m *MockBusinessService) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {

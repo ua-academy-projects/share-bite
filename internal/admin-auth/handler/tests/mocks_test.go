@@ -19,6 +19,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 type mockUserRepository struct {
@@ -269,7 +270,7 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 
 type stubTokenProvider struct{}
 
-func (s stubTokenProvider) GenerateToken(_ string, _ string) (string, string, error) {
+func (s stubTokenProvider) GenerateToken(_ string, _ string, _ jwt.UserStatus) (string, string, error) {
 	return "", "", errors.New("unexpected GenerateToken call")
 }
 
