@@ -105,6 +105,36 @@ services:
     networks:
       - share-bite-network
 
+  notifications:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/notifications-service:${IMAGE_TAG:-latest}
+    container_name: share-bite-notifications
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      NOTIFICATION_SQS_QUEUE_URL: ${NOTIFICATION_SQS_QUEUE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - share-bite-network
+
+  outbox:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/outbox-worker:${IMAGE_TAG:-latest}
+    container_name: share-bite-outbox
+    restart: always
+    environment:
+      POSTGRES_HOST: postgres
+      OUTBOX_SNS_TOPIC_ARN: ${OUTBOX_SNS_TOPIC_ARN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - share-bite-network
+
 networks:
   share-bite-network:
     driver: bridge

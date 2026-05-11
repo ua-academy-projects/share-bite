@@ -90,6 +90,43 @@ func TestGetMe(t *testing.T) {
 			wantBody: response.ErrorResponse{Message: internalErrMsg},
 		},
 		{
+			name:   "success with fallback",
+			userID: userID,
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
+				s.On("GetByUserID", mock.Anything, userID).
+					Return(entity.Customer{
+						ID:              customerID,
+						UserID:          userID,
+						UserName:        userName,
+						FirstName:       firstName,
+						LastName:        lastName,
+						AvatarObjectKey: &avatarObjectKey,
+						Bio:             &bio,
+					}, nil).
+					Once()
+
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return("", errors.New("presign failed")).
+					Once()
+
+				st.On("BuildURL", avatarObjectKey).
+					Return(baseURL + avatarObjectKey).
+					Once()
+			},
+			wantBody: getMeResponse{
+				Customer: customerResponse{
+					ID:        customerID,
+					UserID:    userID,
+					UserName:  userName,
+					FirstName: firstName,
+					LastName:  lastName,
+					Bio:       &bio,
+					AvatarURL: strPtr(baseURL + avatarObjectKey),
+				},
+			},
+			wantCode: http.StatusOK,
+		},
+		{
 			name:   "service unknown error",
 			userID: userID,
 			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {

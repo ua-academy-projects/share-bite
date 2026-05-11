@@ -94,8 +94,14 @@ func (s *SQLStore) MarkProcessed(ctx context.Context, id string) error {
 		`,
 	}
 
-	if _, err := s.db.ExecContext(ctx, q, id); err != nil {
+	res, err := s.db.ExecContext(ctx, q, id)
+	if err != nil {
 		return fmt.Errorf("mark outbox row processed: %w", err)
+	}
+
+	rows := res.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("no outbox row updated for id %s", id)
 	}
 
 	return nil
@@ -104,6 +110,9 @@ func (s *SQLStore) MarkProcessed(ctx context.Context, id string) error {
 func (s *SQLStore) CleanupStuckProcessing(ctx context.Context, olderThan time.Duration) (int64, error) {
 	if s == nil {
 		return 0, fmt.Errorf("outbox store is nil")
+	}
+	if olderThan <= 0 {
+		return 0, fmt.Errorf("olderThan duration must be positive")
 	}
 	cutoff := time.Now().Add(-olderThan)
 	q := database.Query{

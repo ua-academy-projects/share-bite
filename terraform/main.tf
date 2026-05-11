@@ -22,7 +22,7 @@ variable "image_tag" {
 
 resource "aws_ecr_repository" "repo" {
   name                 = "share-bite/notifications-worker"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -31,7 +31,7 @@ resource "aws_ecr_repository" "repo" {
 
 resource "aws_ecr_repository" "notifications_service" {
   name                 = "share-bite/notifications-service"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -40,16 +40,27 @@ resource "aws_ecr_repository" "notifications_service" {
 
 resource "aws_ecr_repository" "outbox_worker" {
   name                 = "share-bite/outbox-worker"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
   }
 }
 
+resource "aws_kms_key" "sns_cmk" {
+  description             = "KMS key for SNS topic encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+}
+
+resource "aws_kms_alias" "sns_cmk_alias" {
+  name          = "alias/notifications-sns-key"
+  target_key_id = aws_kms_key.sns_cmk.key_id
+}
+
 resource "aws_sns_topic" "notifications" {
   name              = "notifications"
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = aws_kms_alias.sns_cmk_alias.name
 }
 
 resource "aws_sqs_queue" "dlq_sse" {
@@ -209,10 +220,27 @@ resource "aws_security_group" "share_bite_sg" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow HTTPS to AWS services and external APIs"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow DNS"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow internal Postgres/Redis traffic"
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/8"] # Adjust to actual VPC CIDR if known, assuming private network here
   }
 }
 
@@ -226,6 +254,8 @@ resource "aws_instance" "app_server" {
     encrypted   = true
     volume_type = "gp3"
   }
+
+  monitoring = true
 
   metadata_options {
     http_tokens = "required"
@@ -314,6 +344,20 @@ resource "aws_iam_policy_attachment" "attach_ecr_pull" {
   roles      = [aws_iam_role.training_lambda_role.name]
 }
 
+resource "aws_signer_signing_profile" "signing_profile" {
+  platform_id = "AWSLambda-SHA384-ECDSA"
+}
+
+resource "aws_lambda_code_signing_config" "lambda_signing_config" {
+  allowed_publishers {
+    signing_profile_version_arns = [aws_signer_signing_profile.signing_profile.version_arn]
+  }
+
+  policies {
+    untrusted_artifact_on_deployment = "Enforce"
+  }
+}
+
 resource "aws_lambda_function" "worker" {
   function_name = "notifications-worker"
   package_type  = "Image"
@@ -322,6 +366,7 @@ resource "aws_lambda_function" "worker" {
   memory_size   = 256
   timeout       = 30
   architectures = ["arm64"]
+  code_signing_config_arn = aws_lambda_code_signing_config.lambda_signing_config.arn
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
@@ -342,6 +387,8 @@ resource "aws_instance" "notifications_sse" {
     encrypted   = true
     volume_type = "gp3"
   }
+
+  monitoring = true
 
   metadata_options {
     http_tokens = "required"

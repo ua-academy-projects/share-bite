@@ -15,7 +15,7 @@ const (
 )
 
 type Message struct {
-	EventID     string         `json:"event_id"`     // Unique event ID (SHA1)
+	EventID     string         `json:"event_id"`     // Unique event ID (SHA-256)
 	EventType   EventType      `json:"event_type"`   // Event type (e.g. "post_liked")
 	RecipientID string         `json:"recipient_id"` // Who receives the notification (user ID)
 	ActorID     string         `json:"actor_id"`     // Who triggered the event (user ID)
@@ -41,6 +41,14 @@ func NewMessage(eventType EventType, recipientID, actorID, entityType, entityID 
 }
 
 func NewMessageWithMetadata(eventType EventType, recipientID, actorID, entityType, entityID string, metadata map[string]any, createdAt time.Time) Message {
+	var clonedMetadata map[string]any
+	if metadata != nil {
+		clonedMetadata = make(map[string]any, len(metadata))
+		for k, v := range metadata {
+			clonedMetadata[k] = v
+		}
+	}
+
 	return Message{
 		EventID:     NewEventID(string(eventType), recipientID, actorID, entityType, entityID),
 		EventType:   eventType,
@@ -48,7 +56,7 @@ func NewMessageWithMetadata(eventType EventType, recipientID, actorID, entityTyp
 		ActorID:     actorID,
 		EntityType:  entityType,
 		EntityID:    entityID,
-		Metadata:    metadata,
+		Metadata:    clonedMetadata,
 		CreatedAt:   createdAt,
 	}
 }
