@@ -28,7 +28,7 @@ func Auth(parser AccessTokenParser) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader(authorizationHeader)
 		if header == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "empty auth header"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: missing token"})
 			return
 		}
 		headerParts := strings.Split(header, " ")
