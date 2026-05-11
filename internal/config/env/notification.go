@@ -5,9 +5,9 @@ import (
 )
 
 type sqsConfig struct {
-	QueueURL string `env:"SQS_QUEUE_URL"`
-	Region   string `env:"AWS_REGION"`
-	Endpoint string `env:"SQS_ENDPOINT_URL"`
+	QueueURLVal string `env:"SQS_QUEUE_URL"`
+	RegionVal   string `env:"AWS_REGION"`
+	EndpointVal string `env:"SQS_ENDPOINT_URL"`
 }
 
 func NewSQSConfig(prefix string) (*sqsConfig, error) {
@@ -22,13 +22,13 @@ func NewSQSConfig(prefix string) (*sqsConfig, error) {
 }
 
 func (c *sqsConfig) Queue() string {
-	return c.QueueURL
+	return c.QueueURLVal
 }
 
 func (c *sqsConfig) Region() string {
-	return c.Region
+	return c.RegionVal
 }
 
 func (c *sqsConfig) Endpoint() string {
-	return c.Endpoint
+	return c.EndpointVal
 }
