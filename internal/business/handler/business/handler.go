@@ -11,12 +11,14 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
 type handler struct {
 	service businessService
+	storage storage.ObjectStorage
 }
 
 func (h *handler) extractUserUUID(c *gin.Context) (uuid.UUID, error) {
@@ -35,8 +37,13 @@ type businessService interface {
 	CheckOwnership(ctx context.Context, userID string, unitID int) error
 	UpdatePost(ctx context.Context, postID int64, userID string, content string) (*entity.PostWithPhotos, error)
 	DeletePost(ctx context.Context, postID int64, userID string) error
-
 	Get(ctx context.Context, id int) (*entity.OrgUnit, error)
+	ToggleLike(ctx context.Context, postID int64, customerID string) (bool, error)
+	GetLikes(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error)
+	CreateComment(ctx context.Context, postID int64, authorID, content string) (*entity.Comment, error)
+	UpdateComment(ctx context.Context, postID, commentID int64, authorID, content string) (*entity.Comment, error)
+	DeleteComment(ctx context.Context, postID, commentID int64, authorID string) error
+	GetComments(ctx context.Context, postID int64, limit, offset int) ([]entity.CommentWithAuthor, error)
 	List(ctx context.Context, brandId, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
@@ -64,9 +71,11 @@ func RegisterHandlers(
 	r *gin.RouterGroup,
 	service businessService,
 	parser middleware.AccessTokenParser,
+	st storage.ObjectStorage,
 ) {
 	h := &handler{
 		service: service,
+		storage: st,
 	}
 
 	auth := middleware.Auth(parser)
@@ -81,6 +90,8 @@ func RegisterHandlers(
 	}
 
 	r.GET("/posts", h.GetPosts)
+	r.GET("/posts/:id/likes", h.GetLikes)
+	r.GET("/posts/:id/comments", h.GetComments)
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 	r.GET("/location-tags", h.listLocationTags)
 	r.GET("/venues/search", h.searchVenues)
@@ -119,6 +130,14 @@ func RegisterHandlers(
 		Use(middleware.RequireRoles("business"))
 	{
 		boxes.POST("", h.CreateBox)
+	}
+
+	authenticated := r.Group("/").Use(auth)
+	{
+		authenticated.POST("/posts/:id/likes", h.ToggleLike)
+		authenticated.POST("/posts/:id/comments", h.CreateComment)
+		authenticated.PATCH("/posts/:id/comments/:comment_id", h.UpdateComment)
+		authenticated.DELETE("/posts/:id/comments/:comment_id", h.DeleteComment)
 	}
 
 	r.GET("/locations/nearby", h.ListNearbyVenues)
