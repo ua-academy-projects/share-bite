@@ -3,9 +3,9 @@ export type NotificationMetadata = Record<string, unknown>;
 export type NotificationItem = {
   id: string;
   type: string;
-  entity_id: string;
+  entityID: string;
   metadata?: NotificationMetadata;
-  created_at: string;
+  createdAt: string;
 };
 
 const API_BASE_URL = "/api/notifications";
@@ -33,7 +33,7 @@ export async function markNotificationsRead(token: string, notificationIds: stri
   const response = await fetch(`${API_BASE_URL}/mark-read`, {
     method: "POST",
     headers: authHeaders(token),
-    body: JSON.stringify({ notification_ids: notificationIds }),
+    body: JSON.stringify({ notificationIDs: notificationIds }),
   });
 
   if (!response.ok) {

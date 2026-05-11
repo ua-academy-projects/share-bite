@@ -15,14 +15,14 @@ const (
 )
 
 type Message struct {
-	EventID     string         `json:"event_id"`     // Unique event ID (SHA-256)
-	EventType   EventType      `json:"event_type"`   // Event type (e.g. "post_liked")
-	RecipientID string         `json:"recipient_id"` // Who receives the notification (user ID)
-	ActorID     string         `json:"actor_id"`     // Who triggered the event (user ID)
-	EntityType  string         `json:"entity_type"`  // Type of entity (e.g. post)
-	EntityID    string         `json:"entity_id"`    // ID of the entity (e.g. post ID)
+	EventID     string         `json:"eventID"`     // Unique event ID (SHA-256)
+	EventType   EventType      `json:"eventType"`   // Event type (e.g. "post_liked")
+	RecipientID string         `json:"recipientID"` // Who receives the notification (user ID)
+	ActorID     string         `json:"actorID"`     // Who triggered the event (user ID)
+	EntityType  string         `json:"entityType"`  // Type of entity (e.g. post)
+	EntityID    string         `json:"entityID"`    // ID of the entity (e.g. post ID)
 	Metadata    map[string]any `json:"metadata,omitempty"`
-	CreatedAt   time.Time      `json:"created_at"` // Event timestamp
+	CreatedAt   time.Time      `json:"createdAt"` // Event timestamp
 }
 
 func NewEventID(parts ...string) string {

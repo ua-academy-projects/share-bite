@@ -44,9 +44,9 @@ func RegisterHandlers(r *gin.RouterGroup, notificationService *service.Service, 
 type notificationResponse struct {
 	ID        string         `json:"id"`
 	Type      string         `json:"type"`
-	EntityID  string         `json:"entity_id"`
+	EntityID  string         `json:"entityID"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
-	CreatedAt time.Time      `json:"created_at"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
 func (h *handler) getHistory(c *gin.Context) {
@@ -99,7 +99,7 @@ func (h *handler) markAsRead(c *gin.Context) {
 	}
 
 	var req struct {
-		NotificationIDs []string `json:"notification_ids"`
+		NotificationIDs []string `json:"notificationIDs"`
 	}
 	if err := request.BindJSON(c, &req); err != nil {
 		c.Error(err)

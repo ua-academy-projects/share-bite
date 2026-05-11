@@ -21,9 +21,9 @@ type Notification struct {
 type NotificationDTO struct {
 	ID        string         `json:"id"`
 	Type      string         `json:"type"`
-	EntityID  string         `json:"entity_id"`
+	EntityID  string         `json:"entityID"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
-	CreatedAt time.Time      `json:"created_at"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
 func (n Notification) ToDTO() NotificationDTO {
