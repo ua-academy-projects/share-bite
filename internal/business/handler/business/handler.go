@@ -94,7 +94,6 @@ func RegisterHandlers(
 	r.GET("/posts/:id/comments", h.GetComments)
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
 	r.GET("/location-tags", h.listLocationTags)
-	r.GET("/locations/nearby", h.ListNearbyVenues)
 	r.GET("/venues/search", h.searchVenues)
 
 	businessPosts := r.Group("/posts").
@@ -141,7 +140,8 @@ func RegisterHandlers(
 		authenticated.DELETE("/posts/:id/comments/:comment_id", h.DeleteComment)
 	}
 
-	
+	r.GET("/locations/nearby", h.ListNearbyVenues)
+
 	reservations := r.Group("/boxes").
 		Use(auth)
 	{
