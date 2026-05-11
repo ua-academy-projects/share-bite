@@ -14,6 +14,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
+	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 )
 
 type handler struct {
@@ -98,7 +99,8 @@ func RegisterHandlers(
 
 	businessPosts := r.Group("/posts").
 		Use(auth).
-		Use(middleware.RequireRoles("business"))
+		Use(middleware.RequireRoles(RoleBusiness)).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		businessPosts.PUT("/:id", h.UpdatePost)
 		businessPosts.DELETE("/:id", h.DeletePost)
@@ -107,7 +109,8 @@ func RegisterHandlers(
 
 	orgMutations := r.Group("").
 		Use(auth).
-		Use(middleware.RequireRoles("business"))
+		Use(middleware.RequireRoles(RoleBusiness)).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		orgMutations.POST("", h.createOrgUnit)
 		orgMutations.PUT("/:id", h.updateOrgUnit)
@@ -118,7 +121,8 @@ func RegisterHandlers(
 
 	businessLocations := r.Group("").
 		Use(auth).
-		Use(middleware.RequireRoles("business"))
+		Use(middleware.RequireRoles(RoleBusiness)).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		businessLocations.POST("/:id/locations", h.createLocation)
 		businessLocations.PATCH("/locations/:id", h.updateLocation)
@@ -127,7 +131,8 @@ func RegisterHandlers(
 
 	boxes := r.Group("/boxes").
 		Use(auth).
-		Use(middleware.RequireRoles("business"))
+		Use(middleware.RequireRoles(RoleBusiness)).
+		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		boxes.POST("", h.CreateBox)
 	}
