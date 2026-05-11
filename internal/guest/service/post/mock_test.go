@@ -29,7 +29,7 @@ type postRepositoryMock struct {
 	createPostCollaboratorsFn      func(ctx context.Context, postID string, invitedBy string, customerIDs []string, expiresAt time.Time) error
 	getPendingPostInvitationsFn    func(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
 	acceptPostInvitationFn         func(ctx context.Context, collaboratorID string, customerID string) (string, error)
-	declinePostInvitationFn        func(ctx context.Context, collaboratorID string, customerID string) (string, error)
+	declinePostInvitationFn        func(ctx context.Context, collaboratorID string, customerID string) error
 	getAcceptedPostCollaboratorsFn func(ctx context.Context, postID string) ([]string, error)
 	tryPublishPostIfAllAcceptedFn  func(ctx context.Context, postID string) (bool, error)
 
@@ -286,12 +286,12 @@ func (m *postRepositoryMock) AcceptPostInvitation(ctx context.Context, collabora
 	return "", nil
 }
 
-func (m *postRepositoryMock) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
+func (m *postRepositoryMock) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) error {
 	if m.declinePostInvitationFn != nil {
 		return m.declinePostInvitationFn(ctx, collaboratorID, customerID)
 	}
 
-	return "", nil
+	return nil
 }
 
 func (m *postRepositoryMock) GetAcceptedPostCollaborators(
