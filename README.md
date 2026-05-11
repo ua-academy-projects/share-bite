@@ -44,18 +44,20 @@ make run-all
 
 _(To run them individually, you can use `make run-guest`, `make run-business`, or `make run-auth`)._
 
-### 5. Run local S3 storage
+### 5. Object Storage (S3 / Garage)
 
-### Start
+The application uses S3-compatible storage for storing media files. It supports both local development via Garage and real AWS S3 for production.
 
+#### Local Development (Garage)
+
+Start the local Garage instance:
 ```bash
 make s3-up
 ```
 
-After bootstrap, copy credentials printed in the terminal into `.env`:
-
+After bootstrap, copy the credentials printed in the terminal into your `.env`:
 ```env
-S3_ENDPOINT=http://localhost:3900
+S3_ENDPOINT=http://localhost:4300
 S3_REGION=garage
 S3_ACCESS_KEY=<printed by bootstrap>
 S3_SECRET_KEY=<printed by bootstrap>
@@ -64,6 +66,34 @@ S3_USE_PATH_STYLE=true
 ```
 
 > Bootstrap runs once. On subsequent starts credentials stay the same.
+
+**Web UI (optional)**
+```bash
+make s3-ui
+```
+
+> Open http://localhost:4309
+
+#### Production (AWS S3)
+
+For real AWS deployment, configure your production `.env` like this:
+
+```env
+S3_REGION=eu-central-1
+S3_BUCKET=your-production-bucket-name
+```
+
+**Recommended: IAM Roles (no keys needed)**
+When running on AWS infrastructure (EC2, ECS, Lambda), leave `S3_ACCESS_KEY` and `S3_SECRET_KEY` empty.
+The client will automatically use the instance's IAM role.
+
+**Alternative: Static credentials**
+```env
+S3_ACCESS_KEY=your-aws-access-key
+S3_SECRET_KEY=your-aws-secret-key
+```
+
+> `S3_ENDPOINT` and `S3_USE_PATH_STYLE` are not required for native AWS S3.
 
 ### 6. Notifications helper and Redis
 

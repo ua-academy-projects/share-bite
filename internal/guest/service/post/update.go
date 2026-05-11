@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	"github.com/ua-academy-projects/share-bite/internal/storage/key"
+	"github.com/ua-academy-projects/share-bite/internal/storage/mediatype"
 )
 
 func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error) {
@@ -73,7 +76,8 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 	}
 
 	var uploadedKeys []string
-	newImages := make([]entity.PostImage, 0, len(preservedImages)+len(in.Images))
+	newImages := make([]entity.PostImage, 0, len(in.Images))
+	uploadSessionID := uuid.NewString()
 
 	// Re-add preserved images first
 	for i, img := range preservedImages {
@@ -87,27 +91,28 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 
 	// Add new uploads
 	for i, img := range in.Images {
-		ext := extensionFromContentType(img.ContentType)
-		if ext == "" {
+		ext, ok := mediatype.ExtFromContentType(img.ContentType)
+		if !ok {
 			rollbackUploadedImages(s.storage, uploadedKeys)
 			return entity.Post{}, apperror.ErrUnsupportedImageType
 		}
 
-		objectKey := generatePostImageKey(in.CustomerID, in.ID, ext)
-		uploadedKey, err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File)
-		if err != nil {
+		objectKey := key.CustomerPostImageKey(in.CustomerID, uploadSessionID, uuid.NewString(), ext)
+		if err := s.storage.Upload(ctx, objectKey, img.ContentType, img.File); err != nil {
 			rollbackUploadedImages(s.storage, uploadedKeys)
 			return entity.Post{}, fmt.Errorf("upload post image to storage: %w", err)
 		}
 
-		uploadedKeys = append(uploadedKeys, uploadedKey)
+		uploadedKeys = append(uploadedKeys, objectKey)
 		newImages = append(newImages, entity.PostImage{
-			ObjectKey:   uploadedKey,
+			ObjectKey:   objectKey,
 			ContentType: img.ContentType,
 			FileSize:    img.FileSize,
 			SortOrder:   int16(len(preservedImages) + i),
 		})
 	}
+
+	oldKeys := extractImageKeys(currentPost.Images)
 
 	var post entity.Post
 	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {

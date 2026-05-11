@@ -52,9 +52,9 @@ func (m *mockObjectStorage) BuildURL(key string) string {
 	return args.String(0)
 }
 
-func (m *mockObjectStorage) Upload(ctx context.Context, key string, contentType string, file io.Reader) (string, error) {
+func (m *mockObjectStorage) Upload(ctx context.Context, key string, contentType string, file io.Reader) error {
 	args := m.Called(ctx, key, contentType, file)
-	return args.String(0), args.Error(1)
+	return args.Error(0)
 }
 
 func (m *mockObjectStorage) Delete(ctx context.Context, key string) error {

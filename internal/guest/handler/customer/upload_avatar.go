@@ -3,7 +3,6 @@ package customer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -14,13 +13,15 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	_ "github.com/ua-academy-projects/share-bite/internal/guest/util/response"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/internal/storage/key"
+	"github.com/ua-academy-projects/share-bite/internal/storage/mediatype"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
 const (
-	maxAvatarSizeBytes = 5 * 1024 * 1024
-	fileSniffSizeBytes = 512
+	fileSniffSizeBytes     = 512
+	multipartOverheadBytes = 1 << 20 // 1MB overhead for multipart boundaries and headers
 )
 
 // @Summary		Upload customer avatar
@@ -59,8 +60,7 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 		return
 	}
 
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxAvatarSizeBytes)
-
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, mediatype.DefaultMaxImageSizeBytes+multipartOverheadBytes)
 	fileHeader, err := c.FormFile("image")
 	if err != nil {
 		var maxErr *http.MaxBytesError
@@ -87,8 +87,18 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 	}
 
 	contentType := http.DetectContentType(buffer[:n])
-	if !isAllowedAvatarContentType(contentType) {
-		c.Error(apperror.ErrUnsupportedImageType)
+	if err := mediatype.DefaultImageValidator.Validate(contentType, fileHeader.Size); err != nil {
+		if errors.Is(err, mediatype.ErrUnsupportedType) {
+			c.Error(apperror.ErrUnsupportedImageType)
+			return
+		}
+
+		if errors.Is(err, mediatype.ErrFileTooLarge) {
+			c.Error(apperror.BadRequest(err.Error()))
+			return
+		}
+
+		c.Error(err)
 		return
 	}
 
@@ -97,69 +107,43 @@ func (h *handler) uploadAvatar(c *gin.Context) {
 		c.Error(apperror.Internal("uploaded file is not seekable"))
 		return
 	}
-
 	if _, err := seeker.Seek(0, io.SeekStart); err != nil {
 		c.Error(err)
 		return
 	}
 
-	ext := extensionFromContentType(contentType)
-	if ext == "" {
+	ext, ok := mediatype.ExtFromContentType(contentType)
+	if !ok {
 		c.Error(apperror.ErrUnsupportedImageType)
 		return
 	}
-	objectKey := generateAvatarKey(userID, ext)
+	objectKey := key.CustomerAvatarKey(currentCustomer.ID, uuid.NewString(), ext)
 
-	uploadedKey, err := h.storage.Upload(
+	if err := h.storage.Upload(
 		c.Request.Context(),
 		objectKey,
 		contentType,
 		file,
-	)
-	if err != nil {
+	); err != nil {
 		c.Error(err)
 		return
 	}
 
 	customer, err := h.service.Update(c.Request.Context(), entity.UpdateCustomer{
 		UserID:          userID,
-		AvatarObjectKey: &uploadedKey,
+		AvatarObjectKey: &objectKey,
 	})
 	if err != nil {
-		cleanupDelete(h.storage, uploadedKey)
+		cleanupDelete(h.storage, objectKey)
 		c.Error(err)
 		return
 	}
 
-	if currentCustomer.AvatarObjectKey != nil && *currentCustomer.AvatarObjectKey != uploadedKey {
+	if currentCustomer.AvatarObjectKey != nil && *currentCustomer.AvatarObjectKey != objectKey {
 		go cleanupDelete(h.storage, *currentCustomer.AvatarObjectKey)
 	}
 
 	c.JSON(http.StatusOK, h.toResponse(c.Request.Context(), customer))
-}
-
-func generateAvatarKey(userID string, ext string) string {
-	return fmt.Sprintf("avatars/%s/%s.%s", userID, uuid.New().String(), ext)
-}
-
-func extensionFromContentType(contentType string) string {
-	switch contentType {
-	case "image/jpeg":
-		return "jpg"
-	case "image/png":
-		return "png"
-	default:
-		return ""
-	}
-}
-
-func isAllowedAvatarContentType(contentType string) bool {
-	switch contentType {
-	case "image/jpeg", "image/png":
-		return true
-	default:
-		return false
-	}
 }
 
 func cleanupDelete(storage storage.ObjectStorage, key string) {

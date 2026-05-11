@@ -197,11 +197,11 @@ type storageMock struct {
 	getPresignedURLFn func(ctx context.Context, key string) (string, error)
 }
 
-func (m *storageMock) Upload(ctx context.Context, key string, contentType string, file io.Reader) (string, error) {
+func (m *storageMock) Upload(ctx context.Context, key string, contentType string, file io.Reader) error {
 	if m.uploadFn != nil {
 		return m.uploadFn(ctx, key, contentType, file)
 	}
-	return key, nil
+	return nil
 }
 
 func (m *storageMock) Delete(ctx context.Context, key string) error {

@@ -2,6 +2,7 @@
 .PHONY: test test-cover docs docs-guest docs-business docs-admin-auth
 .PHONY: generate generate-guest-business-client clean
 .PHONY: goose-up goose-down goose-status goose-create
+.PHONY: docker-build
 
 COUNT ?= 1
 MIGRATIONS_DIR := migrations
@@ -45,8 +46,8 @@ s3-up:
 	bash scripts/bootstrap.sh
 
 s3-ui:
-	docker compose -f docker/compose.yaml up -d garage_webui
-	@echo "web_ui: http://localhost:3909"
+	docker compose -f build/compose.yaml up -d garage_webui
+	@echo "web_ui: http://localhost:4309"
 
 goose-up:
 	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$(DB_DSN)" goose -dir $(MIGRATIONS_DIR) up
@@ -94,3 +95,9 @@ clean:
 	@echo "cleaning generated files..."
 	rm -rf docs/api
 	rm -rf internal/guest/gateway/business/client
+
+docker-build:
+	docker build -t guest-api -f build/Dockerfile.guest .
+	docker build -t business-api -f build/Dockerfile.business .
+	docker build -t admin-auth-api -f build/Dockerfile.admin .
+	docker build -t migrator -f build/Dockerfile.migrator .

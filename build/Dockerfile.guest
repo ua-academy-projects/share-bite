@@ -1,25 +1,33 @@
 FROM golang:1.26.1-alpine AS builder
 
+ARG TARGETOS
+ARG TARGETARCH
+
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y make git
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-RUN go build -o guest ./cmd/guest-api
+RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
+RUN make generate
 
-FROM alpine:3.21
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -o app ./cmd/guest-api
+
+FROM alpine:3.20
+
+RUN adduser -D appuser
 
 WORKDIR /app
 
-COPY --from=builder /app/guest .
-RUN chown appuser:appgroup guest
+COPY --from=builder /app/app .
+
 USER appuser
 
 EXPOSE 3800
 
-CMD ["./guest"]
+CMD ["./app"]
