@@ -21,6 +21,14 @@ type OrgUnit struct {
 	Tags         []string
 }
 
+type UpdateOrgUnitInput struct {
+	Name        *string
+	Avatar      *string
+	Banner      *string
+	Description *string
+	Latitude    *float32
+	Longitude   *float32
+}
 type OrgUnitWithDistance struct {
 	OrgUnit  OrgUnit
 	Distance float64

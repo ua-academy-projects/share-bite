@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"         // пакет з твоїми хендлерами та Request-структурами
@@ -61,7 +62,7 @@ func TestHandler_OAuthCallback(t *testing.T) {
 		r := gin.New()
 		r.POST("/oauth/:provider/callback", h.OAuthCallback)
 
-		reqBody := auth.OAuthCallbackRequest{Code: "valid-code", Slug: "user"}
+		reqBody := handler.OAuthCallbackRequest{Code: "valid-code", Slug: "user"}
 		jsonBody, _ := json.Marshal(reqBody)
 
 		w := httptest.NewRecorder()
@@ -89,7 +90,7 @@ func TestHandler_OAuthCallback(t *testing.T) {
 		r.Use(testErrorMiddleware())
 		r.POST("/oauth/:provider/callback", h.OAuthCallback)
 
-		reqBody := auth.OAuthCallbackRequest{Code: "valid-code", Slug: "user"}
+		reqBody := handler.OAuthCallbackRequest{Code: "valid-code", Slug: "user"}
 		jsonBody, _ := json.Marshal(reqBody)
 
 		w := httptest.NewRecorder()
@@ -137,7 +138,7 @@ func TestHandler_OAuthLinkAccount(t *testing.T) {
 		})
 		r.POST("/user/link/:provider", h.OAuthLinkAccount)
 
-		reqBody := auth.OAuthLinkRequest{Code: "valid-code"}
+		reqBody := handler.OAuthLinkRequest{Code: "valid-code"}
 		jsonBody, _ := json.Marshal(reqBody)
 
 		w := httptest.NewRecorder()

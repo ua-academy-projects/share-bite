@@ -18,6 +18,9 @@ coverage.html
 .DS_Store
 Thumbs.db
 
+/frontend/node_modules
+/.agent/
+
 .env*
 !.env.example
 
@@ -29,15 +32,12 @@ Thumbs.db
 # generated api clients
 internal/guest/gateway/business/client/
 
+#frontend
+frontend/node_modules
+
 /aws
 terraform/.terraform
 terraform/.terraform.lock.hcl
 terraform/session-manager-plugin.deb
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
-
-frontend/node_modules
-
-.agent
-
-frontend/.vite

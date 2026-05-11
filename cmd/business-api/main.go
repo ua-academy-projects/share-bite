@@ -102,7 +102,7 @@ func main() {
 	)
 
 	// handlers
-	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager)
+	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient)
 
 	go func() {
 		logger.Info(ctx, "business http server is running")
@@ -139,6 +139,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 				return
 			case code.Unauthorized:
 				c.JSON(http.StatusUnauthorized, gin.H{"error": appErr.Error()})
+				return
+			case code.Conflict:
+				c.JSON(http.StatusConflict, gin.H{"error": appErr.Error()})
 				return
 			}
 		}

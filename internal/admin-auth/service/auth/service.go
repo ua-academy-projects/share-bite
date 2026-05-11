@@ -50,7 +50,7 @@ type Service interface {
 }
 
 type service struct {
-	userRepo         user.Repository
+	userRepo         user.AuthRepository
 	tokenProvider    TokenProvider
 	emailSender      emailsvc.Sender
 	txManager        database.TxManager
@@ -58,7 +58,7 @@ type service struct {
 	maxSessions      int
 }
 
-func New(userRepo user.Repository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager, resetTTL time.Duration, maxSessions int) Service {
+func New(userRepo user.AuthRepository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager, resetTTL time.Duration, maxSessions int) Service {
 	return &service{
 		userRepo:         userRepo,
 		tokenProvider:    tokenProvider,
