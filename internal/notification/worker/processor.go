@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -21,6 +22,12 @@ type PublisherProcessor struct {
 }
 
 func NewPublisherProcessor(p notification.Publisher, timeout time.Duration) *PublisherProcessor {
+	if p == nil {
+		panic("publisher cannot be nil")
+	}
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
 	return &PublisherProcessor{
 		publisher:      p,
 		publishTimeout: timeout,
@@ -28,6 +35,10 @@ func NewPublisherProcessor(p notification.Publisher, timeout time.Duration) *Pub
 }
 
 func (p *PublisherProcessor) Process(ctx context.Context, event notification.Message) error {
+	if p == nil || p.publisher == nil {
+		return fmt.Errorf("processor is not initialized properly")
+	}
+
 	pubCtx, cancel := context.WithTimeout(ctx, p.publishTimeout)
 	defer cancel()
 

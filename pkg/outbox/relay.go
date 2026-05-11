@@ -36,7 +36,11 @@ func WithRelayBatchSize(batchSize int) RelayOption {
 }
 
 func WithRelayPollInterval(interval time.Duration) RelayOption {
-	return func(r *Relay) { r.pollInterval = interval }
+	return func(r *Relay) {
+		if interval > 0 {
+			r.pollInterval = interval
+		}
+	}
 }
 
 func NewRelay(txManager database.TxManager, store Store, publisher Publisher, opts ...RelayOption) *Relay {
@@ -75,6 +79,9 @@ func (r *Relay) Run(ctx context.Context) error {
 	if r == nil {
 		return fmt.Errorf("outbox relay is nil")
 	}
+	if r.pollInterval <= 0 {
+		r.pollInterval = 2 * time.Second
+	}
 	logger.InfoKV(ctx, "outbox relay started", "poll_interval", r.pollInterval, "batch_size", r.batchSize)
 	ticker := time.NewTicker(r.pollInterval)
 	defer ticker.Stop()
@@ -107,7 +114,9 @@ func (r *Relay) ProcessOnce(ctx context.Context) error {
 	for _, record := range records {
 		rec := record
 		err := r.policy.Execute(ctx, func() error {
-			return r.publisher.Publish(ctx, rec)
+			pubCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			return r.publisher.Publish(pubCtx, rec)
 		})
 		if err != nil {
 			logger.ErrorKV(ctx, "failed to publish outbox record after retries",

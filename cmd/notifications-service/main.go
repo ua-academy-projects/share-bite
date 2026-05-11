@@ -97,6 +97,7 @@ func main() {
 	authMiddleware := middleware.Auth(tokenManager)
 
 	router := gin.New()
+	router.Use(gin.Recovery(), ErrorMiddleware())
 	notificationhandler.RegisterHandlers(router.Group("/"), notificationService, notificationHub, authMiddleware)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -174,4 +175,17 @@ func main() {
 	}
 
 	closer.Wait()
+}
+
+func ErrorMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+
+		err := c.Errors.Last()
+		if err == nil {
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
 }

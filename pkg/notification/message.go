@@ -1,7 +1,7 @@
 package notification
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"time"
 )
@@ -26,11 +26,14 @@ type Message struct {
 }
 
 func NewEventID(parts ...string) string {
-	h := sha1.New()
-	for _, p := range parts {
+	h := sha256.New()
+	for i, p := range parts {
+		if i > 0 {
+			h.Write([]byte{0}) // null byte delimiter
+		}
 		h.Write([]byte(p))
 	}
-	return fmt.Sprintf("%x", h.Sum(nil))[:16]
+	return fmt.Sprintf("%x", h.Sum(nil))[:32]
 }
 
 func NewMessage(eventType EventType, recipientID, actorID, entityType, entityID string, createdAt time.Time) Message {

@@ -50,9 +50,10 @@ func main() {
 		logger.Fatal(ctx, "new sns publisher:", err)
 	}
 
+	store := outboxpkg.NewStore(client.DB())
 	relay := outboxpkg.NewRelay(
 		txmanager.NewTransactionManager(client.DB()),
-		outboxpkg.NewStore(client.DB()),
+		store,
 		snsPub,
 		outboxpkg.WithRelayPolicy(resilience.Policy{
 			RetryConfig: resilience.RetryConfig{
@@ -78,6 +79,24 @@ func main() {
 	go func() {
 		if err := relay.Run(ctx); err != nil && err != context.Canceled {
 			logger.Error(ctx, "outbox relay stopped:", err)
+			os.Exit(1)
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if n, err := store.CleanupStuckProcessing(ctx, 5*time.Minute); err != nil {
+					logger.ErrorKV(ctx, "failed to cleanup stuck outbox processing rows", "error", err)
+				} else if n > 0 {
+					logger.InfoKV(ctx, "cleaned up stuck outbox processing rows", "count", n)
+				}
+			}
 		}
 	}()
 

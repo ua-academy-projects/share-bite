@@ -93,6 +93,7 @@ aws lambda create-event-source-mapping \
   --event-source-arn <SQS_QUEUE_ARN> \
   --batch-size 10 \
   --enabled \
+  --function-response-types ReportBatchItemFailures \
   --region <REGION>
 ```
 

@@ -20,6 +20,7 @@ type Record struct {
 type Store interface {
 	FetchPending(ctx context.Context, limit int) ([]Record, error)
 	MarkProcessed(ctx context.Context, id string) error
+	CleanupStuckProcessing(ctx context.Context, olderThan time.Duration) (int64, error)
 }
 
 type SQLStore struct {
@@ -41,7 +42,7 @@ func (s *SQLStore) FetchPending(ctx context.Context, limit int) ([]Record, error
 		Name: "outbox_store.FetchPending",
 		Sql: `
             UPDATE outbox
-            SET status = 'processing'
+            SET status = 'processing', updated_at = NOW()
             WHERE id IN (
                 SELECT id 
                 FROM outbox
@@ -87,7 +88,8 @@ func (s *SQLStore) MarkProcessed(ctx context.Context, id string) error {
 	q := database.Query{
 		Name: "outbox_store.MarkProcessed",
 		Sql: `
-			DELETE FROM outbox
+			UPDATE outbox
+			SET status = 'processed', processed_at = NOW(), updated_at = NOW()
 			WHERE id = $1
 		`,
 	}
@@ -97,6 +99,26 @@ func (s *SQLStore) MarkProcessed(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+func (s *SQLStore) CleanupStuckProcessing(ctx context.Context, olderThan time.Duration) (int64, error) {
+	if s == nil {
+		return 0, fmt.Errorf("outbox store is nil")
+	}
+	cutoff := time.Now().Add(-olderThan)
+	q := database.Query{
+		Name: "outbox_store.CleanupStuckProcessing",
+		Sql: `
+			UPDATE outbox
+			SET status = 'pending', updated_at = NOW()
+			WHERE status = 'processing' AND updated_at < $1
+		`,
+	}
+	res, err := s.db.ExecContext(ctx, q, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("cleanup stuck processing: %w", err)
+	}
+	return res.RowsAffected(), nil
 }
 
 var _ Store = (*SQLStore)(nil)

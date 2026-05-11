@@ -7,7 +7,7 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 RUN go build -o migrator ./cmd/migrator
 
-FROM alpine:latest
+FROM alpine:3.21
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/migrator .

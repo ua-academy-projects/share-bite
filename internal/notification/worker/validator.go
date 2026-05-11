@@ -41,5 +41,17 @@ func (v *DefaultValidator) Validate(event notification.Message) error {
 		return fmt.Errorf("missing created_at")
 	}
 
+	if event.ActorID == "" {
+		return fmt.Errorf("missing actor_id")
+	}
+
+	if event.EntityType == "" {
+		return fmt.Errorf("missing entity_type")
+	}
+
+	if event.EntityID == "" {
+		return fmt.Errorf("missing entity_id")
+	}
+
 	return nil
 }

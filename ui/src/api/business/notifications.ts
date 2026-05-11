@@ -43,6 +43,6 @@ export async function markNotificationsRead(token: string, notificationIds: stri
 
 export function buildNotificationsStreamUrl(token: string) {
   const url = `/api/notifications/stream?access_token=${encodeURIComponent(token)}`;
-  console.log("[NotificationsAPI] Building stream URL:", url);
+  console.log("[NotificationsAPI] Building stream URL");
   return url;
 }

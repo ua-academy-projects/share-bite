@@ -180,6 +180,13 @@ resource "aws_iam_role_policy" "ec2_sqs_policy" {
           "sqs:GetQueueUrl"
         ],
         Resource = aws_sqs_queue.notifications_sse.arn
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "sns:Publish"
+        ],
+        Resource = aws_sns_topic.notifications.arn
       }
     ]
   })

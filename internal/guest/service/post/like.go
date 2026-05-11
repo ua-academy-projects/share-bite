@@ -31,7 +31,8 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 
 		authorUserID, err := s.postRepo.GetAuthorUserID(txCtx, postID)
 		if err != nil {
-			return fmt.Errorf("get author user ID for outbox event: %w", err)
+			logger.ErrorKV(txCtx, "failed to get author user ID for notification, skipping", "post_id", postID, "error", err)
+			return nil
 		}
 		if authorUserID == "" {
 			return nil
@@ -40,7 +41,10 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 		// Get actor's profile for notification enrichment
 		actor, err := s.customerRepo.GetByID(txCtx, customerID)
 		if err != nil {
-			return fmt.Errorf("get actor for notification: %w", err)
+			logger.ErrorKV(txCtx, "failed to get actor for notification, using partial data", "customer_id", customerID, "error", err)
+			// fallback to basic data
+			actor.ID = customerID
+			actor.UserName = "Anonymous"
 		}
 
 		actorName := actor.UserName

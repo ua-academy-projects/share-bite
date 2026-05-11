@@ -46,8 +46,10 @@ func (s *Service) ProcessMessage(ctx context.Context, msg notification.Message) 
 		return err
 	}
 	if !inserted {
-		logger.DebugKV(ctx, "duplicate notification skipped", "notification_id", msg.EventID, "recipient_id", msg.RecipientID, "event_type", msg.EventType)
-		return nil
+		logger.DebugKV(ctx, "duplicate notification skipped from db save", "notification_id", msg.EventID, "recipient_id", msg.RecipientID, "event_type", msg.EventType)
+		if s.publisher == nil {
+			return nil
+		}
 	}
 
 	if s.publisher != nil {

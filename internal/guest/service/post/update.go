@@ -58,16 +58,13 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 	var preservedImages []entity.PostImage
 	var keysToDelete []string
 	if in.RewriteImages {
+		keptMap := make(map[string]bool, len(in.KeptImages))
+		for _, key := range in.KeptImages {
+			keptMap[key] = true
+		}
+
 		for _, oldImg := range currentPost.Images {
-			fullURL := s.storage.BuildURL(oldImg.ObjectKey)
-			isKept := false
-			for _, keptURL := range in.KeptImages {
-				if keptURL == fullURL {
-					isKept = true
-					break
-				}
-			}
-			if isKept {
+			if keptMap[oldImg.ObjectKey] {
 				preservedImages = append(preservedImages, oldImg)
 			} else {
 				keysToDelete = append(keysToDelete, oldImg.ObjectKey)

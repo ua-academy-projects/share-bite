@@ -83,7 +83,6 @@ func (p *SNSPublisher) Publish(ctx context.Context, event Record) error {
 		"message_id", aws.ToString(res.MessageId),
 		"event_id", event.Payload.EventID,
 		"event_type", event.EventType,
-		"recipient_id", event.Payload.RecipientID,
 		"source_service", event.SourceService,
 	)
 

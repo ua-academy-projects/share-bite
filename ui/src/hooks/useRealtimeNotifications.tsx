@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export function useRealtimeNotifications() {
   const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
   const queryClient = useQueryClient();
   const { addToast } = useToast();
 
@@ -26,8 +27,8 @@ export function useRealtimeNotifications() {
 
       es.onmessage = (event) => {
         try {
-          console.log("[SSE] Message received:", event.data);
           const notification = JSON.parse(event.data) as NotificationItem;
+          console.log("[SSE] Notification received:", notification.type);
           
           const type = String(notification.type || "").toLowerCase();
           const metadata = notification.metadata || {};
@@ -60,7 +61,11 @@ export function useRealtimeNotifications() {
       es.onerror = () => {
         console.error("SSE connection error, retrying in 5s...");
         es.close();
-        setTimeout(connect, 5000);
+        
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        reconnectTimeoutRef.current = window.setTimeout(connect, 5000);
       };
 
       eventSourceRef.current = es;
@@ -69,7 +74,10 @@ export function useRealtimeNotifications() {
     connect();
 
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       eventSourceRef.current?.close();
     };
-  }, [queryClient]);
+  }, [queryClient, addToast]);
 }

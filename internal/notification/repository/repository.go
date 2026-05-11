@@ -37,14 +37,15 @@ func (r *SQLRepository) Save(ctx context.Context, notification entity.Notificati
 				recipient_id,
 				event_type,
 				entity_id,
-				metadata
+				metadata,
+				created_at
 			)
-			VALUES ($1, $2, $3, $4, $5::jsonb)
+			VALUES ($1, $2, $3, $4, $5::jsonb, $6)
 			ON CONFLICT (notification_id) DO NOTHING
 		`,
 	}
 
-	tag, err := r.db.ExecContext(ctx, q, notification.NotificationID, notification.RecipientID, notification.EventType, notification.EntityID, string(metadataJSON))
+	tag, err := r.db.ExecContext(ctx, q, notification.NotificationID, notification.RecipientID, notification.EventType, notification.EntityID, string(metadataJSON), notification.CreatedAt)
 	if err != nil {
 		return false, fmt.Errorf("save notification: %w", err)
 	}

@@ -89,8 +89,8 @@ The `notifications-service` consumes UI notifications from the SQS queue, enrich
 Add the notifications-specific env vars to `.env`:
 
 ```env
-NOTIFICATIONS_HTTP_SERVER_HOST=0.0.0.0
-NOTIFICATIONS_HTTP_SERVER_PORT=4005
+NOTIFICATION_HTTP_SERVER_HOST=0.0.0.0
+NOTIFICATION_HTTP_SERVER_PORT=4005
 NOTIFICATION_SQS_QUEUE_URL=<terraform output notifications_sse_queue_url>
 ```
 
@@ -151,7 +151,7 @@ This orchestrates the correct execution order:
 
 ### 9. Testing
 
-> Ensure API clients are generated (step 7) before running tests.
+> Ensure API clients are generated (step 8) before running tests.
 
 Run the full test suite:
 
