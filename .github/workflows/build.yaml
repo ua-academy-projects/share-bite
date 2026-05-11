@@ -75,8 +75,7 @@ jobs:
         with:
           context: .
           file: ./build/Dockerfile.${{ matrix.service }}
-#          push: ${{ github.event_name != 'pull_request' }}
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -89,7 +88,7 @@ jobs:
   deploy:
       name: Deploy to EC2 via AWS SSM
       needs: build-and-push
-#      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       runs-on: ubuntu-latest
       permissions:
         id-token: write
