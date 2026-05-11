@@ -7,15 +7,15 @@ import (
 )
 
 type Notification struct {
-	ID             int64
-	NotificationID string
-	RecipientID    string
-	EventType      string
-	EntityID       string
-	Metadata       map[string]any
-	IsRead         bool
-	CreatedAt      time.Time
-	ReadAt         *time.Time
+	ID             int64          `db:"id"`
+	NotificationID string         `db:"notification_id"`
+	RecipientID    string         `db:"recipient_id"`
+	EventType      string         `db:"event_type"`
+	EntityID       string         `db:"entity_id"`
+	Metadata       map[string]any `db:"metadata"`
+	IsRead         bool           `db:"is_read"`
+	CreatedAt      time.Time      `db:"created_at"`
+	ReadAt         *time.Time     `db:"read_at"`
 }
 
 type NotificationDTO struct {

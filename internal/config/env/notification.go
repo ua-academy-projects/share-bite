@@ -1,38 +1,34 @@
 package env
 
 import (
-	"os"
+	"github.com/caarlos0/env/v11"
 )
 
 type sqsConfig struct {
-	queue    string
-	region   string
-	endpoint string
+	QueueURL string `env:"SQS_QUEUE_URL"`
+	Region   string `env:"AWS_REGION"`
+	Endpoint string `env:"SQS_ENDPOINT_URL"`
 }
 
 func NewSQSConfig(prefix string) (*sqsConfig, error) {
-	queue := os.Getenv(prefix + "SQS_QUEUE_URL")
-	if queue == "" {
-		queue = os.Getenv(prefix + "SQS_QUEUE")
+	cfg := new(sqsConfig)
+	if err := env.ParseWithOptions(cfg, env.Options{
+		Prefix: prefix,
+	}); err != nil {
+		return nil, err
 	}
-	region := os.Getenv(prefix + "AWS_REGION")
-	endpoint := os.Getenv(prefix + "SQS_ENDPOINT_URL")
 
-	return &sqsConfig{
-		queue:    queue,
-		region:   region,
-		endpoint: endpoint,
-	}, nil
+	return cfg, nil
 }
 
 func (c *sqsConfig) Queue() string {
-	return c.queue
+	return c.QueueURL
 }
 
 func (c *sqsConfig) Region() string {
-	return c.region
+	return c.Region
 }
 
 func (c *sqsConfig) Endpoint() string {
-	return c.endpoint
+	return c.Endpoint
 }

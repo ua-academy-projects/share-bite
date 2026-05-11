@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/ua-academy-projects/share-bite/internal/notification/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
@@ -72,22 +73,9 @@ func (r *SQLRepository) GetHistory(ctx context.Context, recipientID string, limi
 	}
 	defer rows.Close()
 
-	items := make([]entity.Notification, 0, limit)
-	for rows.Next() {
-		var item entity.Notification
-		var metadataJSON []byte
-		if err := rows.Scan(&item.ID, &item.NotificationID, &item.RecipientID, &item.EventType, &item.EntityID, &metadataJSON, &item.IsRead, &item.CreatedAt, &item.ReadAt); err != nil {
-			return nil, fmt.Errorf("scan notification history row: %w", err)
-		}
-		if len(metadataJSON) > 0 {
-			if err := json.Unmarshal(metadataJSON, &item.Metadata); err != nil {
-				return nil, fmt.Errorf("unmarshal notification metadata: %w", err)
-			}
-		}
-		items = append(items, item)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate notification history: %w", err)
+	var items []entity.Notification
+	if err := pgxscan.ScanAll(&items, rows); err != nil {
+		return nil, fmt.Errorf("scan notification history: %w", err)
 	}
 
 	return items, nil
