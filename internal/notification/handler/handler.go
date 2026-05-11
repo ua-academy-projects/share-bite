@@ -49,6 +49,11 @@ type notificationResponse struct {
 	CreatedAt time.Time      `json:"createdAt"`
 }
 
+type getHistoryRequest struct {
+	Limit  int `form:"limit" binding:"omitempty,gte=1,lte=100" default:"20"`
+	Offset int `form:"offset" binding:"omitempty,gte=0"`
+}
+
 func (h *handler) getHistory(c *gin.Context) {
 	userID, err := httpctx.GetUserID(c)
 	if err != nil {
@@ -56,21 +61,13 @@ func (h *handler) getHistory(c *gin.Context) {
 		return
 	}
 
-	limit := 20
-	if raw := c.Query("limit"); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 100 {
-			limit = parsed
-		}
+	req := getHistoryRequest{Limit: 20}
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.Error(apperror.BadRequest(err.Error()))
+		return
 	}
 
-	offset := 0
-	if raw := c.Query("offset"); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil && parsed >= 0 {
-			offset = parsed
-		}
-	}
-
-	items, err := h.svc.GetHistory(c.Request.Context(), userID, limit, offset)
+	items, err := h.svc.GetHistory(c.Request.Context(), userID, req.Limit, req.Offset)
 	if err != nil {
 		logger.ErrorKV(c.Request.Context(), "get notification history", "error", err)
 		c.Error(err)
