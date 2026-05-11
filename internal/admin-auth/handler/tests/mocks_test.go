@@ -19,15 +19,44 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 type mockUserRepository struct {
 	mock.Mock
 }
+type MockAdminService struct {
+	mock.Mock
+}
+
+func (m *MockAdminService) GetUserDetails(ctx context.Context, userID string) (*dto.FullUserDetails, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.FullUserDetails), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockAdminService) GetUsersList(ctx context.Context, filter dto.AdminUserFilter) (*dto.PaginatedAdminUsersResponse, error) {
+	args := m.Called(ctx, filter)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.PaginatedAdminUsersResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockAdminService) ChangeUserRole(ctx context.Context, targetUserID string, newRoleSlug string) error {
+	args := m.Called(ctx, targetUserID, newRoleSlug)
+	return args.Error(0)
+}
 
 func (m *mockUserRepository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (string, error) {
 	args := m.Called(ctx, ghUser)
-	return args.String(0), args.Error(1)
+	u := args.Get(0)
+	if u == nil {
+		return nil, args.Error(1)
+	}
+	return u.(*dto.User), args.Error(1)
 }
 
 func (m *mockUserRepository) ResetPassword(ctx context.Context, tokenHash, passwordHash string) (string, bool, error) {
@@ -241,7 +270,7 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 
 type stubTokenProvider struct{}
 
-func (s stubTokenProvider) GenerateToken(_ string, _ string) (string, string, error) {
+func (s stubTokenProvider) GenerateToken(_ string, _ string, _ jwt.UserStatus) (string, string, error) {
 	return "", "", errors.New("unexpected GenerateToken call")
 }
 

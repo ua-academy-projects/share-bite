@@ -17,6 +17,7 @@ import (
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	jwtpkg "github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -26,7 +27,7 @@ type Tokens struct {
 }
 
 type TokenProvider interface {
-	GenerateToken(userID string, role string) (string, string, error)
+	GenerateToken(userID string, role string, status jwtpkg.UserStatus) (string, string, error)
 	ParseRefreshToken(token string) (string, string, error)
 	GetRefreshTTL() time.Duration
 }
@@ -50,7 +51,7 @@ type Service interface {
 }
 
 type service struct {
-	userRepo         user.Repository
+	userRepo         user.AuthRepository
 	tokenProvider    TokenProvider
 	emailSender      emailsvc.Sender
 	txManager        database.TxManager
@@ -58,7 +59,7 @@ type service struct {
 	maxSessions      int
 }
 
-func New(userRepo user.Repository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager, resetTTL time.Duration, maxSessions int) Service {
+func New(userRepo user.AuthRepository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager, resetTTL time.Duration, maxSessions int) Service {
 	return &service{
 		userRepo:         userRepo,
 		tokenProvider:    tokenProvider,
@@ -90,7 +91,7 @@ func (s *service) Login(ctx context.Context, email, password string) (*Tokens, e
 		return nil, apperr.ErrAccountSuspended
 	}
 
-	return s.issueTokens(ctx, u.ID, u.RoleSlug)
+	return s.issueTokens(ctx, u.ID, u.RoleSlug, u.Status)
 }
 
 func (s *service) Register(ctx context.Context, email, password, slug string) (*Tokens, error) {
@@ -137,7 +138,7 @@ func (s *service) Register(ctx context.Context, email, password, slug string) (*
 		return nil, apperr.Wrap(http.StatusInternalServerError, "created user not found after transaction", nil)
 	}
 
-	return s.issueTokens(ctx, createdUserId, role.Slug)
+	return s.issueTokens(ctx, createdUserId, role.Slug, models.UserStatusActive)
 }
 
 func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, error) {
@@ -169,7 +170,7 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, er
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to revoke old token", err)
 	}
 
-	return s.issueTokens(ctx, userID, role)
+	return s.issueTokens(ctx, userID, role, u.Status)
 }
 
 func (s *service) Logout(ctx context.Context, userID string, refreshToken string) error {
@@ -215,7 +216,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 		if existing.Status == models.UserStatusSuspended {
 			return nil, apperr.ErrAccountSuspended
 		}
-		return s.issueTokens(ctx, existing.ID, existing.RoleSlug)
+		return s.issueTokens(ctx, existing.ID, existing.RoleSlug, existing.Status)
 	}
 
 	byEmail, err := s.userRepo.FindByEmail(ctx, info.Email)
@@ -238,7 +239,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 		if err != nil {
 			return nil, apperr.Wrap(http.StatusInternalServerError, "failed to link social account", err)
 		}
-		return s.issueTokens(ctx, byEmail.ID, byEmail.RoleSlug)
+		return s.issueTokens(ctx, byEmail.ID, byEmail.RoleSlug, byEmail.Status)
 	}
 	if !info.EmailVerified {
 		return nil, apperr.ErrEmailNotVerified
@@ -260,7 +261,7 @@ func (s *service) OAuthLogin(ctx context.Context, provider OAuthProvider, code s
 	if err != nil {
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to create user via social", err)
 	}
-	return s.issueTokens(ctx, createUser.ID, role.Slug)
+	return s.issueTokens(ctx, createUser.ID, role.Slug, models.UserStatusActive)
 }
 
 func (s *service) LinkProvider(ctx context.Context, userID string, provider OAuthProvider, code string) error {
@@ -418,11 +419,11 @@ func (s *service) ResetPassword(ctx context.Context, token, newPassword string) 
 	return nil
 }
 
-func (s *service) issueTokens(ctx context.Context, userID, role string) (*Tokens, error) {
+func (s *service) issueTokens(ctx context.Context, userID, role string, status models.UserStatus) (*Tokens, error) {
 	if err := s.userRepo.EnforceMaxSessions(ctx, userID, s.maxSessions); err != nil {
 		logger.ErrorKV(ctx, "failed to enforce max sessions limit", err.Error())
 	}
-	access, refresh, err := s.tokenProvider.GenerateToken(userID, role)
+	access, refresh, err := s.tokenProvider.GenerateToken(userID, role, jwtpkg.UserStatus(status))
 	if err != nil {
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to generate jwt tokens", err)
 	}

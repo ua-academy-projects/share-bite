@@ -11,6 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 type MockBusinessService struct {
@@ -19,8 +20,8 @@ type MockBusinessService struct {
 
 type dummyTokenParser struct{}
 
-func (d dummyTokenParser) ParseAccessToken(token string) (string, string, error) {
-	return "", "", nil
+func (d dummyTokenParser) ParseAccessToken(token string) (jwt.AccessTokenPayload, error) {
+	return jwt.AccessTokenPayload{}, nil
 }
 
 func (m *MockBusinessService) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
@@ -53,7 +54,7 @@ func TestListNearbyBoxes_InvalidCoordinates(t *testing.T) {
 	mockService := &MockBusinessService{}
 	parser := dummyTokenParser{}
 
-	RegisterHandlers(router.Group("/"), mockService, parser)
+	RegisterHandlers(router.Group("/"), mockService, parser, nil)
 
 	req, _ := http.NewRequest(http.MethodGet, "/nearby-boxes?lat=999&lon=30.5&limit=10", nil)
 
@@ -73,7 +74,7 @@ func TestListNearbyBoxes_Positive_Success(t *testing.T) {
 	mockService := &MockBusinessService{}
 	parser := dummyTokenParser{}
 
-	RegisterHandlers(router.Group("/"), mockService, parser)
+	RegisterHandlers(router.Group("/"), mockService, parser, nil)
 
 	req, _ := http.NewRequest(http.MethodGet, "/nearby-boxes?lat=50.45&lon=30.52&limit=10&skip=0", nil)
 

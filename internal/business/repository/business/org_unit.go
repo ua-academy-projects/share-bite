@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/lib/pq"
 
@@ -368,4 +369,67 @@ func (r *Repository) ListNearbyVenues(ctx context.Context, lat, lon float64, off
 	}
 
 	return pagination.List(ctx, r.db.DB(), "business_repository.ListNearbyVenues", p, scanner)
+}
+
+func (r *Repository) SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error) {
+	const op = "repository.business.SearchVenues"
+
+	where := "profile_type = 'VENUE'"
+	args := make([]any, 0)
+
+	query = strings.TrimSpace(query)
+	if query != "" {
+		args = append(args, "%"+query+"%")
+		p := len(args)
+		where += fmt.Sprintf(" AND (name ILIKE $%d OR COALESCE(description, '') ILIKE $%d)", p, p)
+	}
+
+	if len(tags) > 0 {
+		args = append(args, pq.Array(tags))
+		p := len(args)
+		where += fmt.Sprintf(`
+		AND EXISTS (
+			SELECT 1
+			FROM business.org_unit_tags ot
+			JOIN business.location_tags lt ON lt.id = ot.tag_id
+			WHERE ot.org_unit_id = business.org_units.id
+			  AND lt.slug = ANY($%d)
+		)`, p)
+	}
+
+	units, err := pagination.List(ctx, r.db.DB(), "business_repository.SearchVenues",
+		pagination.Params{
+			Table:   "business.org_units",
+			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
+			Where:   where,
+			OrderBy: "id",
+			Args:    args,
+			Offset:  offset,
+			Limit:   limit,
+		},
+		func(rows pgx.Rows) (entity.OrgUnit, error) {
+			var ou OrgUnit
+			err := rows.Scan(
+				&ou.Id,
+				&ou.OrgAccountId,
+				&ou.ProfileType,
+				&ou.Name,
+				&ou.Avatar,
+				&ou.Banner,
+				&ou.Description,
+				&ou.ParentId,
+				&ou.Latitude,
+				&ou.Longitude,
+			)
+			if err != nil {
+				return entity.OrgUnit{}, fmt.Errorf("%s: %w", op, err)
+			}
+			return ou.ToEntity(), nil
+		},
+	)
+	if err != nil {
+		return pagination.Result[entity.OrgUnit]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return units, nil
 }

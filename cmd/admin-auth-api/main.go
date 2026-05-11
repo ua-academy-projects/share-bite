@@ -9,7 +9,11 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	businessclient "github.com/ua-academy-projects/share-bite/internal/admin-auth/adapter/business"
+	guestclient "github.com/ua-academy-projects/share-bite/internal/admin-auth/adapter/guest"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
+	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
@@ -21,6 +25,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/google"
 	userrepo "github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
+	adminsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/admin"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/internal/config"
 
@@ -98,6 +103,7 @@ func main() {
 	authMw := middleware.Auth(tokenManager)
 	txManager := txmanager.NewTransactionManager(client.DB())
 	userRepo := userrepo.New(client)
+	adminRepo := userrepo.NewAdmin(client)
 
 	workerManager := worker.NewManager(userRepo)
 	workerManager.Start(ctx)
@@ -132,6 +138,12 @@ func main() {
 	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager, cfg.Email.PasswordResetTTLValue(), cfg.Auth.MaxSessions())
 	authHandler := authhttp.NewHandler(authSvc, providerFactory)
 
+	customerClient := guestclient.NewClient(client)
+	businessClient := businessclient.NewClient(client)
+
+	adminSvc := adminsvc.NewService(adminRepo, userRepo, customerClient, businessClient, txManager)
+	adminHandler := adminhttp.NewHandler(adminSvc)
+
 	limiter := adminmw.NewAuthRecoveryLimiter(
 		cfg.RateLimit.AuthRecoverRequests(),
 		cfg.RateLimit.AuthRecoverDuration(),
@@ -147,7 +159,7 @@ func main() {
 	sessionStore := gh.NewJWTSessionStore(tokenManager)
 	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore)
 
-	routers.SetupRouter(router.Group("/"), authHandler, authMw, limiter, *ghHandler)
+	routers.SetupRouter(router.Group("/"), authHandler, adminHandler, *ghHandler, authMw, limiter)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
@@ -170,13 +182,13 @@ func ErrorMiddleware() gin.HandlerFunc {
 		}
 
 		respCode := http.StatusInternalServerError
-		resp := authhttp.ErrorResponse{Error: "internal server error"}
+		resp := handler.ErrorResponse{Error: "internal server error"}
 
 		var appErr *apperr.AppError
 		if errors.As(err.Err, &appErr) {
 			respCode = appErr.HTTPStatus()
 
-			resp = authhttp.ErrorResponse{Error: appErr.Message}
+			resp = handler.ErrorResponse{Error: appErr.Message}
 		}
 
 		c.JSON(respCode, resp)

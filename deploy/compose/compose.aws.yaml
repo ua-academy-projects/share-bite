@@ -1,0 +1,98 @@
+name: compose.aws.yaml
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: share-bite-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sharebite}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-sharebite_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks:
+      - share-bite-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sharebite} -d ${POSTGRES_DB:-sharebite_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: share-bite-redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:-rbite}
+    ports:
+      - "6379:6379"
+    networks:
+      - share-bite-network
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-rbite} ping | grep PONG" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  migrator:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/migrator:${IMAGE_TAG:-latest}
+    container_name: share-bite-migrator
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - share-bite-network
+
+  admin-api:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/admin-auth-api:${IMAGE_TAG:-latest}
+    container_name: share-bite-admin-api
+    restart: always
+    env_file: .env
+    ports:
+      - "8080:3850"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - share-bite-network
+
+  business-api:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/business-api:${IMAGE_TAG:-latest}
+    container_name: share-bite-business-api
+    restart: always
+    env_file: .env
+    ports:
+      - "8081:3900"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - share-bite-network
+
+  guest-api:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/guest-api:${IMAGE_TAG:-latest}
+    container_name: share-bite-guest-api
+    restart: always
+    env_file: .env
+    ports:
+      - "8082:3800"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - share-bite-network
+
+networks:
+  share-bite-network:
+    driver: bridge
+
+volumes:
+  pgdata:

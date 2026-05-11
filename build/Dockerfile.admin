@@ -1,4 +1,7 @@
-FROM golang:1.25.1-bookworm AS builder
+FROM golang:1.25.7-bookworm AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -7,15 +10,22 @@ RUN go mod download
 
 COPY . .
 
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-RUN go build -o admin-auth cmd/admin-auth-api/main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -o app ./cmd/admin-auth-api
 
-FROM ubuntu:22.04
+FROM alpine:3.20
+
+RUN adduser -D appuser
+
 WORKDIR /app
 
-COPY --from=builder /app/admin-auth .
+COPY --from=builder /app/app .
+
+COPY --from=builder /app/internal/admin-auth/provider/email/templates \
+    /app/internal/admin-auth/provider/email/templates
+
+USER appuser
 
 EXPOSE 3850
 
-CMD ["./admin-auth"]
+CMD ["./app"]

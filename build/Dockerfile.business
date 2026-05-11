@@ -1,4 +1,7 @@
-FROM golang:1.25.1-bookworm AS builder
+FROM golang:1.25.7-bookworm AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
@@ -7,15 +10,19 @@ RUN go mod download
 
 COPY . .
 
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-RUN go build -o business ./cmd/business-api
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -o app ./cmd/business-api
 
-FROM ubuntu:22.04
+FROM alpine:3.20
+
+RUN adduser -D appuser
+
 WORKDIR /app
 
-COPY --from=builder /app/business .
+COPY --from=builder /app/app .
+
+USER appuser
 
 EXPOSE 3900
 
-CMD ["./business"]
+CMD ["./app"]

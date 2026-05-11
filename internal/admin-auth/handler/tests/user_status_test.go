@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
@@ -107,7 +108,8 @@ func TestHandler_UpdateUserStatus(t *testing.T) {
 		})
 		r.PUT("/users/:userId/status", h.UpdateUserStatus)
 
-		body, _ := json.Marshal(auth.UpdateUserStatusRequest{Status: "muted"})
+		body, err := json.Marshal(handler.UpdateUserStatusRequest{Status: "muted"})
+		assert.NoError(t, err)
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPut, "/users/user-1/status", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -134,7 +136,8 @@ func TestHandler_UpdateUserStatus(t *testing.T) {
 		})
 		r.PUT("/users/:userId/status", h.UpdateUserStatus)
 
-		body, _ := json.Marshal(auth.UpdateUserStatusRequest{Status: "suspended"})
+		body, err := json.Marshal(handler.UpdateUserStatusRequest{Status: "suspended"})
+		assert.NoError(t, err)
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPut, "/users/user-404/status", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")

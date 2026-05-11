@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 env:
@@ -33,6 +33,8 @@ jobs:
             ecr_repo: share-bite/business-api
           - service: guest
             ecr_repo: share-bite/guest-api
+          - service: migrator
+            ecr_repo: share-bite/migrator
 
     steps:
       - name: Checkout repository
@@ -60,25 +62,61 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-           images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}
-           tags: |
-              type=sha,prefix=sha-
-              type=ref,event=branch
-              type=ref,event=tag
-              type=raw,value=latest,enable={{is_default_branch}}
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push ${{ matrix.service }} image
         id: build-push
         uses: docker/build-push-action@v5
         with:
-            context: .
-            file: ./build/Dockerfile.${{ matrix.service }}
-            push: true
-            tags: ${{ steps.meta.outputs.tags }}
-            labels: ${{ steps.meta.outputs.labels }}
+          context: .
+          file: ./build/Dockerfile.${{ matrix.service }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Output Pushed Image URI
         run: |
-            IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}@${{ steps.build-push.outputs.digest }}"
-            echo "Successfully pushed to: $IMAGE_URI"
-            echo "**${{ matrix.service }}**: \`$IMAGE_URI\`" >> $GITHUB_STEP_SUMMARY
+          IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}@${{ steps.build-push.outputs.digest }}"
+          echo "Successfully pushed to: $IMAGE_URI"
+          echo "**${{ matrix.service }}**: \`$IMAGE_URI\`" >> $GITHUB_STEP_SUMMARY
+          
+  deploy:
+      name: Deploy to EC2 via AWS SSM
+      needs: build-and-push
+      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      runs-on: ubuntu-latest
+      permissions:
+        id-token: write
+        contents: read
+
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ env.AWS_ROLE_ARN }}
+            aws-region: ${{ env.AWS_REGION }}
+
+        - name: Deploy via AWS SSM
+          run: |
+            COMPOSE_B64=$(base64 -w 0 deploy/compose/compose.aws.yaml)
+
+            aws ssm send-command \
+              --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+              --document-name "AWS-RunShellScript" \
+              --parameters 'commands=[
+                "cd /home/ubuntu/share-bite",
+                "echo '"$COMPOSE_B64"' | base64 -d > compose.aws.yaml",
+                "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+                "export AWS_REGION=${{ env.AWS_REGION }}",
+                "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+                "docker compose -f compose.aws.yaml pull",
+                "docker compose -f compose.aws.yaml up -d"
+              ]'
