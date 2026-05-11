@@ -81,13 +81,11 @@ resource "aws_instance" "app_server" {
   user_data = <<-EOF
               #!/bin/bash
               apt-get update && apt-get upgrade -y
-              apt-get install -y awscli curl golang-go
+              apt-get install -y awscli curl
 
               curl -fsSL https://get.docker.com -o get-docker.sh
               sh get-docker.sh
               usermod -aG docker ubuntu
-
-              echo "export PATH=\$PATH:\$HOME/go/bin" >> /home/ubuntu/.bashrc
 
               mkdir -p /home/ubuntu/share-bite
               chown -R ubuntu:ubuntu /home/ubuntu/share-bite
