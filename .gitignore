@@ -34,3 +34,10 @@ internal/guest/gateway/business/client/
 
 #frontend
 frontend/node_modules
+
+/aws
+terraform/.terraform
+terraform/.terraform.lock.hcl
+terraform/session-manager-plugin.deb
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup

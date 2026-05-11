@@ -1,21 +1,18 @@
 FROM golang:1.25.7-bookworm AS builder
 
 WORKDIR /app
-
 COPY go.mod go.sum ./
 RUN go mod download
-
 COPY . .
-
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 RUN go build -o guest ./cmd/guest-api
 
-FROM ubuntu:22.04
+FROM alpine:latest
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
-
 COPY --from=builder /app/guest .
-
+RUN chown appuser:appgroup guest
+USER appuser
 EXPOSE 3800
-
 CMD ["./guest"]
