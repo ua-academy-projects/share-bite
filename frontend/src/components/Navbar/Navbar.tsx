@@ -23,15 +23,19 @@ export const Navbar: React.FC = () => {
   const handleLogoutCurrentDevice = async () => {
     setLogoutLoading(true);
     setLogoutError('');
+
     try {
       await apiClient.logout();
-    } catch {
+      clearLocalSession();
+      navigate('/auth', { replace: true, state: { isLogin: true } });
+      setShowLogoutDialog(false);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to logout.';
+      setLogoutError(errorMessage);
+      console.error('Logout failed:', error);
     } finally {
       setLogoutLoading(false);
     }
-    clearLocalSession();
-    navigate('/auth', { replace: true, state: { isLogin: true } });
-    setShowLogoutDialog(false);
   };
 
   const handleLogoutAllDevices = async () => {
