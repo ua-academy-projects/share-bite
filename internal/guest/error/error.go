@@ -29,7 +29,6 @@ var (
 	ErrCollectionAccessDenied = newError(code.Forbidden, "you are not allowed to do that action in the collection")
 
 	ErrImageRequired        = newError(code.BadRequest, "image is required")
-	ErrStorageNotConfigured = newError(code.Internal, "storage is not configured")
 	ErrUnsupportedImageType = newError(code.BadRequest, "unsupported image type. only JPEG and PNG are supported")
 	ErrMultipartFormData    = newError(code.BadRequest, "content type must be multipart/form-data")
 
@@ -44,7 +43,8 @@ var (
 
 	ErrInvitationExpired          = newError(code.BadRequest, "this invitation has expired, please ask for a new one")
 	ErrInvitationAlreadyProcessed = newError(code.AlreadyExists, "this invitation has already been processed")
-	ErrForbiddenMention = newError(code.Forbidden, "cannot mention users you don't follow")
+	ErrForbiddenMention           = newError(code.Forbidden, "cannot mention users you don't follow")
+	ErrPostInvitationForbidden    = newError(code.Forbidden, "you cannot respond to this invitation")
 )
 
 type Error struct {
@@ -189,4 +189,9 @@ func InvitationNotFoundID(invitationID string) *Error {
 func InvitationNotFoundForInvitee(collectionID string, inviteeID string) *Error {
 	msg := fmt.Sprintf("invitation for collection %q and invitee %q was not found", collectionID, inviteeID)
 	return newError(code.NotFound, msg)
+}
+
+func PostChangesNotAllowed(c string) *Error {
+	msg := fmt.Sprintf("only owner can change post %s", c)
+	return newError(code.Forbidden, msg)
 }

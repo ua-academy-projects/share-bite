@@ -112,6 +112,13 @@ func (h *handler) update(c *gin.Context) {
 		return
 	}
 
-	resp := updateResponse{Post: postToResponse(post, h.storage, customer)}
+	authors, err := h.buildAuthors(ctx, post.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	resp := updateResponse{
+		Post: postToResponse(post, h.storage, customer, authors),
+	}
 	c.JSON(http.StatusOK, resp)
 }

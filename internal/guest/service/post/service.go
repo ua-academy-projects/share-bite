@@ -2,10 +2,10 @@ package post
 
 import (
 	"context"
-
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -18,6 +18,8 @@ type postRepository interface {
 	Get(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
 	GetByID(ctx context.Context, postID string) (entity.Post, error)
 	GetAuthorUserID(ctx context.Context, postID string) (string, error)
+	GetAuthorCustomerID(ctx context.Context, postID string) (string, error)
+	DeleteImagesByPostIDReturningKeys(ctx context.Context, postID string) ([]string, error)
 	Like(ctx context.Context, postID string, customerID string) (bool, error)
 	Unlike(ctx context.Context, postID string, customerID string) error
 	CreateImages(ctx context.Context, images []entity.PostImage) error
@@ -26,6 +28,16 @@ type postRepository interface {
 	GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
 	CreateMentions(ctx context.Context, mentions []entity.PostMention) error
 	ListMentionsByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
+
+	CreatePostCollaborators(ctx context.Context, postID string, invitedBy string, customerIDs []string, expiresAt time.Time) error
+	GetPendingPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error)
+	DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	GetAcceptedPostCollaborators(ctx context.Context, postID string) ([]string, error)
+	TryPublishPostIfAllAccepted(ctx context.Context, postID string) (bool, error)
+	IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error)
+
+	DeleteExpiredDraftPosts(ctx context.Context) error
 }
 
 type VenueProvider interface {
@@ -40,6 +52,10 @@ type followRepo interface {
 type customerRepo interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 	GetByID(ctx context.Context, id string) (entity.Customer, error)
+}
+
+type postCleanupService interface {
+	CleanupExpiredPosts(ctx context.Context) error
 }
 
 type service struct {

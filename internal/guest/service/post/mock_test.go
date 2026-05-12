@@ -2,34 +2,61 @@ package post
 
 import (
 	"context"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 	"io"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
-	"github.com/ua-academy-projects/share-bite/pkg/outbox"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
 type postRepositoryMock struct {
-	createFn             func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
-	listFn               func(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
-	getFn                func(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
-	getByIDFn            func(ctx context.Context, postID string) (entity.Post, error)
-	getAuthorUserIDFn    func(ctx context.Context, postID string) (string, error)
-	updateFn             func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
-	likeFn               func(ctx context.Context, postID string, customerID string) (bool, error)
-	unlikeFn             func(ctx context.Context, postID string, customerID string) error
-	outboxFn             func(ctx context.Context, event outbox.Event) error
-	updateStatusFn       func(ctx context.Context, postID, customerID string, status entity.PostStatus) error
-	getPostsByVenueIDsFn func(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
-	createMentionsFn     func(ctx context.Context, mentions []entity.PostMention) error
-	listMentionsFn       func(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
+	createFn                            func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+	listFn                              func(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error)
+	getFn                               func(ctx context.Context, postID string, reqCustomerID string) (entity.Post, error)
+	getByIDFn                           func(ctx context.Context, postID string) (entity.Post, error)
+	getAuthorUserIDFn                   func(ctx context.Context, postID string) (string, error)
+	getAuthorCustomerIDFn               func(ctx context.Context, postID string) (string, error)
+	deleteImagesByPostIDReturningKeysFn func(ctx context.Context, postID string) ([]string, error)
+	updateFn                            func(ctx context.Context, in entity.UpdatePostInput) (entity.Post, error)
+	likeFn                              func(ctx context.Context, postID string, customerID string) (bool, error)
+	unlikeFn                            func(ctx context.Context, postID string, customerID string) error
+	updateStatusFn                      func(ctx context.Context, postID, customerID string, status entity.PostStatus) error
+	getPostsByVenueIDsFn                func(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
+	createMentionsFn                    func(ctx context.Context, mentions []entity.PostMention) error
+	listMentionsFn                      func(ctx context.Context, postIDs []string) (map[string][]entity.PostMention, error)
 
-	lastCreateInput dto.CreatePostInput
-	lastListInput   dto.ListPostsInput
-	lastGetID       string
-	lastGetViewerID string
-	lastUpdateInput entity.UpdatePostInput
+	createPostCollaboratorsFn      func(ctx context.Context, postID string, invitedBy string, customerIDs []string, expiresAt time.Time) error
+	getPendingPostInvitationsFn    func(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	acceptPostInvitationFn         func(ctx context.Context, collaboratorID string, customerID string) (string, error)
+	declinePostInvitationFn        func(ctx context.Context, collaboratorID string, customerID string) error
+	getAcceptedPostCollaboratorsFn func(ctx context.Context, postID string) ([]string, error)
+	tryPublishPostIfAllAcceptedFn  func(ctx context.Context, postID string) (bool, error)
+	isAcceptedCollaboratorFn       func(ctx context.Context, postID string, customerID string) (bool, error)
+
+	deleteExpiredDraftPostsFn func(ctx context.Context) error
+
+	lastCreateInput        dto.CreatePostInput
+	lastListInput          dto.ListPostsInput
+	lastGetID              string
+	lastGetViewerID        string
+	lastUpdateInput        entity.UpdatePostInput
+	lastDeleteImagesPostID string
+}
+
+func (m *postRepositoryMock) DeleteImagesByPostIDReturningKeys(ctx context.Context, postID string) ([]string, error) {
+	m.lastDeleteImagesPostID = postID
+
+	if m.deleteImagesByPostIDReturningKeysFn != nil {
+		return m.deleteImagesByPostIDReturningKeysFn(
+			ctx,
+			postID,
+		)
+	}
+
+	return nil, nil
 }
 
 func (m *postRepositoryMock) Create(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
@@ -101,17 +128,6 @@ func (m *postRepositoryMock) Unlike(ctx context.Context, postID string, customer
 	return nil
 }
 
-type outboxWriterMock struct {
-	enqueueFn func(ctx context.Context, event outbox.Event) error
-}
-
-func (m *outboxWriterMock) Enqueue(ctx context.Context, event outbox.Event) error {
-	if m.enqueueFn != nil {
-		return m.enqueueFn(ctx, event)
-	}
-	return nil
-}
-
 func (m *postRepositoryMock) UpdateStatus(ctx context.Context, postID, customerID string, status entity.PostStatus) error {
 	if m.updateStatusFn != nil {
 		return m.updateStatusFn(ctx, postID, customerID, status)
@@ -176,6 +192,7 @@ func (m *customerRepoMock) GetByID(ctx context.Context, customerID string) (enti
 	if m.getByIDFn != nil {
 		return m.getByIDFn(ctx, customerID)
 	}
+
 	return entity.Customer{ID: customerID}, nil
 }
 
@@ -188,6 +205,17 @@ func (m *txManagerMock) ReadCommitted(ctx context.Context, fn database.Handler) 
 		return m.readCommittedFn(ctx, fn)
 	}
 	return fn(ctx)
+}
+
+type publisherMock struct {
+	publishFn func(ctx context.Context, target string, msg notification.Message) error
+}
+
+func (m *publisherMock) Publish(ctx context.Context, target string, msg notification.Message) error {
+	if m.publishFn != nil {
+		return m.publishFn(ctx, target, msg)
+	}
+	return nil
 }
 
 type storageMock struct {
@@ -224,6 +252,7 @@ func (m *storageMock) GetPresignedURL(ctx context.Context, key string) (string, 
 	}
 	return "http://localhost:3900/app-dev-bucket/" + key + "?signed=true", nil
 }
+
 func (m *postRepositoryMock) CreateMentions(ctx context.Context, mentions []entity.PostMention) error {
 	if m.createMentionsFn != nil {
 		return m.createMentionsFn(ctx, mentions)
@@ -236,4 +265,106 @@ func (m *postRepositoryMock) ListMentionsByPostIDs(ctx context.Context, postIDs 
 		return m.listMentionsFn(ctx, postIDs)
 	}
 	return map[string][]entity.PostMention{}, nil
+}
+
+func (m *postRepositoryMock) CreatePostCollaborators(
+	ctx context.Context,
+	postID string,
+	invitedBy string,
+	customerIDs []string,
+	expiresAt time.Time,
+) error {
+	if m.createPostCollaboratorsFn != nil {
+		return m.createPostCollaboratorsFn(ctx, postID, invitedBy, customerIDs, expiresAt)
+	}
+
+	return nil
+}
+
+func (m *postRepositoryMock) GetPendingPostInvitations(
+	ctx context.Context,
+	customerID string,
+) ([]entity.PostCollaborator, error) {
+	if m.getPendingPostInvitationsFn != nil {
+		return m.getPendingPostInvitationsFn(ctx, customerID)
+	}
+
+	return []entity.PostCollaborator{}, nil
+}
+
+func (m *postRepositoryMock) AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
+	if m.acceptPostInvitationFn != nil {
+		return m.acceptPostInvitationFn(
+			ctx,
+			collaboratorID,
+			customerID,
+		)
+	}
+
+	return "", nil
+}
+
+func (m *postRepositoryMock) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) error {
+	if m.declinePostInvitationFn != nil {
+		return m.declinePostInvitationFn(ctx, collaboratorID, customerID)
+	}
+
+	return nil
+}
+
+func (m *postRepositoryMock) GetAcceptedPostCollaborators(
+	ctx context.Context,
+	postID string,
+) ([]string, error) {
+	if m.getAcceptedPostCollaboratorsFn != nil {
+		return m.getAcceptedPostCollaboratorsFn(ctx, postID)
+	}
+
+	return []string{}, nil
+}
+
+func (m *postRepositoryMock) DeleteExpiredDraftPosts(ctx context.Context) error {
+	if m.deleteExpiredDraftPostsFn != nil {
+		return m.deleteExpiredDraftPostsFn(ctx)
+	}
+
+	return nil
+}
+
+func (m *postRepositoryMock) TryPublishPostIfAllAccepted(ctx context.Context, postID string) (bool, error) {
+	if m.tryPublishPostIfAllAcceptedFn != nil {
+		return m.tryPublishPostIfAllAcceptedFn(ctx, postID)
+	}
+
+	return false, nil
+}
+
+func (m *postRepositoryMock) GetAuthorCustomerID(ctx context.Context, postID string) (string, error) {
+	if m.getAuthorCustomerIDFn != nil {
+		return m.getAuthorCustomerIDFn(ctx, postID)
+	}
+
+	return "", nil
+}
+
+func (m *postRepositoryMock) IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error) {
+	if m.isAcceptedCollaboratorFn != nil {
+		return m.isAcceptedCollaboratorFn(
+			ctx,
+			postID,
+			customerID,
+		)
+	}
+	return false, nil
+}
+
+type outboxWriterMock struct {
+	enqueueFn func(ctx context.Context, event outbox.Event) error
+}
+
+func (m *outboxWriterMock) Enqueue(ctx context.Context, event outbox.Event) error {
+	if m.enqueueFn != nil {
+		return m.enqueueFn(ctx, event)
+	}
+	return nil
 }
