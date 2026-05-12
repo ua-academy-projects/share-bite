@@ -8,10 +8,10 @@ import (
 
 type s3StorageConfig struct {
 	StorageEndpoint     string        `env:"S3_ENDPOINT"`
-	StorageRegion       string        `env:"S3_REGION,notEmpty"`
+	StorageRegion       string        `env:"S3_REGION"`
 	StorageAccessKey    string        `env:"S3_ACCESS_KEY"`
 	StorageSecretKey    string        `env:"S3_SECRET_KEY"`
-	StorageBucket       string        `env:"S3_BUCKET,notEmpty"`
+	StorageBucket       string        `env:"S3_BUCKET"`
 	StorageUsePathStyle bool          `env:"S3_USE_PATH_STYLE"`
 	StoragePresignTTL   time.Duration `env:"S3_PRESIGN_URL_TTL" envDefault:"15m"`
 }

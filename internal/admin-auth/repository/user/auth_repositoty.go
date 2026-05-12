@@ -36,22 +36,90 @@ type AuthRepository interface {
 }
 
 func (r *repository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
-	q := database.Query{
-		Name: "user.UpsertByGitHubID",
-		Sql: `
-			INSERT INTO github.users (github_id, login)
-			VALUES ($1, $2)
-			ON CONFLICT (github_id) DO UPDATE
-			SET login = EXCLUDED.login, updated_at = NOW()
-			RETURNING id, github_id, login, created_at, updated_at
-		`,
+	providerID := fmt.Sprintf("%d", ghUser.ID)
+	var userID string
+
+	u := new(dto.User)
+	findByProviderQ := database.Query{
+		Name: "user.FindGithubSocialAccount",
+		Sql:  `SELECT user_id FROM auth.social_accounts WHERE provider = 'github' AND provider_id = $1 LIMIT 1`,
+	}
+	if err := r.client.DB().QueryRowContext(ctx, findByProviderQ, providerID).Scan(&userID); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("find user by github provider id: %w", err)
+		}
+
+		findByEmailQ := database.Query{
+			Name: "user.FindByEmailForGithubUpsert",
+			Sql:  `SELECT id FROM auth.users WHERE email = $1 LIMIT 1`,
+		}
+		if err := r.client.DB().QueryRowContext(ctx, findByEmailQ, ghUser.Email).Scan(&userID); err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return nil, fmt.Errorf("find user by email for github auth: %w", err)
+			}
+
+			createUserQ := database.Query{
+				Name: "user.CreateUserForGithubUpsert",
+				Sql:  `INSERT INTO auth.users (email, password_hash) VALUES ($1, NULL) RETURNING id`,
+			}
+			if err := r.client.DB().QueryRowContext(ctx, createUserQ, ghUser.Email).Scan(&userID); err != nil {
+				return nil, fmt.Errorf("create user for github auth: %w", err)
+			}
+		}
 	}
 
-	row := r.client.DB().QueryRowContext(ctx, q, ghUser.ID, ghUser.Login)
-	u := new(dto.User)
-	if err := row.Scan(&u.ID, &u.GitHubID, &u.Login, &u.CreatedAt, &u.UpdatedAt); err != nil {
-		return nil, fmt.Errorf("upsert by github id: %w", err)
+	upsertSocialQ := database.Query{
+		Name: "user.UpsertGithubSocialAccount",
+		Sql: `
+			INSERT INTO auth.social_accounts (user_id, provider, provider_id, email)
+			VALUES ($1, 'github', $2, $3)
+			ON CONFLICT (provider, provider_id) DO UPDATE
+			SET user_id = EXCLUDED.user_id,
+			    email = EXCLUDED.email
+		`,
 	}
+	if _, err := r.client.DB().ExecContext(ctx, upsertSocialQ, userID, providerID, ghUser.Email); err != nil {
+		return nil, fmt.Errorf("upsert github social account link: %w", err)
+	}
+
+	var hasRole bool
+	hasRoleQ := database.Query{
+		Name: "user.HasAnyRoleForGithubUpsert",
+		Sql:  `SELECT EXISTS (SELECT 1 FROM auth.user_roles WHERE user_id = $1)`,
+	}
+	if err := r.client.DB().QueryRowContext(ctx, hasRoleQ, userID).Scan(&hasRole); err != nil {
+		return nil, fmt.Errorf("check roles for github user: %w", err)
+	}
+	if !hasRole {
+		assignDefaultRoleQ := database.Query{
+			Name: "user.AssignDefaultRoleForGithubUpsert",
+			Sql: `
+				INSERT INTO auth.user_roles (user_id, role_id)
+				SELECT $1, r.id
+				FROM auth.roles r
+				WHERE r.slug = 'user'
+				LIMIT 1
+			`,
+		}
+		result, err := r.client.DB().ExecContext(ctx, assignDefaultRoleQ, userID)
+		if err != nil {
+			return nil, fmt.Errorf("assign default user role for github auth: %w", err)
+		}
+		if result.RowsAffected() == 0 {
+			return nil, fmt.Errorf("assign default user role for github auth: role 'user' not found")
+		}
+	}
+
+	loadUserQ := database.Query{
+		Name: "user.LoadUserAfterGithubUpsert",
+		Sql:  `SELECT id, email, created_at, updated_at FROM auth.users WHERE id = $1`,
+	}
+	if err := r.client.DB().QueryRowContext(ctx, loadUserQ, userID).Scan(&u.ID, &u.Email, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("load user after github auth upsert: %w", err)
+	}
+
+	u.GitHubID = ghUser.ID
+	u.Login = ghUser.Login
 	u.Email = ghUser.Email
 
 	return u, nil

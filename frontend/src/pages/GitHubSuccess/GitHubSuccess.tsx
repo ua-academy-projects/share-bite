@@ -7,25 +7,23 @@ export const GitHubSuccess: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    if (!hash) {
-      setError('No token data received from GitHub.');
+    const getCookie = (name: string): string | null => {
+      const match = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(name + '='));
+      return match ? decodeURIComponent(match.split('=')[1]) : null;
+    };
+
+    const token = getCookie('session');
+    if (!token) {
+      setError('No session cookie received from GitHub.');
       return;
     }
 
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
+    localStorage.setItem('token', token);
 
-    if (!accessToken) {
-      setError('Missing access token in redirect.');
-      return;
-    }
-
-    localStorage.setItem('token', accessToken);
-    if (refreshToken) {
-      localStorage.setItem('refresh_token', refreshToken);
-    }
+    // Clear the cookie now that the token is in localStorage.
+    document.cookie = 'session=; Max-Age=0; path=/';
 
     navigate('/', { replace: true });
   }, [navigate]);
