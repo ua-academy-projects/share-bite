@@ -14,6 +14,7 @@ import (
 const (
 	githubTokenURL = "https://github.com/login/oauth/access_token"
 	githubUserURL  = "https://api.github.com/user"
+	githubEmailsURL = "https://api.github.com/user/emails"
 )
 
 type githubClient struct {
@@ -84,4 +85,45 @@ func (c *githubClient) getUser(ctx context.Context, accessToken string) (*dto.Gi
 		return nil, fmt.Errorf("ghlogin: decode github user: %w", err)
 	}
 	return &ghUser, nil
+}
+
+func (c *githubClient) getPrimaryEmail(ctx context.Context, accessToken string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, githubEmailsURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("ghlogin: build emails request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("ghlogin: fetch github emails: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ghlogin: github emails status %d", resp.StatusCode)
+	}
+
+	var emails []struct {
+		Email    string `json:"email"`
+		Primary  bool   `json:"primary"`
+		Verified bool   `json:"verified"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
+		return "", fmt.Errorf("ghlogin: decode github emails: %w", err)
+	}
+
+	for _, email := range emails {
+		if email.Primary && email.Verified && email.Email != "" {
+			return email.Email, nil
+		}
+	}
+	for _, email := range emails {
+		if email.Verified && email.Email != "" {
+			return email.Email, nil
+		}
+	}
+
+	return "", fmt.Errorf("ghlogin: no usable email returned by github")
 }

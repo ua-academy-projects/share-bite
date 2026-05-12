@@ -8,9 +8,13 @@ import type {
   CreatePostInput,
   PaginatedComments,
   CommentResponse,
-  CustomerResponse
+  CustomerResponse,
+  PaginatedAdminUsers,
+  FullUserDetails,
+  AdminUsersParams,
 } from '../types/api';
 
+const apiRoot = axios.create({ baseURL: '/api' });
 const authApi = axios.create({ baseURL: '/api/auth' });
 const guestApi = axios.create({ baseURL: '/api/guest' });
 const businessApi = axios.create({ baseURL: '/api/business' });
@@ -24,6 +28,7 @@ const tokenInterceptor = (config: any) => {
   return config;
 };
 
+apiRoot.interceptors.request.use(tokenInterceptor);
 authApi.interceptors.request.use(tokenInterceptor);
 guestApi.interceptors.request.use(tokenInterceptor);
 businessApi.interceptors.request.use(tokenInterceptor);
@@ -161,5 +166,37 @@ export const apiClient = {
   },
   deleteComment: async (postId: string | number, commentId: number) => {
     await guestApi.delete(`/posts/${postId}/comments/${commentId}`);
-  }
+  },
+
+  // OAuth
+  oauthCallback: async (provider: string, code: string, slug: string) => {
+    const res = await authApi.post<AuthResponse>(`/oauth/${provider}/callback`, { code, slug });
+    return res.data;
+  },
+
+  // Admin
+  adminGetUsers: async (params: AdminUsersParams = {}) => {
+    const res = await apiRoot.get<PaginatedAdminUsers>('/admin/users', { params });
+    return res.data;
+  },
+
+  adminGetUserDetails: async (id: string) => {
+    const res = await apiRoot.get<FullUserDetails>(`/admin/users/${id}`);
+    return res.data;
+  },
+
+  adminChangeUserRole: async (id: string, roleSlug: string) => {
+    const res = await apiRoot.patch<{ message: string }>(`/admin/users/${id}/role`, { role_slug: roleSlug });
+    return res.data;
+  },
+
+  updateUserStatus: async (userId: string, status: string) => {
+    const res = await apiRoot.put<{ message: string }>(`/users/${userId}/status`, { status });
+    return res.data;
+  },
+
+  revokeAllSessions: async () => {
+    const res = await apiRoot.post<{ message: string }>('/user/sessions/revoke-all');
+    return res.data;
+  },
 };

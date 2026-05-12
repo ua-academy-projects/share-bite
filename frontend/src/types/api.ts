@@ -106,6 +106,57 @@ export interface PaginatedComments {
   entities: CommentResponse[];
 }
 
+// Admin DTOs
+export interface AdminUserListItem {
+  id: string;
+  email: string;
+  role_slug: string;
+  status: string;
+  created_at: string;
+}
+
+export interface PaginatedAdminUsers {
+  items: AdminUserListItem[];
+  total_count: number;
+}
+
+export interface CustomerProfileData {
+  username: string;
+  first_name: string;
+  last_name: string;
+  avatar_object_key: string;
+  bio: string;
+}
+
+export interface BusinessProfileData {
+  profile_type: string;
+  name: string;
+  avatar: string;
+  banner: string;
+  description: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface FullUserDetails {
+  id: string;
+  email: string;
+  role_slug: string;
+  status: string;
+  created_at: string;
+  customer_profile?: CustomerProfileData | null;
+  business_profile?: BusinessProfileData | null;
+}
+
+export interface AdminUsersParams {
+  limit?: number;
+  offset?: number;
+  search_email?: string;
+  role?: string;
+  status?: string;
+  sort_order?: string;
+}
+
 // Business DTOs (if needed)
 export interface RestaurantResponse {
   id: number;

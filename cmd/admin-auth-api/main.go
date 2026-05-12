@@ -148,7 +148,7 @@ func main() {
 	}
 
 	sessionStore := gh.NewJWTSessionStore(tokenManager)
-	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore)
+	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore, txManager)
 
 	routers.SetupRouter(router.Group("/"), authHandler, adminHandler, *ghHandler, authMw, limiter)
 
