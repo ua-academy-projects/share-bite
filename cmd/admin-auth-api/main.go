@@ -13,9 +13,9 @@ import (
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
+	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"go.uber.org/zap"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
