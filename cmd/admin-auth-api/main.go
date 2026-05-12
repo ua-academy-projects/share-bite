@@ -114,13 +114,10 @@ func main() {
 
 	switch providerStr {
 	case "", "resend":
-		emailSender, err = email.NewResendSender(
+		emailSender = email.NewResendSender(
 			cfg.Email.ResendAPIKeyValue(),
 			cfg.Email.ResendFromEmailValue(),
 		)
-		if err != nil {
-			logger.Fatal(ctx, "new resend email sender: ", err)
-		}
 	case "fake":
 		emailSender = email.NewFakeSender()
 	default:
