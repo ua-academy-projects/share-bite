@@ -20,11 +20,22 @@ export const Navbar: React.FC = () => {
     localStorage.removeItem('refresh_token');
   };
 
-  const handleLogoutCurrentDevice = () => {
-    clearLocalSession();
-    navigate('/auth', { replace: true, state: { isLogin: true } });
-    setShowLogoutDialog(false);
+  const handleLogoutCurrentDevice = async () => {
+    setLogoutLoading(true);
     setLogoutError('');
+
+    try {
+      await apiClient.logout();
+      clearLocalSession();
+      navigate('/auth', { replace: true, state: { isLogin: true } });
+      setShowLogoutDialog(false);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || error?.message || 'Failed to logout.';
+      setLogoutError(errorMessage);
+      console.error('Logout failed:', error);
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   const handleLogoutAllDevices = async () => {

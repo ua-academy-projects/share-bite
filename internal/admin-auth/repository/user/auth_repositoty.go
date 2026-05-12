@@ -29,6 +29,7 @@ type AuthRepository interface {
 	StoreRefreshToken(ctx context.Context, params dto.StoreRefreshTokenParams) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	GetUserIDByRefreshToken(ctx context.Context, tokenHash string) (string, error)
+	RevokeTokenByUser(ctx context.Context, tokenHash string, userID string) error
 	RevokeAllUserTokens(ctx context.Context, userID string) error
 	EnforceMaxSessions(ctx context.Context, userID string, maxSessions int) error
 	DeleteExpiredTokens(ctx context.Context) error
@@ -487,6 +488,20 @@ func (r *repository) GetUserIDByRefreshToken(ctx context.Context, tokenHash stri
 		return "", apperr.Wrap(http.StatusInternalServerError, "failed to fetch user id", err)
 	}
 	return userID, nil
+}
+
+func (r *repository) RevokeTokenByUser(ctx context.Context, tokenHash string, userID string) error {
+	q := database.Query{
+		Name: "user.RevokeTokenByUser",
+		Sql: `UPDATE auth.refresh_tokens 
+              SET revoked_at = NOW() 
+              WHERE token_hash = $1 AND user_id = $2 AND revoked_at IS NULL`,
+	}
+	_, err := r.client.DB().ExecContext(ctx, q, tokenHash, userID)
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to revoke token by user", err)
+	}
+	return nil
 }
 
 func (r *repository) RevokeAllUserTokens(ctx context.Context, userID string) error {
