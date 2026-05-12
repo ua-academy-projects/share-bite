@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './GitHubSuccess.module.css';
 
 export const GitHubSuccess: React.FC = () => {
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const hash = window.location.hash.slice(1);
@@ -25,8 +27,8 @@ export const GitHubSuccess: React.FC = () => {
       localStorage.setItem('refresh_token', refreshToken);
     }
 
-    window.location.href = '/';
-  }, []);
+    navigate('/', { replace: true });
+  }, [navigate]);
 
   if (error) {
     return (
