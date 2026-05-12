@@ -21,6 +21,59 @@ export type CreateBoxRequest = {
   quantity: number;
 };
 
+export type LocationTag = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
+export type VenueSearchItem = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  description?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  tags: string[];
+};
+
+export type SearchVenuesRequest = {
+  query?: string;
+  tags?: string[];
+  skip?: number;
+  limit?: number;
+};
+
+export type SearchVenuesResponse = {
+  items: VenueSearchItem[];
+  total: number;
+};
+
+export type ReserveBoxResponse = {
+  image: string;
+  price_full: string | number;
+  price_discount: string | number;
+  box_code: string;
+};
+
+export type VenueBrand = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+};
+
+export type VenueProfile = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  banner?: string | null;
+  description?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  tags: string[];
+  brand?: VenueBrand | null;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
 
 export const businessApi = {
@@ -34,6 +87,52 @@ export const businessApi = {
       console.error("API error:", error);
       return [];
     }
+  },
+
+  getLocationTags: async (): Promise<LocationTag[]> => {
+    const response = await fetch(`${API_BASE_URL}/business/location-tags`);
+    if (!response.ok) {
+      throw new Error(`Failed to load location tags (${response.status})`);
+    }
+    return response.json();
+  },
+
+  searchVenues: async (params: SearchVenuesRequest): Promise<SearchVenuesResponse> => {
+    const query = (params.query || "").trim();
+    const tags = (params.tags || [])
+      .map((tag) => tag.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (!query && tags.length === 0) {
+      throw new Error("At least one filter is required: query or tags.");
+    }
+
+    const search = new URLSearchParams();
+    if (query) search.set("q", query);
+    if (tags.length > 0) search.set("tags", tags.join(","));
+    search.set("skip", String(params.skip ?? 0));
+    search.set("limit", String(params.limit ?? 10));
+
+    const response = await fetch(`${API_BASE_URL}/business/venues/search?${search.toString()}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Search failed (${response.status})`);
+    }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
+  },
+
+  getVenueProfile: async (id: number): Promise<VenueProfile> => {
+    const response = await fetch(`${API_BASE_URL}/business/org-units/${id}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load venue (${response.status})`);
+    }
+    return response.json();
   },
 
   createBox: async (data: CreateBoxRequest, token: string) => {
@@ -67,5 +166,21 @@ export const businessApi = {
     }
 
     return response.json();
-  }
+  },
+
+  reserveBox: async (boxId: number, token: string): Promise<ReserveBoxResponse> => {
+    const response = await fetch(`${API_BASE_URL}/business/boxes/${boxId}/reserve`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Reservation failed (${response.status})`);
+    }
+
+    return response.json();
+  },
 };

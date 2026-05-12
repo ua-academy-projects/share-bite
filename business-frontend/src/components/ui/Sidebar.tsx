@@ -35,6 +35,7 @@ export function Sidebar() {
           <NavLink to="/" end className={linkClass}>Home Feed</NavLink>
           <NavLink to="/boxes" className={linkClass}>Magic Boxes</NavLink>
           <NavLink to="/discover" className={linkClass}>Discover</NavLink>
+          <NavLink to="/venues/search" className={linkClass}>Venue Search</NavLink>
           
           <div className="mt-4 flex flex-col gap-2">
             <span className="text-gray-400 px-3 py-2 text-sm font-medium">Social Bites</span>
