@@ -67,6 +67,7 @@ export const Auth: React.FC = () => {
         const userName = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Date.now();
         
         await apiClient.createCustomer({
+          email,
           userName,
           firstName,
           lastName,

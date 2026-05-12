@@ -18,6 +18,7 @@ func createRequestToCreateCustomer(req createRequest, userID string) (entity.Cre
 
 	out := entity.CreateCustomer{
 		UserID: userID,
+		Email:  strings.TrimSpace(req.Email),
 
 		UserName:  strings.ToLower(req.UserName),
 		FirstName: strings.TrimSpace(req.FirstName),

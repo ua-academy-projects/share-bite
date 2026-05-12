@@ -140,7 +140,7 @@ export const apiClient = {
     const res = await guestApi.get(`/customers/${username}`);
     return res.data;
   },
-  createCustomer: async (data: { userName: string; firstName: string; lastName: string; bio?: string }) => {
+  createCustomer: async (data: { email: string; userName: string; firstName: string; lastName: string; bio?: string }) => {
     const res = await guestApi.post<{customerId: string}>('/customers/', data);
     return res.data;
   },

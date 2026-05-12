@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	EventTypePostLiked     = "post_liked"
-	EventTypePostPublished = "post_published"
+	EventTypePostLiked             = "post_liked"
+	EventTypePostPublished         = "post_published"
+	EventTypeRegistrationConfirmed = "registration_confirmed"
 )
 
 type Message struct {
