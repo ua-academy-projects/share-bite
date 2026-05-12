@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar/Navbar';
 import { HomeFeed } from './pages/HomeFeed/HomeFeed';
 import { RestaurantProfile } from './pages/RestaurantProfile/RestaurantProfile';
@@ -14,6 +14,18 @@ import { RequireAdmin } from './components/RequireAdmin/RequireAdmin';
 import { ThemeProvider } from './context/ThemeContext';
 import './styles/variables.css';
 
+function HomeEntry() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const hasOAuthPayload = params.has('code') || params.has('error');
+
+  if (hasOAuthPayload) {
+    return <Navigate to={`/oauth/google/callback${location.search}`} replace />;
+  }
+
+  return <HomeFeed />;
+}
+
 function App() {
   return (
     <ThemeProvider>
@@ -21,7 +33,7 @@ function App() {
         <Navbar />
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<HomeFeed />} />
+            <Route path="/" element={<HomeEntry />} />
             <Route path="/explore" element={<Navigate to="/" replace />} />
             <Route path="/restaurant/:id" element={<RestaurantProfile />} />
             <Route path="/profile" element={<RequireAuth><UserProfile /></RequireAuth>} />

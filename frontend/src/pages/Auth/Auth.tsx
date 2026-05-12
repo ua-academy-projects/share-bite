@@ -8,7 +8,9 @@ import { apiClient } from '../../api/client';
 import axios from 'axios';
 import { AlertCircle } from 'lucide-react';
 
-const GOOGLE_REDIRECT_URI = `${window.location.origin}/oauth/google/callback`;
+const GOOGLE_REDIRECT_URI =
+  (import.meta.env.VITE_GOOGLE_REDIRECT_URI as string | undefined) ||
+  `${window.location.origin}/oauth/google/callback`;
 
 function buildGoogleAuthUrl(): string {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
