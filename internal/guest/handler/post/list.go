@@ -133,11 +133,12 @@ func listPostsOutToResponse(ctx context.Context, out dto.ListPostsOutput, storag
 				continue
 			}
 
-			var avatarURL *string
+			var avatarURL string
 
 			if author.AvatarObjectKey != nil && storage != nil {
-				url := storage.BuildURL(*author.AvatarObjectKey)
-				avatarURL = &url
+				avatarURL = storage.BuildURL(
+					*author.AvatarObjectKey,
+				)
 			}
 
 			authorResponses = append(authorResponses, authorResponse{

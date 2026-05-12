@@ -2,13 +2,11 @@ package post
 
 import (
 	"context"
-	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/notification"
-	"testing"
-	"time"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
+	"testing"
 )
 
 func TestPostService_AcceptInvitation_Success(t *testing.T) {
@@ -42,6 +40,7 @@ func TestPostService_AcceptInvitation_Success(t *testing.T) {
 		&customerRepoMock{},
 		&storageMock{},
 		&txManagerMock{},
+		WithOutboxWriter(&outboxWriterMock{}),
 	)
 
 	err := svc.AcceptInvitation(
@@ -75,6 +74,7 @@ func TestPostService_AcceptInvitation_ReturnsErrorWhenAcceptFails(t *testing.T) 
 		&customerRepoMock{},
 		&storageMock{},
 		&txManagerMock{},
+		WithOutboxWriter(&outboxWriterMock{}),
 	)
 
 	err := svc.AcceptInvitation(
@@ -113,6 +113,7 @@ func TestPostService_AcceptInvitation_ReturnsErrorWhenPublishCheckFails(t *testi
 		&customerRepoMock{},
 		&storageMock{},
 		&txManagerMock{},
+		WithOutboxWriter(&outboxWriterMock{}),
 	)
 
 	err := svc.AcceptInvitation(
@@ -128,7 +129,7 @@ func TestPostService_AcceptInvitation_ReturnsErrorWhenPublishCheckFails(t *testi
 func TestPostService_AcceptInvitation_PublishesNotificationsWhenAllAccepted(t *testing.T) {
 	t.Parallel()
 
-	published := 0
+	enqueued := 0
 
 	repo := &postRepositoryMock{
 		acceptPostInvitationFn: func(
@@ -138,18 +139,24 @@ func TestPostService_AcceptInvitation_PublishesNotificationsWhenAllAccepted(t *t
 		) (string, error) {
 			return "post-1", nil
 		},
+
 		tryPublishPostIfAllAcceptedFn: func(
 			ctx context.Context,
 			postID string,
 		) (bool, error) {
 			return true, nil
 		},
+
 		getAcceptedPostCollaboratorsFn: func(
 			ctx context.Context,
 			postID string,
 		) ([]string, error) {
-			return []string{"user-2", "user-3"}, nil
+			return []string{
+				"user-2",
+				"user-3",
+			}, nil
 		},
+
 		getAuthorCustomerIDFn: func(
 			ctx context.Context,
 			postID string,
@@ -170,13 +177,20 @@ func TestPostService_AcceptInvitation_PublishesNotificationsWhenAllAccepted(t *t
 		},
 	}
 
-	publisher := &publisherMock{
-		publishFn: func(
+	outboxWriter := &outboxWriterMock{
+		enqueueFn: func(
 			ctx context.Context,
-			userID string,
-			msg notification.Message,
+			event outbox.Event,
 		) error {
-			published++
+
+			enqueued++
+
+			assert.Equal(
+				t,
+				outbox.EventTypePostPublished,
+				event.EventType,
+			)
+
 			return nil
 		},
 	}
@@ -188,9 +202,8 @@ func TestPostService_AcceptInvitation_PublishesNotificationsWhenAllAccepted(t *t
 		customerRepo,
 		&storageMock{},
 		&txManagerMock{},
+		WithOutboxWriter(outboxWriter),
 	)
-
-	svc.publisher = publisher
 
 	err := svc.AcceptInvitation(
 		context.Background(),
@@ -200,7 +213,5 @@ func TestPostService_AcceptInvitation_PublishesNotificationsWhenAllAccepted(t *t
 
 	require.NoError(t, err)
 
-	time.Sleep(50 * time.Millisecond)
-
-	assert.Equal(t, 3, published)
+	assert.Equal(t, 3, enqueued)
 }

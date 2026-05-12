@@ -2,111 +2,151 @@ package post
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	"github.com/ua-academy-projects/share-bite/pkg/notification"
 	"time"
+
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, customerID string) error {
-	var postID string
-	var allAccepted bool
+	return s.txManager.ReadCommitted(
+		ctx,
+		func(txCtx context.Context) error {
 
-	err := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
-		var err error
-
-		postID, err = s.postRepo.AcceptPostInvitation(txCtx, collaboratorID, customerID)
-		if err != nil {
-			return fmt.Errorf("accept invitation: %w", err)
-		}
-
-		allAccepted, err = s.postRepo.TryPublishPostIfAllAccepted(txCtx, postID)
-		if err != nil {
-			return fmt.Errorf("try publish post: %w", err)
-		}
-
-		return nil
-	})
-
-	if err != nil || s.publisher == nil {
-		return err
-	}
-
-	go func() {
-		detached := context.WithoutCancel(ctx)
-		publishCtx, cancel := context.WithTimeout(detached, notificationPublishTimeout)
-		defer cancel()
-
-		// TODO: notify author that user accepted invitation
-
-		if allAccepted {
-			collaborators, err := s.postRepo.GetAcceptedPostCollaborators(publishCtx, postID)
+			postID, err := s.postRepo.AcceptPostInvitation(
+				txCtx,
+				collaboratorID,
+				customerID,
+			)
 			if err != nil {
-				return
+				return fmt.Errorf(
+					"accept invitation: %w",
+					err,
+				)
 			}
 
-			authorID, err := s.postRepo.GetAuthorCustomerID(publishCtx, postID)
+			allAccepted, err := s.postRepo.TryPublishPostIfAllAccepted(
+				txCtx,
+				postID,
+			)
+			if err != nil {
+				return fmt.Errorf(
+					"try publish post: %w",
+					err,
+				)
+			}
+
+			if !allAccepted || s.outboxWriter == nil {
+				return nil
+			}
+
+			collaborators, err := s.postRepo.GetAcceptedPostCollaborators(
+				txCtx,
+				postID,
+			)
+			if err != nil {
+				return err
+			}
+
+			authorID, err := s.postRepo.GetAuthorCustomerID(
+				txCtx,
+				postID,
+			)
 			if err == nil {
-				collaborators = append(collaborators, authorID)
+				collaborators = append(
+					collaborators,
+					authorID,
+				)
+			}
+
+			actor, err := s.customerRepo.GetByID(
+				txCtx,
+				customerID,
+			)
+			if err != nil {
+				return fmt.Errorf(
+					"get actor customer: %w",
+					err,
+				)
+			}
+
+			actorName := actor.UserName
+
+			if actor.FirstName != "" || actor.LastName != "" {
+				actorName = fmt.Sprintf(
+					"%s %s",
+					actor.FirstName,
+					actor.LastName,
+				)
+			}
+
+			var actorAvatar string
+
+			if actor.AvatarObjectKey != nil {
+				actorAvatar = s.storage.BuildURL(
+					*actor.AvatarObjectKey,
+				)
 			}
 
 			seen := make(map[string]struct{})
 
-			for _, cid := range collaborators {
-				if _, ok := seen[cid]; ok {
+			for _, collaboratorCustomerID := range collaborators {
+
+				if _, ok := seen[collaboratorCustomerID]; ok {
 					continue
 				}
-				seen[cid] = struct{}{}
 
-				customer, err := s.customerRepo.GetByID(publishCtx, cid)
+				seen[collaboratorCustomerID] = struct{}{}
+
+				customer, err := s.customerRepo.GetByID(
+					txCtx,
+					collaboratorCustomerID,
+				)
 				if err != nil {
 					continue
 				}
 
-				data := map[string]string{
-					"post_id": postID,
-				}
+				eventType := "post_published"
 
-				dataBytes, err := json.Marshal(data)
-				if err != nil {
-					logger.ErrorKV(
-						publishCtx,
-						"marshal post published notification failed",
-						"post_id",
-						postID,
-						"error",
-						err,
-					)
-					continue
-				}
+				eventID := outbox.NewEventID(
+					eventType,
+					customer.UserID,
+					customerID,
+					"post",
+					postID,
+				)
 
-				msg := notification.Message{
-					UserID:    customer.UserID,
-					Type:      notification.PostPublished,
-					Data:      string(dataBytes),
+				evt := outbox.Message{
+					EventID:     eventID,
+					EventType:   eventType,
+					RecipientID: customer.UserID,
+					ActorID:     customerID,
+					EntityType:  "post",
+					EntityID:    postID,
+					Metadata: map[string]any{
+						"actor_name":     actorName,
+						"actor_avatar":   actorAvatar,
+						"actor_username": actor.UserName,
+					},
 					CreatedAt: time.Now().UTC(),
 				}
 
-				if err := s.publisher.Publish(
-					publishCtx,
-					customer.UserID,
-					msg,
+				if err := s.outboxWriter.Enqueue(
+					txCtx,
+					outbox.Event{
+						EventType:     eventType,
+						Payload:       evt,
+						SourceService: outbox.DefaultSourceService,
+					},
 				); err != nil {
-					logger.ErrorKV(
-						publishCtx,
-						"publish post published notification failed",
-						"user_id",
-						customer.UserID,
-						"post_id",
-						postID,
-						"error",
+					return fmt.Errorf(
+						"enqueue outbox event: %w",
 						err,
 					)
 				}
 			}
-		}
-	}()
 
-	return nil
+			return nil
+		},
+	)
 }

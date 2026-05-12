@@ -94,15 +94,15 @@ type postResponse struct {
 }
 
 type authorResponse struct {
-	ID        string  `json:"id"`
-	UserName  string  `json:"username"`
+	ID        string `json:"id"`
+	UserName  string `json:"username"`
 	AvatarURL string `json:"avatarURL,omitempty"`
 }
 
 type mentionResponse struct {
 	ID        string `json:"id"`
 	UserName  string `json:"username"`
-	AvatarURL string `json:"avatar_url,omitempty"`
+	AvatarURL string `json:"avatarUrl,omitempty"`
 }
 
 func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer, authors []authorResponse) postResponse {

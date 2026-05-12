@@ -5,6 +5,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -50,6 +51,11 @@ type followRepo interface {
 
 type customerRepo interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
+	GetByID(ctx context.Context, id string) (entity.Customer, error)
+}
+
+type postCleanupService interface {
+	CleanupExpiredPosts(ctx context.Context) error
 }
 
 type service struct {
@@ -92,22 +98,4 @@ func New(postRepo postRepository, venueProvider VenueProvider, followRepo follow
 	}
 
 	return svc
-}
-
-func uniqueAndExcludeSelf(self string, ids []string) []string {
-	m := make(map[string]struct{})
-
-	for _, id := range ids {
-		if id == self {
-			continue
-		}
-		m[id] = struct{}{}
-	}
-
-	res := make([]string, 0, len(m))
-	for id := range m {
-		res = append(res, id)
-	}
-
-	return res
 }
