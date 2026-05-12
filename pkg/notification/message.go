@@ -12,6 +12,9 @@ const (
 	PostLiked             EventType = "post_liked"
 	RegistrationConfirmed EventType = "registration_confirmed"
 	InvitationReceived    EventType = "invitation_received"
+
+	PostPublished          EventType = "post_published"
+	PostInvitationAccepted EventType = "post_invitation_accepted"
 )
 
 type Message struct {

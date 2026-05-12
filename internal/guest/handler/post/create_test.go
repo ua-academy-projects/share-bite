@@ -22,19 +22,21 @@ import (
 func TestPostHandler_Create(t *testing.T) {
 	t.Parallel()
 
-	postSvc := &postServiceMock{
-		createFn: func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
-			return entity.Post{
-				ID:         "post-1",
-				CustomerID: in.CustomerID,
-				VenueID:    in.VenueID,
-				Text:       in.Text,
-				Rating:     in.Rating,
-				Status:     entity.PostStatusPublished,
-				CreatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
-				UpdatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
-			}, nil
-		},
+	postSvc := &postServiceMock{}
+
+	postSvc.createPostWithCollaboratorsFn = func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
+		postSvc.lastCreateInput = in
+
+		return entity.Post{
+			ID:         "post-1",
+			CustomerID: in.CustomerID,
+			VenueID:    in.VenueID,
+			Text:       in.Text,
+			Rating:     in.Rating,
+			Status:     entity.PostStatusPublished,
+			CreatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
+			UpdatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
+		}, nil
 	}
 
 	customerSvc := &customerServiceMock{

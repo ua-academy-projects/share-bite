@@ -30,6 +30,13 @@ type postServiceMock struct {
 	unlikeFn        func(ctx context.Context, postID string, customerID string) error
 	exploreNearbyFn func(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
 
+	createPostWithCollaboratorsFn func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+
+	acceptInvitationFn     func(ctx context.Context, collaboratorID string, customerID string) error
+	declineInvitationFn    func(ctx context.Context, collaboratorID string, customerID string) error
+	getMyPostInvitationsFn func(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	getPostAuthorsFn       func(ctx context.Context, postID string) ([]string, error)
+
 	lastCreateInput      dto.CreatePostInput
 	lastUpdateInput      entity.UpdatePostInput
 	lastDeletePostID     string
@@ -103,6 +110,63 @@ func (m *postServiceMock) ExploreNearby(ctx context.Context, lat, lon float64, l
 		return m.exploreNearbyFn(ctx, lat, lon, limit)
 	}
 	return []dto.ExploreVenueItem{}, nil
+}
+
+func (m *postServiceMock) CreatePostWithCollaborators(
+	ctx context.Context,
+	in dto.CreatePostInput,
+) (entity.Post, error) {
+	if m.createPostWithCollaboratorsFn != nil {
+		return m.createPostWithCollaboratorsFn(ctx, in)
+	}
+
+	return entity.Post{}, nil
+}
+
+func (m *postServiceMock) AcceptInvitation(
+	ctx context.Context,
+	collaboratorID string,
+	customerID string,
+) error {
+	if m.acceptInvitationFn != nil {
+		return m.acceptInvitationFn(ctx, collaboratorID, customerID)
+	}
+
+	return nil
+}
+
+func (m *postServiceMock) DeclineInvitation(
+	ctx context.Context,
+	collaboratorID string,
+	customerID string,
+) error {
+	if m.declineInvitationFn != nil {
+		return m.declineInvitationFn(ctx, collaboratorID, customerID)
+	}
+
+	return nil
+}
+
+func (m *postServiceMock) GetMyPostInvitations(
+	ctx context.Context,
+	customerID string,
+) ([]entity.PostCollaborator, error) {
+	if m.getMyPostInvitationsFn != nil {
+		return m.getMyPostInvitationsFn(ctx, customerID)
+	}
+
+	return []entity.PostCollaborator{}, nil
+}
+
+func (m *postServiceMock) GetPostAuthors(
+	ctx context.Context,
+	postID string,
+) ([]string, error) {
+	if m.getPostAuthorsFn != nil {
+		return m.getPostAuthorsFn(ctx, postID)
+	}
+
+	return []string{}, nil
 }
 
 type customerServiceMock struct {

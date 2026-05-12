@@ -30,6 +30,12 @@ type postService interface {
 	Like(ctx context.Context, postID string, customerID string) error
 	Unlike(ctx context.Context, postID string, customerID string) error
 	ExploreNearby(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
+
+	CreatePostWithCollaborators(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+	AcceptInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	DeclineInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	GetMyPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	GetPostAuthors(ctx context.Context, postID string) ([]string, error)
 }
 
 type customerService interface {
@@ -60,6 +66,10 @@ func RegisterHandlers(
 	protected.POST("/:id/like", h.like)
 	protected.DELETE("/:id/like", h.unlike)
 
+	protected.GET("/invitations", h.getMyInvitations)
+	protected.POST("/invitations/:id/accept", h.acceptInvitation)
+	protected.POST("/invitations/:id/decline", h.declineInvitation)
+
 	r.GET("/explore", h.ExploreNearby)
 }
 
@@ -80,22 +90,32 @@ type postResponse struct {
 	PublishedAt   *time.Time        `json:"publishedAt,omitempty"`
 	Mentions      []mentionResponse `json:"mentions"`
 	MentionsCount int               `json:"mentionsCount"`
+	Authors       []authorResponse  `json:"authors"`
 }
 
-type mentionResponse struct {
+type authorResponse struct {
 	ID        string `json:"id"`
 	UserName  string `json:"username"`
 	AvatarURL string `json:"avatarURL,omitempty"`
 }
 
-func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {
+type mentionResponse struct {
+	ID        string `json:"id"`
+	UserName  string `json:"username"`
+	AvatarURL string `json:"avatarUrl,omitempty"`
+}
+
+func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer, authors []authorResponse) postResponse {
 	imageURLs := make([]string, 0, len(post.Images))
+
 	if storage != nil {
 		for _, img := range post.Images {
 			imageURLs = append(imageURLs, storage.BuildURL(img.ObjectKey))
 		}
 	}
+
 	var avatarURL *string
+
 	if customer.AvatarObjectKey != nil && storage != nil {
 		url := storage.BuildURL(*customer.AvatarObjectKey)
 		avatarURL = &url
@@ -104,17 +124,19 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 	mentions := make([]mentionResponse, 0, len(post.Mentions))
 
 	for _, m := range post.Mentions {
-		var avatarURL string
+		var mentionAvatarURL string
+
 		if m.AvatarObjectKey != nil && storage != nil {
-			avatarURL = storage.BuildURL(*m.AvatarObjectKey)
+			mentionAvatarURL = storage.BuildURL(*m.AvatarObjectKey)
 		}
 
 		mentions = append(mentions, mentionResponse{
 			ID:        m.ID,
 			UserName:  m.UserName,
-			AvatarURL: avatarURL,
+			AvatarURL: mentionAvatarURL,
 		})
 	}
+
 	return postResponse{
 		ID:            post.ID,
 		CustomerID:    post.CustomerID,
@@ -132,6 +154,7 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 		PublishedAt:   post.PublishedAt,
 		Mentions:      mentions,
 		MentionsCount: len(mentions),
+		Authors:       authors,
 	}
 }
 

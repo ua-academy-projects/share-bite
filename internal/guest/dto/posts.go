@@ -16,6 +16,8 @@ type CreatePostInput struct {
 
 	Images   []UploadImageInput
 	Mentions []string
+
+	InvitedCustomerIDs []string `json:"invited_customer_ids,omitempty"`
 }
 
 type UploadImageInput struct {
