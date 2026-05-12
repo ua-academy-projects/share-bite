@@ -175,22 +175,10 @@ func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, er
 
 func (s *service) Logout(ctx context.Context, userID string, refreshToken string) error {
 	tokenHash := pkg.HashToken(refreshToken)
-
-	ownerID, err := s.userRepo.GetUserIDByRefreshToken(ctx, tokenHash)
-	if err != nil {
-		if errors.Is(err, apperr.ErrInvalidToken) {
-			return nil
-		}
-		return err
-	}
-	if ownerID != userID {
-		return apperr.ErrForbidden
+	if err := s.userRepo.RevokeTokenByUser(ctx, tokenHash, userID); err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to logout and revoke token", err)
 	}
 
-	err = s.userRepo.RevokeRefreshToken(ctx, tokenHash)
-	if err != nil {
-		return apperr.Wrap(http.StatusInternalServerError, "failed to logout", err)
-	}
 	return nil
 }
 

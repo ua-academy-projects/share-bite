@@ -152,6 +152,11 @@ func (m *mockUserRepository) GetUserIDByRefreshToken(ctx context.Context, tokenH
 	return args.String(0), args.Error(1)
 }
 
+func (m *mockUserRepository) RevokeTokenByUser(ctx context.Context, tokenHash string, userID string) error {
+	args := m.Called(ctx, tokenHash, userID)
+	return args.Error(0)
+}
+
 func (m *mockUserRepository) RevokeAllUserTokens(ctx context.Context, userID string) error {
 	args := m.Called(ctx, userID)
 	return args.Error(0)

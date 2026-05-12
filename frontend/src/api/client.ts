@@ -19,6 +19,11 @@ const authApi = axios.create({ baseURL: '/api/auth' });
 const guestApi = axios.create({ baseURL: '/api/guest' });
 const businessApi = axios.create({ baseURL: '/api/business' });
 
+const saveSession = (data: AuthResponse) => {
+  if (data.access_token) localStorage.setItem('token', data.access_token);
+  if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
+};
+
 // Add JWT interceptor
 const tokenInterceptor = (config: any) => {
   const token = localStorage.getItem('token');
@@ -37,10 +42,13 @@ export const apiClient = {
   // Auth
   login: async (data: LoginRequest) => {
     const res = await authApi.post<AuthResponse>('/login', data);
+    saveSession(res.data);
     return res.data;
   },
+
   register: async (data: RegisterRequest) => {
     const res = await authApi.post<AuthResponse>('/register', data);
+    saveSession(res.data);
     return res.data;
   },
   
@@ -171,6 +179,7 @@ export const apiClient = {
   // OAuth
   oauthCallback: async (provider: string, code: string, slug: string) => {
     const res = await authApi.post<AuthResponse>(`/oauth/${provider}/callback`, { code, slug });
+    saveSession(res.data);
     return res.data;
   },
 
@@ -193,6 +202,21 @@ export const apiClient = {
   updateUserStatus: async (userId: string, status: string) => {
     const res = await apiRoot.put<{ message: string }>(`/users/${userId}/status`, { status });
     return res.data;
+  },
+  logout: async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    if (!refreshToken) return;
+
+    try {
+      const res = await apiRoot.post<{ message: string }>('/user/logout', {
+        refresh_token: refreshToken
+      });
+      return res.data;
+    } catch (error) {
+      console.error("Logout API failed", error);
+      throw error;
+    }
   },
 
   revokeAllSessions: async () => {
