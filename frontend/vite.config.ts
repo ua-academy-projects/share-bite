@@ -32,7 +32,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/guest/, '')
       },
       '/api/business': {
-        target: 'http://localhost:3950',
+        target: 'http://localhost:3900',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

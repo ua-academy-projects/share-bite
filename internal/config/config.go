@@ -134,7 +134,7 @@ type Storage interface {
 
 func Load(paths ...string) error {
 	if len(paths) > 0 {
-		if err := godotenv.Load(paths...); err != nil {
+		if err := godotenv.Overload(paths...); err != nil {
 			logger.Info(context.Background(), "No .env file found, relying on system environment variables")
 		}
 	}

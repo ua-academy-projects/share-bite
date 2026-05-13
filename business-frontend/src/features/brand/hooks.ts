@@ -36,13 +36,23 @@ export function useBrandProfile(brandId?: number): AsyncState<BrandProfile> & { 
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!brandId || !Number.isFinite(brandId) || brandId <= 0) {
-      setState({ data: null, loading: false, error: "Invalid brand id" });
+      Promise.resolve().then(() => {
+        if (cancelled) return;
+        setState((prev) => {
+          if (prev.data === null && prev.error === "Invalid brand id") return prev;
+          return { data: null, loading: false, error: "Invalid brand id" };
+        });
+      });
       return;
     }
 
-    let cancelled = false;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+    });
 
     businessApi
       .getBrandProfile(brandId)
@@ -72,13 +82,23 @@ export function useBrandLocations(brandId?: number, limit = 20): ListState<Brand
   });
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!brandId || !Number.isFinite(brandId) || brandId <= 0) {
-      setState({ items: [], total: 0, loading: false, error: "Invalid brand id" });
+      Promise.resolve().then(() => {
+        if (cancelled) return;
+        setState((prev) => {
+          if (prev.items.length === 0 && prev.error === "Invalid brand id") return prev;
+          return { items: [], total: 0, loading: false, error: "Invalid brand id" };
+        });
+      });
       return;
     }
 
-    let cancelled = false;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setState((prev) => ({ ...prev, loading: true, error: null }));
+    });
 
     businessApi
       .getBrandLocations(brandId, { limit })
@@ -124,25 +144,30 @@ export function useBrandPosts(orgIds: number[], pageSize = 12): PostsState {
     setTotalLoaded(0);
     setSkip(0);
     setHasMore(true);
+    setError(null);
   }, []);
 
   useEffect(() => {
-    reset();
-  }, [orgKey, reset]);
+    let cancelled = false;
 
-  useEffect(() => {
     if (orgIds.length === 0) {
-      setHasMore(false);
-      setLoading(false);
-      setError(null);
+      Promise.resolve().then(() => {
+        if (cancelled) return;
+        setHasMore(false);
+        setLoading(false);
+        setError(null);
+        setItems([]);
+        setTotalLoaded(0);
+        setSkip(0);
+      });
       return;
     }
 
-    if (!hasMore) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+    });
 
     businessApi
       .getBrandPosts({ skip, limit: pageSize })
@@ -165,7 +190,18 @@ export function useBrandPosts(orgIds: number[], pageSize = 12): PostsState {
     return () => {
       cancelled = true;
     };
-  }, [orgIds, pageSize, skip, hasMore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgKey, pageSize, skip]);
+
+  // Use another effect to reset skip when orgKey changes
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setSkip(0);
+      setHasMore(true);
+      setItems([]);
+      setTotalLoaded(0);
+    });
+  }, [orgKey]);
 
   const loadMore = useCallback(() => {
     if (loading || !hasMore) return;
@@ -200,36 +236,33 @@ export function useBrandBoxes(params: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const missingCoordinates = !coordinates || !Number.isFinite(coordinates.lat) || !Number.isFinite(coordinates.lon);
+  const lat = coordinates?.lat;
+  const lon = coordinates?.lon;
+  const missingCoordinates = !coordinates || !Number.isFinite(lat) || !Number.isFinite(lon);
 
   useEffect(() => {
-    setItems([]);
-    setTotal(0);
-    setSkip(0);
-    setHasMore(true);
-    setError(null);
-  }, [orgId, coordinates?.lat, coordinates?.lon, pageSize]);
-
-  useEffect(() => {
-    if (!orgId || orgId <= 0) {
-      setHasMore(false);
-      return;
-    }
-
-    if (!coordinates || missingCoordinates) {
-      setHasMore(false);
-      return;
-    }
-
-    if (!hasMore) return;
-
     let cancelled = false;
-    setLoading(true);
+
+    if (!orgId || orgId <= 0 || missingCoordinates) {
+      Promise.resolve().then(() => {
+        if (cancelled) return;
+        setHasMore(false);
+        setItems([]);
+        setTotal(0);
+        setSkip(0);
+      });
+      return;
+    }
+
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoading(true);
+    });
 
     businessApi
       .getNearbyBoxes({
-        lat: coordinates.lat,
-        lon: coordinates.lon,
+        lat: lat!,
+        lon: lon!,
         skip,
         limit: pageSize,
         orgId,
@@ -252,7 +285,18 @@ export function useBrandBoxes(params: {
     return () => {
       cancelled = true;
     };
-  }, [coordinates, orgId, skip, pageSize, hasMore, missingCoordinates]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lon, orgId, skip, pageSize]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setSkip(0);
+      setHasMore(true);
+      setItems([]);
+      setTotal(0);
+    });
+  }, [orgId, lat, lon, pageSize]);
 
   const loadMore = useCallback(() => {
     if (loading || !hasMore) return;

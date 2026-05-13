@@ -1,6 +1,6 @@
 import type { BrandProfile } from "@/api/business";
 import { Button } from "@/components/ui/button";
-import { Settings2, ShieldCheck } from "lucide-react";
+import { Settings2 } from "lucide-react";
 
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/);

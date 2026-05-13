@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,12 +22,12 @@ export function DeveloperSettingsModal({
 }: DeveloperSettingsModalProps) {
   const [token, setToken] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      const savedToken = localStorage.getItem("token") || "";
-      setToken(savedToken);
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setToken(localStorage.getItem("token") || "");
     }
-  }, [isOpen]);
+    onOpenChange(open);
+  };
 
   const handleSave = () => {
     localStorage.setItem("token", token);
@@ -35,7 +35,7 @@ export function DeveloperSettingsModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md border-white/10 bg-[#0d241d] p-8">
         <DialogHeader className="mb-6">
           <DialogTitle className="text-xl font-bold text-[#F9F7F2] flex items-center gap-2">
