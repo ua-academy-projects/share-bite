@@ -1,6 +1,6 @@
-# notifications-worker — deployment & operational guide
+# notifications-lambda — deployment & operational guide
 
-Short, practical reference for deploying and operating the `notifications-worker` Lambda (container image).
+Short, practical reference for deploying and operating the `notifications-lambda` Lambda (container image).
 
 ---
 
@@ -12,7 +12,7 @@ Short, practical reference for deploying and operating the `notifications-worker
 
 ## ECR image (publish & reference)
 
-- Repository: `share-bite/notifications-worker`
+- Repository: `share-bite/notifications-lambda`
 - Image URI pattern:
 
 ```text
@@ -23,10 +23,10 @@ Examples (CLI):
 
 ```powershell
 # build
-docker build -t notifications-worker -f build/Dockerfile.notifications-lambda .
+docker build --platform linux/arm64 --provenance=false -t notifications-lambda -f build/Dockerfile.notifications-lambda .
 
 # tag (fill placeholders)
-docker tag notifications-worker:latest <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/<REPO>:<TAG>
+docker tag notifications-lambda:latest <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/<REPO>:<TAG>
 
 # push (login via `aws ecr get-login-password` beforehand)
 docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/<REPO>:<TAG>

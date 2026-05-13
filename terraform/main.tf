@@ -15,12 +15,23 @@ data "aws_ami" "ubuntu" {
 }
 
 variable "image_tag" {
-  description = "Image tag to deploy for the notifications-worker Lambda"
+  description = "Image tag for notifications-lambda (will be replaced when you push the real image)"
   type        = string
+  default     = "latest"
 }
 
-resource "aws_ecr_repository" "repo" {
-  name                 = "share-bite/notifications-worker"
+variable "lambda_secrets_name" {
+  description = "AWS Secrets Manager secret name that notifications-lambda reads at startup"
+  type        = string
+  default     = "share-bite-config"
+}
+
+data "aws_secretsmanager_secret" "lambda_config" {
+  name = var.lambda_secrets_name
+}
+
+resource "aws_ecr_repository" "notifications_lambda" {
+  name                 = "share-bite/notifications-lambda"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -182,8 +193,8 @@ resource "aws_iam_role" "ec2_ecr_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
@@ -339,7 +350,7 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_access" {
 }
 
 resource "aws_iam_policy" "ecr_pull" {
-  name        = "notifications-worker-ecr-pull"
+  name        = "notifications-lambda-ecr-pull"
   description = "Allow Lambda to pull images from ECR repository"
 
   policy = jsonencode({
@@ -352,7 +363,7 @@ resource "aws_iam_policy" "ecr_pull" {
           "ecr:GetDownloadUrlForLayer",
           "ecr:DescribeImages"
         ],
-        Resource = aws_ecr_repository.repo.arn
+        Resource = aws_ecr_repository.notifications_lambda.arn
       },
       {
         Effect   = "Allow",
@@ -364,9 +375,33 @@ resource "aws_iam_policy" "ecr_pull" {
 }
 
 resource "aws_iam_policy_attachment" "attach_ecr_pull" {
-  name       = "notifications-worker-attach-ecr"
+  name       = "notifications-lambda-attach-ecr"
   policy_arn = aws_iam_policy.ecr_pull.arn
   roles      = [aws_iam_role.training_lambda_role.name]
+}
+
+resource "aws_iam_policy" "lambda_secrets_read" {
+  name        = "notifications-lambda-secrets-read"
+  description = "Allow Lambda to read configuration secrets from AWS Secrets Manager"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = data.aws_secretsmanager_secret.lambda_config.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_secrets_read_attach" {
+  role       = aws_iam_role.training_lambda_role.name
+  policy_arn = aws_iam_policy.lambda_secrets_read.arn
 }
 
 resource "aws_signer_signing_profile" "signing_profile" {
@@ -384,13 +419,19 @@ resource "aws_lambda_code_signing_config" "lambda_signing_config" {
 }
 
 resource "aws_lambda_function" "worker" {
-  function_name = "notifications-worker"
+  function_name = "notifications-lambda"
   package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.repo.repository_url}:${var.image_tag}"
+  image_uri     = "${aws_ecr_repository.notifications_lambda.repository_url}:${var.image_tag}"
   role          = aws_iam_role.training_lambda_role.arn
   memory_size   = 256
   timeout       = 30
   architectures = ["arm64"]
+
+  environment {
+    variables = {
+      AWS_LAMBDA_SECRETS_NAME = var.lambda_secrets_name
+    }
+  }
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
@@ -435,7 +476,9 @@ resource "aws_instance" "notifications_sse" {
   }
 }
 
-output "ecr_repository_url" { value = aws_ecr_repository.repo.repository_url }
+output "ecr_notifications_lambda_url" { value = aws_ecr_repository.notifications_lambda.repository_url }
+output "ecr_notifications_service_url" { value = aws_ecr_repository.notifications_service.repository_url }
+output "ecr_outbox_worker_url" { value = aws_ecr_repository.outbox_worker.repository_url }
 output "sns_topic_arn" { value = aws_sns_topic.notifications.arn }
 output "notifications_sse_queue_url" { value = aws_sqs_queue.notifications_sse.id }
 output "notifications_lambda_queue_url" { value = aws_sqs_queue.notifications_lambda.id }
@@ -443,6 +486,6 @@ output "notifications_sse_queue_arn" { value = aws_sqs_queue.notifications_sse.a
 output "notifications_lambda_queue_arn" { value = aws_sqs_queue.notifications_lambda.arn }
 output "notifications_sse_dlq_arn" { value = aws_sqs_queue.dlq_sse.arn }
 output "notifications_lambda_dlq_arn" { value = aws_sqs_queue.dlq_lambda.arn }
-output "lambda_arn" { value = aws_lambda_function.worker.arn }
+output "notifications_lambda_arn" { value = aws_lambda_function.worker.arn }
 output "app_instance_public_ip" { value = aws_instance.app_server.public_ip }
 output "sse_instance_public_ip" { value = aws_instance.notifications_sse.public_ip }

@@ -95,9 +95,7 @@ S3_SECRET_KEY=your-aws-secret-key
 
 > `S3_ENDPOINT` and `S3_USE_PATH_STYLE` are not required for native AWS S3.
 
-### 6. Notifications helper and Redis
-
-The repository includes a shared Redis Pub/Sub helper in `pkg/notification` for notification events.
+### 6. Redis
 
 For local development, add Redis connection values to `.env` based on `.env.example`:
 
@@ -140,23 +138,6 @@ NOTIFICATION_SQS_ENDPOINT_URL=http://localhost:4566
 If you are using localstack, create the queue in the `notifications-service` consumer path and keep the SSE/UI queue separated as in Terraform.
 
 If you deploy infrastructure with Terraform, export the queue URL from the outputs and point the service at the SSE queue.
-
-### Web UI (optional)
-
-```bash
-make s3-ui
-```
-
-Open http://localhost:3909
-
-### Notifications test page
-
-The frontend includes a notifications lab at `/notifications-lab`.
-Use it in two browsers with two different bearer tokens to:
-
-1. Open an SSE stream for the author account.
-2. Like a post from another account.
-3. Watch the author receive the notification with enriched `actor_name` and `actor_avatar`.
 
 ### 8. Code Generation & API Clients
 
