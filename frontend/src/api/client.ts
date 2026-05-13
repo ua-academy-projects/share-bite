@@ -66,49 +66,57 @@ const responseInterceptor = async (error: any) => {
     originalRequest._retry = true;
     isRefreshing = true;
 
-    return new Promise(async (resolve, reject) => {
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
+    try {
+      const refreshToken = localStorage.getItem('refresh_token');
 
-        if (!refreshToken) {
-          processQueue(new Error('No refresh token'), null);
-          localStorage.removeItem('token');
-          localStorage.removeItem('refresh_token');
-          window.location.href = '/auth';
-          return reject('No refresh token');
-        }
-
-        const res = await refreshInstance.post<AuthResponse>('/refresh', {
-          refresh_token: refreshToken
-        });
-
-        const newToken = res.data.access_token;
-        saveSession(res.data);
-
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        processQueue(null, newToken);
-
-        resolve(axios(originalRequest));
-      } catch (refreshError) {
-        processQueue(refreshError, null);
+      if (!refreshToken) {
+        processQueue(new Error('No refresh token'), null);
         localStorage.removeItem('token');
         localStorage.removeItem('refresh_token');
         if (window.location.pathname !== '/auth') {
           window.location.href = '/auth';
         }
-        reject(refreshError);
-      } finally {
-        isRefreshing = false;
+        return Promise.reject(error);
       }
-    });
+      const res = await refreshInstance.post<AuthResponse>('/refresh', {
+        refresh_token: refreshToken
+      });
+
+      const newToken = res.data.access_token;
+      saveSession(res.data);
+
+      originalRequest.headers.Authorization = `Bearer ${newToken}`;
+      processQueue(null, newToken);
+      return axios(originalRequest);
+
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      if (window.location.pathname !== '/auth') {
+        window.location.href = '/auth';
+      }
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 
   return Promise.reject(error);
 };
 
 [apiRoot, authApi, guestApi, businessApi].forEach(api => {
+  api.interceptors.request.use(tokenInterceptor);
+});
+
+[apiRoot, guestApi, businessApi].forEach(api => {
   api.interceptors.response.use(response => response, responseInterceptor);
 });
+
+authApi.interceptors.response.use(
+    response => response,
+    error => Promise.reject(error)
+);
 
 export const apiClient = {
   // Auth
