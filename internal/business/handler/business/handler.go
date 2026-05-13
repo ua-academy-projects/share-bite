@@ -109,7 +109,7 @@ func RegisterHandlers(
 		businessPosts.POST("/:id", h.CreatePost)
 	}
 
-	recommendVenues := r.Group("/venues/recommend").
+	recommendVenues := r.Group("/posts/recommend").
 		Use(auth)
 	{
 		recommendVenues.GET("", h.recommendPosts)

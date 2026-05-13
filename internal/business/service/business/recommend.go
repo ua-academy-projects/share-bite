@@ -82,7 +82,7 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 
 	quotas := calculateTagQuotas(topTags, limit)
 	var finalPosts []entity.RecomendedPost
-	var seenCompositeIDs []string
+	var seenCompositeIDs = make([]string, 0)
 	deficit := 0
 
 	for _, tag := range topTags {
