@@ -22,12 +22,8 @@ const (
 	templateResetPath  = "templates/password_reset.html"
 )
 
-//go:embed templates/password_reset.html
+//go:embed templates/*
 var templateFS embed.FS
-
-type Sender interface {
-	SendPasswordResetToken(ctx context.Context, toEmail, token string) error
-}
 
 type resendSender struct {
 	apiKey    string
@@ -47,27 +43,14 @@ type resendSendEmailRequest struct {
 	HTML    string   `json:"html"`
 }
 
-func NewResendSender(apiKey, fromEmail string) (Sender, error) {
-	if apiKey == "" {
-		return nil, errors.New("resend api key is empty")
-	}
-	if fromEmail == "" {
-		return nil, errors.New("resend from email is empty")
-	}
-
-	tpl, err := template.ParseFS(templateFS, templateResetPath)
-	if err != nil {
-		return nil, fmt.Errorf("parse password reset email template: %w", err)
-	}
-
+func NewResendSender(apiKey, fromEmail string) Sender {
 	return &resendSender{
 		apiKey:    apiKey,
 		fromEmail: fromEmail,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
-		tpl: tpl,
-	}, nil
+	}
 }
 
 func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, token string) error {
@@ -78,23 +61,46 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 		return errors.New("reset token is empty")
 	}
 
-	logger.InfoKV(ctx, "sending password reset email")
+	return s.SendEmail(ctx, toEmail, resetEmailSubject, "password_reset", map[string]any{
+		"token": token,
+	})
+}
+
+func (s *resendSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]any) error {
+	if toEmail == "" {
+		return errors.New("recipient email is empty")
+	}
+	if subject == "" {
+		return errors.New("subject is empty")
+	}
+	if templateName == "" {
+		return errors.New("template name is empty")
+	}
+
+	logger.InfoKV(ctx, "sending email via Resend", "to", toEmail, "subject", subject, "template", templateName)
+
+	templatePath := fmt.Sprintf("templates/%s.html", templateName)
+	tpl, err := template.ParseFS(templateFS, templatePath)
+	if err != nil {
+		return fmt.Errorf("parse email template %s: %w", templatePath, err)
+	}
 
 	var htmlBody bytes.Buffer
-	if err := s.tpl.Execute(&htmlBody, passwordResetTemplateData{Token: token}); err != nil {
-		return fmt.Errorf("render password reset email template: %w", err)
+	if err := tpl.Execute(&htmlBody, data); err != nil {
+		return fmt.Errorf("render email template %s: %w", templatePath, err)
 	}
 
 	reqBody, err := json.Marshal(resendSendEmailRequest{
 		From:    s.fromEmail,
 		To:      []string{toEmail},
-		Subject: resetEmailSubject,
+		Subject: subject,
 		HTML:    htmlBody.String(),
 	})
 	if err != nil {
 		return fmt.Errorf("marshal resend request: %w", err)
 	}
 
+	// Send request
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, resendSendEmailURL, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return fmt.Errorf("build resend request: %w", err)
@@ -105,7 +111,7 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 
 	resp, err := s.client.Do(httpReq)
 	if err != nil {
-		logger.ErrorKV(ctx, "password reset email send failed", "to_email", toEmail, "error", err.Error())
+		logger.ErrorKV(ctx, "email send failed", "to", toEmail, "error", err.Error())
 		return fmt.Errorf("send resend request: %w", err)
 	}
 	defer func() {
@@ -116,14 +122,14 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 	if resp.StatusCode != http.StatusOK {
 		body, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			logger.ErrorKV(ctx, "password reset email send failed", "to_email", toEmail, "status", resp.StatusCode, "error", readErr.Error())
+			logger.ErrorKV(ctx, "email send failed", "to", toEmail, "status", resp.StatusCode, "error", readErr.Error())
 			return fmt.Errorf("resend send email failed: status=%d, read body: %w", resp.StatusCode, readErr)
 		}
 
-		logger.ErrorKV(ctx, "password reset email send failed", "to_email", toEmail, "status", resp.StatusCode)
-
+		logger.ErrorKV(ctx, "email send failed", "to", toEmail, "status", resp.StatusCode, "body", string(body))
 		return fmt.Errorf("resend send email failed: status=%d, body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
+	logger.InfoKV(ctx, "email sent successfully", "to", toEmail, "subject", subject)
 	return nil
 }

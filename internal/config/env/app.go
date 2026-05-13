@@ -3,8 +3,6 @@ package env
 import (
 	"fmt"
 	"time"
-
-	"github.com/caarlos0/env/v11"
 )
 
 const (
@@ -18,9 +16,9 @@ type appConfig struct {
 	AppGracefulShutdownTimeout time.Duration `env:"APP_GRACEFUL_SHUTDOWN_TIMEOUT,required"`
 }
 
-func NewAppConfig() (*appConfig, error) {
+func NewAppConfig(opts ...Options) (*appConfig, error) {
 	config := new(appConfig)
-	if err := env.Parse(config); err != nil {
+	if err := Parse(config, opts...); err != nil {
 		return nil, err
 	}
 
