@@ -14,6 +14,7 @@ coverage.html
 .vscode/
 *.swp
 *.swo
+*.zip
 
 .DS_Store
 Thumbs.db
