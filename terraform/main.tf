@@ -17,7 +17,6 @@ data "aws_ami" "ubuntu" {
 variable "image_tag" {
   description = "Image tag for notifications-lambda (will be replaced when you push the real image)"
   type        = string
-  default     = "latest"
 }
 
 variable "lambda_secrets_name" {

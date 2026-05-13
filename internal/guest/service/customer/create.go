@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
@@ -35,7 +34,7 @@ func (s *service) Create(ctx context.Context, in entity.CreateCustomer) (string,
 		}
 
 		if err := s.outboxWriter.Enqueue(ctx, event); err != nil {
-			logger.ErrorKV(ctx, "failed to enqueue registration_confirmed outbox event", "customer_id", customerID, "error", err.Error())
+			return "", fmt.Errorf("failed to enqueue registration_confirmed outbox event: %w", err)
 		}
 	}
 

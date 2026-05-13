@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
 )
@@ -50,7 +51,7 @@ func (v *DefaultValidator) Validate(event notification.Message) error {
 	}
 
 	emailValue, ok := event.Metadata["email"].(string)
-	if !ok || emailValue == "" {
+	if !ok || strings.TrimSpace(emailValue) == "" {
 		return fmt.Errorf("missing metadata.email")
 	}
 

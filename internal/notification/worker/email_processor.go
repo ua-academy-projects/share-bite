@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -35,8 +36,7 @@ func (p *EmailProcessor) RegisterHandler(eventType notification.EventType, handl
 func (p *EmailProcessor) Process(ctx context.Context, event notification.Message) error {
 	handler, exists := p.handlers[event.EventType]
 	if !exists {
-		logger.DebugKV(ctx, "skipping unknown event type for email", "event_type", event.EventType)
-		return nil
+		return fmt.Errorf("unsupported event type for email: %s", event.EventType)
 	}
 
 	if err := handler.Handle(ctx, event, p.emailSender); err != nil {

@@ -33,9 +33,6 @@ func (s *RegistrationConfirmedHandler) Handle(ctx context.Context, event notific
 		return fmt.Errorf("send registration confirmation email: %w", err)
 	}
 
-	logger.InfoKV(ctx, "registration confirmation email sent",
-		"email", emailAddr,
-		"username", username,
-		"event_id", event.EventID)
+	logger.InfoKV(ctx, "registration confirmation email sent", "event_id", event.EventID)
 	return nil
 }
