@@ -7,6 +7,7 @@ services:
     ports:
       - "4300:4300"
       - "4303:4303"
+      - "3902:3902"
     volumes:
       - ../garage.toml:/etc/garage.toml:ro
       - garage_meta:/var/lib/garage/meta

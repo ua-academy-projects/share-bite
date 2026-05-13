@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 )
@@ -41,11 +40,5 @@ func (h *handler) getOrgUnit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.UpdateOrgResponse{
-		Id:          org.Id,
-		Name:        org.Name,
-		Avatar:      org.Avatar,
-		Banner:      org.Banner,
-		Description: org.Description,
-	})
+	c.JSON(http.StatusOK, h.toBrandResponse(c.Request.Context(), org))
 }

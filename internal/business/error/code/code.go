@@ -8,4 +8,5 @@ var (
 	Forbidden    Code = "FORBIDDEN"
 	Unauthorized Code = "UNAUTHORIZED"
 	Conflict     Code = "CONFLICT"
+	Internal     Code = "INTERNAL"
 )

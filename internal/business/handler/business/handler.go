@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"mime/multipart"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -15,6 +16,10 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
+)
+
+const (
+	multipartOverheadBytes = 1 << 20 // 1MB overhead
 )
 
 type handler struct {
@@ -66,6 +71,9 @@ type businessService interface {
 	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+
+	UploadAvatar(ctx context.Context, id int, orgAccountID uuid.UUID, fileHeader *multipart.FileHeader) (*entity.OrgUnit, error)
+	UploadBanner(ctx context.Context, id int, orgAccountID uuid.UUID, fileHeader *multipart.FileHeader) (*entity.OrgUnit, error)
 }
 
 func RegisterHandlers(
@@ -115,6 +123,8 @@ func RegisterHandlers(
 		orgMutations.POST("", h.createOrgUnit)
 		orgMutations.PUT("/:id", h.updateOrgUnit)
 		orgMutations.PATCH("/:id", h.updateOrgUnit)
+		orgMutations.POST("/:id/avatar", h.uploadAvatar)
+		orgMutations.POST("/:id/banner", h.uploadBanner)
 		orgMutations.DELETE("/:id", h.deleteOrgUnit)
 
 	}
@@ -152,6 +162,45 @@ func RegisterHandlers(
 	{
 		reservations.PATCH("/:boxID/reserve", h.reserveBox)
 	}
+}
+
+func (h *handler) toBrandResponse(ctx context.Context, org *entity.OrgUnit) dto.UpdateOrgResponse {
+	return dto.UpdateOrgResponse{
+		Id:          org.Id,
+		Name:        org.Name,
+		Avatar:      h.presign(ctx, org.Avatar),
+		Banner:      h.presign(ctx, org.Banner),
+		Description: org.Description,
+	}
+}
+
+func (h *handler) presign(ctx context.Context, urlPtr *string) *string {
+	if urlPtr == nil || *urlPtr == "" || h.storage == nil {
+		return urlPtr
+	}
+
+	url := *urlPtr
+	// Extract key from URL
+	parts := strings.Split(url, "/")
+	var key string
+	if strings.Contains(url, "localhost") || strings.Contains(url, "127.0.0.1") {
+		if len(parts) >= 5 {
+			key = strings.Join(parts[4:], "/")
+		}
+	} else if len(parts) >= 4 {
+		key = strings.Join(parts[3:], "/")
+	}
+
+	if key == "" {
+		return urlPtr
+	}
+
+	presigned, err := h.storage.GetPresignedURL(ctx, key)
+	if err != nil {
+		return urlPtr
+	}
+
+	return &presigned
 }
 
 type errorResponse struct {

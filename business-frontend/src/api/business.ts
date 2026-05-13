@@ -324,4 +324,46 @@ export const businessApi = {
 
     return response.json();
   },
+
+  uploadAvatar: async (id: number, file: File, token: string): Promise<BrandProfile> => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/business/${id}/avatar`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Avatar upload failed (${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  uploadBanner: async (id: number, file: File, token: string): Promise<BrandProfile> => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/business/${id}/banner`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Banner upload failed (${response.status})`);
+    }
+
+    return response.json();
+  },
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,12 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { businessApi, type BrandProfile } from "@/api/business";
 import { cn } from "@/lib/utils";
+import { ImageUploadField } from "./ImageUploadField";
 
 const editProfileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   description: z.string().max(500, "Description must be less than 500 characters.").optional(),
-  avatar: z.string().url("Must be a valid URL").or(z.literal("")).optional(),
-  banner: z.string().url("Must be a valid URL").or(z.literal("")).optional(),
 });
 
 type EditProfileFormValues = z.infer<typeof editProfileSchema>;
@@ -36,18 +35,35 @@ type EditBrandProfileFormProps = {
 export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandProfileFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [currentBrand, setCurrentBrand] = useState(brand);
 
   const form = useForm<EditProfileFormValues>({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
       name: brand.name,
       description: brand.description ?? "",
-      avatar: brand.avatar ?? "",
-      banner: brand.banner ?? "",
     },
   });
 
+  const handleUploadAvatar = async (file: File) => {
+    const token = localStorage.getItem("token") || "";
+    const updated = await businessApi.uploadAvatar(brand.id, file, token);
+    setCurrentBrand(updated);
+  };
+
+  const handleUploadBanner = async (file: File) => {
+    const token = localStorage.getItem("token") || "";
+    const updated = await businessApi.uploadBanner(brand.id, file, token);
+    setCurrentBrand(updated);
+  };
+
   const onSubmit = async (values: EditProfileFormValues) => {
+    if (!showConfirmation) {
+      setShowConfirmation(true);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -57,19 +73,68 @@ export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandPr
       const updated = await businessApi.updateBrandProfile(brand.id, {
         name: values.name,
         description: values.description,
-        avatar: values.avatar || undefined,
-        banner: values.banner || undefined,
       }, token);
       
       onSuccess(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update profile");
+      setShowConfirmation(false);
     } finally {
       setLoading(false);
     }
   };
 
   const inputClass = "bg-[#163d32] border-white/5 text-white focus-visible:ring-emerald-500 rounded-xl placeholder:text-gray-500 h-11 transition-all focus:bg-[#1a4a3d]";
+
+  if (showConfirmation) {
+    return (
+      <div className="space-y-6 py-4 animate-in fade-in zoom-in duration-300">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="h-16 w-16 rounded-full bg-yellow-500/10 flex items-center justify-center">
+            <AlertTriangle className="h-8 w-8 text-yellow-500" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-white">Review Changes</h3>
+            <p className="text-[#cbd5cf] max-w-md">
+              Are you sure you want to publish these updates? The changes will be visible to all customers immediately.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white/5 p-6 border border-white/10 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-400">Update Type</span>
+            <span className="text-white font-medium">Public Profile</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-400">Visibility</span>
+            <span className="text-[#98FF98] font-medium flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Live
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 pt-4">
+          <Button
+            onClick={form.handleSubmit(onSubmit)}
+            disabled={loading}
+            className="w-full bg-[#98FF98] text-[#0d241d] hover:bg-[#7cfc7c] font-bold h-12 rounded-xl text-lg shadow-lg shadow-[#98FF98]/10"
+          >
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Confirm & Save"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setShowConfirmation(false)}
+            disabled={loading}
+            className="w-full text-[#cbd5cf] hover:text-white hover:bg-white/5 h-12 rounded-xl"
+          >
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -109,32 +174,18 @@ export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandPr
           </div>
 
           <div className="space-y-6">
-            <FormField
-              control={form.control}
-              name="avatar"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[#cbd5cf]">Avatar URL</FormLabel>
-                  <FormControl>
-                    <Input className={inputClass} placeholder="https://..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <ImageUploadField
+              label="Avatar"
+              value={currentBrand.avatar}
+              onUpload={handleUploadAvatar}
+              aspectRatio="square"
             />
 
-            <FormField
-              control={form.control}
-              name="banner"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[#cbd5cf]">Banner URL</FormLabel>
-                  <FormControl>
-                    <Input className={inputClass} placeholder="https://..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <ImageUploadField
+              label="Banner"
+              value={currentBrand.banner}
+              onUpload={handleUploadBanner}
+              aspectRatio="video"
             />
           </div>
         </div>
@@ -161,17 +212,11 @@ export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandPr
             disabled={loading}
             className="bg-[#98FF98] text-[#0d241d] hover:bg-[#7cfc7c] font-bold px-8 h-11 rounded-xl shadow-lg shadow-[#98FF98]/10"
           >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
+            Review Changes
           </Button>
         </div>
       </form>
     </Form>
   );
 }
+

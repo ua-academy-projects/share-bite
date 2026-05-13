@@ -69,3 +69,7 @@ func Unauthorized(msg string) *Error {
 func Conflict(msg string) *Error {
 	return newError(code.Conflict, msg)
 }
+
+func Internal(msg string) *Error {
+	return newError(code.Internal, msg)
+}

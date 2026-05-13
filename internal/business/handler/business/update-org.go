@@ -68,11 +68,5 @@ func (h *handler) updateOrgUnit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.UpdateOrgResponse{
-		Id:          updated.Id,
-		Name:        updated.Name,
-		Avatar:      updated.Avatar,
-		Banner:      updated.Banner,
-		Description: updated.Description,
-	})
+	c.JSON(http.StatusOK, h.toBrandResponse(c.Request.Context(), updated))
 }

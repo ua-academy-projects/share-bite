@@ -143,10 +143,14 @@ func ErrorMiddleware() gin.HandlerFunc {
 			case code.Conflict:
 				c.JSON(http.StatusConflict, gin.H{"error": appErr.Error()})
 				return
+			case code.Internal:
+				logger.ErrorKV(ctx, "internal app error", "error", appErr.Err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+				return
 			}
 		}
 
-		logger.ErrorKV(ctx, "internal error", "error", err.Err)
+		logger.ErrorKV(ctx, "unhandled error", "error", err.Err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 	}
 }
