@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 type EventValidator interface {
@@ -49,9 +50,20 @@ func (h *Handler) HandleBatch(ctx context.Context, sqsEvent events.SQSEvent) (ev
 }
 
 func (h *Handler) handleRecord(ctx context.Context, record events.SQSMessage) error {
-	var event notification.Message
-	if err := json.Unmarshal([]byte(record.Body), &event); err != nil {
-		return fmt.Errorf("unmarshal notification event: %w", err)
+	var payload outbox.Message
+	if err := json.Unmarshal([]byte(record.Body), &payload); err != nil {
+		return fmt.Errorf("unmarshal outbox notification event: %w", err)
+	}
+
+	event := notification.Message{
+		EventID:     payload.EventID,
+		EventType:   notification.EventType(payload.EventType),
+		RecipientID: payload.RecipientID,
+		ActorID:     payload.ActorID,
+		EntityType:  payload.EntityType,
+		EntityID:    payload.EntityID,
+		Metadata:    payload.Metadata,
+		CreatedAt:   payload.CreatedAt,
 	}
 
 	if err := h.validator.Validate(event); err != nil {
