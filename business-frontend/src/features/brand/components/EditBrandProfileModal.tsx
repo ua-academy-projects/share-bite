@@ -28,22 +28,20 @@ export function EditBrandProfileModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1000px] w-[95vw] max-h-[90vh] overflow-y-auto border-white/10 shadow-2xl p-10 md:p-12">
-        <DialogHeader className="space-y-4 mb-8">
-          <DialogTitle className="text-4xl font-bold tracking-tight text-[#F9F7F2]">
-            Public Identity
+      <DialogContent className="sm:max-w-3xl border-white/10 shadow-2xl p-8">
+        <DialogHeader className="mb-6">
+          <DialogTitle className="text-2xl font-bold text-[#F9F7F2]">
+            Edit Brand Profile
           </DialogTitle>
-          <DialogDescription className="text-[#cbd5cf] text-xl max-w-2xl leading-relaxed">
-            Manage how your brand appears to customers. A complete profile increases engagement and trust within the ShareBite community.
+          <DialogDescription className="text-[#cbd5cf]">
+            Update your public brand identity and visual presence.
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-4">
-          <EditBrandProfileForm
-            brand={brand}
-            onSuccess={handleSuccess}
-            onCancel={() => onOpenChange(false)}
-          />
-        </div>
+        <EditBrandProfileForm
+          brand={brand}
+          onSuccess={handleSuccess}
+          onCancel={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );

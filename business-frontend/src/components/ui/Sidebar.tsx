@@ -1,11 +1,14 @@
 // src/components/ui/Sidebar.tsx
 import { NavLink } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Terminal } from "lucide-react";
+import { DeveloperSettingsModal } from "@/components/DeveloperSettingsModal";
 
 export function Sidebar() {
   const { theme, setTheme } = useTheme();
+  const [isDevModalOpen, setIsDevModalOpen] = useState(false);
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 ${
@@ -50,6 +53,16 @@ export function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-4">
+        {/* Developer Mode Button */}
+        <Button 
+          variant="ghost" 
+          className="justify-start px-3 text-emerald-400 hover:text-emerald-300 hover:bg-[#2f5e50]/50"
+          onClick={() => setIsDevModalOpen(true)}
+        >
+          <Terminal className="mr-2 h-4 w-4" />
+          Developer Mode
+        </Button>
+
         {/* Кнопка перемикання теми */}
         <Button 
           variant="ghost" 
@@ -65,6 +78,11 @@ export function Sidebar() {
           <span className="cursor-pointer hover:text-white transition-colors">Privacy</span>
         </div>
       </div>
+
+      <DeveloperSettingsModal 
+        isOpen={isDevModalOpen} 
+        onOpenChange={setIsDevModalOpen} 
+      />
     </aside>
   );
 }
