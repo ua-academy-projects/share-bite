@@ -173,17 +173,18 @@ export const businessApi = {
     return response.json();
   },
 
-  reserveBox: async (boxId: number, token: string): Promise<ReserveBoxResponse> => {
-    const response = await fetch(`${API_BASE_URL}/business/boxes/${boxId}/reserve`, {
+  reserveBox: async (boxID: number, token: string): Promise<ReserveBoxResponse> => {
+    const response = await fetch(`${API_BASE_URL}/business/boxes/${boxID}/reserve`, {
       method: "PATCH",
       headers: {
-        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || `Reservation failed (${response.status})`);
+      throw new Error(err.error || `Помилка резервування боксу (${response.status})`);
     }
 
     return response.json();
