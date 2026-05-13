@@ -72,8 +72,8 @@ type businessRepository interface {
 	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 
 	GetTopTagsByUserLikes(ctx context.Context, userID string, tagsToFetch int) ([]string, error)
-	GetVenuesByTag(ctx context.Context, tag string, quota int, seenIDs []int, h3Hashes []string) ([]entity.OrgUnit, error)
-	GetRandomVenues(ctx context.Context, deficit int, seenIDs []int, h3Hashes []string) ([]entity.OrgUnit, error)
+	GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecomendedPost, error)
+	GetRandomPosts(ctx context.Context, deficit int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecomendedPost, error)
 }
 
 type H3Settings struct {

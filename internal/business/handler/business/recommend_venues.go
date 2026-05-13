@@ -2,6 +2,7 @@ package business
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
@@ -16,24 +17,32 @@ type recommendRequest struct {
 	Lon   float64 `form:"lon" binding:"required,longitude"`
 }
 
-type recommendVenuesResponse struct {
-	Items []venueResponse `json:"items"`
-	Total int             `json:"total"`
+type postResponse struct {
+	ID        int64     `json:"id"`
+	OrgID     int       `json:"org_id"`
+	Content   string    `json:"content"`
+	PostType  string    `json:"post_type"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
-// recommendVenues returns venues recommended to user based on likes and tags
-// @Summary Get venues by user behavior
-// @Description Returns recommended venues by user behavior using weighted tag quotas (5-3-2-1-1).
-// @Tags locations
+type recommendPostsResponse struct {
+	Items []postResponse `json:"items"`
+	Total int            `json:"total"`
+}
+
+// recommendPosts returns posts recommended to user based on likes and tags
+// @Summary Get posts by user behavior
+// @Description Returns recommended posts by user behavior using weighted tag quotas (5-3-2-1-1).
+// @Tags feed
 // @Produce json
 // @Param          lat     query       float64 true    "User latitude"
 // @Param          lon     query       float64 true    "User longitude"
-// @Param			skip	query		int	false	"Number of items to skip (default: 0)"
-// @Param			limit	query		int	false	"Items per page (default: 10, max: 100)"
-// @Success 200 {object} recommendVenuesResponse
+// @Param          skip    query       int     false   "Number of items to skip (default: 0)"
+// @Param          limit   query       int     false   "Items per page (default: 10, max: 100)"
+// @Success 200 {object} recommendPostsResponse
 // @Security BearerAuth
-// @Router /business/venues/recommend [get]
-func (h *handler) recommendVenues(c *gin.Context) {
+// @Router /business/posts/recommend [get]
+func (h *handler) recommendPosts(c *gin.Context) {
 	ctx := c.Request.Context()
 	log := logger.FromContext(ctx)
 
@@ -63,28 +72,28 @@ func (h *handler) recommendVenues(c *gin.Context) {
 		req.Limit = 100
 	}
 
-	log.Info("recommend venues", "user_id", userID, "skip", req.Skip, "limit", req.Limit)
+	log.Info("recommend posts", "user_id", userID, "skip", req.Skip, "limit", req.Limit)
 
-	venues, err := h.service.RecommendVenues(ctx, userID, req.Lat, req.Lon, req.Skip, req.Limit)
+	postsResult, err := h.service.RecommendPosts(ctx, userID, req.Lat, req.Lon, req.Skip, req.Limit)
 	if err != nil {
-		log.Error("failed to get recommended venues", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to recommend venues"})
+		log.Error("failed to get recommended posts", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to recommend posts"})
 		return
 	}
 
-	items := make([]venueResponse, 0, len(venues.Items))
-	for _, v := range venues.Items {
-		items = append(items, venueResponse{
-			ID:          v.Id,
-			Name:        v.Name,
-			Description: v.Description,
-			Avatar:      v.Avatar,
-			Banner:      v.Banner,
+	items := make([]postResponse, 0, len(postsResult.Items))
+	for _, p := range postsResult.Items {
+		items = append(items, postResponse{
+			ID:        p.ID,
+			OrgID:     p.OrgID,
+			Content:   p.Content,
+			PostType:  p.PostType,
+			CreatedAt: p.CreatedAt,
 		})
 	}
 
-	c.JSON(http.StatusOK, recommendVenuesResponse{
+	c.JSON(http.StatusOK, recommendPostsResponse{
 		Items: items,
-		Total: venues.Total,
+		Total: postsResult.Total,
 	})
 }

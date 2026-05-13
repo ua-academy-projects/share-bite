@@ -2,6 +2,7 @@ package business
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -48,40 +49,40 @@ func calculateTagQuotas(tags []string, limit int) map[string]int {
 	return quotas
 }
 
-func (s *service) RecommendVenues(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnit], error) {
-	const op = "service.business.RecommendVenues"
+func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.RecomendedPost], error) {
+	const op = "service.business.RecommendPosts"
 	const tagsToFetch = 5
 
 	h3Hashes := s.h3Service.GetH3Neighbors(lat, lon, s.h3Config.Resolution, s.h3Config.RecommendRadius)
 	if len(h3Hashes) == 0 {
-		return pagination.Result[entity.OrgUnit]{}, nil
+		return pagination.Result[entity.RecomendedPost]{}, nil
 	}
 
 	topTags, err := s.businessRepo.GetTopTagsByUserLikes(ctx, userID, tagsToFetch)
 	if err != nil {
-		return pagination.Result[entity.OrgUnit]{}, err
+		return pagination.Result[entity.RecomendedPost]{}, err
 	}
 
 	if len(topTags) == 0 {
-		fillVenues, err := s.businessRepo.GetRandomVenues(ctx, limit, nil, h3Hashes)
+		fillPosts, err := s.businessRepo.GetRandomPosts(ctx, limit, nil, h3Hashes)
 		if err != nil {
-			return pagination.Result[entity.OrgUnit]{}, err
+			return pagination.Result[entity.RecomendedPost]{}, err
 		}
 
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		r.Shuffle(len(fillVenues), func(i, j int) {
-			fillVenues[i], fillVenues[j] = fillVenues[j], fillVenues[i]
+		r.Shuffle(len(fillPosts), func(i, j int) {
+			fillPosts[i], fillPosts[j] = fillPosts[j], fillPosts[i]
 		})
 
-		return pagination.Result[entity.OrgUnit]{
-			Items: fillVenues,
-			Total: len(fillVenues),
+		return pagination.Result[entity.RecomendedPost]{
+			Items: fillPosts,
+			Total: len(fillPosts), // TODO: Get the count
 		}, nil
 	}
 
 	quotas := calculateTagQuotas(topTags, limit)
-	var finalVenues []entity.OrgUnit
-	var seenIDs []int
+	var finalPosts []entity.RecomendedPost
+	var seenCompositeIDs []string
 	deficit := 0
 
 	for _, tag := range topTags {
@@ -90,35 +91,35 @@ func (s *service) RecommendVenues(ctx context.Context, userID string, lat, lon f
 			continue
 		}
 
-		venues, err := s.businessRepo.GetVenuesByTag(ctx, tag, quota, seenIDs, h3Hashes)
+		posts, err := s.businessRepo.GetPostsByTag(ctx, tag, quota, seenCompositeIDs, h3Hashes)
 		if err != nil {
-			return pagination.Result[entity.OrgUnit]{}, err
+			return pagination.Result[entity.RecomendedPost]{}, err
 		}
 
-		finalVenues = append(finalVenues, venues...)
-		for _, v := range venues {
-			seenIDs = append(seenIDs, v.Id)
+		finalPosts = append(finalPosts, posts...)
+		for _, p := range posts {
+			seenCompositeIDs = append(seenCompositeIDs, fmt.Sprintf("%s:%d", p.PostType, p.ID))
 		}
 
-		if len(venues) < quota {
-			deficit += quota - len(venues)
+		if len(posts) < quota {
+			deficit += quota - len(posts)
 		}
 	}
 
 	if deficit > 0 {
-		fillVenues, err := s.businessRepo.GetRandomVenues(ctx, deficit, seenIDs, h3Hashes)
+		fillPosts, err := s.businessRepo.GetRandomPosts(ctx, deficit, seenCompositeIDs, h3Hashes)
 		if err == nil {
-			finalVenues = append(finalVenues, fillVenues...)
+			finalPosts = append(finalPosts, fillPosts...)
 		}
 	}
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	r.Shuffle(len(finalVenues), func(i, j int) {
-		finalVenues[i], finalVenues[j] = finalVenues[j], finalVenues[i]
+	r.Shuffle(len(finalPosts), func(i, j int) {
+		finalPosts[i], finalPosts[j] = finalPosts[j], finalPosts[i]
 	})
 
-	return pagination.Result[entity.OrgUnit]{
-		Items: finalVenues,
-		Total: len(finalVenues),
+	return pagination.Result[entity.RecomendedPost]{
+		Items: finalPosts,
+		Total: len(finalPosts),
 	}, nil
 }
