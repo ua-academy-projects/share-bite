@@ -13,6 +13,8 @@ import (
 
 const notificationPrefixLambda = "NOTIFICATION_"
 
+// LoadFromAWSSecrets fetches secrets from AWS Secrets Manager and initializes the environment.
+// It returns the secret map so callers can pass it to LoadWithSecrets for full configuration orchestration.
 func LoadFromAWSSecrets(ctx context.Context, secretName string) (map[string]string, error) {
 	awsConfig, err := awscfg.LoadDefaultConfig(ctx)
 	if err != nil {

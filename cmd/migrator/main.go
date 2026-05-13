@@ -18,11 +18,6 @@ func main() {
 		logger.Fatal(ctx, "config load: ", err)
 	}
 
-	// docker variant
-	if err := config.Load(); err != nil {
-		logger.Fatal(ctx, "config load: ", err)
-	}
-
 	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)

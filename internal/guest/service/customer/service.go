@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
@@ -26,14 +27,17 @@ type OutboxWriter interface {
 type service struct {
 	customerRepo CustomerRepository
 	outboxWriter OutboxWriter
+	txManager    database.TxManager
 }
 
 func New(
 	customerRepo CustomerRepository,
 	outboxWriter OutboxWriter,
+	txManager database.TxManager,
 ) *service {
 	return &service{
 		customerRepo: customerRepo,
 		outboxWriter: outboxWriter,
+		txManager:    txManager,
 	}
 }

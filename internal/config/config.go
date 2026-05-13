@@ -136,6 +136,8 @@ func Load(paths ...string) error {
 	return LoadWithSecrets(nil, paths...)
 }
 
+// LoadWithSecrets loads configuration from .env files and merges them with provided secrets.
+// Caller-provided secrets take precedence over .env entries to allow runtime overrides (e.g. from AWS Secrets Manager).
 func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 	allSecrets := make(map[string]string)
 	if len(paths) > 0 {

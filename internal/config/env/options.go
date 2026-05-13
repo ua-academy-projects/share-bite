@@ -20,12 +20,11 @@ func Init(secrets map[string]string) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if globalEnv == nil {
-		globalEnv = make(map[string]string)
-		for _, e := range os.Environ() {
-			if key, value, ok := strings.Cut(e, "="); ok {
-				globalEnv[key] = value
-			}
+	globalEnv = make(map[string]string)
+
+	for _, e := range os.Environ() {
+		if key, value, ok := strings.Cut(e, "="); ok {
+			globalEnv[key] = value
 		}
 	}
 

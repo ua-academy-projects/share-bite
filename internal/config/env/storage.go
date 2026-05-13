@@ -5,7 +5,7 @@ import (
 )
 
 type s3StorageConfig struct {
-	StorageEndpoint     string        `env:"S3_ENDPOINT,required"`
+	StorageEndpoint     string        `env:"S3_ENDPOINT"`
 	StorageRegion       string        `env:"S3_REGION,required"`
 	StorageAccessKey    string        `env:"S3_ACCESS_KEY,required"`
 	StorageSecretKey    string        `env:"S3_SECRET_KEY,required"`

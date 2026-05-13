@@ -246,7 +246,7 @@ func main() {
 
 	// services
 	outboxWriter := outbox.NewWriter(client.DB())
-	customerSvc := customersvc.New(customerRepo, outboxWriter)
+	customerSvc := customersvc.New(customerRepo, outboxWriter, txManager)
 	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter))
 	postsvc.StartPostCleanupJob(ctx, postSvc)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
