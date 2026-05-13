@@ -16,8 +16,12 @@ export function BoxesPage() {
   useEffect(() => {
     const loadBoxes = async () => {
       try {
-        const data = await businessApi.getNearbyBoxes(49.8397, 24.0297);
-        setBoxes(data);
+        const data = await businessApi.getNearbyBoxes({
+          lat: 49.8397,
+          lon: 24.0297,
+          limit: 24,
+        });
+        setBoxes(data.items);
       } catch (error) {
         console.error("Failed to load boxes", error);
       } finally {

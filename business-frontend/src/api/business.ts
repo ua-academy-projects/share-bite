@@ -11,6 +11,11 @@ export type Box = {
   distance: number;
 };
 
+export type ListResponse<T> = {
+  items: T[];
+  total: number;
+};
+
 export type CreateBoxRequest = {
   venue_id: number;
   category_id?: number;
@@ -56,6 +61,40 @@ export type ReserveBoxResponse = {
   box_code: string;
 };
 
+export type BrandProfile = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  banner?: string | null;
+  description?: string | null;
+};
+
+export type BrandLocation = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  description?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  tags: string[];
+};
+
+export type BrandPost = {
+  id: number;
+  content: string;
+  created_at: string;
+  images: string[];
+  org: {
+    id: number;
+    name: string;
+    profileType: string;
+  };
+};
+
+export type BrandPostsResponse = ListResponse<BrandPost>;
+export type BrandLocationsResponse = ListResponse<BrandLocation>;
+export type NearbyBoxesResponse = ListResponse<Box>;
+
 export type VenueBrand = {
   id: number;
   name: string;
@@ -76,17 +115,41 @@ export type VenueProfile = {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
 
+export type UpdateBrandProfileRequest = {
+  name?: string;
+  avatar?: string;
+  banner?: string;
+  description?: string;
+};
+
 export const businessApi = {
-  getNearbyBoxes: async (lat: number, lon: number): Promise<Box[]> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/business/nearby-boxes?lat=${lat}&lon=${lon}`);
-      if (!response.ok) throw new Error("Network response was not ok");
-      const data = await response.json();
-      return data.items || [];
-    } catch (error) {
-      console.error("API error:", error);
-      return [];
+  getNearbyBoxes: async (params: {
+    lat: number;
+    lon: number;
+    skip?: number;
+    limit?: number;
+    orgId?: number;
+    categoryId?: number;
+  }): Promise<NearbyBoxesResponse> => {
+    const search = new URLSearchParams();
+    search.set("lat", String(params.lat));
+    search.set("lon", String(params.lon));
+    search.set("skip", String(params.skip ?? 0));
+    search.set("limit", String(params.limit ?? 10));
+    if (params.orgId) search.set("org_id", String(params.orgId));
+    if (params.categoryId) search.set("category_id", String(params.categoryId));
+
+    const response = await fetch(`${API_BASE_URL}/business/nearby-boxes?${search.toString()}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load boxes (${response.status})`);
     }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
   },
 
   getLocationTags: async (): Promise<LocationTag[]> => {
@@ -95,6 +158,58 @@ export const businessApi = {
       throw new Error(`Failed to load location tags (${response.status})`);
     }
     return response.json();
+  },
+
+  getBrandProfile: async (id: number): Promise<BrandProfile> => {
+    const response = await fetch(`${API_BASE_URL}/business/${id}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load brand (${response.status})`);
+    }
+    return response.json();
+  },
+
+  getBrandLocations: async (brandId: number, params?: {
+    skip?: number;
+    limit?: number;
+    tags?: string[];
+  }): Promise<BrandLocationsResponse> => {
+    const search = new URLSearchParams();
+    search.set("skip", String(params?.skip ?? 0));
+    search.set("limit", String(params?.limit ?? 10));
+    if (params?.tags && params.tags.length > 0) {
+      search.set("tags", params.tags.map((tag) => tag.trim()).filter(Boolean).join(","));
+    }
+
+    const response = await fetch(`${API_BASE_URL}/business/org-units/${brandId}/locations?${search.toString()}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load locations (${response.status})`);
+    }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
+  },
+
+  getBrandPosts: async (params?: { skip?: number; limit?: number }): Promise<BrandPostsResponse> => {
+    const search = new URLSearchParams();
+    search.set("skip", String(params?.skip ?? 0));
+    search.set("limit", String(params?.limit ?? 10));
+
+    const response = await fetch(`${API_BASE_URL}/business/posts?${search.toString()}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load posts (${response.status})`);
+    }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
   },
 
   searchVenues: async (params: SearchVenuesRequest): Promise<SearchVenuesResponse> => {
@@ -152,10 +267,12 @@ export const businessApi = {
       formData.append("image", data.image, data.image.name);
     }
 
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+
     const response = await fetch(`${API_BASE_URL}/business/boxes`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`
+        "Authorization": authHeader
       },
       body: formData,
     });
@@ -169,16 +286,40 @@ export const businessApi = {
   },
 
   reserveBox: async (boxId: number, token: string): Promise<ReserveBoxResponse> => {
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+
     const response = await fetch(`${API_BASE_URL}/business/boxes/${boxId}/reserve`, {
       method: "PATCH",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: authHeader,
       },
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || err.message || `Reservation failed (${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  updateBrandProfile: async (id: number, data: UpdateBrandProfileRequest, token: string): Promise<BrandProfile> => {
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    
+    const response = await fetch(`${API_BASE_URL}/business/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      // Handle business errors specifically if they exist
+      const errorMessage = err.error || err.message || `Update failed (${response.status})`;
+      throw new Error(errorMessage);
     }
 
     return response.json();

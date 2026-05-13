@@ -1,4 +1,4 @@
-// src/components/ui/sidebar.tsx
+// src/components/ui/Sidebar.tsx
 import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -35,10 +35,15 @@ export function Sidebar() {
           <NavLink to="/" end className={linkClass}>Home Feed</NavLink>
           <NavLink to="/boxes" className={linkClass}>Magic Boxes</NavLink>
           <NavLink to="/discover" className={linkClass}>Discover</NavLink>
-          <NavLink to="/venues/search" className={linkClass}>Venue Search</NavLink>
+          <NavLink to="/venue/search" className={linkClass}>Venue Search</NavLink>
           
           <div className="mt-4 flex flex-col gap-2">
-            <span className="text-gray-400 px-3 py-2 text-sm font-medium">Social Bites</span>
+            <span className="text-gray-400 px-3 py-2 text-sm font-medium">Identity</span>
+            {/* 
+                Strategy: brandId should be dynamically resolved via AuthContext/Me-endpoint.
+                Using '1' as a safe default for development/prototype phases.
+            */}
+            <NavLink to="/brand/1" className={linkClass}>Brand Profile</NavLink>
             <span className="text-gray-400 px-3 py-2 text-sm font-medium">Settings</span>
           </div>
         </nav>

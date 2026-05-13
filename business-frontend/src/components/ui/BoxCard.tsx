@@ -1,6 +1,7 @@
 import { Box } from "@/api/business";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Flame } from "lucide-react";
+import { MapPin, Clock, Flame, ChevronRight, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface BoxCardProps {
   box: Box;
@@ -16,7 +17,6 @@ const CATEGORY_MAP: Record<number, string> = {
 };
 
 export function BoxCard({ box,  onReserve, reserving = false, isReserved = false  }: BoxCardProps) {
-  // Видалено небезпечний split по amazonaws, тепер нормальні URL не ламаються
   const formatImageUrl = (url: string) => {
     if (!url) return "https://placehold.co/600x400/163d32/FFF?text=Magic+Box";
     return url;
@@ -24,18 +24,17 @@ export function BoxCard({ box,  onReserve, reserving = false, isReserved = false
 
   const categoryName = box.category_id ? CATEGORY_MAP[box.category_id] || "Secret Box" : "Secret Box";
 
-  // Захист для дати (якщо прийде Invalid Date, покажемо "N/A")
   const expireDate = new Date(box.expires_at);
   const formattedTime = Number.isNaN(expireDate.getTime())
     ? "N/A"
     : expireDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
-  // Захист для цін
   const fullPrice = Number(box.full_price);
   const discountPrice = Number(box.discount_price);
 
   const isSoldOut = box.availability_status === "sold_out";
-  const disabled = !onReserve || reserving || isReserved || isSoldOut;
+  const showAction = Boolean(onReserve);
+  const disabled = !showAction || reserving || isReserved || isSoldOut;
 
   const buttonLabel = isReserved
     ? "Reserved"
@@ -45,71 +44,104 @@ export function BoxCard({ box,  onReserve, reserving = false, isReserved = false
         ? "Sold Out"
         : "Reserve";
   
-  return (
-    <div className="bg-white dark:bg-[#163d32] border border-gray-100 dark:border-[#2f5e50] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-lg dark:hover:shadow-[#98FF98]/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
-      {/* Upper part: Photo and badges */}
-      <div className="relative h-52 overflow-hidden bg-gray-100 dark:bg-[#0d241d]">
+  const content = (
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-[32px] border border-white/10 bg-white dark:bg-[#163d32]/40 backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-[#98FF98]/30 hover:bg-[#163d32]/60 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)]">
+      {/* Photo Section */}
+      <div className="relative aspect-[16/10] overflow-hidden">
         <img
           src={formatImageUrl(box.image)}
           alt={categoryName}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => {
             e.currentTarget.src = "https://placehold.co/600x400/163d32/FFF?text=ShareBite";
           }}
         />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#163d32] to-transparent opacity-90 dark:opacity-80"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#0b0f0e] via-transparent to-transparent opacity-60 dark:opacity-80" />
         
-        {/* Category badge */}
-        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/10 shadow-sm">
-          {categoryName}
+        {/* Badges */}
+        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+          <div className="rounded-full bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white">
+            {categoryName}
+          </div>
+          {box.availability_status === "running_low" && (
+            <div className="flex items-center gap-1.5 rounded-full bg-red-500 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg animate-pulse">
+              <Flame size={12} /> Low
+            </div>
+          )}
         </div>
 
-        {/* "Low" availability badge */}
-        {box.availability_status === "running_low" && (
-          <div className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-md animate-pulse">
-            <Flame size={14} />
-            Low!
+        {!showAction && (
+          <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white opacity-0 transition-all transform scale-75 group-hover:opacity-100 group-hover:scale-100">
+            <ChevronRight className="h-5 w-5" />
           </div>
         )}
       </div>
 
-      {/* Lower part: Info */}
-      <div className="p-5 flex flex-col flex-1 relative z-10">
-        <h3 className="text-[#1A3C34] dark:text-white text-xl font-bold tracking-tight mb-3">
-          Magic Box
-        </h3>
+      {/* Info Section */}
+      <div className="flex flex-1 flex-col p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#98FF98]/10 text-[#98FF98]">
+            <Sparkles size={16} />
+          </div>
+          <h3 className="text-xl font-bold tracking-tight text-[#1A3C34] dark:text-[#F9F7F2]">
+            Magic Box
+          </h3>
+        </div>
         
-        <div className="flex items-center gap-5 text-gray-500 dark:text-gray-300 text-sm mb-5">
+        <div className="flex items-center gap-6 text-sm font-medium text-gray-500 dark:text-[#9fb2a7]">
           <div className="flex items-center gap-1.5">
-            <MapPin size={16} className="text-emerald-500 dark:text-[#98FF98]" />
+            <MapPin size={16} className="text-[#98FF98]" />
             <span>{box.distance ? box.distance.toFixed(1) : "0.0"} km</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Clock size={16} className="text-yellow-600 dark:text-[#FFD700]" />
-            <span>Until {formattedTime}</span>
+            <Clock size={16} className="text-[#FFD700]" />
+            <span>{formattedTime}</span>
           </div>
         </div>
 
-        {/* Pricing and Button */}
-        <div className="mt-auto pt-4 border-t border-gray-100 dark:border-[#2f5e50]/50 flex justify-between items-end">
+        {/* Pricing & CTA */}
+        <div className="mt-auto pt-6 flex items-end justify-between border-t border-gray-100 dark:border-white/5">
           <div className="flex flex-col">
-            <span className="text-gray-400 dark:text-gray-400 text-sm line-through mb-0.5 font-medium">
-              {Number.isFinite(fullPrice) ? fullPrice.toFixed(2) : "—"} ₴
+            <span className="text-xs font-bold text-gray-400 dark:text-[#9fb2a7]/60 line-through tracking-wider">
+              {Number.isFinite(fullPrice) ? fullPrice.toFixed(0) : "—"} ₴
             </span>
-            <span className="text-emerald-600 dark:text-[#98FF98] text-2xl font-bold leading-none">
-              {Number.isFinite(discountPrice) ? discountPrice.toFixed(2) : "—"} ₴
-            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-black text-[#1A3C34] dark:text-[#98FF98] tracking-tighter">
+                {Number.isFinite(discountPrice) ? discountPrice.toFixed(0) : "—"}
+              </span>
+              <span className="text-sm font-bold text-[#1A3C34] dark:text-[#98FF98]">₴</span>
+            </div>
           </div>
-          <Button
-            onClick={() => onReserve?.(box)}
-            disabled={disabled}
-            className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200] disabled:opacity-60 dark:hover:bg-[#FFD700]/80 font-bold rounded-xl px-6 py-5 shadow-md dark:shadow-lg dark:shadow-[#FFD700]/20 transition-all"
-          >
-            {buttonLabel}
-          </Button>
+
+          {showAction ? (
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onReserve?.(box);
+              }}
+              disabled={disabled}
+              className="rounded-2xl bg-[#FFD700] px-6 py-6 text-sm font-black uppercase tracking-widest text-[#1A3C34] shadow-[0_8px_20px_-6px_rgba(255,215,0,0.4)] transition-all hover:scale-105 hover:bg-[#FFD700] hover:shadow-[0_12px_24px_-8px_rgba(255,215,0,0.6)] active:scale-95 disabled:opacity-50"
+            >
+              {buttonLabel}
+            </Button>
+          ) : (
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#98FF98] opacity-0 group-hover:opacity-100 transition-opacity">
+               Manage Box
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
+
+  if (!showAction) {
+    return (
+      <Link to={`/venue/${box.venue_id}`} className="block h-full transition-all">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
