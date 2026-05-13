@@ -64,7 +64,7 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 	}
 
 	if len(topTags) == 0 {
-		fillPosts, err := s.businessRepo.GetRandomPosts(ctx, limit, nil, h3Hashes)
+		fillPosts, err := s.businessRepo.GetRandomPosts(ctx, limit, []string{}, h3Hashes)
 		if err != nil {
 			return pagination.Result[entity.RecommendedPost]{}, err
 		}

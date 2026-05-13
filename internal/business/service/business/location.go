@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
@@ -52,7 +53,7 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 			in.H3Hash = &hash
 		}
 
-		location, err = s.businessRepo.CreateLocation(ctx, brandID, ownerUserID, in)
+		location, err = s.businessRepo.CreateLocation(ctxTx, brandID, ownerUserID, in)
 		if err != nil {
 			return fmt.Errorf("%s: create location: %w", "business.service.CreateLocation", err)
 		}
