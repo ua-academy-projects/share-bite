@@ -55,7 +55,7 @@ export interface ExploreVenueItem {
 }
 
 export interface CreatePostInput {
-  venueId: number;
+  venueId: string;
   text: string;
   rating: number;
   images?: File[];

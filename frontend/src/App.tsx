@@ -9,10 +9,14 @@ import { OAuthCallback } from './pages/OAuthCallback/OAuthCallback';
 import { GitHubSuccess } from './pages/GitHubSuccess/GitHubSuccess';
 import { AdminUsersPage } from './pages/Admin/AdminUsersPage';
 import { AdminUserDetailPage } from './pages/Admin/AdminUserDetailPage';
+import { ExplorePage } from './pages/Explore/ExplorePage';
+import { CollectionsPage } from './pages/Collections/CollectionsPage';
+import { NotificationsPage } from './pages/Notifications/NotificationsPage';
+import { SecurityPage } from './pages/Settings/SecurityPage';
 import { RequireAuth } from './components/RequireAuth/RequireAuth';
 import { RequireAdmin } from './components/RequireAdmin/RequireAdmin';
-import { ThemeProvider } from './context/ThemeContext';
-import './styles/variables.css';
+import { Toaster } from './components/ui/sonner';
+
 
 function HomeEntry() {
   const location = useLocation();
@@ -28,13 +32,16 @@ function HomeEntry() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <div className="app-container">
-        <Navbar />
-        <main className="main-content">
+    <>
+      <div className="flex min-h-screen bg-background text-foreground flex-col">
+      <Navbar />
+        <main className="flex-1 flex flex-col">
           <Routes>
             <Route path="/" element={<HomeEntry />} />
-            <Route path="/explore" element={<Navigate to="/" replace />} />
+            <Route path="/explore" element={<ExplorePage />} />
+            <Route path="/collections" element={<RequireAuth><CollectionsPage /></RequireAuth>} />
+            <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
+            <Route path="/settings/security" element={<RequireAuth><SecurityPage /></RequireAuth>} />
             <Route path="/restaurant/:id" element={<RestaurantProfile />} />
             <Route path="/profile" element={<RequireAuth><UserProfile /></RequireAuth>} />
             <Route path="/user/:id" element={<RequireAuth><UserProfile /></RequireAuth>} />
@@ -47,7 +54,8 @@ function App() {
           </Routes>
         </main>
       </div>
-    </ThemeProvider>
+      <Toaster />
+    </>
   );
 }
 

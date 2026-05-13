@@ -14,20 +14,48 @@ import type {
   AdminUsersParams,
 } from '../types/api';
 
+export interface NotificationItem {
+  id: number;
+  type: string;
+  read: boolean;
+  message: string;
+  createdAt: string;
+  link?: string;
+}
+
+export interface CollectionItem {
+  id: number;
+  name: string;
+  description: string;
+  isPublic: boolean;
+  createdAt: string;
+}
+
 const apiRoot = axios.create({ baseURL: '/api' });
-const authApi = axios.create({ baseURL: '/api/auth' });
-const guestApi = axios.create({ baseURL: '/api/guest' });
-const businessApi = axios.create({ baseURL: '/api/business' });
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const authApi = axios.create({ baseURL: `${API_BASE}/api/auth`, withCredentials: true });
+const guestApi = axios.create({ baseURL: `${API_BASE}/api/guest`, withCredentials: true });
+const businessApi = axios.create({ baseURL: `${API_BASE}/api/business`, withCredentials: true });
 
 const saveSession = (data: AuthResponse) => {
   if (data.access_token) localStorage.setItem('token', data.access_token);
   if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
 };
 
-// Add JWT interceptor
+guestApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  console.log('[Auth Interceptor] Sending token:', !!token);
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Add JWT interceptor for other instances
 const tokenInterceptor = (config: any) => {
   const token = localStorage.getItem('token');
-  if (token && config.headers) {
+  if (token) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -35,8 +63,22 @@ const tokenInterceptor = (config: any) => {
 
 apiRoot.interceptors.request.use(tokenInterceptor);
 authApi.interceptors.request.use(tokenInterceptor);
-guestApi.interceptors.request.use(tokenInterceptor);
 businessApi.interceptors.request.use(tokenInterceptor);
+
+// Add 401 response interceptor
+const responseErrorInterceptor = (error: any) => {
+  if (error.response && error.response.status === 401) {
+    localStorage.removeItem('token');
+    if (window.location.pathname !== '/auth') {
+      window.location.href = '/auth';
+    }
+  }
+  return Promise.reject(error);
+};
+
+authApi.interceptors.response.use((res) => res, responseErrorInterceptor);
+guestApi.interceptors.response.use((res) => res, responseErrorInterceptor);
+businessApi.interceptors.response.use((res) => res, responseErrorInterceptor);
 
 export const apiClient = {
   // Auth
@@ -58,11 +100,27 @@ export const apiClient = {
     if (venueId) params.venue_id = venueId;
     if (customerId) params.customer_id = customerId;
 
-    const res = await guestApi.get<{posts: PostResponse[], total: number}>('/posts/', {
+    const res = await guestApi.get<any>('/posts/', {
       params
     });
+    
+    console.log('[API getPosts] Raw backend response:', res.data.posts?.map((p: any) => ({ id: p.id, snake_case_liked: p.is_liked_by_me, camelCase_liked: p.isLikedByMe })));
+
+    const rawPosts = res.data.posts || [];
+    const mappedPosts = rawPosts.map((p: any) => ({
+      ...p,
+      venueId: p.venue_id || p.venueId,
+      userName: p.user_name || p.userName,
+      avatarURL: p.avatar_url || p.avatarURL,
+      likesCount: p.likes_count ?? p.likesCount ?? 0,
+      isLikedByMe: p.is_liked_by_me ?? p.isLikedByMe ?? false,
+      createdAt: p.created_at || p.createdAt,
+      updatedAt: p.updated_at || p.updatedAt,
+      publishedAt: p.published_at || p.publishedAt,
+    }));
+
     return {
-      Posts: res.data.posts || [],
+      Posts: mappedPosts,
       Total: res.data.total || 0
     };
   },
@@ -145,16 +203,28 @@ export const apiClient = {
     return res.data;
   },
   getUser: async (username: string) => {
-    const res = await guestApi.get(`/customers/${username}`);
-    return res.data;
+    const res = await guestApi.get(`customers/${username}`);
+    return res.data.customer;
   },
   createCustomer: async (data: { userName: string; firstName: string; lastName: string; bio?: string }) => {
-    const res = await guestApi.post<{customerId: string}>('/customers/', data);
+    const res = await guestApi.post<{customerId: string}>('customers/', data);
     return res.data;
   },
   getCurrentCustomer: async () => {
-    const res = await guestApi.get<{customer: CustomerResponse}>('/customers/');
+    const res = await guestApi.get<{customer: CustomerResponse}>('customers/');
     return res.data.customer;
+  },
+  updateCustomer: async (data: { userName?: string; firstName?: string; lastName?: string; bio?: string }) => {
+    const res = await guestApi.patch<{customer: CustomerResponse}>('customers/', data);
+    return res.data.customer;
+  },
+  getCollections: async () => {
+    const res = await guestApi.get<{collections: CollectionItem[]}>('collections/me');
+    return res.data.collections || [];
+  },
+  createCollection: async (data: { name: string; description?: string; isPublic: boolean }) => {
+    const res = await guestApi.post<{collection: CollectionItem}>('collections/', data);
+    return res.data.collection;
   },
   
   // Comments
@@ -222,5 +292,47 @@ export const apiClient = {
   revokeAllSessions: async () => {
     const res = await apiRoot.post<{ message: string }>('/user/sessions/revoke-all');
     return res.data;
+  },
+
+  // Notifications (Mocked/Stubbed for now based on typical implementation)
+  getNotifications: async (limit = 20, offset = 0) => {
+    try {
+      const res = await guestApi.get<{ items: NotificationItem[], total: number }>('/notifications', {
+        params: { limit, offset }
+      });
+      return res.data;
+    } catch (e) {
+      // Mock fallback if endpoint doesn't exist
+      return { items: [], total: 0 };
+    }
+  },
+  markNotificationAsRead: async (id: number) => {
+    try {
+      await guestApi.patch(`/notifications/${id}/read`);
+    } catch (e) {}
+  },
+
+  // Collections
+  getCollections: async () => {
+    try {
+      const res = await guestApi.get<{ collections: CollectionItem[] }>('/collections');
+      return res.data.collections;
+    } catch (e) {
+      return [];
+    }
+  },
+  createCollection: async (data: { name: string, description?: string, isPublic: boolean }) => {
+    const res = await guestApi.post<{ collection: CollectionItem }>('/collections', data);
+    return res.data.collection;
+  },
+  getCollection: async (id: number) => {
+    const res = await guestApi.get<{ collection: CollectionItem, items: any[] }>(`/collections/${id}`);
+    return res.data;
+  },
+  savePostToCollection: async (collectionId: number, postId: number | string) => {
+    await guestApi.post(`/collections/${collectionId}/venues`, { venue_id: postId }); // Assuming backend uses venue_id for posts/venues
+  },
+  inviteCollaborator: async (collectionId: number, email: string) => {
+    await guestApi.post(`/collections/${collectionId}/collaborators/invite`, { email });
   },
 };
