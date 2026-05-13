@@ -52,7 +52,7 @@ type businessService interface {
 	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
 
-	RecommendPosts(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.RecomendedPost], error)
+	RecommendPosts(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.RecommendedPost], error)
 
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
 

@@ -59,7 +59,7 @@ func (r *Repository) GetTopTagsByUserLikes(ctx context.Context, userID string, t
 	return tags, nil
 }
 
-func (r *Repository) GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecomendedPost, error) {
+func (r *Repository) GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error) {
 	const op = "repository.business.GetPostsByTag"
 
 	sql := `
@@ -98,7 +98,7 @@ func (r *Repository) GetPostsByTag(ctx context.Context, tag string, quota int, s
 	return scanPosts(rows, op)
 }
 
-func (r *Repository) GetRandomPosts(ctx context.Context, deficit int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecomendedPost, error) {
+func (r *Repository) GetRandomPosts(ctx context.Context, deficit int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error) {
 	const op = "repository.business.GetRandomPosts"
 	sql := `
 		WITH unified_posts AS (
@@ -133,11 +133,11 @@ func (r *Repository) GetRandomPosts(ctx context.Context, deficit int, seenCompos
 	return scanPosts(rows, op)
 }
 
-func scanPosts(rows pgx.Rows, op string) ([]entity.RecomendedPost, error) {
-	var result []entity.RecomendedPost
+func scanPosts(rows pgx.Rows, op string) ([]entity.RecommendedPost, error) {
+	var result []entity.RecommendedPost
 
 	for rows.Next() {
-		var p entity.RecomendedPost
+		var p entity.RecommendedPost
 		err := rows.Scan(
 			&p.ID, &p.OrgID, &p.Content, &p.PostType, &p.CreatedAt,
 		)

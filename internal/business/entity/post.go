@@ -20,7 +20,7 @@ type PostWithPhotos struct {
 	ProfileType string
 }
 
-type RecomendedPost struct {
+type RecommendedPost struct {
 	ID        int64
 	OrgID     int
 	Content   string

@@ -49,24 +49,24 @@ func calculateTagQuotas(tags []string, limit int) map[string]int {
 	return quotas
 }
 
-func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.RecomendedPost], error) {
+func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.RecommendedPost], error) {
 	const op = "service.business.RecommendPosts"
 	const tagsToFetch = 5
 
 	h3Hashes := s.h3Service.GetH3Neighbors(lat, lon, s.h3Config.Resolution, s.h3Config.RecommendRadius)
 	if len(h3Hashes) == 0 {
-		return pagination.Result[entity.RecomendedPost]{}, nil
+		return pagination.Result[entity.RecommendedPost]{}, nil
 	}
 
 	topTags, err := s.businessRepo.GetTopTagsByUserLikes(ctx, userID, tagsToFetch)
 	if err != nil {
-		return pagination.Result[entity.RecomendedPost]{}, err
+		return pagination.Result[entity.RecommendedPost]{}, err
 	}
 
 	if len(topTags) == 0 {
 		fillPosts, err := s.businessRepo.GetRandomPosts(ctx, limit, nil, h3Hashes)
 		if err != nil {
-			return pagination.Result[entity.RecomendedPost]{}, err
+			return pagination.Result[entity.RecommendedPost]{}, err
 		}
 
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -74,14 +74,14 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 			fillPosts[i], fillPosts[j] = fillPosts[j], fillPosts[i]
 		})
 
-		return pagination.Result[entity.RecomendedPost]{
+		return pagination.Result[entity.RecommendedPost]{
 			Items: fillPosts,
 			Total: len(fillPosts), // TODO: Get the count
 		}, nil
 	}
 
 	quotas := calculateTagQuotas(topTags, limit)
-	var finalPosts []entity.RecomendedPost
+	var finalPosts []entity.RecommendedPost
 	var seenCompositeIDs = make([]string, 0)
 	deficit := 0
 
@@ -93,7 +93,7 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 
 		posts, err := s.businessRepo.GetPostsByTag(ctx, tag, quota, seenCompositeIDs, h3Hashes)
 		if err != nil {
-			return pagination.Result[entity.RecomendedPost]{}, err
+			return pagination.Result[entity.RecommendedPost]{}, err
 		}
 
 		finalPosts = append(finalPosts, posts...)
@@ -118,7 +118,7 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 		finalPosts[i], finalPosts[j] = finalPosts[j], finalPosts[i]
 	})
 
-	return pagination.Result[entity.RecomendedPost]{
+	return pagination.Result[entity.RecommendedPost]{
 		Items: finalPosts,
 		Total: len(finalPosts),
 	}, nil
