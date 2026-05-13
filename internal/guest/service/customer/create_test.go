@@ -10,7 +10,17 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
+
+type mockOutboxWriter struct {
+	mock.Mock
+}
+
+func (m *mockOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
 
 func TestCreate(t *testing.T) {
 	t.Parallel()
@@ -19,6 +29,7 @@ func TestCreate(t *testing.T) {
 		customerID = gofakeit.UUID()
 		userID     = gofakeit.UUID()
 
+		email     = gofakeit.Email()
 		userName  = gofakeit.Username()
 		firstName = gofakeit.Person().FirstName
 		lastName  = gofakeit.Person().LastName
@@ -41,6 +52,7 @@ func TestCreate(t *testing.T) {
 			name: "success",
 			input: entity.CreateCustomer{
 				UserID:    userID,
+				Email:     email,
 				UserName:  userName,
 				FirstName: firstName,
 				LastName:  lastName,
@@ -49,6 +61,7 @@ func TestCreate(t *testing.T) {
 			mockFn: func(repo *mockCustomerRepository) {
 				repo.On("Create", mock.Anything, entity.CreateCustomer{
 					UserID:    userID,
+					Email:     email,
 					UserName:  userName,
 					FirstName: firstName,
 					LastName:  lastName,
@@ -62,6 +75,7 @@ func TestCreate(t *testing.T) {
 			name: "error - create repo fails",
 			input: entity.CreateCustomer{
 				UserID:    userID,
+				Email:     email,
 				UserName:  userName,
 				FirstName: firstName,
 				LastName:  lastName,
@@ -70,6 +84,7 @@ func TestCreate(t *testing.T) {
 			mockFn: func(repo *mockCustomerRepository) {
 				repo.On("Create", mock.Anything, entity.CreateCustomer{
 					UserID:    userID,
+					Email:     email,
 					UserName:  userName,
 					FirstName: firstName,
 					LastName:  lastName,
@@ -85,7 +100,19 @@ func TestCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			repo := new(mockCustomerRepository)
-			svc := New(repo)
+			outboxWriter := new(mockOutboxWriter)
+			svc := New(repo, outboxWriter)
+			if tt.wantErr == nil {
+				outboxWriter.On("Enqueue", mock.Anything, mock.MatchedBy(func(event outbox.Event) bool {
+					message, ok := event.Payload.(outbox.Message)
+					return ok &&
+						event.EventType == outbox.EventTypeRegistrationConfirmed &&
+						message.EventType == outbox.EventTypeRegistrationConfirmed &&
+						message.RecipientID == tt.input.UserID &&
+						message.Metadata["email"] == tt.input.Email &&
+						message.Metadata["username"] == tt.input.UserName
+				})).Return(nil).Once()
+			}
 			tt.mockFn(repo)
 
 			createdID, err := svc.Create(context.Background(), tt.input)
@@ -99,6 +126,7 @@ func TestCreate(t *testing.T) {
 
 			assert.Equal(t, tt.wantID, createdID)
 			repo.AssertExpectations(t)
+			outboxWriter.AssertExpectations(t)
 		})
 	}
 }

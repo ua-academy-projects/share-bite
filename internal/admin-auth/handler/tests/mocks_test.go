@@ -20,6 +20,7 @@ import (
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 type mockUserRepository struct {
@@ -268,6 +269,11 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 	return args.Error(0)
 }
 
+func (s *mockEmailSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]any) error {
+	args := s.Called(ctx, toEmail, subject, templateName, data)
+	return args.Error(0)
+}
+
 type stubTokenProvider struct{}
 
 func (s stubTokenProvider) GenerateToken(_ string, _ string, _ jwt.UserStatus) (string, string, error) {
@@ -286,6 +292,12 @@ type noopTxManager struct{}
 
 func (noopTxManager) ReadCommitted(ctx context.Context, fn database.Handler) error {
 	return fn(ctx)
+}
+
+type noopOutboxWriter struct{}
+
+func (n noopOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error {
+	return nil
 }
 
 func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *auth.Handler {
