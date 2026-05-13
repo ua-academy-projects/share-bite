@@ -30,8 +30,13 @@ func LoadFromAWSSecrets(ctx context.Context, secretName string) error {
 		return fmt.Errorf("failed to get secret from AWS Secrets Manager: %w", err)
 	}
 
+	if result.SecretString == nil {
+		return fmt.Errorf("secret string is nil; secret %s may be binary or empty", secretName)
+	}
+	secretData := []byte(*result.SecretString)
+
 	var secretMap map[string]string
-	if err := json.Unmarshal([]byte(*result.SecretString), &secretMap); err != nil {
+	if err := json.Unmarshal(secretData, &secretMap); err != nil {
 		return fmt.Errorf("failed to parse secret JSON: %w", err)
 	}
 
