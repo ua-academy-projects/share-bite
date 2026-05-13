@@ -109,73 +109,89 @@ export function VenueProfilePage() {
 
   return (
     <div className="min-h-screen w-full p-6 md:p-10 bg-background text-foreground">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <div className="relative rounded-[28px] border border-white/10 bg-[#163d32]/40 backdrop-blur-xl overflow-hidden">
-          <div className="h-44 md:h-64 relative">
+      <div className="max-w-7xl mx-auto space-y-12">
+        {/* Immersive Header */}
+        <div className="relative rounded-[48px] border border-white/10 bg-[#163d32]/20 backdrop-blur-2xl overflow-hidden shadow-2xl">
+          {/* Banner */}
+          <div className="h-64 md:h-[400px] relative overflow-hidden group">
             <img
               src={venue.banner || venue.avatar || "https://placehold.co/1200x400/163d32/FFF?text=ShareBite"}
               alt={venue.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f0e]/90 via-[#0b0f0e]/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f0e] via-[#0b0f0e]/30 to-transparent" />
+            <div className="absolute inset-0 bg-black/5" />
           </div>
 
-          <div className="relative p-6 md:p-10">
-            <div className="flex flex-col md:flex-row items-start gap-6">
-              <img
-                src={venue.avatar || "https://placehold.co/120x120/163d32/FFF?text=SB"}
-                alt={venue.name}
-                className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover border border-white/20 shadow-lg -mt-16 md:-mt-20"
-              />
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{venue.name}</h1>
-                  {venue.brand && (
-                    <Link 
-                      to={`/brand/${venue.brand.id}`}
-                      className="text-xs bg-[#98FF98]/10 text-[#98FF98] border border-[#98FF98]/20 px-2 py-1 rounded-full hover:bg-[#98FF98]/20 transition"
-                    >
-                      Brand: {venue.brand.name}
-                    </Link>
-                  )}
-                </div>
-                <p className="text-[#cbd5cf] mt-2 max-w-2xl">
-                  {venue.description || "No description yet."}
-                </p>
-
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-[#9fb2a7]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-[#98FF98]" />
-                    {venue.latitude && venue.longitude ? (
-                      `${venue.latitude.toFixed(4)}, ${venue.longitude.toFixed(4)}`
-                    ) : "No coordinates set"}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] tracking-wider uppercase font-semibold">
-                    ID: {venue.id}
-                  </span>
+          <div className="relative p-8 md:p-16 pt-0">
+            <div className="flex flex-col md:flex-row items-end gap-10">
+              {/* Prominent Avatar */}
+              <div className="-mt-20 md:-mt-32 relative group">
+                <div className="relative h-32 w-32 md:h-48 md:w-48 rounded-[40px] p-1.5 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
+                  <img
+                    src={venue.avatar || "https://placehold.co/120x120/163d32/FFF?text=SB"}
+                    alt={venue.name}
+                    className="w-full h-full rounded-[34px] object-cover border border-white/20 shadow-inner"
+                  />
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                 <Button asChild variant="outline" className="rounded-full border-white/15 hover:bg-white/10">
-                   <Link to="/venue/search">Back to Search</Link>
-                 </Button>
+              <div className="flex-1 space-y-4 pb-2">
+                <div className="flex flex-wrap items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-4">
+                      <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter">
+                        {venue.name}
+                      </h1>
+                      {venue.brand && (
+                        <Link 
+                          to={`/brand/${venue.brand.id}`}
+                          className="mt-2 text-xs bg-[#98FF98]/10 text-[#98FF98] border border-[#98FF98]/20 px-3 py-1.5 rounded-full hover:bg-[#98FF98]/20 transition-all backdrop-blur-md font-bold uppercase tracking-wider"
+                        >
+                          Part of {venue.brand.name}
+                        </Link>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm font-bold uppercase tracking-[0.2em] text-[#98FF98]/80">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4" />
+                        {venue.latitude && venue.longitude ? (
+                          `${venue.latitude.toFixed(4)}, ${venue.longitude.toFixed(4)}`
+                        ) : "Location Pending"}
+                      </span>
+                      <span className="h-1 w-1 rounded-full bg-white/20" />
+                      <span>ID: {venue.id}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                     <Button asChild variant="outline" className="rounded-2xl border-white/10 bg-white/5 px-6 py-6 text-sm font-bold text-white backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/20">
+                       <Link to="/venue/search">Back to Search</Link>
+                     </Button>
+                  </div>
+                </div>
+
+                {venue.description && (
+                  <p className="max-w-3xl text-lg md:text-xl font-medium leading-relaxed text-[#cbd5cf]">
+                    {venue.description}
+                  </p>
+                )}
+
+                {venue.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    {venue.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest bg-white/5 text-[#cbd5cf] border border-white/10 backdrop-blur-md"
+                      >
+                        <Tag className="w-3 h-3 text-[#98FF98]" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-
-            {venue.tags?.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-6">
-                {venue.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-white/5 text-[#cbd5cf] border border-white/10"
-                  >
-                    <Tag className="w-3 h-3" />
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
