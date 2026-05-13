@@ -23,6 +23,8 @@ func (s *service) Create(ctx context.Context, in entity.CreateCustomer) (string,
 				EventID:     outbox.NewEventID(customerID, in.Email),
 				EventType:   outbox.EventTypeRegistrationConfirmed,
 				RecipientID: in.UserID,
+				// TODO: Enrich email from admin-auth endpoint instead of passing it here.
+				// This avoids leaking email in the customer struct and keeps auth data centralized.
 				Metadata: map[string]any{
 					"email":    in.Email,
 					"username": in.UserName,
