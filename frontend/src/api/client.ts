@@ -18,6 +18,18 @@ const apiRoot = axios.create({ baseURL: '/api' });
 const authApi = axios.create({ baseURL: '/api/auth' });
 const guestApi = axios.create({ baseURL: '/api/guest' });
 const businessApi = axios.create({ baseURL: '/api/business' });
+const refreshInstance = axios.create({ baseURL: '/api/auth' });
+
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  failedQueue = [];
+};
 
 const saveSession = (data: AuthResponse) => {
   if (data.access_token) localStorage.setItem('token', data.access_token);
@@ -37,6 +49,66 @@ apiRoot.interceptors.request.use(tokenInterceptor);
 authApi.interceptors.request.use(tokenInterceptor);
 guestApi.interceptors.request.use(tokenInterceptor);
 businessApi.interceptors.request.use(tokenInterceptor);
+
+const responseInterceptor = async (error: any) => {
+  const originalRequest = error.config;
+  if (error.response?.status === 401 && !originalRequest._retry) {
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then(token => {
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return axios(originalRequest);
+      }).catch(err => Promise.reject(err));
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (!refreshToken) {
+          processQueue(new Error('No refresh token'), null);
+          localStorage.removeItem('token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/auth';
+          return reject('No refresh token');
+        }
+
+        const res = await refreshInstance.post<AuthResponse>('/refresh', {
+          refresh_token: refreshToken
+        });
+
+        const newToken = res.data.access_token;
+        saveSession(res.data);
+
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        processQueue(null, newToken);
+
+        resolve(axios(originalRequest));
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
+        reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    });
+  }
+
+  return Promise.reject(error);
+};
+
+[apiRoot, authApi, guestApi, businessApi].forEach(api => {
+  api.interceptors.response.use(response => response, responseInterceptor);
+});
 
 export const apiClient = {
   // Auth
