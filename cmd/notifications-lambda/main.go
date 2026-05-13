@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -17,15 +16,18 @@ func main() {
 
 	ctx := context.Background()
 
-	secretName := os.Getenv("AWS_LAMBDA_SECRETS_NAME")
+	secretName := config.GetSecret("AWS_LAMBDA_SECRETS_NAME")
 
+	var secrets map[string]string
 	if secretName != "" {
-		if err := config.LoadFromAWSSecrets(ctx, secretName); err != nil {
+		var err error
+		secrets, err = config.LoadFromAWSSecrets(ctx, secretName)
+		if err != nil {
 			logger.Fatal(ctx, "failed to load secrets from AWS", err)
 		}
 	}
 
-	if err := config.Load(); err != nil {
+	if err := config.LoadWithSecrets(secrets); err != nil {
 		if strings.HasPrefix(err.Error(), "missing required environment variables:") {
 			logger.FatalKV(ctx, "config load failed", "missing_envs", err.Error())
 		} else {

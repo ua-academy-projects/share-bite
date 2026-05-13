@@ -2,8 +2,6 @@ package env
 
 import (
 	"fmt"
-
-	"github.com/caarlos0/env/v11"
 )
 
 const (
@@ -22,9 +20,9 @@ type postgresConfig struct {
 	PostgresMigrationsDir string `env:"POSTGRES_MIGRATIONS_DIR,required"`
 }
 
-func NewPostgresConfig() (*postgresConfig, error) {
+func NewPostgresConfig(opts ...Options) (*postgresConfig, error) {
 	config := new(postgresConfig)
-	if err := env.Parse(config); err != nil {
+	if err := Parse(config, opts...); err != nil {
 		return nil, err
 	}
 

@@ -133,11 +133,27 @@ type Storage interface {
 }
 
 func Load(paths ...string) error {
+	return LoadWithSecrets(nil, paths...)
+}
+
+func LoadWithSecrets(secrets map[string]string, paths ...string) error {
+	allSecrets := make(map[string]string)
 	if len(paths) > 0 {
-		if err := godotenv.Load(paths...); err != nil {
+		dotEnv, err := godotenv.Read(paths...)
+		if err == nil {
+			for k, v := range dotEnv {
+				allSecrets[k] = v
+			}
+		} else {
 			logger.Info(context.Background(), "No .env file found, relying on system environment variables")
 		}
 	}
+
+	for k, v := range secrets {
+		allSecrets[k] = v
+	}
+
+	env.Init(allSecrets)
 
 	appConfig, err := env.NewAppConfig()
 	if err != nil {
@@ -238,4 +254,8 @@ func Load(paths ...string) error {
 	}
 
 	return nil
+}
+
+func GetSecret(key string) string {
+	return env.GetSecret(key)
 }
