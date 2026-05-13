@@ -13,15 +13,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
-type mockOutboxWriter struct {
-	mock.Mock
-}
-
-func (m *mockOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error {
-	args := m.Called(ctx, event)
-	return args.Error(0)
-}
-
 func TestCreate(t *testing.T) {
 	t.Parallel()
 
@@ -101,7 +92,11 @@ func TestCreate(t *testing.T) {
 			t.Parallel()
 			repo := new(mockCustomerRepository)
 			outboxWriter := new(mockOutboxWriter)
-			svc := New(repo, outboxWriter)
+			txManager := new(mockTxManager)
+			svc := New(repo, outboxWriter, txManager)
+
+			txManager.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil)
+
 			if tt.wantErr == nil {
 				outboxWriter.On("Enqueue", mock.Anything, mock.MatchedBy(func(event outbox.Event) bool {
 					message, ok := event.Payload.(outbox.Message)
@@ -127,6 +122,7 @@ func TestCreate(t *testing.T) {
 			assert.Equal(t, tt.wantID, createdID)
 			repo.AssertExpectations(t)
 			outboxWriter.AssertExpectations(t)
+			txManager.AssertExpectations(t)
 		})
 	}
 }

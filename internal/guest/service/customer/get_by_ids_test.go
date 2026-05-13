@@ -87,7 +87,7 @@ func TestGetByIDs(t *testing.T) {
 			t.Parallel()
 
 			repo := new(mockCustomerRepository)
-			svc := New(repo, nil)
+			svc := New(repo, nil, nil)
 
 			tt.mockFn(repo)
 
