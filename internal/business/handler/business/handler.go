@@ -52,6 +52,8 @@ type businessService interface {
 	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, ownerUserID string) error
 
+	RecommendPosts(ctx context.Context, userID string, lat, lon float64, skip, limit int) (pagination.Result[entity.RecommendedPost], error)
+
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
 
 	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
@@ -107,6 +109,12 @@ func RegisterHandlers(
 		businessPosts.POST("/:id", h.CreatePost)
 	}
 
+	recommendVenues := r.Group("/posts/recommend").
+		Use(auth)
+	{
+		recommendVenues.GET("", h.recommendPosts)
+	}
+
 	orgMutations := r.Group("").
 		Use(auth).
 		Use(middleware.RequireRoles(RoleBusiness)).
@@ -116,7 +124,6 @@ func RegisterHandlers(
 		orgMutations.PUT("/:id", h.updateOrgUnit)
 		orgMutations.PATCH("/:id", h.updateOrgUnit)
 		orgMutations.DELETE("/:id", h.deleteOrgUnit)
-
 	}
 
 	businessLocations := r.Group("").

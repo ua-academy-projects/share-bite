@@ -19,3 +19,11 @@ type PostWithPhotos struct {
 	OrgName     string
 	ProfileType string
 }
+
+type RecommendedPost struct {
+	ID        int64
+	OrgID     int
+	Content   string
+	PostType  string // 'guest' или 'business'
+	CreatedAt time.Time
+}

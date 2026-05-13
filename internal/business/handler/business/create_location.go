@@ -65,7 +65,6 @@ func toLocationResponse(loc *entity.OrgUnit) locationResponse {
 //	@Accept			json
 //	@Produce		json
 //	@Param			id				path		int						true	"Brand ID"
-//	@Param			Authorization	header		string					true	"Bearer access token"
 //	@Param			request			body		createLocationRequest	true	"Create location payload"
 //	@Success		201				{object}	locationResponse
 //	@Failure		400				{object}	errorResponse
@@ -73,6 +72,7 @@ func toLocationResponse(loc *entity.OrgUnit) locationResponse {
 //	@Failure		403				{object}	errorResponse
 //	@Failure		404				{object}	errorResponse
 //	@Failure		500				{object}	errorResponse
+//	@Security		BearerAuth
 //	@Router			/business/{id}/locations [post]
 func (h *handler) createLocation(c *gin.Context) {
 	ctx := c.Request.Context()

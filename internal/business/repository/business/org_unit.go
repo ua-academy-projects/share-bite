@@ -201,12 +201,12 @@ func (r *Repository) GetBrandIDByOwnerUserID(ctx context.Context, userID string)
 
 func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
 	sql := `
-		INSERT INTO business.org_units (
-			org_account_id, profile_type, parent_id, name, avatar, banner, description, latitude, longitude
-		)
-		VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
-	`
+		INSERT INTO business.org_units 
+			(org_account_id, profile_type, parent_id, name, avatar, banner, description, latitude, longitude, h3_hash)
+		VALUES 
+			($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, h3_hash`
+
 	q := database.Query{
 		Name: "business_repository.CreateLocation",
 		Sql:  sql,
@@ -214,29 +214,12 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 
 	var ou OrgUnit
 	err := r.db.DB().QueryRowContext(
-		ctx,
-		q,
-		ownerUserID,
-		entity.ProfileTypeVenue,
-		brandID,
-		in.Name,
-		in.Avatar,
-		in.Banner,
-		in.Description,
-		in.Latitude,
-		in.Longitude,
+		ctx, q,
+		ownerUserID, entity.ProfileTypeVenue, brandID, in.Name, in.Avatar, in.Banner, in.Description, in.Latitude, in.Longitude, in.H3Hash,
 	).Scan(
-		&ou.Id,
-		&ou.OrgAccountId,
-		&ou.ProfileType,
-		&ou.Name,
-		&ou.Avatar,
-		&ou.Banner,
-		&ou.Description,
-		&ou.ParentId,
-		&ou.Latitude,
-		&ou.Longitude,
+		&ou.Id, &ou.OrgAccountId, &ou.ProfileType, &ou.Name, &ou.Avatar, &ou.Banner, &ou.Description, &ou.ParentId, &ou.Latitude, &ou.Longitude, &ou.H3Hash,
 	)
+
 	if err != nil {
 		return nil, scanRowError(err)
 	}
@@ -245,20 +228,20 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 	return &result, nil
 }
 
-func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error) {
+func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput, h3Hash *string) (*entity.OrgUnit, error) {
 	sql := `
 		UPDATE business.org_units
-		SET
-			name = COALESCE($1, name),
-			avatar = COALESCE($2, avatar),
-			banner = COALESCE($3, banner),
-			description = COALESCE($4, description),
-			latitude = COALESCE($5, latitude),
-			longitude = COALESCE($6, longitude)
+		SET name = COALESCE($1, name),
+		    avatar = COALESCE($2, avatar),
+		    banner = COALESCE($3, banner),
+		    description = COALESCE($4, description),
+		    latitude = COALESCE($5, latitude),
+		    longitude = COALESCE($6, longitude),
+		    h3_hash = COALESCE($10, h3_hash)
 		WHERE id = $7
 		  AND parent_id = $8
 		  AND profile_type = $9
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, h3_hash
 	`
 	q := database.Query{
 		Name: "business_repository.UpdateLocation",
@@ -267,29 +250,15 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 
 	var ou OrgUnit
 	err := r.db.DB().QueryRowContext(
-		ctx,
-		q,
-		in.Name,
-		in.Avatar,
-		in.Banner,
-		in.Description,
-		in.Latitude,
-		in.Longitude,
-		locationID,
-		brandID,
-		entity.ProfileTypeVenue,
+		ctx, q,
+		in.Name, in.Avatar, in.Banner, in.Description, in.Latitude, in.Longitude,
+		locationID, brandID, entity.ProfileTypeVenue, h3Hash,
 	).Scan(
-		&ou.Id,
-		&ou.OrgAccountId,
-		&ou.ProfileType,
-		&ou.Name,
-		&ou.Avatar,
-		&ou.Banner,
-		&ou.Description,
-		&ou.ParentId,
-		&ou.Latitude,
-		&ou.Longitude,
+		&ou.Id, &ou.OrgAccountId, &ou.ProfileType, &ou.Name,
+		&ou.Avatar, &ou.Banner, &ou.Description, &ou.ParentId,
+		&ou.Latitude, &ou.Longitude, &ou.H3Hash,
 	)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrNotFound

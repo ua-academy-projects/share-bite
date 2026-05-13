@@ -296,6 +296,8 @@ github.com/toqueteos/webbrowser v1.2.1 h1:O7IsnnU7XQyJ1nHMRfAktUUJOAZD3aQyUVnxzh
 github.com/toqueteos/webbrowser v1.2.1/go.mod h1:XWoZq4cyp9WeUeak7w7LXRUQf1F1ATJMir8RTqb4ayM=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
+github.com/uber/h3-go/v4 v4.4.1 h1:O6Vnv1I+tq8f89AnYtb5FcYtK6dBC1X0RePFZ5YW5/U=
+github.com/uber/h3-go/v4 v4.4.1/go.mod h1:19vfSV5HQsnRZev7V0SPmTkVSZErL7/io8M/nx+++30=
 github.com/ugorji/go/codec v1.3.1 h1:waO7eEiFDwidsBN6agj1vJQ4AG7lh2yqXyOXqhgQuyY=
 github.com/ugorji/go/codec v1.3.1/go.mod h1:pRBVtBSKl77K30Bv8R2P+cLSGaTtex6fsA2Wjqmfxj4=
 github.com/urfave/cli/v2 v2.27.7 h1:bH59vdhbjLv3LAvIu6gd0usJHgoTTPhCFib8qqOwXYU=

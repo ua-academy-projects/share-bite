@@ -14,6 +14,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/pkg/aws"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -52,7 +53,7 @@ type businessRepository interface {
 	CreateBoxItem(ctx context.Context, boxID int64, code string) error
 	GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error)
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
-	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
+	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput, h3Hash *string) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
 	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
@@ -69,19 +70,32 @@ type businessRepository interface {
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+
+	GetTopTagsByUserLikes(ctx context.Context, userID string, tagsToFetch int) ([]string, error)
+	GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)
+	GetRandomPosts(ctx context.Context, deficit int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)
+}
+
+type H3Settings struct {
+	Resolution      int
+	RecommendRadius int
 }
 
 type service struct {
 	businessRepo businessRepository
 	txManager    database.TxManager
 	storage      storage.ObjectStorage
+	h3Service    aws.H3Service
+	h3Config     H3Settings
 }
 
-func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage) *service {
+func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage, h3Service aws.H3Service, h3Config H3Settings) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
 		storage:      st,
+		h3Service:    h3Service,
+		h3Config:     h3Config,
 	}
 }
 
