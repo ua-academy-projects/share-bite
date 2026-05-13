@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"os"
+
 	"github.com/ua-academy-projects/share-bite/migrations"
 
 	"github.com/jackc/pgx/v5/stdlib"
@@ -14,10 +16,9 @@ import (
 func main() {
 	ctx := context.Background()
 
-	if err := config.Load(".env"); err != nil {
-		logger.Fatal(ctx, "config load: ", err)
+	if err := config.Load(".env"); err != nil && !os.IsNotExist(err) {
+		logger.Fatal(ctx, "config load:", err)
 	}
-
 	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
