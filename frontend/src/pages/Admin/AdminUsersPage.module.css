@@ -275,3 +275,27 @@
 [data-theme='dark'] .error {
   background: #450a0a;
 }
+
+
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sortableHeader:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+}
+
+.sortIcon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 1rem;
+  color: var(--color-primary);
+  vertical-align: middle;
+}
+
+.table thead th.sortableHeader:hover {
+  color: var(--color-text);
+}
