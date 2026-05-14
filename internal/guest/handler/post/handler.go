@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
@@ -56,8 +57,8 @@ func RegisterHandlers(
 		storage:         storage,
 	}
 
-	r.GET("/", h.list)
-	r.GET("/:id", h.get)
+	r.GET("/", middleware.CustomerID(h.customerService), h.list)
+	r.GET("/:id", middleware.CustomerID(h.customerService), h.get)
 
 	protected := r.Group("/").Use(authMiddleware)
 	protected.POST("/", h.create)
