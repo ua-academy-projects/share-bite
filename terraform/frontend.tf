@@ -1,7 +1,14 @@
 resource "aws_s3_bucket" "frontend" {
   bucket = "share-bite-frontend-${data.aws_caller_identity.current.account_id}"
 
-  force_destroy = true
+  force_destroy = false
+}
+
+resource "aws_s3_bucket_versioning" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  versioning_configuration {
+    status = "Enabled"
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend" {
@@ -115,4 +122,36 @@ output "frontend_cloudfront_url" {
 
 output "frontend_cloudfront_dist_id" {
   value = aws_cloudfront_distribution.frontend.id
+}
+
+resource "aws_iam_role_policy" "github_actions_deploy_s3" {
+  name = "github-actions-deploy-s3"
+  role = "Training-GitHubActionsDeployRole"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["s3:ListBucket"]
+        Resource = [aws_s3_bucket.frontend.arn]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject"
+        ]
+        Resource = ["${aws_s3_bucket.frontend.arn}/*"]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudfront:CreateInvalidation"
+        ]
+        Resource = [aws_cloudfront_distribution.frontend.arn]
+      }
+    ]
+  })
 }
