@@ -8,9 +8,6 @@ on:
       - 'frontend/**'
       - 'build/Dockerfile.frontend'
       - 'compose.aws.yaml'
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
