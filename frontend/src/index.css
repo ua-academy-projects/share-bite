@@ -57,6 +57,12 @@
   --input: #8b928f;
   --ring: #14362e;
   --radius: 1rem;
+
+  /* Navbar: deep forest green, parchment text */
+  --navbar-bg: #14362e;
+  --navbar-foreground: #e4e2dd;
+  --navbar-muted: #aacec3;
+  --navbar-border: rgba(170, 206, 195, 0.15);
 }
 
 .dark {
@@ -86,6 +92,12 @@
   --border: #414846;
   --input: #414846;
   --ring: #aacec3;
+
+  /* Navbar: slightly lighter forest green in dark mode */
+  --navbar-bg: #0f2a22;
+  --navbar-foreground: #e4e2dd;
+  --navbar-muted: #aacec3;
+  --navbar-border: rgba(170, 206, 195, 0.12);
 }
 
 @layer base {

@@ -2,33 +2,33 @@ import React, { useState, useEffect } from 'react';
 import styles from './Explore.module.css';
 import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { Star, MapPin } from 'lucide-react';
+import { Star, MapPin, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 
+// Default to Kyiv centre — used immediately and as geolocation fallback
+const DEFAULT_COORDS = { lat: 50.4501, lon: 30.5234 };
+
 export const Explore: React.FC = () => {
-  const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [coords, setCoords] = useState(DEFAULT_COORDS);
 
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        },
-        (error) => {
-          console.warn('Geolocation error:', error);
-          setCoords({ lat: 50.4501, lng: 30.5234 }); // fallback to Kyiv
-        }
-      );
-    } else {
-      setCoords({ lat: 50.4501, lng: 30.5234 }); // fallback
-    }
+    if (!('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({ lat: position.coords.latitude, lon: position.coords.longitude });
+      },
+      (error) => {
+        console.warn('Geolocation error:', error);
+        // Keep default Kyiv coords on denial/error
+      }
+    );
   }, []);
 
   const { data: venues, isLoading, error } = useQuery({
-    queryKey: ['explore', coords?.lat, coords?.lng],
-    queryFn: () => apiClient.getExploreNearby(coords!.lat, coords!.lng, 20),
-    enabled: !!coords
+    queryKey: ['explore', coords.lat, coords.lon],
+    queryFn: () => apiClient.getExploreNearby(coords.lat, coords.lon, 20),
+    retry: false, // Don't hammer the business service on 500
   });
 
   return (
@@ -41,10 +41,15 @@ export const Explore: React.FC = () => {
       {isLoading ? (
         <div className={styles.loading}>Finding venues...</div>
       ) : error ? (
-        <div className={styles.error}>Failed to load venues.</div>
+        <div className={styles.error}>
+          <AlertCircle size={20} style={{ display: 'inline', marginRight: 8 }} />
+          Could not load nearby venues. The venue discovery service may be temporarily unavailable.
+        </div>
+      ) : !venues || venues.length === 0 ? (
+        <div className={styles.loading}>No venues found near this location.</div>
       ) : (
         <div className={styles.grid}>
-          {venues?.map(item => (
+          {venues.map(item => (
             <Link key={item.venue_id} to={`/restaurant/${item.venue_id}`} className={clsx(styles.card, 'glass-panel')}>
               <div className={styles.imageContainer}>
                 <img src={item.posts[0]?.images[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b'} alt={`Venue ${item.venue_id}`} className={styles.image} />

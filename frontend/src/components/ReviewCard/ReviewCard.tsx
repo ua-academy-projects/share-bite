@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Review, User } from '../../data/mockData';
+import type { Review, User } from '../../types/api';
 import styles from './ReviewCard.module.css';
 import { clsx } from 'clsx';
 import { Star } from 'lucide-react';
@@ -14,7 +14,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review, author }) => {
     <div className={clsx(styles.card, 'glass-panel')}>
       <div className={styles.header}>
         <div className={styles.authorInfo}>
-          <img src={author.avatar} alt={author.name} className={styles.avatar} />
+          <img src={author.avatar || undefined} alt={author.name} className={styles.avatar} />
           <div>
             <div className={styles.authorName}>{author.name}</div>
             <div className={styles.date}>{new Date(review.createdAt).toLocaleString()}</div>

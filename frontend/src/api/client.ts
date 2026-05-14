@@ -12,24 +12,9 @@ import type {
   PaginatedAdminUsers,
   FullUserDetails,
   AdminUsersParams,
+  NotificationItem,
+  CollectionItem,
 } from '../types/api';
-
-export interface NotificationItem {
-  id: number;
-  type: string;
-  read: boolean;
-  message: string;
-  createdAt: string;
-  link?: string;
-}
-
-export interface CollectionItem {
-  id: number;
-  name: string;
-  description: string;
-  isPublic: boolean;
-  createdAt: string;
-}
 
 const apiRoot = axios.create({ baseURL: '/api' });
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -41,6 +26,40 @@ const saveSession = (data: AuthResponse) => {
   if (data.access_token) localStorage.setItem('token', data.access_token);
   if (data.refresh_token) localStorage.setItem('refresh_token', data.refresh_token);
 };
+
+interface RawPost {
+  id: string;
+  customer_id: string;
+  user_name: string;
+  avatar_url?: string;
+  venue_id: number;
+  text: string;
+  rating: number;
+  status: string;
+  likes_count: number;
+  is_liked_by_me: boolean;
+  images: string[];
+  created_at: string;
+  updated_at: string;
+  published_at?: string;
+}
+
+const mapRawPostToPost = (p: RawPost): PostResponse => ({
+  id: p.id,
+  customerId: p.customer_id,
+  venueId: p.venue_id,
+  userName: p.user_name,
+  avatarURL: p.avatar_url,
+  text: p.text,
+  rating: p.rating,
+  status: p.status,
+  likesCount: p.likes_count,
+  isLikedByMe: p.is_liked_by_me,
+  images: p.images,
+  createdAt: p.created_at,
+  updatedAt: p.updated_at,
+  publishedAt: p.published_at,
+});
 
 guestApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -54,8 +73,7 @@ guestApi.interceptors.request.use((config) => {
 // Add JWT interceptor for other instances
 const tokenInterceptor = (config: any) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers = config.headers || {};
+  if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -106,18 +124,8 @@ export const apiClient = {
     
     console.log('[API getPosts] Raw backend response:', res.data.posts?.map((p: any) => ({ id: p.id, snake_case_liked: p.is_liked_by_me, camelCase_liked: p.isLikedByMe })));
 
-    const rawPosts = res.data.posts || [];
-    const mappedPosts = rawPosts.map((p: any) => ({
-      ...p,
-      venueId: p.venue_id || p.venueId,
-      userName: p.user_name || p.userName,
-      avatarURL: p.avatar_url || p.avatarURL,
-      likesCount: p.likes_count ?? p.likesCount ?? 0,
-      isLikedByMe: p.is_liked_by_me ?? p.isLikedByMe ?? false,
-      createdAt: p.created_at || p.createdAt,
-      updatedAt: p.updated_at || p.updatedAt,
-      publishedAt: p.published_at || p.publishedAt,
-    }));
+    const rawPosts = (res.data.posts || []) as RawPost[];
+    const mappedPosts = rawPosts.map(mapRawPostToPost);
 
     return {
       Posts: mappedPosts,
@@ -133,15 +141,16 @@ export const apiClient = {
   createPost: async (data: CreatePostInput) => {
     // Step 1: Create draft
     const createFormData = new FormData();
-    createFormData.append('venue_id', data.venueId.toString());
+    createFormData.append('venueId', data.venueId.toString());
     createFormData.append('text', data.text);
     createFormData.append('rating', data.rating.toString());
     if (data.images && data.images.length > 0) {
       data.images.forEach(img => createFormData.append('images', img));
     }
-    const createRes = await guestApi.post<{post: PostResponse}>('/posts/', createFormData);
+    const createRes = await guestApi.post<{post: RawPost}>('/posts/', createFormData);
     
     const newPostId = createRes.data.post.id;
+    const initialPost = mapRawPostToPost(createRes.data.post);
     
     // Step 2: Publish with a simple retry loop
     const patchFormData = new FormData();
@@ -151,8 +160,8 @@ export const apiClient = {
     const maxAttempts = 2;
     while (attempts < maxAttempts) {
       try {
-        const patchRes = await guestApi.patch<{post: PostResponse}>(`/posts/${newPostId}`, patchFormData);
-        return patchRes.data.post;
+        const patchRes = await guestApi.patch<{post: RawPost}>(`/posts/${newPostId}`, patchFormData);
+        return mapRawPostToPost(patchRes.data.post);
       } catch (err) {
         attempts++;
         console.warn(`Publish attempt ${attempts} failed for post ${newPostId}:`, err);
@@ -165,7 +174,7 @@ export const apiClient = {
       }
     }
     
-    return createRes.data.post;
+    return initialPost;
   },
   updatePost: async (postId: string | number, data: { text?: string; rating?: number; venueId?: number; status?: string; images?: File[] }) => {
     const formData = new FormData();
@@ -180,8 +189,8 @@ export const apiClient = {
         formData.append('images_cleared', 'true');
       }
     }
-    const res = await guestApi.patch<{post: PostResponse}>(`/posts/${postId}`, formData);
-    return res.data.post;
+    const res = await guestApi.patch<{post: RawPost}>(`/posts/${postId}`, formData);
+    return mapRawPostToPost(res.data.post);
   },
   deletePost: async (postId: string | number) => {
     await guestApi.delete(`/posts/${postId}`);
@@ -217,14 +226,6 @@ export const apiClient = {
   updateCustomer: async (data: { userName?: string; firstName?: string; lastName?: string; bio?: string }) => {
     const res = await guestApi.patch<{customer: CustomerResponse}>('customers/', data);
     return res.data.customer;
-  },
-  getCollections: async () => {
-    const res = await guestApi.get<{collections: CollectionItem[]}>('collections/me');
-    return res.data.collections || [];
-  },
-  createCollection: async (data: { name: string; description?: string; isPublic: boolean }) => {
-    const res = await guestApi.post<{collection: CollectionItem}>('collections/', data);
-    return res.data.collection;
   },
   
   // Comments
@@ -301,7 +302,7 @@ export const apiClient = {
         params: { limit, offset }
       });
       return res.data;
-    } catch (e) {
+    } catch {
       // Mock fallback if endpoint doesn't exist
       return { items: [], total: 0 };
     }
@@ -309,7 +310,7 @@ export const apiClient = {
   markNotificationAsRead: async (id: number) => {
     try {
       await guestApi.patch(`/notifications/${id}/read`);
-    } catch (e) {}
+    } catch { }
   },
 
   // Collections
@@ -317,7 +318,7 @@ export const apiClient = {
     try {
       const res = await guestApi.get<{ collections: CollectionItem[] }>('/collections');
       return res.data.collections;
-    } catch (e) {
+    } catch {
       return [];
     }
   },

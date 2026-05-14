@@ -164,18 +164,35 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (ent
 }
 
 func (r *Repository) List(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error) {
-	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = $1`
+	// Build a dynamic WHERE clause so we can optionally filter by author.
+	countArgs := []interface{}{entity.PostStatusPublished}
+	countFilter := ""
+	if in.AuthorID != "" {
+		countArgs = append(countArgs, in.AuthorID)
+		countFilter = fmt.Sprintf(" AND customer_id = $%d", len(countArgs))
+	}
+
+	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = $1` + countFilter
 	countQ := database.Query{
 		Name: "post_repository.List.Count",
 		Sql:  countSQL,
 	}
 	var total int
-	err := r.db.DB().QueryRowContext(ctx, countQ, entity.PostStatusPublished).Scan(&total)
+	err := r.db.DB().QueryRowContext(ctx, countQ, countArgs...).Scan(&total)
 	if err != nil {
 		return dto.ListPostsOutput{}, scanRowError(err)
 	}
 
-	// Get paginated posts
+	// Build the paginated SELECT. Fixed param positions:
+	//   $1 = status, $2 = limit, $3 = offset, $4 = currentUserID (is_liked_by_me)
+	// Optional: $5 = authorID filter
+	authorFilter := ""
+	listArgs := []interface{}{entity.PostStatusPublished, in.Limit, in.Offset, in.CustomerID}
+	if in.AuthorID != "" {
+		listArgs = append(listArgs, in.AuthorID)
+		authorFilter = fmt.Sprintf(" AND p.customer_id = $%d", len(listArgs))
+	}
+
 	sql := `
 		  SELECT
 		        p.id,
@@ -190,16 +207,16 @@ func (r *Repository) List(ctx context.Context, in dto.ListPostsInput) (dto.ListP
 		        (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
 		        EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($4, '')::uuid) AS is_liked_by_me
 		  FROM guest.posts p
-		  WHERE p.status = $1
+		  WHERE p.status = $1` + authorFilter + `
 		  ORDER BY p.created_at DESC, p.id DESC
-	 	  LIMIT $2 OFFSET $3
+		  LIMIT $2 OFFSET $3
 	  `
 	q := database.Query{
 		Name: "post_repository.List",
 		Sql:  sql,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, entity.PostStatusPublished, in.Limit, in.Offset, in.CustomerID)
+	rows, err := r.db.DB().QueryContext(ctx, q, listArgs...)
 	if err != nil {
 		return dto.ListPostsOutput{}, executeSQLError(err)
 	}

@@ -108,7 +108,7 @@ export const UserProfile: React.FC = () => {
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['userPosts', resolvedCustomerId],
-    queryFn: () => apiClient.getPosts(20, 0, undefined, resolvedCustomerId),
+    queryFn: () => apiClient.getPosts(100, 0, undefined, resolvedCustomerId),
     enabled: !!resolvedCustomerId
   });
 

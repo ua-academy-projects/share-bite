@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { clsx } from 'clsx';
 import { ImagePlus, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
@@ -72,7 +71,7 @@ export const CreatePost: React.FC = () => {
   };
 
   const createMutation = useMutation({
-    mutationFn: async ({ finalVenueId, parsedRating }: { finalVenueId: string; parsedRating: number }) => {
+    mutationFn: async ({ finalVenueId, parsedRating }: { finalVenueId: number; parsedRating: number }) => {
       return await apiClient.createPost({
         venueId: finalVenueId,
         text,
@@ -93,9 +92,9 @@ export const CreatePost: React.FC = () => {
     e.preventDefault();
     setValidationError(null);
 
-    let finalVenueId = venueId.trim();
-    if (!finalVenueId) {
-      finalVenueId = '93c88e8f-1f10-4917-96fa-a56bf3b9b8a8';
+    let finalVenueId = parseInt(venueId.trim(), 10);
+    if (isNaN(finalVenueId) || finalVenueId <= 0) {
+      finalVenueId = 1; // Backend requires an integer (int64), not a UUID
     }
 
     const parsedRating = parseInt(rating.toString(), 10);

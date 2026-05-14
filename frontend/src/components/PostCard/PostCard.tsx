@@ -140,7 +140,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
       
       return { nextLiked };
     },
-    onError: (err, nextLiked) => {
+    onError: (_, nextLiked) => {
       const rollbackLiked = !nextLiked;
       const updater = (oldData: any) => {
         if (!oldData || !oldData.Posts) return oldData;
@@ -427,7 +427,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
       {isEditModalOpen && (
         <EditPostModal 
           post={post} 
-          isOpen={isEditModalOpen} 
           onClose={() => setIsEditModalOpen(false)} 
         />
       )}

@@ -29,7 +29,8 @@ type UploadImageInput struct {
 type ListPostsInput struct {
 	Limit      int
 	Offset     int
-	CustomerID string
+	CustomerID string // the requesting user's ID, used for is_liked_by_me
+	AuthorID   string // optional filter: only return posts by this customer
 }
 
 type ListPostsOutput struct {

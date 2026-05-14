@@ -8,7 +8,6 @@ import styles from './EditPostModal.module.css';
 
 interface EditPostModalProps {
   post: PostResponse;
-  isOpen: boolean;
   onClose: () => void;
 }
 
@@ -18,7 +17,7 @@ interface GalleryItem {
   file?: File;
 }
 
-export const EditPostModal: React.FC<EditPostModalProps> = ({ post, isOpen, onClose }) => {
+export const EditPostModal: React.FC<EditPostModalProps> = ({ post, onClose }) => {
   const queryClient = useQueryClient();
   const [text, setText] = useState(post.text);
   const [rating, setRating] = useState(post.rating);

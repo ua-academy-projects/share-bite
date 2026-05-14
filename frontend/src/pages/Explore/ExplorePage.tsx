@@ -13,7 +13,7 @@ export const ExplorePage: React.FC = () => {
   });
 
   const filteredVenues = venues?.filter(v => 
-    v.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (v.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
   return (
@@ -47,8 +47,8 @@ export const ExplorePage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
             {filteredVenues.map((venue) => (
               <Link 
-                key={venue.id} 
-                to={`/restaurant/${venue.id}`}
+                key={venue.venue_id} 
+                to={`/restaurant/${venue.venue_id}`}
                 className="group flex flex-col bg-card rounded-3xl border border-border/50 shadow-sm overflow-hidden hover:shadow-xl dark:hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="h-40 bg-muted relative overflow-hidden">
