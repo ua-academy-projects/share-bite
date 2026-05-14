@@ -47,11 +47,10 @@ jobs:
             cd ~/share-bite/share-bite
             git fetch origin main
             git reset --hard origin/main
-            if [ -f .env ]; then
-              set -a
-              source .env
-              set +a
-            elif [ -f ~/.bashrc ]; then
-              source ~/.bashrc
-            fi
-            docker compose -f compose.aws.yaml up -d --build frontend
+            
+            docker build --build-arg VITE_API_BASE_URL=http://52.15.42.12:8080 -t share-bite-frontend -f build/Dockerfile.frontend .
+            
+            docker stop share-bite-frontend || true
+            docker rm share-bite-frontend || true
+            
+            docker run -d --name share-bite-frontend -p 80:80 --restart always share-bite-frontend
