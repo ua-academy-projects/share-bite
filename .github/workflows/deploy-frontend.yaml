@@ -48,7 +48,7 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             
-            docker build --build-arg VITE_API_BASE_URL=http://52.15.42.12:8080 -t share-bite-frontend -f build/Dockerfile.frontend .
+            docker build --no-cache --build-arg VITE_API_BASE_URL=http://***:8080 -t share-bite-frontend -f build/Dockerfile.frontend .
             
             docker stop share-bite-frontend || true
             docker rm share-bite-frontend || true
