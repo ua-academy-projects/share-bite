@@ -45,7 +45,13 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/share-bite/share-bite
-            
-            git pull origin main
-            
+            git fetch origin main
+            git reset --hard origin/main
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
+            elif [ -f ~/.bashrc ]; then
+              source ~/.bashrc
+            fi
             docker compose -f compose.aws.yaml up -d --build frontend
