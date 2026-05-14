@@ -1,4 +1,4 @@
-name: Deploy Frontend
+name: Deploy Frontend to EC2
 
 on:
   push:
@@ -6,19 +6,17 @@ on:
       - main
     paths:
       - 'frontend/**'
+      - 'build/Dockerfile.frontend'
+      - 'compose.aws.yaml'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
-env:
-  AWS_REGION: us-east-2
-  AWS_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-
 jobs:
-  build-and-deploy:
-    name: Build and Deploy Frontend
+  security-and-deploy:
+    name: Check and Deploy Frontend
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
       - name: Checkout repository
@@ -36,25 +34,18 @@ jobs:
         working-directory: frontend
 
       - name: Security Scan (npm audit)
-        run: |
-          npm audit --audit-level=high
+        run: npm audit --audit-level=high
         working-directory: frontend
 
-      - name: Build Frontend
-        run: npm run build
-        working-directory: frontend
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Upload to S3
-        run: |
-          aws s3 sync dist/ s3://${{ secrets.FRONTEND_BUCKET_NAME }} --delete
-        working-directory: frontend
-
-      - name: Invalidate CloudFront Cache
-        run: |
-          aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DIST_ID }} --paths "/*"
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/share-bite/share-bite
+            
+            git pull origin main
+            
+            docker compose -f compose.aws.yaml up -d --build frontend

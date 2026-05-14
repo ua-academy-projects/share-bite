@@ -1,5 +1,21 @@
 name: compose.aws.yaml
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: build/Dockerfile.frontend
+      args:
+        - VITE_API_BASE_URL=http://52.15.42.12:8080
+    container_name: share-bite-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - admin-api
+      - business-api
+      - guest-api
+    networks:
+      - share-bite-network
   postgres:
     image: postgres:18-alpine
     container_name: share-bite-postgres
