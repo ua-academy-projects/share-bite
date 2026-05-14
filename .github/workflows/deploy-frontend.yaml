@@ -6,6 +6,10 @@ on:
       - main
     paths:
       - 'frontend/**'
+  ## TODO: remove push on pull_request
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
