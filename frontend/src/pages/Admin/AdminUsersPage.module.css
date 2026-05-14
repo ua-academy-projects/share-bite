@@ -275,3 +275,45 @@
 [data-theme='dark'] .error {
   background: #450a0a;
 }
+
+.sortButton {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  outline: none;
+  transition: color var(--transition-fast);
+}
+
+.sortButton:hover {
+  color: var(--color-primary);
+}
+
+.sortIcon {
+  display: inline-block;
+  font-size: 1rem;
+  color: var(--color-primary);
+  transition: transform var(--transition-fast);
+}
+
+.sortButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.sortableHeader {
+  padding: 0 !important;
+}
+
+.sortableHeader .sortButton {
+  padding: 0.75rem 1rem;
+}
