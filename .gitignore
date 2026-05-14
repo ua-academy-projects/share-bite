@@ -32,7 +32,6 @@ Thumbs.db
 # generated api clients
 internal/guest/gateway/business/client/
 
-
 .agent
 
 frontend/.vite
@@ -45,3 +44,5 @@ terraform/session-manager-plugin.deb
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 package-lock.json
+
+node_modules
