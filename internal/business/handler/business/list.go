@@ -10,7 +10,7 @@ import (
 )
 
 type listRequest struct {
-	BrandId int    `uri:"id" binding:"required"`
+	BrandID int    `uri:"id" binding:"required"`
 	Skip    int    `form:"skip"`
 	Limit   int    `form:"limit"`
 	Tags    string `form:"tags"`
@@ -84,11 +84,11 @@ func (h *handler) list(c *gin.Context) {
 		}
 	}
 
-	log.Info("list locations", "brandId", req.BrandId, "skip", req.Skip, "limit", req.Limit, "tags", tags)
+	log.Info("list locations", "brandId", req.BrandID, "skip", req.Skip, "limit", req.Limit, "tags", tags)
 
-	result, err := h.service.List(ctx, req.BrandId, req.Skip, req.Limit, tags)
+	result, err := h.service.List(ctx, req.BrandID, req.Skip, req.Limit, tags)
 	if err != nil {
-		log.Error("failed to list locations", "brandId", req.BrandId, "error", err)
+		log.Error("failed to list locations", "brandId", req.BrandID, "error", err)
 		c.Error(err)
 		return
 	}
