@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
-import axios from 'axios';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from '../../components/ui/button';
@@ -31,6 +30,7 @@ function buildGoogleAuthUrl(): string {
 
 export const Auth: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(location.state?.isLogin ?? true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,12 +53,16 @@ export const Auth: React.FC = () => {
         const authData = await apiClient.register({ email, password, slug: 'user' });
         const token = authData.access_token;
         localStorage.setItem('token', token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        // Removed global axios header mutation as suggested by CodeRabbit
         
         const nameParts = name.trim().split(' ');
         const firstName = nameParts[0] || 'Unknown';
         const lastName = nameParts.slice(1).join(' ') || 'User';
-        const userName = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Date.now();
+        
+        // Use a more robust unique suffix to avoid collisions
+        const randomSuffix = Math.random().toString(36).substring(2, 7);
+        const prefix = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') || 'user';
+        const userName = `${prefix}${randomSuffix}`;
         
         await apiClient.createCustomer({
           userName,
@@ -71,7 +75,7 @@ export const Auth: React.FC = () => {
       }
     },
     onSuccess: () => {
-      window.location.href = '/';
+      navigate('/');
     },
     onError: (error: any) => {
       console.error("Auth error:", error);

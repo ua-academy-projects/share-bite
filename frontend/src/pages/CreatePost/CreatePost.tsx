@@ -7,6 +7,10 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg'];
+
+const isValidImageType = (file: File) => ALLOWED_IMAGE_TYPES.includes(file.type);
+
 export const CreatePost: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -32,7 +36,7 @@ export const CreatePost: React.FC = () => {
       setValidationError(null);
       const files = Array.from(e.target.files);
       
-      const invalidFiles = files.filter(file => !['image/jpeg', 'image/png', 'image/jpg'].includes(file.type));
+      const invalidFiles = files.filter(file => !isValidImageType(file));
       if (invalidFiles.length > 0) {
         setValidationError('Unsupported image type. Only JPEG and PNG are supported.');
         e.currentTarget.value = '';
@@ -94,7 +98,9 @@ export const CreatePost: React.FC = () => {
 
     let finalVenueId = parseInt(venueId.trim(), 10);
     if (isNaN(finalVenueId) || finalVenueId <= 0) {
-      finalVenueId = 1; // Backend requires an integer (int64), not a UUID
+      // Require a valid numeric ID instead of silent fallback
+      setValidationError("Please enter a valid numeric venue ID.");
+      return;
     }
 
     const parsedRating = parseInt(rating.toString(), 10);

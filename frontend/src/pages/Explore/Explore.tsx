@@ -49,7 +49,7 @@ export const Explore: React.FC = () => {
         <div className={styles.loading}>No venues found near this location.</div>
       ) : (
         <div className={styles.grid}>
-          {venues.map(item => (
+          {venues.map((item: any) => (
             <Link key={item.venue_id} to={`/restaurant/${item.venue_id}`} className={clsx(styles.card, 'glass-panel')}>
               <div className={styles.imageContainer}>
                 <img src={item.posts[0]?.images[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b'} alt={`Venue ${item.venue_id}`} className={styles.image} />

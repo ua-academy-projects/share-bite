@@ -12,7 +12,7 @@ export const ExplorePage: React.FC = () => {
     queryFn: () => apiClient.getExploreNearby(50.4501, 30.5234, 20), // Defaulting to Kyiv coordinates
   });
 
-  const filteredVenues = venues?.filter(v => 
+  const filteredVenues = venues?.filter((v: any) => 
     (v.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
@@ -45,7 +45,7 @@ export const ExplorePage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-            {filteredVenues.map((venue) => (
+            {filteredVenues.map((venue: any) => (
               <Link 
                 key={venue.venue_id} 
                 to={`/restaurant/${venue.venue_id}`}
@@ -60,7 +60,7 @@ export const ExplorePage: React.FC = () => {
                     </div>
                   )}
                   {/* Subtle Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-80"></div>
                 </div>
                 <div className="p-5 flex flex-col flex-1 relative bg-card z-10">
                   <h3 className="font-bold text-xl text-foreground group-hover:text-primary transition-colors line-clamp-1">{venue.name}</h3>

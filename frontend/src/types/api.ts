@@ -32,7 +32,7 @@ export interface NotificationItem {
 }
 
 export interface CollectionItem {
-  id: number;
+  id: string;
   name: string;
   description: string;
   isPublic: boolean;
@@ -44,6 +44,7 @@ export interface CollectionItem {
 export interface PostResponse {
   id: string;
   customerId: string;
+  customerUsername: string;
   userName: string;
   avatarURL?: string | null;
   venueId: number;

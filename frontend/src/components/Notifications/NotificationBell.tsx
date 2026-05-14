@@ -12,6 +12,8 @@ export const NotificationBell: React.FC = () => {
     queryKey: ['notifications'],
     queryFn: () => apiClient.getNotifications(),
     refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    enabled: !!localStorage.getItem('token'),
   });
 
   const unreadCount = notifications?.items?.filter((n: any) => !n.read).length || 0;
@@ -44,10 +46,10 @@ export const NotificationBell: React.FC = () => {
 
       {/* Dropdown Content */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 bg-[#163d32] border border-[#98FF98]/20 rounded-3xl shadow-2xl overflow-hidden z-50 transform origin-top-right transition-all animate-in fade-in slide-in-from-top-4">
-          <div className="p-5 border-b border-[#98FF98]/10 bg-[#0b0f0e]/50 backdrop-blur-md flex justify-between items-center">
+        <div className="absolute right-0 mt-3 w-80 bg-popover border border-border rounded-3xl shadow-2xl overflow-hidden z-50 transform origin-top-right transition-all animate-in fade-in slide-in-from-top-4">
+          <div className="p-5 border-b border-border bg-muted/30 backdrop-blur-md flex justify-between items-center">
             <h3 className="text-2xl font-serif font-bold text-accent">Latest Stories</h3>
-            <span className="text-xs font-bold text-[#98FF98] bg-[#98FF98]/10 px-2 py-1 rounded-full">{unreadCount} New</span>
+            <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">{unreadCount} New</span>
           </div>
           <div className="max-h-80 overflow-y-auto">
             {(!notifications?.items?.length) ? (
@@ -58,15 +60,15 @@ export const NotificationBell: React.FC = () => {
               </div>
             ) : (
               notifications.items.map((notification: any) => (
-                <Link key={notification.id} to="/notifications" className="block p-4 border-b border-[#98FF98]/10 hover:bg-[#0b0f0e]/40 transition-colors group">
+                <Link key={notification.id} to="/notifications" className="block p-4 border-b border-border hover:bg-muted/40 transition-colors group">
                   <div className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-accent font-bold text-xs">
                         {notification.type === 'like' ? '♥' : notification.type === 'comment' ? '💬' : '🔔'}
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm text-[#e0e0e0] font-medium leading-tight group-hover:text-white">
+                      <p className="text-sm text-foreground font-medium leading-tight group-hover:text-primary transition-colors">
                         {notification.content || "You have a new notification"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1 font-semibold">
@@ -78,7 +80,7 @@ export const NotificationBell: React.FC = () => {
               ))
             )}
           </div>
-          <Link to="/notifications" className="block w-full text-center p-3 text-sm font-bold text-accent hover:bg-accent hover:text-accent-foreground transition-colors bg-[#0b0f0e]/80">
+          <Link to="/notifications" className="block w-full text-center p-3 text-sm font-bold text-accent hover:bg-accent hover:text-accent-foreground transition-colors bg-muted/80">
             View All Notifications
           </Link>
         </div>

@@ -63,7 +63,7 @@ export const Navbar: React.FC = () => {
             <Link to="/" className="text-3xl font-serif font-bold tracking-tight" style={{ color: 'var(--navbar-foreground)' }}>
               ShareBite
             </Link>
-            <span className="hidden md:inline-flex text-[11px] font-black tracking-[0.2em] px-3 py-1.5 rounded-full border" style={{ color: '#77dc7a', backgroundColor: 'rgba(119,220,122,0.12)', borderColor: 'rgba(119,220,122,0.2)' }}>
+            <span className="hidden md:inline-flex text-[11px] font-black tracking-[0.2em] px-3 py-1.5 rounded-full border" style={{ color: 'var(--navbar-muted)', backgroundColor: 'rgba(170,206,195,0.1)', borderColor: 'rgba(170,206,195,0.2)' }}>
               {currentDate}
             </span>
           </div>

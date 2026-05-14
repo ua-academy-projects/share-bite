@@ -12,7 +12,7 @@ export const CollectionsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
-  const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
 
@@ -33,7 +33,7 @@ export const CollectionsPage: React.FC = () => {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: ({ id, email }: { id: number, email: string }) => apiClient.inviteCollaborator(id, email),
+    mutationFn: ({ id, email }: { id: string, email: string }) => apiClient.inviteCollaborator(id, email),
     onSuccess: () => {
       setIsInviteOpen(false);
       setInviteEmail('');
@@ -56,7 +56,7 @@ export const CollectionsPage: React.FC = () => {
     }
   };
 
-  const openInviteModal = (id: number) => {
+  const openInviteModal = (id: string) => {
     setSelectedCollectionId(id);
     setIsInviteOpen(true);
   };

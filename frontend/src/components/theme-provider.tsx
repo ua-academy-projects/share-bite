@@ -34,13 +34,16 @@ export function ThemeProvider({
     root.classList.remove("light", "dark")
 
     if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+      
+      const updateTheme = () => {
+        root.classList.remove("light", "dark")
+        root.classList.add(mediaQuery.matches ? "dark" : "light")
+      }
 
-      root.classList.add(systemTheme)
-      return
+      updateTheme()
+      mediaQuery.addEventListener("change", updateTheme)
+      return () => mediaQuery.removeEventListener("change", updateTheme)
     }
 
     root.classList.add(theme)

@@ -30,78 +30,79 @@
 }
 
 :root {
-  /* Artisanal Light */
-  --background: #e4e2dd;
-  --foreground: #14362e;
-  --card: #ffffff;
-  --card-foreground: #14362e;
-  --popover: #ffffff;
-  --popover-foreground: #14362e;
+  /* Artisanal Light - Parchment & Forest */
+  --background: #fdfcf8;
+  --foreground: #112b23;
+  --card: #f5f4f0;
+  --card-foreground: #112b23;
+  --popover: #f5f4f0;
+  --popover-foreground: #112b23;
   
-  --primary: #14362e;
+  --primary: #112b23;
   --primary-foreground: #e4e2dd;
   
   --secondary: #aacec3;
-  --secondary-foreground: #00390c;
+  --secondary-foreground: #112b23;
   
-  --accent: #007924;
-  --accent-foreground: #ffffff;
+  --accent: #d4af37; /* Premium Gold Accent */
+  --accent-foreground: #112b23;
   
-  --muted: #c1c8c4;
+  --muted: #e4e2dd;
   --muted-foreground: #414846;
   
   --destructive: #93000a;
   --destructive-foreground: #ffdad6;
   
-  --border: #8b928f;
-  --input: #8b928f;
-  --ring: #14362e;
+  --border: #d1d5d2;
+  --input: #d1d5d2;
+  --ring: #112b23;
   --radius: 1rem;
 
   /* Navbar: deep forest green, parchment text */
-  --navbar-bg: #14362e;
+  --navbar-bg: #112b23;
   --navbar-foreground: #e4e2dd;
   --navbar-muted: #aacec3;
   --navbar-border: rgba(170, 206, 195, 0.15);
 }
 
 .dark {
-  /* Moody Forest */
-  --background: #131411;
-  --foreground: #e4e2dd;
-  --card: #1f201d;
+  /* Moody Forest - Artisanal Dark */
+  --background: #0d1412; /* Deepest black-green */
+  --foreground: #e4e2dd; /* Parchment */
+  --card: #112b23; /* Deep Forest Green */
   --card-foreground: #e4e2dd;
-  --popover: #1f201d;
+  --popover: #112b23;
   --popover-foreground: #e4e2dd;
   
-  --primary: #aacec3;
-  --primary-foreground: #14362e;
+  --primary: #aacec3; /* Muted Sage */
+  --primary-foreground: #112b23;
   
-  --secondary: #77dc7a;
-  --secondary-foreground: #00390c;
+  --secondary: #1a3c32; /* Lighter Forest */
+  --secondary-foreground: #e4e2dd;
   
-  --accent: #e9c400;
-  --accent-foreground: #3a3000;
+  --accent: #d4af37; /* Gold Accent */
+  --accent-foreground: #112b23;
   
-  --muted: #343532;
-  --muted-foreground: #c1c8c4;
+  --muted: #1a3c32;
+  --muted-foreground: #aacec3;
   
   --destructive: #ffb4ab;
   --destructive-foreground: #690005;
   
-  --border: #414846;
-  --input: #414846;
+  --border: #1a3c32;
+  --input: #1a3c32;
   --ring: #aacec3;
 
-  /* Navbar: slightly lighter forest green in dark mode */
-  --navbar-bg: #0f2a22;
+  /* Navbar: slight deep forest green */
+  --navbar-bg: #112b23;
   --navbar-foreground: #e4e2dd;
   --navbar-muted: #aacec3;
-  --navbar-border: rgba(170, 206, 195, 0.12);
+  --navbar-border: rgba(170, 206, 195, 0.1);
 }
 
 @layer base {
   .bg-card {
+    background-color: var(--card);
     background-image: linear-gradient(to bottom right, color-mix(in srgb, var(--primary) 5%, transparent), transparent);
   }
 }

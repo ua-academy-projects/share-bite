@@ -4,7 +4,6 @@ import type {
   RegisterRequest, 
   AuthResponse, 
   PostResponse, 
-  ExploreVenueItem,
   CreatePostInput,
   PaginatedComments,
   CommentResponse,
@@ -29,36 +28,68 @@ const saveSession = (data: AuthResponse) => {
 
 interface RawPost {
   id: string;
-  customer_id: string;
-  user_name: string;
+  customer_id?: string;
+  customerId?: string;
+  customer_username?: string;
+  user_name?: string;
+  userName?: string;
   avatar_url?: string;
-  venue_id: number;
+  avatarURL?: string;
+  venue_id?: number;
+  venueId?: number;
   text: string;
   rating: number;
   status: string;
-  likes_count: number;
-  is_liked_by_me: boolean;
+  likes_count?: number;
+  likesCount?: number;
+  is_liked_by_me?: boolean;
+  isLikedByMe?: boolean;
   images: string[];
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
   published_at?: string;
+  publishedAt?: string;
 }
 
 const mapRawPostToPost = (p: RawPost): PostResponse => ({
   id: p.id,
-  customerId: p.customer_id,
-  venueId: p.venue_id,
-  userName: p.user_name,
-  avatarURL: p.avatar_url,
+  customerId: p.customerId || p.customer_id || '',
+  customerUsername: p.customer_username || p.user_name || p.userName || '',
+  userName: p.user_name || p.userName || '',
+  avatarURL: p.avatar_url || p.avatarURL,
+  venueId: p.venueId ?? p.venue_id ?? 0,
   text: p.text,
   rating: p.rating,
   status: p.status,
-  likesCount: p.likes_count,
-  isLikedByMe: p.is_liked_by_me,
-  images: p.images,
-  createdAt: p.created_at,
-  updatedAt: p.updated_at,
-  publishedAt: p.published_at,
+  likesCount: p.likes_count ?? p.likesCount ?? 0,
+  isLikedByMe: p.is_liked_by_me ?? p.isLikedByMe ?? false,
+  images: p.images || [],
+  createdAt: p.created_at || p.createdAt || new Date().toISOString(),
+  updatedAt: p.updated_at || p.updatedAt || new Date().toISOString(),
+  publishedAt: p.published_at || p.publishedAt,
+});
+
+interface RawCollection {
+  id: string | number;
+  name: string;
+  description?: string;
+  isPublic?: boolean;
+  is_public?: boolean;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+}
+
+const mapRawCollection = (c: RawCollection): CollectionItem => ({
+  id: String(c.id),
+  name: c.name,
+  description: c.description || '',
+  isPublic: c.isPublic ?? c.is_public ?? false,
+  createdAt: c.createdAt || c.created_at || new Date().toISOString(),
+  updatedAt: c.updatedAt || c.updated_at || new Date().toISOString(),
 });
 
 guestApi.interceptors.request.use((config) => {
@@ -125,7 +156,13 @@ export const apiClient = {
     console.log('[API getPosts] Raw backend response:', res.data.posts?.map((p: any) => ({ id: p.id, snake_case_liked: p.is_liked_by_me, camelCase_liked: p.isLikedByMe })));
 
     const rawPosts = (res.data.posts || []) as RawPost[];
-    const mappedPosts = rawPosts.map(mapRawPostToPost);
+    const mappedPosts = rawPosts.map(p => {
+      const mapped = mapRawPostToPost(p);
+      if (!mapped.venueId) {
+        console.warn(`[API getPosts] Post ${p.id} is missing venueId:`, p);
+      }
+      return mapped;
+    });
 
     return {
       Posts: mappedPosts,
@@ -133,10 +170,27 @@ export const apiClient = {
     };
   },
   getExploreNearby: async (lat: number, lon: number, limit = 10) => {
-    const res = await guestApi.get<ExploreVenueItem[]>('/posts/explore', {
+    const res = await guestApi.get<any>('/posts/explore', {
       params: { lat, lon, limit }
     });
-    return res.data;
+    
+    // Explore returns ExploreVenueItem[] which contains posts: PostItem[]
+    // We need to map those posts too if they are used as PostResponse
+    const mappedItems = (res.data || []).map((item: any) => ({
+      ...item,
+      venue_id: item.venue_id || item.venueId,
+      posts: (item.posts || []).map((p: any) => mapRawPostToPost({
+        ...p,
+        customer_id: p.customer_id || p.customerId,
+        venueId: item.venue_id || item.venueId,
+        text: p.content || p.text,
+        likesCount: p.likes_count || p.likesCount,
+        isLikedByMe: p.is_liked_by_me || p.isLikedByMe,
+        createdAt: p.created_at || p.createdAt,
+      }))
+    }));
+
+    return mappedItems;
   },
   createPost: async (data: CreatePostInput) => {
     // Step 1: Create draft
@@ -180,7 +234,7 @@ export const apiClient = {
     const formData = new FormData();
     if (data.text !== undefined) formData.append('text', data.text);
     if (data.rating !== undefined) formData.append('rating', data.rating.toString());
-    if (data.venueId !== undefined) formData.append('venue_id', data.venueId.toString());
+    if (data.venueId !== undefined) formData.append('venueId', data.venueId.toString());
     if (data.status !== undefined) formData.append('status', data.status);
     if (data.images !== undefined) {
       if (data.images.length > 0) {
@@ -314,26 +368,35 @@ export const apiClient = {
   },
 
   // Collections
-  getCollections: async () => {
+  getCollections: async (customerId?: string) => {
     try {
-      const res = await guestApi.get<{ collections: CollectionItem[] }>('/collections');
-      return res.data.collections;
-    } catch {
+      const path = customerId ? `/customers/${customerId}/collections` : '/collections/me';
+      const res = await guestApi.get<any>(path);
+      
+      console.log(`[API getCollections] Path: ${path}, Data:`, res.data);
+      
+      const collectionsArray = res.data.collections || res.data || [];
+      return (Array.isArray(collectionsArray) ? collectionsArray : []).map(mapRawCollection);
+    } catch (error) {
+      console.error("Failed to fetch collections:", error);
       return [];
     }
   },
   createCollection: async (data: { name: string, description?: string, isPublic: boolean }) => {
-    const res = await guestApi.post<{ collection: CollectionItem }>('/collections', data);
-    return res.data.collection;
+    const res = await guestApi.post<{ collection: RawCollection }>('/collections/', data);
+    return mapRawCollection(res.data.collection);
   },
-  getCollection: async (id: number) => {
-    const res = await guestApi.get<{ collection: CollectionItem, items: any[] }>(`/collections/${id}`);
-    return res.data;
+  getCollection: async (id: string | number) => {
+    const res = await guestApi.get<{ collection: RawCollection }>(`/collections/${id}`);
+    return {
+      ...res.data,
+      collection: mapRawCollection(res.data.collection)
+    };
   },
-  savePostToCollection: async (collectionId: number, postId: number | string) => {
-    await guestApi.post(`/collections/${collectionId}/venues`, { venue_id: postId }); // Assuming backend uses venue_id for posts/venues
+  savePostToCollection: async (collectionId: number | string, venueId: number | string) => {
+    await guestApi.post(`/collections/${collectionId}/venues/${venueId}`);
   },
-  inviteCollaborator: async (collectionId: number, email: string) => {
-    await guestApi.post(`/collections/${collectionId}/collaborators/invite`, { email });
+  inviteCollaborator: async (collectionId: number | string, email: string) => {
+    await guestApi.post(`/collections/${collectionId}/invitations`, { email });
   },
 };

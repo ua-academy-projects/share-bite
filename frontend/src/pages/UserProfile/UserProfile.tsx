@@ -23,10 +23,32 @@ export const UserProfile: React.FC = () => {
   const username = id || currentCustomer?.userName;
   const isOwnProfile = !id || (currentCustomer && currentCustomer.userName === id);
 
+  const [activeTab, setActiveTab] = useState<'posts' | 'collections'>('posts');
+
+  const { data: user, isLoading: userLoading, isError: userError, error: fetchError } = useQuery({
+    queryKey: ['user', username],
+    queryFn: () => apiClient.getUser(username!),
+    enabled: !!username,
+    retry: false,
+  });
+
+  const resolvedCustomerId = user?.id;
+
+  const { data: postsData, isLoading: postsLoading } = useQuery({
+    queryKey: ['userPosts', resolvedCustomerId],
+    queryFn: () => apiClient.getPosts(100, 0, undefined, resolvedCustomerId),
+    enabled: !!resolvedCustomerId
+  });
+
+  const { data: collections, isLoading: collectionsLoading } = useQuery({
+    queryKey: ['collections', isOwnProfile ? 'mine' : resolvedCustomerId],
+    queryFn: () => apiClient.getCollections(isOwnProfile ? undefined : resolvedCustomerId),
+    enabled: activeTab === 'collections' && (isOwnProfile || !!resolvedCustomerId)
+  });
+
   const [newProfile, setNewProfile] = useState({ firstName: '', lastName: '', userName: '', bio: '' });
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState({ firstName: '', lastName: '', userName: '', bio: '' });
-  const [activeTab, setActiveTab] = useState<'posts' | 'collections'>('posts');
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [newCollection, setNewCollection] = useState({ name: '', description: '', isPublic: false });
 
@@ -79,7 +101,7 @@ export const UserProfile: React.FC = () => {
   const createCollectionMutation = useMutation({
     mutationFn: (data: typeof newCollection) => apiClient.createCollection(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({ queryKey: ['collections', 'mine'] });
       setIsCreatingCollection(false);
       setNewCollection({ name: '', description: '', isPublic: false });
       toast.success("Collection created successfully!");
@@ -93,30 +115,6 @@ export const UserProfile: React.FC = () => {
     e.preventDefault();
     createCollectionMutation.mutate(newCollection);
   };
-
-  const { data: user, isLoading: userLoading, isError: userError, error: fetchError } = useQuery({
-    queryKey: ['user', username],
-    queryFn: () => apiClient.getUser(username!),
-    enabled: !!username,
-    retry: false,
-  });
-
-  // We must use the user.id for the posts endpoint if it requires customer_id, 
-  // or we can pass the username if the backend supports it. But according to apiClient.getPosts it takes customerId.
-  // We'll wait until we fetch the `user` to get their actual UUID for the posts call.
-  const resolvedCustomerId = user?.id;
-
-  const { data: postsData, isLoading: postsLoading } = useQuery({
-    queryKey: ['userPosts', resolvedCustomerId],
-    queryFn: () => apiClient.getPosts(100, 0, undefined, resolvedCustomerId),
-    enabled: !!resolvedCustomerId
-  });
-
-  const { data: collections, isLoading: collectionsLoading } = useQuery({
-    queryKey: ['collections'],
-    queryFn: () => apiClient.getCollections(),
-    enabled: isOwnProfile && activeTab === 'collections'
-  });
 
   if (userLoading || (!username && !currentCustomer)) {
     return (
@@ -320,7 +318,7 @@ export const UserProfile: React.FC = () => {
             {collectionsLoading ? (
               <p className="text-center text-muted-foreground py-8 col-span-2">Loading collections...</p>
             ) : (
-              collections?.length ? (
+              (collections && collections.length > 0) ? (
                 collections.map(collection => (
                   <Link to={`/collections/${collection.id}`} key={collection.id} className="group flex flex-col bg-card border border-border/50 rounded-3xl p-6 shadow-lg hover:-translate-y-1 transition-all overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#98FF98]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>

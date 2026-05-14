@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark, Trash2, Edit2, ChevronLeft, ChevronRight, Pencil, Plus } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Trash2, Edit2, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Star } from 'lucide-react';
 import type { PostResponse } from '../../types/api';
 import { clsx } from 'clsx';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
 import { useCurrentCustomer } from '../../hooks/useCurrentCustomer';
-import { EditPostModal } from '../EditPostModal/EditPostModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '../ui/dropdown-menu';
+import { Textarea } from '../ui/textarea';
 
 interface PostCardProps {
   post: PostResponse;
@@ -28,8 +35,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
   const [editCommentText, setEditCommentText] = useState('');
   const [commentError, setCommentError] = useState<string | null>(null);
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(post.text);
+  const [editRating, setEditRating] = useState(post.rating);
+
+  const isOwner = currentCustomer?.id === post.customerId;
 
   const handleNextImage = () => {
     if (post.images && currentImageIndex < post.images.length - 1) {
@@ -50,18 +61,37 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
   });
 
   const { data: collections } = useQuery({
-    queryKey: ['collections'],
+    queryKey: ['collections', 'mine'],
     queryFn: () => apiClient.getCollections(),
     enabled: isCollectionModalOpen,
   });
 
   const saveToCollectionMutation = useMutation({
-    mutationFn: (collectionId: number) => apiClient.savePostToCollection(collectionId, post.venueId),
+    mutationFn: (collectionId: string | number) => {
+      console.log('[PostCard] Saving post to collection:', {
+        postId: post.id,
+        collectionId,
+        venueId: post.venueId,
+        fullPost: post
+      });
+      if (post.venueId === undefined || post.venueId === 0) {
+        toast.error("Cannot save: Venue ID is missing for this post.");
+        throw new Error("Missing Venue ID");
+      }
+      return apiClient.savePostToCollection(collectionId, post.venueId);
+    },
     onSuccess: () => {
       toast.success("Saved to collection");
       setIsCollectionModalOpen(false);
     },
-    onError: () => toast.error("Failed to save to collection")
+    onError: (error: any) => {
+      if (error?.response?.status === 409) {
+        toast.info("This post is already in your collection");
+      } else {
+        toast.error(error?.response?.data?.error || "Failed to save to collection");
+      }
+      setIsCollectionModalOpen(false);
+    }
   });
 
   const createCommentMutation = useMutation({
@@ -112,9 +142,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
       }
     },
     onMutate: async (nextLiked) => {
-      await queryClient.cancelQueries({ queryKey: ['posts'] });
-      await queryClient.cancelQueries({ queryKey: ['userPosts'] });
-      await queryClient.cancelQueries({ queryKey: ['venuePosts'] });
+      const keys = [['posts'], ['userPosts'], ['venuePosts']] as const;
+      await Promise.all(keys.map(k => queryClient.cancelQueries({ queryKey: k })));
+
+      const snapshots = keys.map(k => [k, queryClient.getQueriesData({ queryKey: k })] as const);
 
       const updater = (oldData: any) => {
         if (!oldData || !oldData.Posts) return oldData;
@@ -126,7 +157,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
               return {
                 ...p,
                 isLikedByMe: nextLiked,
-                likesCount: (p.likesCount || 0) + increment
+                likesCount: Math.max(0, (p.likesCount || 0) + increment)
               };
             }
             return p;
@@ -134,41 +165,71 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
         };
       };
 
-      queryClient.setQueriesData({ queryKey: ['posts'] }, updater);
-      queryClient.setQueriesData({ queryKey: ['userPosts'] }, updater);
-      queryClient.setQueriesData({ queryKey: ['venuePosts'] }, updater);
+      keys.forEach(k => queryClient.setQueriesData({ queryKey: k }, updater));
       
-      return { nextLiked };
+      return { snapshots };
     },
-    onError: (_, nextLiked) => {
-      const rollbackLiked = !nextLiked;
-      const updater = (oldData: any) => {
-        if (!oldData || !oldData.Posts) return oldData;
-        return {
-          ...oldData,
-          Posts: oldData.Posts.map((p: any) => {
-            if (p.id === post.id) {
-              const increment = rollbackLiked && !p.isLikedByMe ? 1 : (!rollbackLiked && p.isLikedByMe ? -1 : 0);
-              return {
-                ...p,
-                isLikedByMe: rollbackLiked,
-                likesCount: (p.likesCount || 0) + increment
-              };
-            }
-            return p;
-          })
-        };
-      };
-      queryClient.setQueriesData({ queryKey: ['posts'] }, updater);
-      queryClient.setQueriesData({ queryKey: ['userPosts'] }, updater);
-      queryClient.setQueriesData({ queryKey: ['venuePosts'] }, updater);
+    onError: (_err, _vars, context) => {
+      context?.snapshots.forEach(([_, entries]) => {
+        entries.forEach(([qKey, data]) => {
+          queryClient.setQueryData(qKey, data);
+        });
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['venuePosts'] });
     }
   });
+
+  const deletePostMutation = useMutation({
+    mutationFn: () => apiClient.deletePost(post.id),
+    onSuccess: () => {
+      toast.success("Post deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['venuePosts'] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to delete post");
+    }
+  });
+
+  const updatePostMutation = useMutation({
+    mutationFn: ({ text, rating }: { text: string; rating: number }) => apiClient.updatePost(post.id, { text, rating }),
+    onSuccess: () => {
+      toast.success("Post updated successfully");
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['venuePosts'] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to update post");
+    }
+  });
+
+  const handleDeletePost = () => {
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      deletePostMutation.mutate();
+    }
+  };
+
+  const handleUpdatePost = () => {
+    if (!editValue.trim()) {
+      toast.error("Post text cannot be empty");
+      return;
+    }
+    updatePostMutation.mutate({ text: editValue, rating: editRating });
+  };
 
   const handleLike = () => {
     const nextLiked = !isLiked;
     toggleLikeMutation.mutate(nextLiked);
   };
+
+  console.log("DEBUG POST:", post.id, " | CurrentUser:", currentCustomer?.id, " | PostOwner:", post.customerId, " | isOwner:", currentCustomer?.id === post.customerId);
 
   return (
     <div className="bg-card dark:bg-card border border-border rounded-3xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-lg dark:hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 flex flex-col mb-6 group">
@@ -183,7 +244,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90"></div>
           
-          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/10 shadow-sm flex items-center gap-1">
+          <div className="absolute top-4 left-4 bg-primary/20 backdrop-blur-md text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-full border border-primary/30 shadow-sm flex items-center gap-1">
             <Link to={`/restaurant/${post.venueId}`} className="hover:text-primary transition-colors">
               📍 {restaurantName || `Venue #${post.venueId}`}
             </Link>
@@ -239,26 +300,107 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
               className="w-11 h-11 rounded-full object-cover border-2 border-background shadow-sm" 
             />
             <div className="flex flex-col">
-              <Link to={`/user/${post.customerId}`} className="text-foreground font-bold hover:text-primary transition-colors text-[16px]">
+              <Link to={`/user/${post.customerUsername}`} className="text-foreground font-bold hover:text-primary transition-colors text-[16px]">
                 {post.userName}
               </Link>
               <span className="text-xs text-muted-foreground font-medium">{new Date(post.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
           
-          {!(post.images && post.images.length > 0) && (
-            <div className="flex flex-col items-end gap-1">
-              <Link to={`/restaurant/${post.venueId}`} className="text-xs font-semibold text-primary hover:underline bg-primary/10 px-2 py-1 rounded-full">
-                📍 {restaurantName || `Venue #${post.venueId}`}
-              </Link>
-              <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">★ {post.rating}</span>
-            </div>
-          )}
+          <div className="flex flex-col items-end gap-2">
+            {isOwner && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted/20 cursor-pointer group/options">
+                    <MoreHorizontal size={20} className="text-foreground/80 group-hover/options:text-primary transition-colors" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={() => setIsEditing(true)} className="gap-2 cursor-pointer py-2.5">
+                    <Edit2 size={14} /> Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-[#2f5e50]" />
+                  <DropdownMenuItem onClick={handleDeletePost} className="gap-2 text-red-400 focus:text-red-400 cursor-pointer py-2.5" variant="destructive">
+                    <Trash2 size={14} /> Delete Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
+            {!(post.images && post.images.length > 0) && (
+              <div className="flex flex-col items-end gap-1">
+                <Link to={`/restaurant/${post.venueId}`} className="text-xs font-semibold text-primary hover:underline bg-primary/10 px-2 py-1 rounded-full">
+                  📍 {restaurantName || `Venue #${post.venueId}`}
+                </Link>
+                <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">★ {post.rating}</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        <p className="text-foreground/90 text-[15px] leading-relaxed mb-6">
-          {post.text}
-        </p>
+        {isEditing ? (
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setEditRating(star)}
+                    className="transition-transform hover:scale-110 active:scale-95 outline-none"
+                  >
+                    <Star 
+                      size={26} 
+                      fill={star <= editRating ? "currentColor" : "none"}
+                      className={clsx(
+                        "transition-all duration-200",
+                        star <= editRating ? "text-accent" : "text-muted-foreground/40 hover:text-accent/50"
+                      )} 
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Review</label>
+              <Textarea 
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                className="bg-muted/50 border-border min-h-[120px] rounded-xl focus:ring-primary text-[15px] leading-relaxed"
+                placeholder="What's on your mind?"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditValue(post.text);
+                  setEditRating(post.rating);
+                }}
+                className="rounded-full h-9 px-5 font-bold text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleUpdatePost}
+                disabled={updatePostMutation.isPending}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full h-9 px-8 font-bold shadow-lg"
+              >
+                {updatePostMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-foreground/90 text-[15px] leading-relaxed mb-6">
+            {post.text}
+          </p>
+        )}
 
         {/* Action Bar */}
         <div className="mt-auto pt-4 border-t border-border/60 flex justify-between items-center">
@@ -288,20 +430,19 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
               </span>
             </div>
 
-            <button className="text-muted-foreground hover:text-foreground transition-all hover:scale-110">
+            <button 
+              className="text-muted-foreground hover:text-foreground transition-all hover:scale-110"
+              onClick={() => {
+                const url = window.location.origin + '/post/' + post.id;
+                navigator.clipboard.writeText(url);
+                toast.success("Link copied to clipboard!");
+              }}
+            >
               <Share2 size={22} />
             </button>
           </div>
           
           <div className="flex items-center gap-2">
-            {currentCustomer?.id === post.customerId && (
-              <button 
-                className="p-2 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-full transition-colors" 
-                onClick={() => setIsEditModalOpen(true)}
-              >
-                <Pencil size={18} />
-              </button>
-            )}
             <button 
               className="p-2 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-full transition-colors"
               onClick={() => setIsCollectionModalOpen(true)}
@@ -423,12 +564,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
             <div className="text-xs text-destructive mt-2 pl-2">{commentError}</div>
           )}
         </div>
-      )}
-      {isEditModalOpen && (
-        <EditPostModal 
-          post={post} 
-          onClose={() => setIsEditModalOpen(false)} 
-        />
       )}
       <Dialog open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen}>
         <DialogContent>
