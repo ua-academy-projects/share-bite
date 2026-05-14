@@ -13,6 +13,7 @@ type EditBrandProfileModalProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: (updatedBrand: BrandProfile) => void;
+  onRefresh?: () => void;
 };
 
 export function EditBrandProfileModal({
@@ -20,6 +21,7 @@ export function EditBrandProfileModal({
   isOpen,
   onOpenChange,
   onSuccess,
+  onRefresh,
 }: EditBrandProfileModalProps) {
   const handleSuccess = (updatedBrand: BrandProfile) => {
     onSuccess(updatedBrand);
@@ -28,19 +30,20 @@ export function EditBrandProfileModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl border-white/10 shadow-2xl p-8">
+      <DialogContent className="sm:max-w-4xl border-white/10 shadow-2xl p-8 bg-[#0d241d]">
         <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-bold text-[#F9F7F2]">
-            Edit Brand Profile
+          <DialogTitle className="text-2xl font-black text-white">
+            Brand Workspace
           </DialogTitle>
-          <DialogDescription className="text-[#cbd5cf]">
-            Update your public brand identity and visual presence.
+          <DialogDescription className="text-[#9fb2a7] text-base">
+            Refine your digital presence and visual identity.
           </DialogDescription>
         </DialogHeader>
         <EditBrandProfileForm
           brand={brand}
           onSuccess={handleSuccess}
           onCancel={() => onOpenChange(false)}
+          onRefresh={onRefresh}
         />
       </DialogContent>
     </Dialog>

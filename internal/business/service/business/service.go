@@ -42,7 +42,7 @@ type businessRepository interface {
 	CheckOwnership(ctx context.Context, userID string, unitID int) error
 	CreatePost(ctx context.Context, userID string, unitID int, description string) (*entity.Post, error)
 	InsertPostImages(ctx context.Context, postID int64, URLs []string) error
-	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.Post], error)
+	GetPosts(ctx context.Context, limit, offset int, orgIDs []int) (pagination.Result[entity.Post], error)
 	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
 
 	CreateLike(ctx context.Context, postID int64, authorID string) (*entity.Like, error)

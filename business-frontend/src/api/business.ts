@@ -113,7 +113,7 @@ export type VenueProfile = {
   brand?: VenueBrand | null;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3900";
 
 export type UpdateBrandProfileRequest = {
   name?: string;
@@ -194,10 +194,13 @@ export const businessApi = {
     };
   },
 
-  getBrandPosts: async (params?: { skip?: number; limit?: number }): Promise<BrandPostsResponse> => {
+  getBrandPosts: async (params?: { skip?: number; limit?: number; orgIds?: number[] }): Promise<BrandPostsResponse> => {
     const search = new URLSearchParams();
     search.set("skip", String(params?.skip ?? 0));
     search.set("limit", String(params?.limit ?? 10));
+    if (params?.orgIds && params.orgIds.length > 0) {
+      search.set("org_id", params.orgIds.join(","));
+    }
 
     const response = await fetch(`${API_BASE_URL}/business/posts?${search.toString()}`);
     if (!response.ok) {

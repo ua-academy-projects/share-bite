@@ -170,12 +170,11 @@ export function useBrandPosts(orgIds: number[], pageSize = 12): PostsState {
     });
 
     businessApi
-      .getBrandPosts({ skip, limit: pageSize })
+      .getBrandPosts({ skip, limit: pageSize, orgIds })
       .then((data: BrandPostsResponse) => {
         if (cancelled) return;
-        const filtered = data.items.filter((post) => orgIds.includes(post.org.id));
-        setItems((prev) => (skip === 0 ? filtered : [...prev, ...filtered]));
-        setTotalLoaded((prev) => (skip === 0 ? filtered.length : prev + filtered.length));
+        setItems((prev) => (skip === 0 ? data.items : [...prev, ...data.items]));
+        setTotalLoaded((prev) => (skip === 0 ? data.items.length : prev + data.items.length));
         setHasMore(skip + pageSize < data.total);
       })
       .catch((err) => {

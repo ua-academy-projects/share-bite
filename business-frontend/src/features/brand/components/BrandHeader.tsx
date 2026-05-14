@@ -1,6 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import type { BrandProfile } from "@/api/business";
 import { Button } from "@/components/ui/button";
-import { Settings2 } from "lucide-react";
+import { Settings2, PlusCircle } from "lucide-react";
 
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/);
@@ -18,6 +19,8 @@ type BrandHeaderProps = {
 };
 
 export function BrandHeader({ brand, loading, error, onEdit }: BrandHeaderProps) {
+  const navigate = useNavigate();
+
   if (error) {
     return (
       <div className="rounded-[40px] border border-red-500/30 bg-red-500/10 px-8 py-10 text-red-200 backdrop-blur-md">
@@ -74,14 +77,26 @@ export function BrandHeader({ brand, loading, error, onEdit }: BrandHeaderProps)
                 </div>
               </div>
 
-              {!loading && brand && onEdit && (
-                <Button
-                  onClick={onEdit}
-                  className="rounded-2xl bg-white/5 border border-white/10 px-6 py-6 text-sm font-bold text-white backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/20 active:scale-95"
-                >
-                  <Settings2 className="mr-2 h-4 w-4" />
-                  Edit Profile
-                </Button>
+              {!loading && brand && (
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => navigate(`/venue/${brand.id}/create-post`)}
+                    className="rounded-2xl bg-[#98FF98] text-[#0d241d] hover:bg-[#7cfc7c] px-6 py-6 text-sm font-black transition-all active:scale-95 shadow-lg shadow-[#98FF98]/10"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Post
+                  </Button>
+                  
+                  {onEdit && (
+                    <Button
+                      onClick={onEdit}
+                      className="rounded-2xl bg-white/5 border border-white/10 px-6 py-6 text-sm font-bold text-white backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/20 active:scale-95"
+                    >
+                      <Settings2 className="mr-2 h-4 w-4" />
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
             

@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ImageUploadFieldProps {
-  label: string;
+  label?: string;
   value?: string | null;
   onUpload: (file: File) => Promise<void>;
   aspectRatio?: "square" | "video";
   className?: string;
+  variant?: "default" | "profile";
 }
 
 export function ImageUploadField({
@@ -17,6 +18,7 @@ export function ImageUploadField({
   onUpload,
   aspectRatio = "square",
   className,
+  variant = "default",
 }: ImageUploadFieldProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,14 +28,13 @@ export function ImageUploadField({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Basic validation
     if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
+      setError("Image required");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError("File size must be less than 5MB");
+      setError("Max 5MB");
       return;
     }
 
@@ -57,13 +58,17 @@ export function ImageUploadField({
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <label className="text-sm font-medium text-[#cbd5cf]">{label}</label>
+    <div className={cn("group relative", className)}>
+      {label && <label className="text-xs font-black uppercase tracking-widest text-[#9fb2a7] mb-2 block">{label}</label>}
       
       <div 
         className={cn(
-          "relative group overflow-hidden rounded-xl border-2 border-dashed border-white/10 bg-[#163d32] transition-all hover:border-emerald-500/50",
-          aspectRatio === "square" ? "aspect-square w-32" : "aspect-[3/1] w-full",
+          "relative overflow-hidden transition-all duration-300",
+          aspectRatio === "square" 
+            ? "aspect-square rounded-[32px] border-2 border-white/10" 
+            : "aspect-[3/1] rounded-[40px] border border-white/10",
+          variant === "profile" && aspectRatio === "square" && "shadow-2xl border-4 border-[#0d241d]",
+          !value && "bg-white/5 border-dashed",
           uploading && "opacity-50 pointer-events-none"
         )}
       >
@@ -71,16 +76,16 @@ export function ImageUploadField({
           <>
             <img 
               src={value} 
-              alt={label} 
-              className="h-full w-full object-cover"
+              alt={label || "Upload"} 
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={triggerUpload}
-                className="text-white hover:bg-white/20"
+                className="text-white hover:bg-white/20 font-bold border border-white/20 rounded-xl"
               >
                 Change
               </Button>
@@ -90,16 +95,16 @@ export function ImageUploadField({
           <button
             type="button"
             onClick={triggerUpload}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-gray-400"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-500 hover:text-emerald-400 hover:bg-white/5 transition-all"
           >
-            <Upload className="h-6 w-6" />
-            <span className="text-xs">Upload</span>
+            <Upload className="h-8 w-8" />
+            <span className="text-xs font-bold uppercase tracking-widest">Upload {label}</span>
           </button>
         )}
 
         {uploading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <Loader2 className="h-8 w-8 animate-spin text-[#98FF98]" />
           </div>
         )}
       </div>
@@ -113,7 +118,7 @@ export function ImageUploadField({
       />
 
       {error && (
-        <p className="text-xs text-red-400 mt-1">{error}</p>
+        <p className="text-[10px] font-black uppercase text-red-400 mt-2 tracking-wider bg-red-400/10 px-2 py-1 rounded inline-block">{error}</p>
       )}
     </div>
   );

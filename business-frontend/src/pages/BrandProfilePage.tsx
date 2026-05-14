@@ -128,6 +128,7 @@ export function BrandProfilePage() {
               isOpen={isEditModalOpen}
               onOpenChange={setIsEditModalOpen}
               onSuccess={() => brandState.refresh()}
+              onRefresh={() => brandState.refresh()}
             />
           )}
 

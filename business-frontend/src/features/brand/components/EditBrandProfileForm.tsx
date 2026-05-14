@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, Image as ImageIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,9 +30,10 @@ type EditBrandProfileFormProps = {
   brand: BrandProfile;
   onSuccess: (updatedBrand: BrandProfile) => void;
   onCancel: () => void;
+  onRefresh?: () => void;
 };
 
-export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandProfileFormProps) {
+export function EditBrandProfileForm({ brand, onSuccess, onCancel, onRefresh }: EditBrandProfileFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -51,6 +52,7 @@ export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandPr
     try {
       const updated = await businessApi.uploadAvatar(brand.id, file, token);
       setCurrentBrand(updated);
+      onRefresh?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload avatar");
     }
@@ -61,6 +63,7 @@ export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandPr
     try {
       const updated = await businessApi.uploadBanner(brand.id, file, token);
       setCurrentBrand(updated);
+      onRefresh?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to upload banner");
     }
@@ -98,37 +101,45 @@ export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandPr
     return (
       <div className="space-y-8 py-6 animate-in fade-in zoom-in-95 duration-500">
         <div className="flex flex-col items-center text-center gap-5">
-          <div className="h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-            <CheckCircle2 className="h-10 w-10 text-[#98FF98]" />
-          </div>
           <div className="space-y-2">
             <h3 className="text-2xl font-black text-white tracking-tight">Ready to publish?</h3>
-            <p className="text-[#cbd5cf] max-w-md text-lg">
+            <p className="text-[#9fb2a7] max-w-md text-lg">
               Review your changes below. Once confirmed, your updated brand identity will be live for all guests.
             </p>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-xl">
-          <div className="p-8 space-y-6">
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-1">
-                <span className="text-xs font-black uppercase tracking-widest text-[#9fb2a7]">Brand Identity</span>
-                <p className="text-xl font-bold text-white truncate">{form.getValues().name}</p>
+        <div className="overflow-hidden rounded-[40px] border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
+          {/* Visual Preview */}
+          <div className="relative h-48 w-full bg-[#163d32]/40">
+            {currentBrand.banner ? (
+              <img src={currentBrand.banner} className="h-full w-full object-cover opacity-60" alt="Banner preview" />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-[#1f4a3f] to-[#0b0f0e] flex items-center justify-center">
+                <ImageIcon className="h-10 w-10 text-white/10" />
               </div>
-              <div className="space-y-1">
-                <span className="text-xs font-black uppercase tracking-widest text-[#9fb2a7]">Status</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#98FF98]/10 text-[#98FF98] text-xs font-bold border border-[#98FF98]/20">
-                  <div className="h-1.5 w-1.5 rounded-full bg-[#98FF98] animate-pulse" />
-                  Live Sync
-                </span>
+            )}
+            <div className="absolute -bottom-12 left-8">
+              <div className="h-24 w-24 rounded-3xl p-1 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl shadow-2xl">
+                {currentBrand.avatar ? (
+                  <img src={currentBrand.avatar} className="h-full w-full rounded-[22px] object-cover border border-white/10" alt="Avatar preview" />
+                ) : (
+                  <div className="h-full w-full rounded-[22px] bg-[#0f1b17] border border-white/10" />
+                )}
               </div>
+            </div>
+          </div>
+
+          <div className="p-8 pt-16 space-y-6">
+            <div className="space-y-1">
+              <span className="text-xs font-black uppercase tracking-widest text-[#9fb2a7]">Brand Identity</span>
+              <p className="text-xl font-bold text-white truncate">{form.getValues().name}</p>
             </div>
             
             <div className="space-y-1">
               <span className="text-xs font-black uppercase tracking-widest text-[#9fb2a7]">Public Bio</span>
-              <p className="text-[#cbd5cf] leading-relaxed line-clamp-3">
-                {form.getValues().description || "No description provided."}
+              <p className="text-[#cbd5cf] leading-relaxed line-clamp-3 italic">
+                "{form.getValues().description || "No description provided."}"
               </p>
             </div>
           </div>
@@ -158,109 +169,92 @@ export function EditBrandProfileForm({ brand, onSuccess, onCancel }: EditBrandPr
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Identity Section */}
-          <div className="lg:col-span-7 space-y-8">
-            <div className="space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#98FF98]">Core Identity</h4>
-              <p className="text-sm text-[#9fb2a7]">Define how your brand appears in search and lists.</p>
-            </div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-12">
+        <div className="space-y-16">
+          {/* Visuals Section */}
+          <div className="relative">
+            {/* Banner Area */}
+            <ImageUploadField
+              value={currentBrand.banner}
+              onUpload={handleUploadBanner}
+              aspectRatio="video"
+              className="w-full"
+            />
             
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel className="text-sm font-bold text-[#F9F7F2]">Brand Name</FormLabel>
-                    <FormControl>
-                      <Input className={inputClass} placeholder="e.g. ShareBite Kitchen" {...field} />
-                    </FormControl>
-                    <FormMessage className="text-red-400 font-bold text-xs" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel className="text-sm font-bold text-[#F9F7F2]">Public Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        className={cn(inputClass, "min-h-[180px] py-4 resize-none leading-relaxed")} 
-                        placeholder="Tell guests what makes your brand special..."
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-400 font-bold text-xs" />
-                  </FormItem>
-                )}
+            {/* Avatar Area - Overlapping */}
+            <div className="absolute -bottom-10 left-8 md:left-12">
+              <ImageUploadField
+                value={currentBrand.avatar}
+                onUpload={handleUploadAvatar}
+                aspectRatio="square"
+                variant="profile"
+                className="w-24 h-24 md:w-32 md:h-32"
               />
             </div>
           </div>
 
-          {/* Visuals Section */}
-          <div className="lg:col-span-5 space-y-8">
-            <div className="space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-[#98FF98]">Visual Presence</h4>
-              <p className="text-sm text-[#9fb2a7]">High-quality images increase guest trust.</p>
-            </div>
+          {/* Identity Section */}
+          <div className="px-4 md:px-8 space-y-8">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel className="text-xs font-black uppercase tracking-widest text-[#9fb2a7]">Brand Name</FormLabel>
+                  <FormControl>
+                    <Input className={cn(inputClass, "text-xl h-14 font-bold")} placeholder="Name" {...field} />
+                  </FormControl>
+                  <FormMessage className="text-red-400 font-bold text-xs" />
+                </FormItem>
+              )}
+            />
 
-            <div className="space-y-8 p-6 rounded-[32px] bg-white/5 border border-white/10">
-              <ImageUploadField
-                label="Avatar (1:1)"
-                value={currentBrand.avatar}
-                onUpload={handleUploadAvatar}
-                aspectRatio="square"
-              />
-
-              <div className="h-px bg-white/5 w-full" />
-
-              <ImageUploadField
-                label="Cover Banner (3:1)"
-                value={currentBrand.banner}
-                onUpload={handleUploadBanner}
-                aspectRatio="video"
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel className="text-xs font-black uppercase tracking-widest text-[#9fb2a7]">Bio</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      className={cn(inputClass, "min-h-[140px] py-4 resize-none leading-relaxed text-lg")} 
+                      placeholder="Tell guests what makes your brand special..."
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage className="text-red-400 font-bold text-xs" />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
         {error && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm text-red-100 font-bold flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+          <div className="mx-8 rounded-2xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm text-red-100 font-bold flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-red-400" />
             {error}
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-8 border-t border-white/5">
-          <p className="text-xs text-[#9fb2a7] font-medium hidden md:block">
-            All changes are saved as drafts until you publish.
-          </p>
-          <div className="flex gap-4 w-full md:w-auto">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onCancel}
-              disabled={loading}
-              className="flex-1 md:flex-none text-[#cbd5cf] hover:text-white hover:bg-white/5 h-12 px-8 rounded-2xl font-bold"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1 md:flex-none bg-[#98FF98] text-[#0d241d] hover:bg-[#7cfc7c] font-black px-10 h-12 rounded-2xl shadow-lg shadow-[#98FF98]/10 transition-all hover:-translate-y-0.5"
-            >
-              Review & Publish
-            </Button>
-          </div>
+        <div className="flex items-center justify-end gap-4 px-8 pt-8 border-t border-white/5">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            disabled={loading}
+            className="text-[#cbd5cf] hover:text-white hover:bg-white/5 h-12 px-8 rounded-2xl font-bold"
+          >
+            Discard
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="bg-[#98FF98] text-[#0d241d] hover:bg-[#7cfc7c] font-black px-12 h-12 rounded-2xl shadow-lg shadow-[#98FF98]/10 transition-all hover:-translate-y-0.5"
+          >
+            Review Changes
+          </Button>
         </div>
       </form>
     </Form>
   );
 }
-

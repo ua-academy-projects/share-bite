@@ -46,6 +46,8 @@ func main() {
 	cfg := config.Config()
 
 	router := gin.New()
+	router.RedirectTrailingSlash = false
+	router.RedirectFixedPath = false
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.BusinessHttpServer.AllowedOrigins(),
 		AllowMethods:     cfg.BusinessHttpServer.AllowedMethods(),
