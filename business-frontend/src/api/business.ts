@@ -77,9 +77,15 @@ export type VenueProfile = {
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
 
 export const businessApi = {
-  getNearbyBoxes: async (lat: number, lon: number): Promise<Box[]> => {
+  // Тепер ми приймаємо categoryId і кидаємо його в запит
+  getNearbyBoxes: async (lat: number, lon: number, categoryId?: string): Promise<Box[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/business/nearby-boxes?lat=${lat}&lon=${lon}`);
+      let url = `${API_BASE_URL}/business/nearby-boxes?lat=${lat}&lon=${lon}&limit=50`;
+      if (categoryId && categoryId !== "all") {
+        url += `&category_id=${categoryId}`;
+      }
+      
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
       return data.items || [];
@@ -147,7 +153,6 @@ export const businessApi = {
     formData.append("expires_at", formattedDate);
     formData.append("quantity", String(data.quantity));
     
-    // Передаємо файл зображення
     if (data.image) {
       formData.append("image", data.image, data.image.name);
     }
