@@ -18,7 +18,16 @@ const CATEGORY_MAP: Record<number, string> = {
 export function BoxCard({ box,  onReserve, reserving = false, isReserved = false  }: BoxCardProps) {
   // Видалено небезпечний split по amazonaws, тепер нормальні URL не ламаються
   const formatImageUrl = (url: string) => {
-    if (!url) return "https://placehold.co/600x400/163d32/FFF?text=Magic+Box";
+    // Надійний плейсхолдер (via.placeholder часто блокується адблоками, placehold.co - ні)
+    const fallback = "https://placehold.co/600x400/163d32/FFF?text=ShareBite";
+    if (!url) return fallback;
+
+    // Якщо бекенд випадково склеїв S3 урл і Unsplash (наприклад: https://s3.com/bucket/https://images...)
+    const httpIndex = url.lastIndexOf("http");
+    if (httpIndex > 0) {
+      return url.substring(httpIndex);
+    }
+    
     return url;
   };
 
@@ -54,6 +63,7 @@ export function BoxCard({ box,  onReserve, reserving = false, isReserved = false
           alt={categoryName}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           onError={(e) => {
+            e.currentTarget.onerror = null;
             e.currentTarget.src = "https://placehold.co/600x400/163d32/FFF?text=ShareBite";
           }}
         />

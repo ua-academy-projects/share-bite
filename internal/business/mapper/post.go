@@ -7,8 +7,18 @@ import (
 
 func ToPostResponse(post *entity.PostWithPhotos) dto.PostResponse {
 	return dto.PostResponse{
-		ID:      post.ID,
-		Content: post.Content,
-		Images:  post.Images,
+		ID:        post.ID,
+		Content:   post.Content,
+		CreatedAt: post.CreatedAt, 
+		Org: struct {
+			ID          int    `json:"id"`
+			Name        string `json:"name"`
+			ProfileType string `json:"profileType"`
+		}{
+			ID:          post.OrgID,
+			Name:        post.OrgName,
+			ProfileType: post.ProfileType,
+		},
+		Images: post.Images,
 	}
 }
