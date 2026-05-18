@@ -1,0 +1,27 @@
+services:
+  business-api:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/business-api:${IMAGE_TAG:-latest}
+    container_name: share-bite-business-api
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8081:3900"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - /lib64/ld-linux-x86-64.so.2:/lib64/ld-linux-x86-64.so.2:ro
+      - /lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:ro
+      - /usr/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: share-bite-redis-business
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
