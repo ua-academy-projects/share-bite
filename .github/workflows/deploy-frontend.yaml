@@ -3,7 +3,7 @@ name: Build and Deploy Frontend to Proxy EC2
 on:
   push:
     branches:
-      - main
+      - 139-add-rds-migration-runner-for-aws-deployment
     paths:
       - 'frontend/**'
       - 'build/Dockerfile.frontend'
@@ -62,7 +62,7 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend via AWS SSM
     needs: build-and-push-frontend
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/139-add-rds-migration-runner-for-aws-deployment'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
