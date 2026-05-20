@@ -86,7 +86,7 @@ jobs:
             --instance-ids "${{ secrets.PROXY_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --parameters 'commands=[
-              ""cd /home/ubuntu/api-gateway"",
+              "cd /home/ubuntu/api-gateway",
               "echo '"$FRONTEND_COMPOSE_B64"' | base64 -d > compose.frontend.yaml",
               "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
               "export AWS_REGION=${{ env.AWS_REGION }}",
