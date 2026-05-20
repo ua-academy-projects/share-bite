@@ -126,7 +126,6 @@ jobs:
       - name: Deploy Admin Services
         run: |
           echo "Deploying Admin services to Admin EC2..."
-          # Переконуємось, що беремо правильний локальний шлях до твого файлу адмінки
           ADMIN_COMPOSE_B64=$(base64 -w 0 deploy/compose/compose.admin-auth-api.yaml)
           
           aws ssm send-command \
@@ -159,7 +158,7 @@ jobs:
               "docker compose -f compose.business-api.yaml pull",
               "docker compose -f compose.business-api.yaml up -d"
             ]'
-      
+
       - name: Deploy Guest Services
         run: |
           echo "Deploying Guest services to Guest EC2..."
@@ -176,4 +175,23 @@ jobs:
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.guest-api.yaml pull",
               "docker compose -f compose.guest-api.yaml up -d"
+            ]'
+
+      - name: Deploy Workers & Outbox Services
+        run: |
+          echo "Deploying Workers services to Workers EC2..."
+          WORKERS_COMPOSE_B64=$(base64 -w 0 deploy/compose/workers.yaml)
+          
+          aws ssm send-command \
+            --instance-ids "${{ secrets.WORKERS_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "mkdir -p /home/ubuntu/share-bite",
+              "cd /home/ubuntu/share-bite",
+              "echo '"$WORKERS_COMPOSE_B64"' | base64 -d > workers.yaml",
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ env.AWS_REGION }}",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker compose -f workers.yaml pull",
+              "docker compose -f workers.yaml up -d"
             ]'

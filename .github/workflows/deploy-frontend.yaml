@@ -3,16 +3,16 @@ name: Build and Deploy Frontend to Proxy EC2
 on:
   push:
     branches:
-      - 139-add-rds-migration-runner-for-aws-deployment
+      - main
     paths:
       - 'frontend/**'
       - 'build/Dockerfile.frontend'
-      - 'deploy/compose/compose.frontend.yaml'
+      - 'build/aws/compose.frontend.yaml'
   workflow_dispatch:
 
 env:
   AWS_REGION: us-east-2
-  AWS_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
   ECR_REPO: share-bite/frontend
 
 jobs:
@@ -62,7 +62,7 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend via AWS SSM
     needs: build-and-push-frontend
-    if: github.ref == 'refs/heads/139-add-rds-migration-runner-for-aws-deployment'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -80,7 +80,7 @@ jobs:
 
       - name: Deploy to Proxy EC2
         run: |
-          FRONTEND_COMPOSE_B64=$(base64 -w 0 deploy/compose/compose.frontend.yaml)
+          FRONTEND_COMPOSE_B64=$(base64 -w 0 build/aws/compose.frontend.yaml)
           
           aws ssm send-command \
             --instance-ids "${{ secrets.PROXY_INSTANCE_ID }}" \
