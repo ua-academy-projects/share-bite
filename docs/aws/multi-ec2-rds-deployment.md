@@ -87,7 +87,23 @@ All application EC2 instances run under a unified IAM Instance Profile:
 
 ---
 
-## 5. Deployment Verification Checklist (Smoke Tests)
+## 5. Database Migrations Workflow (Fail-Fast Strategy)
+
+To safely update the database schema without risking data inconsistency, migrations run as an ephemeral (one-off) job sequentially **before** application deployment.
+
+### ⚠️ Concurrent Migration Risk & Network Isolation
+- **Network Isolation:** Because AWS RDS blocks all direct public traffic, migrations must be executed from **EC2 Instance 3 (Admin & Auth API)**. This instance resides within `share-bite-services-sg`, which holds exclusive access to the database.
+- **Concurrency Warning:** Never trigger migrations from multiple instances or parallel deployment pipelines simultaneously. Concurrent schema execution can trigger table locks, race conditions, or corrupt the `goose_db_version` schema execution history.
+- **Fail-Fast Enforcement:** The migrator runs with specific Docker Compose boundaries. If a migration script contains syntactic/logical errors or connectivity drops, the process aborts immediately, blocking the deployment chain and protecting active production systems.
+
+### Migration Execution Command:
+```bash
+docker-compose -f compose.migrator.yaml up --abort-on-container-exit --exit-code-from migrator
+```
+
+---
+
+## 6. Deployment Verification Checklist (Smoke Tests)
 
 ### ✓ Test 1: Public Gateway Health
 
@@ -98,14 +114,19 @@ curl -i http://localhost/gateway-health
 
 ---
 
-## 6. Restart and Rollback Procedures
+## 7. Restart and Rollback Procedures
 
 ### Service Restart
 
 To safely restart a service container on a specific EC2 instance without altering the environment configuration:
 
+- **On the Admin EC2 Instance** (execute directly from the `/root` folder):
+  ```bash
+  docker-compose -f compose.admin-auth-api.yaml restart
+  ```
+  
 ```bash
-docker compose -f build/aws/compose.<service-name>.yaml restart
+docker compose -f compose.<service-name>.yaml restart
 ```
 
 ### Rollback Process
@@ -114,14 +135,18 @@ If a newly deployed image causes failures or anomalies during smoke tests:
 
 1. Revert the `IMAGE_TAG` variable inside the `.env` file to the last verified stable version tag.
 2. Force the recreate lifecycle using Docker Compose to pull the previous state from ECR:
-
+- **On the Admin EC2 Instance**
+   ```bash
+  docker-compose -f compose.admin-auth-api.yaml up -d --force-recreate
+  ```
+  
 ```bash
-docker compose -f build/aws/compose.<service-name>.yaml up -d --force-recreate
+docker compose -f compose.<service-name>.yaml up -d --force-recreate
 ```
 
 ---
 
-## 7. Cost Optimization & Cleanup Instructions
+## 8. Cost Optimization & Cleanup Instructions
 
 To eliminate unnecessary AWS expenditures when the active testing or grading cycle is concluded:
 

@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/frontend:${IMAGE_TAG:-latest}
+    container_name: share-bite-frontend
+    restart: always
+    ports:
+      - "8085:80"
