@@ -99,8 +99,8 @@ To safely update the database schema without risking data inconsistency, migrati
 
 ### Migration Execution Command:
 ```bash
-```
 docker-compose -f compose.migrator.yaml up --abort-on-container-exit --exit-code-from migrator
+```
 
 ## 6. Deployment Verification Checklist (Smoke Tests)
 
@@ -124,6 +124,7 @@ nc -zv <RDS_POSTGRESQL_ENDPOINT> 5432 # PostgreSQL -> Should return 'succeeded!'
 ### Service Restart
 
 To safely restart a service container on a specific EC2 instance without altering the environment configuration:
+```bash
 
 # On Admin EC2 Node
 docker compose -f compose.admin-auth-api.yaml restart
@@ -132,15 +133,17 @@ docker compose -f compose.admin-auth-api.yaml restart
 docker compose -f compose.business-api.yaml restart
 
 # On Workers EC2 Node
-docker compose -f compose.workers.yaml restart compose -f compose.<service-name>.yaml restart
+docker compose -f compose.workers.yaml restart
 ```
 
-Rollback Process
+### Rollback Process
 If a newly deployed image causes failures or anomalies during smoke tests:
 
 Revert the IMAGE_TAG variable inside the localized .env file to the last verified stable version tag.
 
-Force the recreate lifecycle using Docker Compose to pull the previous state from ECR:r compose -f compose.<service-name>.yaml up -d --force-recreate
+Force the recreate lifecycle using Docker Compose to pull the previous state from ECR:
+```bash
+docker compose -f compose.<service-name>.yaml up -d --force-recreate
 ```
 
 ---
