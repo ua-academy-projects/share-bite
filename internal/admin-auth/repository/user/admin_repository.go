@@ -171,7 +171,7 @@ func (r *adminRepository) GetPlatformStatistics(ctx context.Context) (*dto.Platf
               total_business_likes,
               total_business_boxes,
               total_business_box_items
-          FROM admin.platform_statistics
+          FROM analytics.platform_statistics
        `,
 	}
 

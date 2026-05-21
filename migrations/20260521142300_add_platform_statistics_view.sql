@@ -1,7 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
+CREATE SCHEMA IF NOT EXISTS analytics;
 
-CREATE OR REPLACE VIEW admin.platform_statistics AS
+CREATE OR REPLACE VIEW analytics.platform_statistics AS
 SELECT
     (SELECT COUNT(*) FROM auth.users) AS total_users,
     (SELECT COUNT(*) FROM auth.user_roles ur JOIN auth.roles r ON r.id = ur.role_id WHERE r.slug = 'admin') AS total_admin_users,
@@ -32,5 +33,6 @@ SELECT
 
 -- +goose Down
 -- +goose StatementBegin
-DROP VIEW IF EXISTS admin.platform_statistics;
+DROP VIEW IF EXISTS analytics.platform_statistics;
+DROP SCHEMA IF EXISTS analytics CASCADE;
 -- +goose StatementEnd
