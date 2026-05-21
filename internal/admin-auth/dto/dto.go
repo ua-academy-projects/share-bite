@@ -78,6 +78,32 @@ type PaginatedAdminUsersResponse struct {
 	TotalCount int                 `json:"total_count"`
 }
 
+type PlatformStatisticsResponse struct {
+	TotalUsers                   int64 `json:"total_users"`
+	TotalAdminUsers              int64 `json:"total_admin_users"`
+	TotalModeratorUsers          int64 `json:"total_moderator_users"`
+	TotalRegularUsers            int64 `json:"total_regular_users"`
+	TotalBusinessRoleUsers       int64 `json:"total_business_role_users"`
+	TotalActiveUsers             int64 `json:"total_active_users"`
+	TotalMutedUsers              int64 `json:"total_muted_users"`
+	TotalSuspendedUsers          int64 `json:"total_suspended_users"`
+	TotalCustomers               int64 `json:"total_customers"`
+	TotalGuestPosts              int64 `json:"total_guest_posts"`
+	TotalGuestComments           int64 `json:"total_guest_comments"`
+	TotalGuestPostLikes          int64 `json:"total_guest_post_likes"`
+	TotalCollections             int64 `json:"total_collections"`
+	TotalCollectionVenues        int64 `json:"total_collection_venues"`
+	TotalCollectionCollaborators int64 `json:"total_collection_collaborators"`
+	TotalCollectionInvitations   int64 `json:"total_collection_invitations"`
+	TotalCustomerFollows         int64 `json:"total_customer_follows"`
+	TotalBusinessOrgUnits        int64 `json:"total_business_org_units"`
+	TotalBusinessPosts           int64 `json:"total_business_posts"`
+	TotalBusinessComments        int64 `json:"total_business_comments"`
+	TotalBusinessLikes           int64 `json:"total_business_likes"`
+	TotalBusinessBoxes           int64 `json:"total_business_boxes"`
+	TotalBusinessBoxItems        int64 `json:"total_business_box_items"`
+}
+
 type ChangeRoleRequest struct {
 	RoleSlug string `json:"role_slug" validate:"required"`
 }

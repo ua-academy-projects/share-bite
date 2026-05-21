@@ -121,3 +121,53 @@ func TestAdminHandler_ChangeUserRole(t *testing.T) {
 		mockSvc.AssertExpectations(t)
 	})
 }
+
+func TestAdminHandler_GetPlatformStatistics(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("Success returns 200 and statistics payload", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		expected := &dto.PlatformStatisticsResponse{
+			TotalUsers:            100,
+			TotalCustomers:        80,
+			TotalBusinessPosts:    15,
+			TotalCollectionVenues: 42,
+		}
+
+		mockSvc.On("GetPlatformStatistics", mock.Anything).Return(expected, nil)
+
+		r := gin.New()
+		r.GET("/admin/statistics", h.GetPlatformStatistics)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/statistics", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "\"total_users\":100")
+		assert.Contains(t, w.Body.String(), "\"total_customers\":80")
+		mockSvc.AssertExpectations(t)
+	})
+
+	t.Run("Service error returns 500 via middleware", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		mockSvc.On("GetPlatformStatistics", mock.Anything).
+			Return(nil, apperr.Wrap(http.StatusInternalServerError, "failed to get platform statistics", assert.AnError))
+
+		r := gin.New()
+		r.Use(testErrorMiddleware())
+		r.GET("/admin/statistics", h.GetPlatformStatistics)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/statistics", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "failed to get platform statistics")
+		mockSvc.AssertExpectations(t)
+	})
+}

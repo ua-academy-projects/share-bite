@@ -40,6 +40,7 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler
 	}
 	adminGroup := r.Group("/admin").Use(authMiddleware)
 	{
+		adminGroup.GET("/statistics", middleware.RequireRoles("admin", "moderator"), adminHandler.GetPlatformStatistics)
 		adminGroup.GET("/users", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUsersList)
 		adminGroup.GET("/users/:id", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUserDetails)
 		adminGroup.PATCH("/users/:id/role", middleware.RequireRoles("admin"), adminHandler.ChangeUserRole)

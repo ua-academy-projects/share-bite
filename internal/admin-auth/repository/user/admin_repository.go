@@ -18,6 +18,7 @@ type AdminRepository interface {
 	GetAdminUsersList(ctx context.Context, filter dto.AdminUserFilter) ([]dto.AdminUserListItem, int, error)
 	UpdateUserRole(ctx context.Context, userID string, roleID int) error
 	GetAdminUserByID(ctx context.Context, userID string) (*dto.FullUserDetails, error)
+	GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error)
 }
 
 type adminRepository struct {
@@ -140,4 +141,69 @@ func (r *adminRepository) GetAdminUserByID(ctx context.Context, userID string) (
 	}
 
 	return &user, nil
+}
+
+func (r *adminRepository) GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error) {
+	q := database.Query{
+		Name: "admin.GetPlatformStatistics",
+		Sql: `
+          SELECT
+              total_users,
+              total_admin_users,
+              total_moderator_users,
+              total_regular_users,
+              total_business_role_users,
+              total_active_users,
+              total_muted_users,
+              total_suspended_users,
+              total_customers,
+              total_guest_posts,
+              total_guest_comments,
+              total_guest_post_likes,
+              total_collections,
+              total_collection_venues,
+              total_collection_collaborators,
+              total_collection_invitations,
+              total_customer_follows,
+              total_business_org_units,
+              total_business_posts,
+              total_business_comments,
+              total_business_likes,
+              total_business_boxes,
+              total_business_box_items
+          FROM admin.platform_statistics
+       `,
+	}
+
+	var stats dto.PlatformStatisticsResponse
+	err := r.client.DB().QueryRowContext(ctx, q).Scan(
+		&stats.TotalUsers,
+		&stats.TotalAdminUsers,
+		&stats.TotalModeratorUsers,
+		&stats.TotalRegularUsers,
+		&stats.TotalBusinessRoleUsers,
+		&stats.TotalActiveUsers,
+		&stats.TotalMutedUsers,
+		&stats.TotalSuspendedUsers,
+		&stats.TotalCustomers,
+		&stats.TotalGuestPosts,
+		&stats.TotalGuestComments,
+		&stats.TotalGuestPostLikes,
+		&stats.TotalCollections,
+		&stats.TotalCollectionVenues,
+		&stats.TotalCollectionCollaborators,
+		&stats.TotalCollectionInvitations,
+		&stats.TotalCustomerFollows,
+		&stats.TotalBusinessOrgUnits,
+		&stats.TotalBusinessPosts,
+		&stats.TotalBusinessComments,
+		&stats.TotalBusinessLikes,
+		&stats.TotalBusinessBoxes,
+		&stats.TotalBusinessBoxItems,
+	)
+	if err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to get platform statistics", err)
+	}
+
+	return &stats, nil
 }
