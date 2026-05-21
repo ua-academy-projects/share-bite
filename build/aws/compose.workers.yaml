@@ -1,10 +1,14 @@
 services:
   notifications:
-    image: 897201144750.dkr.ecr.us-east-2.amazonaws.com/share-bite/notifications-service:sha-ed1c83b
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/notifications-service:${IMAGE_TAG}
     container_name: share-bite-notifications
     restart: always
     env_file:
       - .env
+    environment:
+      - IMAGE_TAG=${IMAGE_TAG:?IMAGE_TAG is required}
+      - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:?AWS_ACCOUNT_ID is required}
+      - AWS_REGION=${AWS_REGION:?AWS_REGION is required}
     depends_on:
       redis:
         condition: service_healthy
@@ -14,11 +18,15 @@ services:
       - /usr/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:ro
 
   outbox:
-    image: 897201144750.dkr.ecr.us-east-2.amazonaws.com/share-bite/outbox-worker:sha-ed1c83b
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/outbox-worker:${IMAGE_TAG}
     container_name: share-bite-outbox
     restart: always
     env_file:
       - .env
+    environment:
+      - IMAGE_TAG=${IMAGE_TAG:?IMAGE_TAG is required}
+      - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:?AWS_ACCOUNT_ID is required}
+      - AWS_REGION=${AWS_REGION:?AWS_REGION is required}
     depends_on:
       redis:
         condition: service_healthy
@@ -33,9 +41,9 @@ services:
     restart: always
     env_file:
       - .env
-    command: redis-server --requirepass ${REDIS_PASSWORD} --protected-mode no
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep PONG"]
       interval: 5s
       timeout: 3s
       retries: 5
