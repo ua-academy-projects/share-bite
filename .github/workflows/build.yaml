@@ -22,7 +22,8 @@ jobs:
     permissions:
       id-token: write
       contents: read
-
+    outputs:
+      image_tag: ${{ steps.vars.outputs.sha_tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +47,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Set up Image Tag Variable
+        id: vars
+        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -71,8 +75,7 @@ jobs:
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}
           tags: |
-            type=sha,prefix=sha-
-            type=sha,format=long
+            type=raw,value=${{ steps.vars.outputs.sha_tag }}
 
       - name: Build and push ${{ matrix.service }} image
         id: build-push
@@ -123,7 +126,10 @@ jobs:
             --parameters 'commands=[
               "cd /root",
               "echo '"$MIGRATOR_COMPOSE_B64"' | base64 -d > compose.migrator.yaml",
-              "aws ecr get-login-password --region '${{ env.AWS_REGION }}' | docker login --username AWS --password-stdin '${{ secrets.AWS_ACCOUNT_ID }}'.dkr.ecr.'${{ env.AWS_REGION }}'.amazonaws.com",
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
+              "aws ecr get-login-password --region '"${{ env.AWS_REGION }}"' | docker login --username AWS --password-stdin '"${{ secrets.AWS_ACCOUNT_ID }}"'.dkr.ecr.'"${{ env.AWS_REGION }}"'.amazonaws.com",
               "docker compose -f compose.migrator.yaml pull migrator",
               "docker compose -f compose.migrator.yaml up --abort-on-container-exit --exit-code-from migrator"
             ]')
@@ -146,6 +152,7 @@ jobs:
               "echo '"$ADMIN_COMPOSE_B64"' | base64 -d > compose.admin-auth-api.yaml",
               "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
               "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.admin-auth-api.yaml pull",
               "docker compose -f compose.admin-auth-api.yaml up -d"
@@ -169,6 +176,7 @@ jobs:
               "echo '"$BUSINESS_COMPOSE_B64"' | base64 -d > compose.business-api.yaml",
               "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
               "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.business-api.yaml pull",
               "docker compose -f compose.business-api.yaml up -d"
@@ -192,6 +200,7 @@ jobs:
               "echo '"$GUEST_COMPOSE_B64"' | base64 -d > compose.guest-api.yaml",
               "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
               "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.guest-api.yaml pull",
               "docker compose -f compose.guest-api.yaml up -d"
@@ -216,6 +225,7 @@ jobs:
               "echo '"$WORKERS_COMPOSE_B64"' | base64 -d > workers.yaml",
               "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
               "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f workers.yaml pull",
               "docker compose -f workers.yaml up -d"

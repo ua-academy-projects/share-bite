@@ -13,6 +13,8 @@ on:
       - main
     paths:
       - 'frontend/**'
+      - 'build/Dockerfile.frontend'
+      - 'build/aws/compose.frontend.yaml'
   workflow_dispatch:
 
 env:
@@ -27,12 +29,18 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    outputs:
+      image_tag: ${{ steps.vars.outputs.sha_tag }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Set up Image Tag Variable
+        id: vars
+        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials (OIDC Role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
@@ -48,8 +56,7 @@ jobs:
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}
           tags: |
-            type=sha,prefix=sha-
-            type=sha,format=long
+            type=raw,value=${{ steps.vars.outputs.sha_tag }}
             latest
 
       - name: Build and push Frontend image
@@ -96,6 +103,7 @@ jobs:
               "echo '"$FRONTEND_COMPOSE_B64"' | base64 -d > compose.frontend.yaml",
               "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
               "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push-frontend.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.frontend.yaml pull",
               "docker compose -f compose.frontend.yaml up -d"
