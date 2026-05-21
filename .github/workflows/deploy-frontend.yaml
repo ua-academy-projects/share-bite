@@ -17,18 +17,19 @@ on:
       - 'build/aws/compose.frontend.yaml'
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
   AWS_REGION: us-east-2
-  AWS_ROLE_ARN: ${{ vars.AWS_OIDC_ROLE_ARN }}
+  AWS_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
   ECR_REPO: share-bite/frontend
 
 jobs:
   build-and-push-frontend:
     name: Build and Push Frontend
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     outputs:
       image_tag: ${{ steps.vars.outputs.sha_tag }}
 
@@ -45,6 +46,7 @@ jobs:
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -76,9 +78,6 @@ jobs:
     needs: build-and-push-frontend
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
       - name: Checkout repository
@@ -89,6 +88,7 @@ jobs:
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
 
       - name: Deploy to Proxy EC2
         run: |
