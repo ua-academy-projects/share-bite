@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ua-academy-projects/share-bite/internal/imageprocessing"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -200,14 +202,15 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 			objectKey,
 		)
 
-		newImages = append(newImages, entity.PostImage{
+		newImage := entity.PostImage{
 			ObjectKey:   objectKey,
 			ContentType: img.ContentType,
 			FileSize:    img.FileSize,
 			SortOrder: int16(
 				len(preservedImages) + i,
 			),
-		})
+		}
+		newImages = append(newImages, newImage)
 	}
 
 	var post entity.Post
@@ -257,19 +260,19 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 				for i := range newImages {
 					newImages[i].PostID = updatedPost.ID
 				}
-
-				if err := s.postRepo.CreateImages(
+				createdImages, err := s.postRepo.CreateImages(
 					txCtx,
 					newImages,
-				); err != nil {
+				)
+				if err != nil {
 					return fmt.Errorf(
 						"create post images in post repository: %w",
 						err,
 					)
 				}
+				updatedPost.Images = createdImages
 			}
 
-			updatedPost.Images = newImages
 			post = updatedPost
 
 			return nil
@@ -289,6 +292,30 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 
 	for _, key := range keysToDelete {
 		cleanupDelete(s.storage, key)
+	}
+	if s.imageProcessingProducer != nil {
+		for _, image := range post.Images {
+			if keptMap[image.ObjectKey] {
+				continue
+			}
+
+			err := s.imageProcessingProducer.SendMessage(
+				ctx,
+				imageprocessing.ProcessImageMessage{
+					ImageID: image.ID,
+					S3Key:   image.ObjectKey,
+				},
+			)
+			if err != nil {
+				logger.ErrorKV(
+					ctx,
+					"failed to send image processing message",
+					"image_id", image.ID,
+					"object_key", image.ObjectKey,
+					"error", err,
+				)
+			}
+		}
 	}
 
 	return post, nil

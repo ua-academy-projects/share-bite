@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	adminPrefix        = "ADMIN_"
-	guestPrefix        = "GUEST_"
-	businessPrefix     = "BUSINESS_"
-	notificationPrefix = "NOTIFICATION_"
+	adminPrefix           = "ADMIN_"
+	guestPrefix           = "GUEST_"
+	businessPrefix        = "BUSINESS_"
+	notificationPrefix    = "NOTIFICATION_"
+	imageProcessingPrefix = "IMAGE_PROCESSING_"
 )
 
 type config struct {
@@ -42,6 +43,8 @@ type config struct {
 
 	NotificationHttpServer HttpServer
 	NotificationSQS        SQS
+
+	ImageProcessingSQS SQS
 }
 
 type SQS interface {
@@ -241,6 +244,11 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		return fmt.Errorf("notification sqs config: %w", err)
 	}
 
+	imageProcessingSQSConfig, err := env.NewSQSConfig(imageProcessingPrefix)
+	if err != nil {
+		return fmt.Errorf("image processing sqs config: %w", err)
+	}
+
 	cfg = &config{
 		App:    appConfig,
 		Auth:   authConfig,
@@ -263,6 +271,8 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 
 		NotificationHttpServer: notificationHttpServerConfig,
 		NotificationSQS:        notificationSQSConfig,
+
+		ImageProcessingSQS: imageProcessingSQSConfig,
 	}
 
 	return nil

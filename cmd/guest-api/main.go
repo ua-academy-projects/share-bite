@@ -9,6 +9,10 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/ua-academy-projects/share-bite/internal/imageprocessing"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sony/gobreaker"
@@ -228,6 +232,16 @@ func main() {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
 
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
+	if err != nil {
+		logger.Fatal(ctx, "load aws config:", err)
+	}
+	sqsClient := sqs.NewFromConfig(awsCfg)
+	imageProcessingProducer := imageprocessing.NewProducer(
+		sqsClient,
+		config.Config().ImageProcessingSQS.Queue(),
+	)
+
 	txManager := txmanager.NewTransactionManager(client.DB())
 
 	tokenManager := jwt.NewTokenManager(
@@ -247,7 +261,7 @@ func main() {
 	// services
 	outboxWriter := outbox.NewWriter(client.DB())
 	customerSvc := customersvc.New(customerRepo, outboxWriter, txManager)
-	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter))
+	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter), postsvc.WithImageProcessingProducer(imageProcessingProducer))
 	postsvc.StartPostCleanupJob(ctx, postSvc)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
