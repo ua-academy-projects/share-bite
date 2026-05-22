@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 const HARDCODED_LAT = 37.77351509723814;
 const HARDCODED_LON = -122.4182710369247;
 
-const PAGE_LIMIT = 24;
+const PAGE_LIMIT = 10;
 
 const mapRecommendedPostToPostData = (post: RecommendedPost): PostData => {
   return {
