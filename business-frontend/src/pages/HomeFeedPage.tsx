@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
 import { businessApi, RecommendedPost } from "@/api/business";
-import { PostCard } from "@/components/ui/PostCard";
+import { PostCard, PostData } from "@/components/ui/PostCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Захардкодені координати San Francisco
 const HARDCODED_LAT = 37.77351509723814;
 const HARDCODED_LON = -122.4182710369247;
 
 const PAGE_LIMIT = 24;
 
+const mapRecommendedPostToPostData = (post: RecommendedPost): PostData => {
+  return {
+    id: post.id,
+    content: post.content,
+    created_at: post.created_at,
+    org: {
+      id: post.org_id,
+      name: `Business ${post.org_id}`,
+      profileType: post.post_type,
+    },
+    images: [],
+  };
+};
+
 export function HomeFeedPage() {
-  const [posts, setPosts] = useState<RecommendedPost[]>([]);
+  const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [skip, setSkip] = useState(0);
@@ -25,17 +38,23 @@ export function HomeFeedPage() {
     setError(null);
     try {
       const token = localStorage.getItem("token") || undefined;
-      const data = await businessApi.recommendPosts({
-        lat: HARDCODED_LAT,
-        lon: HARDCODED_LON,
-        skip: skipValue,
-        limit: PAGE_LIMIT,
-      }, token);
-      setPosts(data.items);
+      const data = await businessApi.recommendPosts(
+        {
+          lat: HARDCODED_LAT,
+          lon: HARDCODED_LON,
+          skip: skipValue,
+          limit: PAGE_LIMIT,
+        },
+        token,
+      );
+      // Map API response to PostData format
+      const mappedPosts = data.items.map(mapRecommendedPostToPostData);
+      setPosts(mappedPosts);
       setTotal(data.total);
       setSkip(skipValue);
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Failed to load recommendations";
+      const errorMessage =
+        e instanceof Error ? e.message : "Failed to load recommendations";
       setError(errorMessage);
       console.error("Error loading posts:", e);
     } finally {
@@ -72,7 +91,8 @@ export function HomeFeedPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold text-[#1A3C34] dark:text-white tracking-tight mb-3">
-              Home Feed <span className="text-emerald-500 dark:text-[#98FF98]">🔥</span>
+              Home Feed{" "}
+              <span className="text-emerald-500 dark:text-[#98FF98]">🔥</span>
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg">
               Discover posts recommended for you based on your preferences
@@ -94,10 +114,17 @@ export function HomeFeedPage() {
         {/* Error State */}
         {error && (
           <div className="rounded-2xl border border-red-500/30 bg-red-50 dark:bg-red-500/10 px-6 py-4 flex items-start gap-3 shadow-sm">
-            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
+            <AlertCircle
+              className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+              size={20}
+            />
             <div>
-              <p className="font-bold text-red-700 dark:text-red-300">Error loading posts</p>
-              <p className="text-red-600 dark:text-red-400 text-sm mt-1">{error}</p>
+              <p className="font-bold text-red-700 dark:text-red-300">
+                Error loading posts
+              </p>
+              <p className="text-red-600 dark:text-red-400 text-sm mt-1">
+                {error}
+              </p>
             </div>
           </div>
         )}
@@ -107,16 +134,20 @@ export function HomeFeedPage() {
           <div className="flex justify-center items-center h-96 w-full">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-16 h-16 text-emerald-500 dark:text-[#98FF98] animate-spin" />
-              <p className="text-gray-600 dark:text-gray-400 font-medium">Loading recommendations...</p>
+              <p className="text-gray-600 dark:text-gray-400 font-medium">
+                Loading recommendations...
+              </p>
             </div>
           </div>
         ) : posts.length > 0 ? (
           <>
-            {/* Posts Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
+            {/* Posts Feed */}
+            <div className="flex flex-col items-center w-full gap-6">
+              <div className="w-full max-w-2xl flex flex-col gap-6">
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
             </div>
 
             {/* Pagination */}
@@ -134,7 +165,8 @@ export function HomeFeedPage() {
                   Page {currentPage} of {totalPages}
                 </p>
                 <p className="text-gray-500 dark:text-gray-500 text-sm">
-                  Showing {skip + 1}–{Math.min(skip + PAGE_LIMIT, total)} of {total} posts
+                  Showing {skip + 1}–{Math.min(skip + PAGE_LIMIT, total)} of{" "}
+                  {total} posts
                 </p>
               </div>
 
@@ -149,9 +181,12 @@ export function HomeFeedPage() {
           </>
         ) : (
           <div className="text-center bg-white dark:bg-[#163d32] border border-gray-200 dark:border-[#2f5e50] rounded-3xl p-20 shadow-sm dark:shadow-none transition-colors duration-300">
-            <p className="text-[#1A3C34] dark:text-gray-300 text-2xl font-bold">No recommendations found 😢</p>
+            <p className="text-[#1A3C34] dark:text-gray-300 text-2xl font-bold">
+              No recommendations found 😢
+            </p>
             <p className="text-gray-500 dark:text-gray-400 mt-3">
-              Try checking back later or enable notifications to get notified about new posts.
+              Try checking back later or enable notifications to get notified
+              about new posts.
             </p>
           </div>
         )}
