@@ -361,6 +361,34 @@ func (h *Handler) GetUserStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, handler.UserStatusResponse{Status: string(status)})
 }
 
+// GetUserEmail godoc
+// @Summary      Get user email
+// @Description  Returns email for the given user id. Intended for internal service-to-service calls.
+// @Tags         User
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        userId   path      string           true  "User ID"
+// @Success      200      {object}  handler.EmailResponse
+// @Failure      401      {object}  handler.ErrorResponse
+// @Failure      500      {object}  handler.ErrorResponse
+// @Router       /users/{userId}/email [get]
+func (h *Handler) GetUserEmail(c *gin.Context) {
+	requesterUserID, requesterRole, ok := getRequester(c)
+	if !ok {
+		return
+	}
+
+	targetUserID := c.Param("userId")
+	email, err := h.service.GetUserEmail(c.Request.Context(), requesterUserID, requesterRole, targetUserID)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, handler.EmailResponse{Email: email})
+}
+
 func (h *Handler) UpdateUserStatus(c *gin.Context) {
 	requesterUserID, requesterRole, ok := getRequester(c)
 	if !ok {

@@ -45,6 +45,7 @@ type Service interface {
 	OAuthLogin(ctx context.Context, provider OAuthProvider, code string, slug string) (*Tokens, error)
 	LinkProvider(ctx context.Context, userID string, provider OAuthProvider, code string) error
 	GetUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (models.UserStatus, error)
+	GetUserEmail(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (string, error)
 	UpdateUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string, status models.UserStatus) error
 	RecoverAccess(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
@@ -293,6 +294,22 @@ func (s *service) GetUserStatus(ctx context.Context, requesterUserID, requesterR
 	}
 
 	return u.Status, nil
+}
+
+func (s *service) GetUserEmail(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (string, error) {
+	u, err := s.userRepo.FindByID(ctx, targetUserID)
+	if err != nil {
+		return "", fmt.Errorf("find user by id: %w", err)
+	}
+	if u == nil {
+		return "", apperr.ErrUserNotFound
+	}
+
+	if !canReadUserStatus(requesterRole, requesterUserID, targetUserID) {
+		return "", apperr.ErrForbiddenStatusRead
+	}
+
+	return u.Email, nil
 }
 
 func (s *service) UpdateUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string, status models.UserStatus) error {
