@@ -286,12 +286,12 @@ func main() {
 
 	// services
 	outboxWriter := outbox.NewWriter(client.DB())
-	customerSvc := customersvc.New(customerRepo)
 	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter))
 	postsvc.StartPostCleanupJob(ctx, postSvc)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
 	followSvc := followsvc.New(followRepo, customerRepo)
+	customerSvc := customersvc.New(customerRepo, txManager, outboxWriter, adminGateway)
 
 	// middlewares
 	authMiddleware := middleware.Auth(tokenManager)

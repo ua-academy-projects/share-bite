@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 type CustomerRepository interface {
@@ -18,14 +20,27 @@ type CustomerRepository interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
+type emailClient interface {
+	GetUserEmail(ctx context.Context, userID, authToken string) (string, error)
+}
+
 type service struct {
 	customerRepo CustomerRepository
+	txManager    database.TxManager
+	outboxWriter outbox.Writer
+	adminClient  emailClient
 }
 
 func New(
 	customerRepo CustomerRepository,
+	txManager database.TxManager,
+	outboxWriter outbox.Writer,
+	adminClient emailClient,
 ) *service {
 	return &service{
 		customerRepo: customerRepo,
+		txManager:    txManager,
+		outboxWriter: outboxWriter,
+		adminClient:  adminClient,
 	}
 }
