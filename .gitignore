@@ -23,6 +23,8 @@ Thumbs.db
 .env*
 !.env.example
 
+docs/k8s/secrets.local.yaml
+
 /tmp/
 
 # swagger docs

@@ -23,7 +23,7 @@ This is the React frontend for ShareBite, a food discovery and sharing applicati
 Currently, the application uses Vite proxy configuration (see `vite.config.ts`) to route API calls to the local Go backend microservices:
 - `/api/auth` -> `http://localhost:3850`
 - `/api/guest` -> `http://localhost:3800`
-- `/api/business` -> `http://localhost:3950`
+- `/api/business` -> `http://localhost:3900`
 
 ## Authentication Flow
 

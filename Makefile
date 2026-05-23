@@ -2,10 +2,12 @@
 .PHONY: test test-cover docs docs-guest docs-business docs-admin-auth
 .PHONY: generate generate-guest-business-client clean
 .PHONY: goose-up goose-down goose-status goose-create
-.PHONY: docker-build
+.PHONY: docker-build k8s-secrets k8s-up k8s-down k8s-migrate
 
 COUNT ?= 1
 MIGRATIONS_DIR := migrations
+K8S_NAMESPACE ?= share-bite-local
+K8S_SECRETS_FILE ?= docs/k8s/secrets.local.yaml
 
 -include .env
 DB_DSN := host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password='$(POSTGRES_PASSWORD)' dbname=$(POSTGRES_DB) sslmode=$(POSTGRES_SSL)
@@ -101,3 +103,21 @@ docker-build:
 	docker build -t business-api -f build/Dockerfile.business .
 	docker build -t admin-auth-api -f build/Dockerfile.admin .
 	docker build -t migrator -f build/Dockerfile.migrator .
+
+k8s-secrets:
+	kubectl apply -f deploy/k8s/infra/namespace.yaml
+	kubectl apply -f $(K8S_SECRETS_FILE)
+
+k8s-up:
+	kubectl apply -k deploy/k8s/infra
+	@echo "Infrastructure ready in namespace $(K8S_NAMESPACE)."
+	@echo "Next step: run 'make k8s-migrate'."
+
+# Job pod templates are immutable; set image in deploy/k8s/infra/migrator-job.yaml before apply.
+k8s-migrate:
+	kubectl delete job share-bite-migrator -n $(K8S_NAMESPACE) --ignore-not-found=true
+	kubectl apply -f deploy/k8s/infra/migrator-job.yaml
+	kubectl wait --for=condition=complete --timeout=180s job/share-bite-migrator -n $(K8S_NAMESPACE)
+
+k8s-down:
+	kubectl delete namespace $(K8S_NAMESPACE) --ignore-not-found=true

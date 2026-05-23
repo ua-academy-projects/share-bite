@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: share-bite-migrator
+  namespace: share-bite-local
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:18
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
+                echo "waiting for postgres..."
+                sleep 2
+              done
+          envFrom:
+            - configMapRef:
+                name: share-bite-infra-config
+            - secretRef:
+                name: share-bite-secrets
+      containers:
+        - name: migrator
+          image: migrator:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: share-bite-infra-config
+            - secretRef:
+                name: share-bite-secrets

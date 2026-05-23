@@ -1,5 +1,11 @@
 # Share Bite
 
+## Kubernetes (local)
+
+For local cluster setup (k3s, Podman Desktop, Docker Desktop), infrastructure manifests, migration flow, and troubleshooting, see:
+
+- [docs/k8s/local-kubernetes.md](docs/k8s/local-kubernetes.md)
+
 ## How to Run Locally
 
 ### 1. Configuration
@@ -147,7 +153,7 @@ If you deploy infrastructure with Terraform, export the queue URL from the outpu
 make s3-ui
 ```
 
-Open http://localhost:3909
+Open http://localhost:4309
 
 ### Notifications test page
 
