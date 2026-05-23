@@ -16,6 +16,7 @@ import (
 	ginswagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
+	admingateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/admin"
 	businessgateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
@@ -208,7 +209,7 @@ func main() {
 			},
 		}),
 		RetryNotify: func(err error, nextRetryIn time.Duration) {
-			logger.Warnf(ctx, "business API retry scheduled in %v: %v", nextRetryIn, err)
+			logger.Debugf(ctx, "business api retry scheduled in %v: %v", nextRetryIn, err)
 		},
 	}
 
@@ -222,6 +223,45 @@ func main() {
 	if err != nil {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
 	}
+
+	adminResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     200 * time.Millisecond,
+			RandomizationFactor: 0.25,
+			Multiplier:          2,
+			MaxInterval:         2 * time.Second,
+			MaxElapsedTime:      8 * time.Second,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "guest-admin-auth",
+			MaxRequests: 2,
+			Interval:    20 * time.Second,
+			Timeout:     8 * time.Second,
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "admin circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				if errors.Is(err, context.Canceled) {
+					return true
+				}
+				return resilience.IsPermanent(err)
+			},
+		}),
+	}
+
+	adminGateway := admingateway.New(
+		config.Config().AdminHttpServer.Address(),
+		"/",
+		"http",
+		&adminResiliencePolicy,
+	)
 
 	storageClient, err := storage.NewStorageClient(ctx, config.Config().Storage)
 	if err != nil {

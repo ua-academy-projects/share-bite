@@ -363,7 +363,7 @@ func (h *Handler) GetUserStatus(c *gin.Context) {
 
 // GetUserEmail godoc
 // @Summary      Get user email
-// @Description  Returns email for the given user id. Intended for internal service-to-service calls.
+// @Description  Returns email for the given user id. Callers must forward the authenticated user's JWT.
 // @Tags         User
 // @Security     BearerAuth
 // @Accept       json
