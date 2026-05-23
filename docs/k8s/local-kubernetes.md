@@ -1,11 +1,11 @@
 # Local Kubernetes Setup
 
 This guide bootstraps Share Bite infrastructure on a local Kubernetes cluster and runs migrations in-cluster.
+Items included: Infra: PostgreSQL, Redis, ConfigMap/Secret, and migrator Job.
 
 It aligns with:
-- `.env.example` defaults (`POSTGRES_PORT=5432`, `REDIS_PORT=6379`, `BUSINESS_HTTP_SERVER_PORT=3900`)
+- `.env.example` defaults (`POSTGRES_PORT=5432`, `REDIS_PORT=6379`)
 - `build/compose.infra.yaml`
-- `build/compose.apps.yaml`
 
 ## Prerequisites
 
@@ -110,7 +110,7 @@ Use `key: value` YAML syntax (not `key=value`).
    kubectl logs job/share-bite-migrator -n share-bite-local
    ```
 
-Run this order every time you bootstrap a new cluster: infra first, migration second, application Deployments third.
+Run this order every time you bootstrap a new cluster: infra first, migration second.
 
 ## 5) Verification commands
 
@@ -199,12 +199,11 @@ make k8s-down
 
 ### Migration order issues
 
-- Symptom: app pods fail because schema/tables are missing.
+- Symptom: migrations fail, or DB schema is missing after bootstrap.
 - Required order is strict:
   1. `make k8s-secrets`
   2. `make k8s-up`
   3. `make k8s-migrate`
-  4. deploy app workloads
 - If migration already exists and must be rerun:
   ```bash
   kubectl delete job share-bite-migrator -n share-bite-local --ignore-not-found=true
