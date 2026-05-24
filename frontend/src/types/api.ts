@@ -22,10 +22,29 @@ export interface User {
   avatar?: string | null;
 }
 
+export interface NotificationItem {
+  id: number;
+  type: string;
+  read: boolean;
+  message: string;
+  createdAt: string;
+  link?: string;
+}
+
+export interface CollectionItem {
+  id: string;
+  name: string;
+  description: string;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Guest DTOs
 export interface PostResponse {
   id: string;
   customerId: string;
+  customerUsername: string;
   userName: string;
   avatarURL?: string | null;
   venueId: number;
@@ -51,6 +70,9 @@ export interface PostItem {
 
 export interface ExploreVenueItem {
   venue_id: number;
+  name?: string;
+  id?: number;
+  avatar?: string;
   posts: PostItem[];
 }
 

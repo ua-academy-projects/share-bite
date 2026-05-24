@@ -25,7 +25,6 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler
 		authGroup.GET("/github/success", gin.WrapF(gh.Success))
 		authGroup.POST("/recover-access", limiter, authHandler.RecoverAccess)
 		authGroup.POST("/reset-password", limiter, authHandler.ResetPassword)
-
 	}
 
 	protectedUserGroup := r.Group("/user").Use(authMiddleware)

@@ -1,9 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from "@tailwindcss/vite"
+import { fileURLToPath } from "node:url"
+import path from "node:path"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "src": path.resolve(__dirname, "./src"), 
+    },
+  },
   server: {
     proxy: {
       '/api/auth': {
@@ -32,7 +47,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/guest/, '')
       },
       '/api/business': {
-        target: 'http://localhost:3950',
+        target: 'http://localhost:3900',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

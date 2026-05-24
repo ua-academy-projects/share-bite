@@ -4,6 +4,9 @@ import { MapPin, Clock, Flame } from "lucide-react";
 
 interface BoxCardProps {
   box: Box;
+  onReserve?: (box: Box) => void;
+  reserving?: boolean;
+  isReserved?: boolean;
 }
 
 const CATEGORY_MAP: Record<number, string> = {
@@ -12,10 +15,19 @@ const CATEGORY_MAP: Record<number, string> = {
   3: "Groceries",
 };
 
-export function BoxCard({ box }: BoxCardProps) {
+export function BoxCard({ box,  onReserve, reserving = false, isReserved = false  }: BoxCardProps) {
   // Видалено небезпечний split по amazonaws, тепер нормальні URL не ламаються
   const formatImageUrl = (url: string) => {
-    if (!url) return "https://placehold.co/600x400/163d32/FFF?text=Magic+Box";
+    // Надійний плейсхолдер (via.placeholder часто блокується адблоками, placehold.co - ні)
+    const fallback = "https://placehold.co/600x400/163d32/FFF?text=ShareBite";
+    if (!url) return fallback;
+
+    // Якщо бекенд випадково склеїв S3 урл і Unsplash (наприклад: https://s3.com/bucket/https://images...)
+    const httpIndex = url.lastIndexOf("http");
+    if (httpIndex > 0) {
+      return url.substring(httpIndex);
+    }
+    
     return url;
   };
 
@@ -31,6 +43,17 @@ export function BoxCard({ box }: BoxCardProps) {
   const fullPrice = Number(box.full_price);
   const discountPrice = Number(box.discount_price);
 
+  const isSoldOut = box.availability_status === "sold_out";
+  const disabled = !onReserve || reserving || isReserved || isSoldOut;
+
+  const buttonLabel = isReserved
+    ? "Reserved"
+    : reserving
+      ? "Reserving..."
+      : isSoldOut
+        ? "Sold Out"
+        : "Reserve";
+  
   return (
     <div className="bg-white dark:bg-[#163d32] border border-gray-100 dark:border-[#2f5e50] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-lg dark:hover:shadow-[#98FF98]/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
       {/* Upper part: Photo and badges */}
@@ -40,6 +63,7 @@ export function BoxCard({ box }: BoxCardProps) {
           alt={categoryName}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           onError={(e) => {
+            e.currentTarget.onerror = null;
             e.currentTarget.src = "https://placehold.co/600x400/163d32/FFF?text=ShareBite";
           }}
         />
@@ -87,8 +111,12 @@ export function BoxCard({ box }: BoxCardProps) {
               {Number.isFinite(discountPrice) ? discountPrice.toFixed(2) : "—"} ₴
             </span>
           </div>
-          <Button className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200] dark:hover:bg-[#FFD700]/80 font-bold rounded-xl px-6 py-5 shadow-md dark:shadow-lg dark:shadow-[#FFD700]/20 transition-all">
-            Reserve
+          <Button
+            onClick={() => onReserve?.(box)}
+            disabled={disabled}
+            className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200] disabled:opacity-60 dark:hover:bg-[#FFD700]/80 font-bold rounded-xl px-6 py-5 shadow-md dark:shadow-lg dark:shadow-[#FFD700]/20 transition-all"
+          >
+            {buttonLabel}
           </Button>
         </div>
       </div>

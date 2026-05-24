@@ -19,6 +19,7 @@ type OrgUnit struct {
 	Latitude     *float32
 	Longitude    *float32
 	Tags         []string
+	H3Hash       *string
 }
 
 type UpdateOrgUnitInput struct {

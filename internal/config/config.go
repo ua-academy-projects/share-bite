@@ -31,6 +31,7 @@ type config struct {
 	Redis    Redis
 
 	JwtToken  JwtToken
+	H3        H3
 	Email     Email
 	RateLimit RateLimit
 	Github    GitHub
@@ -104,6 +105,11 @@ type JwtToken interface {
 
 	RefreshTokenSecretKey() string
 	RefreshTokenTTL() time.Duration
+}
+
+type H3 interface {
+	Resolution() int
+	RecommendRadius() int
 }
 
 type Email interface {
@@ -206,7 +212,10 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 	if err != nil {
 		return fmt.Errorf("rate limit config: %w", err)
 	}
-
+	h3Config, err := env.NewH3Config()
+	if err != nil {
+		return fmt.Errorf("h3 config: %w", err)
+	}
 	storageConfig, err := env.NewS3StorageConfig()
 	if err != nil {
 		return fmt.Errorf("storage config: %w", err)
@@ -246,6 +255,7 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		Postgres:  postgresConfig,
 		Redis:     redisConfig,
 		JwtToken:  jwtTokenConfig,
+		H3:        h3Config,
 		Email:     emailConfig,
 		RateLimit: rateLimitConfig,
 

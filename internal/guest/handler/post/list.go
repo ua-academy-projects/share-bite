@@ -2,8 +2,9 @@ package post
 
 import (
 	"context"
-	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 	"net/http"
+
+	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -49,6 +50,7 @@ func (h *handler) list(c *gin.Context) {
 		Limit:      req.Limit,
 		Offset:     req.Offset,
 		CustomerID: customerID,
+		AuthorID:   req.AuthorID,
 	}
 	out, err := h.service.List(ctx, in)
 	if err != nil {
@@ -71,8 +73,9 @@ func (h *handler) list(c *gin.Context) {
 }
 
 type listRequest struct {
-	Limit  int `form:"limit,default=20" binding:"gte=1,lte=100"`
-	Offset int `form:"offset,default=0" binding:"gte=0,lte=1000"`
+	Limit    int    `form:"limit,default=20" binding:"gte=1,lte=100"`
+	Offset   int    `form:"offset,default=0" binding:"gte=0,lte=1000"`
+	AuthorID string `form:"customer_id" binding:"omitempty,uuid"`
 }
 
 type listResponse struct {

@@ -1,0 +1,53 @@
+name: Deploy Frontend to EC2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'build/Dockerfile.frontend'
+      - 'compose.aws.yaml'
+  workflow_dispatch:
+
+jobs:
+  security-and-deploy:
+    name: Check and Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Security Scan (npm audit)
+        run: npm audit --audit-level=high
+        working-directory: frontend
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/share-bite/share-bite
+            git fetch origin main
+            git reset --hard origin/main
+            
+            docker build --no-cache --build-arg VITE_API_BASE_URL=http://***:8080 -t share-bite-frontend -f build/Dockerfile.frontend .
+            
+            docker stop share-bite-frontend || true
+            docker rm share-bite-frontend || true
+            
+            docker run -d --name share-bite-frontend -p 80:80 --restart always share-bite-frontend
