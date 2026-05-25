@@ -61,7 +61,6 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 
 	if s.imageProcessingProducer != nil {
 		for _, image := range post.Images {
-
 			err := s.imageProcessingProducer.SendMessage(
 				ctx,
 				imageprocessing.ProcessImageMessage{
@@ -69,8 +68,8 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 					S3Key:   image.ObjectKey,
 				},
 			)
-
 			if err != nil {
+
 				logger.ErrorKV(
 					ctx,
 					"failed to send image processing message",
@@ -78,6 +77,21 @@ func (s *service) Create(ctx context.Context, in dto.CreatePostInput) (entity.Po
 					"object_key", image.ObjectKey,
 					"error", err,
 				)
+
+				markErr := s.postRepo.MarkProcessingFailed(
+					ctx,
+					image.ID,
+					"failed to enqueue image processing task",
+				)
+
+				if markErr != nil {
+					logger.ErrorKV(
+						ctx,
+						"failed to mark image processing as failed",
+						"image_id", image.ID,
+						"error", markErr,
+					)
+				}
 			}
 		}
 	}

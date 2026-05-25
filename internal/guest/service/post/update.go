@@ -295,10 +295,6 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 	}
 	if s.imageProcessingProducer != nil {
 		for _, image := range post.Images {
-			if keptMap[image.ObjectKey] {
-				continue
-			}
-
 			err := s.imageProcessingProducer.SendMessage(
 				ctx,
 				imageprocessing.ProcessImageMessage{
@@ -307,6 +303,7 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 				},
 			)
 			if err != nil {
+
 				logger.ErrorKV(
 					ctx,
 					"failed to send image processing message",
@@ -314,6 +311,21 @@ func (s *service) Update(ctx context.Context, in entity.UpdatePostInput) (entity
 					"object_key", image.ObjectKey,
 					"error", err,
 				)
+
+				markErr := s.postRepo.MarkProcessingFailed(
+					ctx,
+					image.ID,
+					"failed to enqueue image processing task",
+				)
+
+				if markErr != nil {
+					logger.ErrorKV(
+						ctx,
+						"failed to mark image processing as failed",
+						"image_id", image.ID,
+						"error", markErr,
+					)
+				}
 			}
 		}
 	}
