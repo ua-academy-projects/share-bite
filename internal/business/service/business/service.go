@@ -60,6 +60,8 @@ type businessRepository interface {
 	GetOrgUnitTagsByOrgUnitID(ctx context.Context, ids []int) (map[int][]string, error)
 	SetOrgUnitTagsByIDs(ctx context.Context, orgUnitID int, tagIDs []int) error
 	ListLocationTags(ctx context.Context) ([]entity.LocationTag, error)
+	ReplaceLocationHours(ctx context.Context, venueID int, days []dto.VenueHoursDayInput) error
+	GetLocationHours(ctx context.Context, venueID int) ([]dto.VenueHoursDayInput, error)
 
 	GetBox(ctx context.Context, boxID int64) (*entity.Box, error)
 	ReserveBoxItem(ctx context.Context, boxID int64, userID string) (string, error)

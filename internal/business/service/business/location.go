@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 
@@ -192,4 +193,90 @@ func (s *service) DeleteLocation(ctx context.Context, locationID int, ownerUserI
 
 func (s *service) ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error) {
 	return s.businessRepo.ListNearbyVenues(ctx, lat, lon, skip, limit)
+}
+
+func (s *service) UpdateVenueHours(
+	ctx context.Context,
+	locationID int,
+	ownerUserID string,
+	in dto.UpdateVenueHoursInput,
+) (*dto.UpdateVenueHoursOutput, error) {
+	const op = "business.service.UpdateVenueHours"
+
+	if len(in.Days) == 0 {
+		return nil, apperror.BadRequest("days is required")
+	}
+
+	seen := make(map[int]struct{}, 7)
+	for _, d := range in.Days {
+		if _, ok := seen[d.Weekday]; ok {
+			return nil, apperror.BadRequest("duplicate weekday")
+		}
+		seen[d.Weekday] = struct{}{}
+
+		if d.OpenTime == nil && d.CloseTime == nil {
+			continue
+		}
+
+		if d.OpenTime == nil || d.CloseTime == nil {
+			return nil, apperror.BadRequest("both openTime and closeTime must be provided together")
+		}
+
+		openT, err := time.Parse("15:04", *d.OpenTime)
+		if err != nil {
+			return nil, apperror.BadRequest("openTime must be HH:MM")
+		}
+
+		closeT, err := time.Parse("15:04", *d.CloseTime)
+		if err != nil {
+			return nil, apperror.BadRequest("closeTime must be HH:MM")
+		}
+
+		if !openT.Before(closeT) {
+			return nil, apperror.BadRequest("openTime must be before closeTime")
+		}
+	}
+
+	ownerBrandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, ownerUserID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, apperror.Forbidden("business profile not found")
+		}
+		return nil, fmt.Errorf("%s: get owner brand id: %w", op, err)
+	}
+
+	location, err := s.businessRepo.GetById(ctx, locationID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, apperror.LocationNotFoundID(locationID)
+		}
+		return nil, fmt.Errorf("%s: get location: %w", op, err)
+	}
+
+	if location.ProfileType != entity.ProfileTypeVenue {
+		return nil, apperror.BadRequest("target org unit is not a location")
+	}
+	if location.ParentId == nil || *location.ParentId != ownerBrandID {
+		return nil, apperror.Forbidden("you can manage only your own brand locations")
+	}
+
+	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
+		if err := s.businessRepo.ReplaceLocationHours(ctxTx, locationID, in.Days); err != nil {
+			return fmt.Errorf("%s: replace location hours: %w", op, err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	days, err := s.businessRepo.GetLocationHours(ctx, locationID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: get location hours: %w", op, err)
+	}
+
+	return &dto.UpdateVenueHoursOutput{
+		VenueID: locationID,
+		Days:    days,
+	}, nil
 }
