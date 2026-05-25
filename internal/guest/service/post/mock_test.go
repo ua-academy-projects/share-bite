@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
@@ -44,6 +45,26 @@ type postRepositoryMock struct {
 	lastGetViewerID        string
 	lastUpdateInput        entity.UpdatePostInput
 	lastDeleteImagesPostID string
+}
+
+func (m *postRepositoryMock) CreateImages(ctx context.Context, images []entity.PostImage) ([]entity.PostImage, error) {
+	return images, nil
+}
+
+func (m *postRepositoryMock) UpdateProcessedMetadata(ctx context.Context, imageID string, thumbnailKey string, width int, height int) error {
+	return nil
+}
+
+func (m *postRepositoryMock) MarkProcessingFailed(ctx context.Context, imageID string, reason string) error {
+	return nil
+}
+
+func (m *postRepositoryMock) IsAlreadyProcessed(ctx context.Context, imageID string) (bool, error) {
+	return false, nil
+}
+
+func (m *postRepositoryMock) MarkProcessing(ctx context.Context, imageID string) error {
+	return nil
 }
 
 func (m *postRepositoryMock) DeleteImagesByPostIDReturningKeys(ctx context.Context, postID string) ([]string, error) {
@@ -104,10 +125,6 @@ func (m *postRepositoryMock) GetAuthorUserID(ctx context.Context, postID string)
 		return m.getAuthorUserIDFn(ctx, postID)
 	}
 	return "", nil
-}
-
-func (m *postRepositoryMock) CreateImages(ctx context.Context, images []entity.PostImage) error {
-	return nil
 }
 
 func (m *postRepositoryMock) DeleteImagesByPostID(ctx context.Context, postID string) error {
@@ -223,6 +240,15 @@ type storageMock struct {
 	deleteFn          func(ctx context.Context, key string) error
 	buildURLFn        func(key string) string
 	getPresignedURLFn func(ctx context.Context, key string) (string, error)
+	getFn             func(ctx context.Context, key string) (io.ReadCloser, error)
+}
+
+func (m *storageMock) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	if m.getFn != nil {
+		return m.getFn(ctx, key)
+	}
+
+	return io.NopCloser(strings.NewReader("")), nil
 }
 
 func (m *storageMock) Upload(ctx context.Context, key string, contentType string, file io.Reader) error {

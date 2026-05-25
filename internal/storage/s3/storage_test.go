@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,15 @@ import (
 
 type mockS3Client struct {
 	mock.Mock
+}
+
+func (m *mockS3Client) GetObject(ctx context.Context, params *awss3.GetObjectInput, optFns ...func(*awss3.Options)) (*awss3.GetObjectOutput, error) {
+	args := m.Called(ctx, params)
+
+	if out, ok := args.Get(0).(*awss3.GetObjectOutput); ok {
+		return out, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *mockS3Client) PutObject(ctx context.Context, params *awss3.PutObjectInput, optFns ...func(*awss3.Options)) (*awss3.PutObjectOutput, error) {
@@ -238,4 +248,94 @@ func TestBuildURL(t *testing.T) {
 		url := storage.BuildURL(testKey)
 		require.Equal(t, "http://localhost:4300/test-bucket/customers/123/avatar/abc.jpg", url)
 	})
+}
+
+func TestGet(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		key     string
+		mockFn  func(c *mockS3Client)
+		wantErr bool
+	}{
+		{
+			name: "success",
+			key:  testKey,
+			mockFn: func(c *mockS3Client) {
+				c.On("GetObject", mock.Anything, mock.Anything).
+					Return(
+						&awss3.GetObjectOutput{
+							Body: io.NopCloser(
+								strings.NewReader("image data"),
+							),
+						},
+						nil,
+					).Once()
+			},
+			wantErr: false,
+		},
+		{
+			name:    "error - empty key",
+			key:     "",
+			mockFn:  func(c *mockS3Client) {},
+			wantErr: true,
+		},
+		{
+			name:    "error - invalid key",
+			key:     "invalid key.jpg",
+			mockFn:  func(c *mockS3Client) {},
+			wantErr: true,
+		},
+		{
+			name: "error - s3 failure",
+			key:  testKey,
+			mockFn: func(c *mockS3Client) {
+				c.On("GetObject", mock.Anything, mock.Anything).
+					Return(
+						(*awss3.GetObjectOutput)(nil),
+						errors.New("s3 error"),
+					).Once()
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			client := new(mockS3Client)
+
+			tt.mockFn(client)
+
+			fakePresign := newFakePresignClient()
+
+			storage := NewS3Storage(
+				client,
+				testBucket,
+				"",
+				testRegion,
+				fakePresign,
+				15*time.Minute,
+			)
+
+			reader, err := storage.Get(
+				context.Background(),
+				tt.key,
+			)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Nil(t, reader)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, reader)
+
+				_ = reader.Close()
+			}
+
+			client.AssertExpectations(t)
+		})
+	}
 }
