@@ -26,12 +26,29 @@ spec:
       labels:
         app: redis
     spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 1000
       containers:
         - name: redis
           image: redis:7.4-alpine
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 6379
               name: redis
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             tcpSocket:
               port: 6379
@@ -42,3 +59,8 @@ spec:
               port: 6379
             initialDelaySeconds: 10
             periodSeconds: 10
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
