@@ -3,8 +3,6 @@ package post
 import (
 	"context"
 	"fmt"
-	"github.com/ua-academy-projects/share-bite/internal/imageprocessing"
-	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"time"
 
 	"github.com/google/uuid"
@@ -195,27 +193,6 @@ func (s *service) createPostTx(ctx context.Context, in dto.CreatePostInput, post
 		}
 
 		createdPost.Images = createdImages
-
-		if s.imageProcessingProducer != nil {
-			for _, image := range createdImages {
-				err := s.imageProcessingProducer.SendMessage(
-					ctx,
-					imageprocessing.ProcessImageMessage{
-						ImageID: image.ID,
-						S3Key:   image.ObjectKey,
-					},
-				)
-				if err != nil {
-					logger.ErrorKV(
-						ctx,
-						"failed to send image processing message",
-						"image_id", image.ID,
-						"object_key", image.ObjectKey,
-						"error", err,
-					)
-				}
-			}
-		}
 	}
 
 	// create mentions

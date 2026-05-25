@@ -20,7 +20,7 @@ var processor *imageprocessing.Service
 func init() {
 	ctx := context.Background()
 
-	err := config.Load(".env")
+	err := config.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,7 +37,6 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer dbClient.Close()
 
 	postRepository := postrepo.New(dbClient)
 
@@ -47,8 +46,11 @@ func init() {
 	)
 }
 
-func handler(ctx context.Context, event events.SQSEvent) error {
+func handler(ctx context.Context, event events.SQSEvent) (events.SQSEventResponse, error) {
+	var failures []events.SQSBatchItemFailure
+
 	for _, record := range event.Records {
+
 		var msg imageprocessing.ProcessImageMessage
 
 		err := json.Unmarshal(
@@ -56,7 +58,20 @@ func handler(ctx context.Context, event events.SQSEvent) error {
 			&msg,
 		)
 		if err != nil {
-			return err
+
+			log.Printf(
+				"failed to unmarshal message: %v",
+				err,
+			)
+
+			failures = append(
+				failures,
+				events.SQSBatchItemFailure{
+					ItemIdentifier: record.MessageId,
+				},
+			)
+
+			continue
 		}
 
 		log.Printf(
@@ -70,17 +85,27 @@ func handler(ctx context.Context, event events.SQSEvent) error {
 			msg,
 		)
 		if err != nil {
+
 			log.Printf(
 				"failed to process image %s: %v",
 				msg.ImageID,
 				err,
 			)
 
+			failures = append(
+				failures,
+				events.SQSBatchItemFailure{
+					ItemIdentifier: record.MessageId,
+				},
+			)
+
 			continue
 		}
 	}
 
-	return nil
+	return events.SQSEventResponse{
+		BatchItemFailures: failures,
+	}, nil
 }
 
 func main() {

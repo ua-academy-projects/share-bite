@@ -42,8 +42,7 @@ type postRepository interface {
 
 	UpdateProcessedMetadata(ctx context.Context, imageID string, thumbnailKey string, width int, height int) error
 	MarkProcessingFailed(ctx context.Context, imageID string, reason string) error
-	IsAlreadyProcessed(ctx context.Context, imageID string) (bool, error)
-	MarkProcessing(ctx context.Context, imageID string) error
+	ClaimForProcessing(ctx context.Context, imageID string) (bool, error)
 }
 
 type VenueProvider interface {

@@ -59,12 +59,8 @@ func (m *postRepositoryMock) MarkProcessingFailed(ctx context.Context, imageID s
 	return nil
 }
 
-func (m *postRepositoryMock) IsAlreadyProcessed(ctx context.Context, imageID string) (bool, error) {
+func (m *postRepositoryMock) ClaimForProcessing(ctx context.Context, imageID string) (bool, error) {
 	return false, nil
-}
-
-func (m *postRepositoryMock) MarkProcessing(ctx context.Context, imageID string) error {
-	return nil
 }
 
 func (m *postRepositoryMock) DeleteImagesByPostIDReturningKeys(ctx context.Context, postID string) ([]string, error) {

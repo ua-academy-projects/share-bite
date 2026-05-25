@@ -16,8 +16,7 @@ import (
 type Repository interface {
 	UpdateProcessedMetadata(ctx context.Context, imageID string, thumbnailKey string, width int, height int) error
 	MarkProcessingFailed(ctx context.Context, imageID string, reason string) error
-	IsAlreadyProcessed(ctx context.Context, imageID string) (bool, error)
-	MarkProcessing(ctx context.Context, imageID string) error
+	ClaimForProcessing(ctx context.Context, imageID string) (bool, error)
 }
 
 type Service struct {
@@ -39,18 +38,16 @@ func (s *Service) ProcessImage(ctx context.Context, msg ProcessImageMessage) (er
 		}
 	}()
 
-	alreadyProcessed, err := s.repository.IsAlreadyProcessed(ctx, msg.ImageID)
+	claimed, err := s.repository.ClaimForProcessing(
+		ctx,
+		msg.ImageID,
+	)
 	if err != nil {
 		return err
 	}
 
-	if alreadyProcessed {
+	if !claimed {
 		return nil
-	}
-
-	err = s.repository.MarkProcessing(ctx, msg.ImageID)
-	if err != nil {
-		return err
 	}
 
 	reader, err := s.storage.Get(ctx, msg.S3Key)
