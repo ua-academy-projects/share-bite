@@ -1,9 +1,5 @@
 package env
 
-import (
-	"github.com/caarlos0/env/v11"
-)
-
 type githubConfig struct {
 	ClientID           string `env:"GITHUB_CLIENT_ID,required"`
 	ClientSecret       string `env:"GITHUB_CLIENT_SECRET,required"`
@@ -11,9 +7,9 @@ type githubConfig struct {
 	SuccessRedirectURL string `env:"GITHUB_SUCCESS_REDIRECT_URL"`
 }
 
-func NewGitHubConfig() (*githubConfig, error) {
+func NewGitHubConfig(opts ...Options) (*githubConfig, error) {
 	config := new(githubConfig)
-	if err := env.Parse(config); err != nil {
+	if err := Parse(config, opts...); err != nil {
 		return nil, err
 	}
 	return config, nil

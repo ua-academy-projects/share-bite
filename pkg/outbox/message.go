@@ -7,19 +7,20 @@ import (
 )
 
 const (
-	EventTypePostLiked     = "post_liked"
-	EventTypePostPublished = "post_published"
+	EventTypePostLiked             = "post_liked"
+	EventTypePostPublished         = "post_published"
+	EventTypeRegistrationConfirmed = "registration_confirmed"
 )
 
 type Message struct {
-	EventID     string         `json:"event_id"`
-	EventType   string         `json:"event_type"`
-	RecipientID string         `json:"recipient_id"`
-	ActorID     string         `json:"actor_id"`
-	EntityType  string         `json:"entity_type"`
-	EntityID    string         `json:"entity_id"`
+	EventID     string         `json:"eventID"`
+	EventType   string         `json:"eventType"`
+	RecipientID string         `json:"recipientID"`
+	ActorID     string         `json:"actorID"`
+	EntityType  string         `json:"entityType"`
+	EntityID    string         `json:"entityID"`
 	Metadata    map[string]any `json:"metadata,omitempty"`
-	CreatedAt   time.Time      `json:"created_at"`
+	CreatedAt   time.Time      `json:"createdAt"`
 }
 
 func NewEventID(parts ...string) string {

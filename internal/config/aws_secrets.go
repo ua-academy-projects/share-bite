@@ -1,0 +1,95 @@
+package config
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/ua-academy-projects/share-bite/internal/config/env"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
+)
+
+const notificationPrefixLambda = "NOTIFICATION_"
+
+// LoadFromAWSSecrets fetches secrets from AWS Secrets Manager and initializes the environment.
+// It returns the secret map so callers can pass it to LoadWithSecrets for full configuration orchestration.
+func LoadFromAWSSecrets(ctx context.Context, secretName string) (map[string]string, error) {
+	awsConfig, err := awscfg.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	client := secretsmanager.NewFromConfig(awsConfig)
+
+	logger.Infof(ctx, "Loading configuration from AWS Secrets Manager: %s", secretName)
+	result, err := client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
+		SecretId: &secretName,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret from AWS Secrets Manager: %w", err)
+	}
+
+	if result.SecretString == nil {
+		return nil, fmt.Errorf("secret string is nil; secret %s may be binary or empty", secretName)
+	}
+	secretData := []byte(*result.SecretString)
+
+	var secretMap map[string]string
+	if err := json.Unmarshal(secretData, &secretMap); err != nil {
+		return nil, fmt.Errorf("failed to parse secret JSON: %w", err)
+	}
+
+	logger.Infof(ctx, "Successfully loaded %d secrets from AWS Secrets Manager", len(secretMap))
+
+	env.Init(secretMap)
+
+	appConfig, err := env.NewAppConfig()
+	if err != nil {
+		return nil, fmt.Errorf("app config: %w", err)
+	}
+
+	postgresConfig, err := env.NewPostgresConfig()
+	if err != nil {
+		return nil, fmt.Errorf("postgres config: %w", err)
+	}
+
+	redisConfig, err := env.NewRedisConfig()
+	if err != nil {
+		return nil, fmt.Errorf("redis config: %w", err)
+	}
+
+	jwtTokenConfig, err := env.NewJwtTokenConfig()
+	if err != nil {
+		return nil, fmt.Errorf("jwt token config: %w", err)
+	}
+
+	emailConfig, err := env.NewEmailConfig()
+	if err != nil {
+		return nil, fmt.Errorf("email config: %w", err)
+	}
+
+	notificationHttpServerConfig, err := env.NewHttpServerConfig(notificationPrefixLambda)
+	if err != nil {
+		return nil, fmt.Errorf("notification http server config: %w", err)
+	}
+
+	notificationSQSConfig, err := env.NewSQSConfig(notificationPrefixLambda)
+	if err != nil {
+		return nil, fmt.Errorf("notification sqs config: %w", err)
+	}
+
+	cfg = &config{
+		App:      appConfig,
+		Postgres: postgresConfig,
+		Redis:    redisConfig,
+		JwtToken: jwtTokenConfig,
+		Email:    emailConfig,
+
+		NotificationHttpServer: notificationHttpServerConfig,
+		NotificationSQS:        notificationSQSConfig,
+	}
+
+	return secretMap, nil
+}

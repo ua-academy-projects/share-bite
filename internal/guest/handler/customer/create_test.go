@@ -21,6 +21,7 @@ func TestCreate(t *testing.T) {
 		userID     = gofakeit.UUID()
 		customerID = gofakeit.UUID()
 
+		email     = gofakeit.Email()
 		userName  = "sharebite04"
 		firstName = gofakeit.FirstName()
 		lastName  = gofakeit.LastName()
@@ -42,6 +43,7 @@ func TestCreate(t *testing.T) {
 			name:   "success",
 			userID: userID,
 			body: createRequest{
+				Email:     email,
 				UserName:  userName,
 				FirstName: firstName,
 				LastName:  lastName,
@@ -50,6 +52,7 @@ func TestCreate(t *testing.T) {
 			mockFn: func(s *mockCustomerService) {
 				s.On("Create", mock.Anything, entity.CreateCustomer{
 					UserID:    userID,
+					Email:     email,
 					UserName:  userName,
 					FirstName: firstName,
 					LastName:  lastName,
@@ -72,6 +75,7 @@ func TestCreate(t *testing.T) {
 		{
 			name: "binding validation error",
 			body: createRequest{
+				Email:     email,
 				UserName:  "",
 				FirstName: "",
 				LastName:  "",
@@ -91,6 +95,7 @@ func TestCreate(t *testing.T) {
 		{
 			name: "custom mapper validation error - spaces only",
 			body: createRequest{
+				Email:     email,
 				UserName:  userName,
 				FirstName: "   ",
 				LastName:  lastName,
@@ -108,6 +113,7 @@ func TestCreate(t *testing.T) {
 		{
 			name: "error - username taken",
 			body: createRequest{
+				Email:     email,
 				UserName:  userName,
 				FirstName: firstName,
 				LastName:  lastName,
@@ -116,6 +122,7 @@ func TestCreate(t *testing.T) {
 			mockFn: func(s *mockCustomerService) {
 				s.On("Create", mock.Anything, entity.CreateCustomer{
 					UserID:    userID,
+					Email:     email,
 					UserName:  userName,
 					FirstName: firstName,
 					LastName:  lastName,
@@ -129,6 +136,7 @@ func TestCreate(t *testing.T) {
 		{
 			name: "unauthorized - no user id in context",
 			body: createRequest{
+				Email:     email,
 				UserName:  userName,
 				FirstName: firstName,
 				LastName:  lastName,
@@ -141,6 +149,7 @@ func TestCreate(t *testing.T) {
 		{
 			name: "service unknown error",
 			body: createRequest{
+				Email:     email,
 				UserName:  userName,
 				FirstName: firstName,
 				LastName:  lastName,
@@ -150,6 +159,7 @@ func TestCreate(t *testing.T) {
 			mockFn: func(s *mockCustomerService) {
 				s.On("Create", mock.Anything, entity.CreateCustomer{
 					UserID:    userID,
+					Email:     email,
 					UserName:  userName,
 					FirstName: firstName,
 					LastName:  lastName,

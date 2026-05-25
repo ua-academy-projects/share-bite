@@ -3,7 +3,7 @@
     {
       "messageId": "msg-001",
       "receiptHandle": "handle-001",
-      "body": "{\"eventID\":\"e1a2b3c4\",\"eventType\":\"post_liked\",\"recipientID\":\"user-42\",\"actorID\":\"user-99\",\"entityType\":\"post\",\"entityID\":\"post-123\",\"createdAt\":\"2026-05-01T12:00:00Z\"}",
+      "body": "{\"eventID\":\"e1a2b3c4\",\"eventType\":\"registration_confirmed\",\"recipientID\":\"user-42\",\"actorID\":\"user-99\",\"entityType\":\"post\",\"entityID\":\"post-123\",\"createdAt\":\"2026-05-01T12:00:00Z\",\"metadata\":{\"email\":\"test@example.com\"}}",
       "attributes": {
         "ApproximateReceiveCount": "1",
         "SentTimestamp": "1714555200000",
@@ -19,7 +19,7 @@
     {
       "messageId": "msg-002",
       "receiptHandle": "handle-002",
-      "body": "{\"eventType\":\"post_liked\"}",
+      "body": "{\"eventType\":\"registration_confirmed\"}",
       "attributes": {
         "ApproximateReceiveCount": "1",
         "SentTimestamp": "1714555200000",

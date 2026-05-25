@@ -101,9 +101,7 @@ S3_SECRET_KEY=your-aws-secret-key
 
 > `S3_ENDPOINT` and `S3_USE_PATH_STYLE` are not required for native AWS S3.
 
-### 6. Notifications helper and Redis
-
-The repository includes a shared Redis Pub/Sub helper in `pkg/notification` for notification events.
+### 6. Redis
 
 For local development, add Redis connection values to `.env` based on `.env.example`:
 

@@ -2,23 +2,21 @@ package env
 
 import (
 	"time"
-
-	"github.com/caarlos0/env/v11"
 )
 
 type s3StorageConfig struct {
 	StorageEndpoint     string        `env:"S3_ENDPOINT"`
-	StorageRegion       string        `env:"S3_REGION,notEmpty"`
-	StorageAccessKey    string        `env:"S3_ACCESS_KEY"`
-	StorageSecretKey    string        `env:"S3_SECRET_KEY"`
-	StorageBucket       string        `env:"S3_BUCKET,notEmpty"`
-	StorageUsePathStyle bool          `env:"S3_USE_PATH_STYLE"`
+	StorageRegion       string        `env:"S3_REGION,required"`
+	StorageAccessKey    string        `env:"S3_ACCESS_KEY,required"`
+	StorageSecretKey    string        `env:"S3_SECRET_KEY,required"`
+	StorageBucket       string        `env:"S3_BUCKET,required"`
+	StorageUsePathStyle bool          `env:"S3_USE_PATH_STYLE" envDefault:"false"`
 	StoragePresignTTL   time.Duration `env:"S3_PRESIGN_URL_TTL" envDefault:"15m"`
 }
 
-func NewS3StorageConfig() (*s3StorageConfig, error) {
+func NewS3StorageConfig(opts ...Options) (*s3StorageConfig, error) {
 	config := new(s3StorageConfig)
-	if err := env.Parse(config); err != nil {
+	if err := Parse(config, opts...); err != nil {
 		return nil, err
 	}
 
