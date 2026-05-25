@@ -1,5 +1,7 @@
 import json
 
+from app.config import settings
+
 from .http_client import guest_client
 from .server import mcp
 
@@ -18,7 +20,7 @@ async def guest_health_check() -> str:
 )
 async def get_guest_api_status() -> str:
     """Fetch deep operational status."""
-    result = await guest_client.get("/status")
+    result = await guest_client.get("/status", auth_token=settings.auth_token)
     if result["is_error"] is True:
         raise RuntimeError(f"Status check failed: {result['error_message']}")
     return json.dumps(result["data"])
