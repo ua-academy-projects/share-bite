@@ -8,6 +8,8 @@ COUNT ?= 1
 MIGRATIONS_DIR := migrations
 K8S_NAMESPACE ?= share-bite-local
 K8S_SECRETS_FILE ?= docs/k8s/secrets.local.yaml
+K8S_SECRET_NAME ?= share-bite-secrets
+K8S_READY_TIMEOUT ?= 180s
 
 -include .env
 DB_DSN := host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password='$(POSTGRES_PASSWORD)' dbname=$(POSTGRES_DB) sslmode=$(POSTGRES_SSL)
@@ -108,8 +110,11 @@ k8s-secrets:
 	kubectl apply -f deploy/k8s/infra/namespace.yaml
 	kubectl apply -f $(K8S_SECRETS_FILE)
 
-k8s-up:
+k8s-up: k8s-secrets
 	kubectl apply -k deploy/k8s/infra
+	kubectl wait --for=create secret/$(K8S_SECRET_NAME) -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl rollout status statefulset/postgres -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl rollout status deployment/redis -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
 	@echo "Infrastructure ready in namespace $(K8S_NAMESPACE)."
 	@echo "Next step: run 'make k8s-migrate'."
 
