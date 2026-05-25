@@ -11,6 +11,7 @@ const (
 	prefixBusinesses = "businesses"
 	prefixPosts      = "posts"
 	prefixAvatars    = "avatars"
+	prefixThumbnails = "thumbnails"
 )
 
 // CustomerPostImageKey generates an object key for a customer's post image.
@@ -37,4 +38,17 @@ func CustomerAvatarKey(customerID, fileID, ext string) string {
 // getFileName constructs a safe filename by combining the file ID and extension.
 func getFileName(fileID, ext string) string {
 	return fmt.Sprintf("%s.%s", fileID, ext)
+}
+
+// PostThumbnailKey generates an object key for processed post thumbnails.
+// Result: posts/thumbnails/{uploadSessionID}/{fileID}.{ext}
+func PostThumbnailKey(uploadSessionID, fileID, ext string) string {
+	fileName := getFileName(fileID, ext)
+
+	return path.Join(
+		prefixPosts,
+		prefixThumbnails,
+		uploadSessionID,
+		fileName,
+	)
 }

@@ -2,6 +2,7 @@ package post
 
 import (
 	"context"
+	"github.com/ua-academy-projects/share-bite/internal/imageprocessing"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
@@ -22,7 +23,7 @@ type postRepository interface {
 	DeleteImagesByPostIDReturningKeys(ctx context.Context, postID string) ([]string, error)
 	Like(ctx context.Context, postID string, customerID string) (bool, error)
 	Unlike(ctx context.Context, postID string, customerID string) error
-	CreateImages(ctx context.Context, images []entity.PostImage) error
+	CreateImages(ctx context.Context, images []entity.PostImage) ([]entity.PostImage, error)
 	DeleteImagesByPostID(ctx context.Context, postID string) error
 	UpdateStatus(ctx context.Context, postID, customerID string, status entity.PostStatus) error
 	GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, limit int) ([]entity.Post, error)
@@ -38,6 +39,10 @@ type postRepository interface {
 	IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error)
 
 	DeleteExpiredDraftPosts(ctx context.Context) error
+
+	UpdateProcessedMetadata(ctx context.Context, imageID string, thumbnailKey string, width int, height int) error
+	MarkProcessingFailed(ctx context.Context, imageID string, reason string) error
+	ClaimForProcessing(ctx context.Context, imageID string) (bool, error)
 }
 
 type VenueProvider interface {
@@ -59,13 +64,14 @@ type postCleanupService interface {
 }
 
 type service struct {
-	postRepo      postRepository
-	venueProvider VenueProvider
-	followRepo    followRepo
-	customerRepo  customerRepo
-	storage       storage.ObjectStorage
-	txManager     database.TxManager
-	outboxWriter  outbox.Writer
+	postRepo                postRepository
+	venueProvider           VenueProvider
+	followRepo              followRepo
+	customerRepo            customerRepo
+	storage                 storage.ObjectStorage
+	txManager               database.TxManager
+	outboxWriter            outbox.Writer
+	imageProcessingProducer *imageprocessing.Producer
 }
 
 type Option func(*service)
@@ -73,6 +79,12 @@ type Option func(*service)
 func WithOutboxWriter(writer outbox.Writer) Option {
 	return func(s *service) {
 		s.outboxWriter = writer
+	}
+}
+
+func WithImageProcessingProducer(producer *imageprocessing.Producer) Option {
+	return func(s *service) {
+		s.imageProcessingProducer = producer
 	}
 }
 

@@ -75,25 +75,34 @@ func RegisterHandlers(
 }
 
 type postResponse struct {
-	ID            string            `json:"id"`
-	CustomerID    string            `json:"customerId"`
-	UserName      string            `json:"userName"`
-	AvatarURL     *string           `json:"avatarURL"`
-	VenueID       int64             `json:"venueId"`
-	Text          string            `json:"text"`
-	Rating        int16             `json:"rating"`
-	Status        entity.PostStatus `json:"status"`
-	LikesCount    int               `json:"likesCount"`
-	IsLikedByMe   bool              `json:"isLikedByMe"`
-	Images        []string          `json:"images"`
-	CreatedAt     time.Time         `json:"createdAt"`
-	UpdatedAt     time.Time         `json:"updatedAt"`
-	PublishedAt   *time.Time        `json:"publishedAt,omitempty"`
-	Mentions      []mentionResponse `json:"mentions"`
-	MentionsCount int               `json:"mentionsCount"`
-	Authors       []authorResponse  `json:"authors"`
+	ID            string              `json:"id"`
+	CustomerID    string              `json:"customerId"`
+	UserName      string              `json:"userName"`
+	AvatarURL     *string             `json:"avatarURL"`
+	VenueID       int64               `json:"venueId"`
+	Text          string              `json:"text"`
+	Rating        int16               `json:"rating"`
+	Status        entity.PostStatus   `json:"status"`
+	LikesCount    int                 `json:"likesCount"`
+	IsLikedByMe   bool                `json:"isLikedByMe"`
+	Images        []postImageResponse `json:"images"`
+	CreatedAt     time.Time           `json:"createdAt"`
+	UpdatedAt     time.Time           `json:"updatedAt"`
+	PublishedAt   *time.Time          `json:"publishedAt,omitempty"`
+	Mentions      []mentionResponse   `json:"mentions"`
+	MentionsCount int                 `json:"mentionsCount"`
+	Authors       []authorResponse    `json:"authors"`
 }
 
+type postImageResponse struct {
+	ObjectKey        string                       `json:"objectKey"`
+	URL              string                       `json:"url"`
+	ThumbnailKey     *string                      `json:"thumbnailKey,omitempty"`
+	ThumbnailURL     *string                      `json:"thumbnailURL,omitempty"`
+	ProcessingStatus entity.ImageProcessingStatus `json:"processingStatus"`
+	Width            *int                         `json:"width,omitempty"`
+	Height           *int                         `json:"height,omitempty"`
+}
 type authorResponse struct {
 	ID        string `json:"id"`
 	UserName  string `json:"username"`
@@ -107,11 +116,28 @@ type mentionResponse struct {
 }
 
 func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer, authors []authorResponse) postResponse {
-	imageURLs := make([]string, 0, len(post.Images))
+	images := make([]postImageResponse, 0, len(post.Images))
 
 	if storage != nil {
 		for _, img := range post.Images {
-			imageURLs = append(imageURLs, storage.BuildURL(img.ObjectKey))
+			var imageURL string
+			url, err := storage.GetPresignedURL(context.Background(), img.ObjectKey)
+			if err == nil {
+				imageURL = url
+			}
+			imageResponse := postImageResponse{
+				ObjectKey:        img.ObjectKey,
+				URL:              imageURL,
+				ThumbnailKey:     img.ThumbnailKey,
+				ProcessingStatus: img.ProcessingStatus,
+				Width:            img.Width,
+				Height:           img.Height,
+			}
+			if img.ThumbnailKey != nil {
+				thumbnailURL := storage.BuildURL(*img.ThumbnailKey)
+				imageResponse.ThumbnailURL = &thumbnailURL
+			}
+			images = append(images, imageResponse)
 		}
 	}
 
@@ -149,7 +175,7 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 		Status:        post.Status,
 		LikesCount:    post.LikesCount,
 		IsLikedByMe:   post.IsLikedByMe,
-		Images:        imageURLs,
+		Images:        images,
 		CreatedAt:     post.CreatedAt,
 		UpdatedAt:     post.UpdatedAt,
 		PublishedAt:   post.PublishedAt,

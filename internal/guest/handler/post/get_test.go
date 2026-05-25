@@ -44,7 +44,8 @@ func TestPostHandler_Get(t *testing.T) {
 	require.NoError(t, json.NewDecoder(res.Body).Decode(&got))
 	assert.Equal(t, "42", got.Post.ID)
 	require.Len(t, got.Post.Images, 1)
-	assert.Equal(t, "https://cdn.example/posts/42/cover.jpg", got.Post.Images[0])
+	assert.Equal(t, "posts/42/cover.jpg", got.Post.Images[0].ObjectKey)
+	assert.Equal(t, "http://localhost:3900/app-dev-bucket/posts/42/cover.jpg?signed=true", got.Post.Images[0].URL)
 }
 
 func TestPostHandler_Get_ServiceError(t *testing.T) {

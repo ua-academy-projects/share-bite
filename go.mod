@@ -30,6 +30,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.3
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pressly/goose/v3 v3.27.1
 	github.com/redis/go-redis/v9 v9.19.0
 	github.com/robfig/cron/v3 v3.0.1
