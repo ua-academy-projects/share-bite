@@ -34,5 +34,5 @@ SELECT
 -- +goose Down
 -- +goose StatementBegin
 DROP VIEW IF EXISTS analytics.platform_statistics;
-DROP SCHEMA IF EXISTS analytics CASCADE;
+-- Keep schema intact to avoid dropping unrelated analytics objects.
 -- +goose StatementEnd
