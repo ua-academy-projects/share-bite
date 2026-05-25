@@ -1,6 +1,6 @@
 # Guest API MCP Server
 
-A production-ready Python-based Model Context Protocol (MCP) server built with **FastMCP**. It wraps the Go-based Guest API observability endpoints and exposes them as native MCP tools and resources.
+A Python-based Model Context Protocol (MCP) server built with **FastMCP**. It wraps the Go-based Guest API observability endpoints and exposes them as native MCP tools and resources.
 
 ## Project Structure
 
