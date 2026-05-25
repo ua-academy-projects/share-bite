@@ -2,21 +2,18 @@ package env
 
 import (
 	"time"
-
-	"github.com/caarlos0/env/v11"
 )
 
 type jwtTokenConfig struct {
-	JwtAccessTokenSecretKey  string `env:"JWT_ACCESS_TOKEN_SECRET_KEY,required"`
-	JwtRefreshTokenSecretKey string `env:"JWT_REFRESH_TOKEN_SECRET_KEY,required"`
-
-	JwtAccessTokenTTL  time.Duration `env:"JWT_ACCESS_TOKEN_TTL,required"`
-	JwtRefreshTokenTTL time.Duration `env:"JWT_REFRESH_TOKEN_TTL,required"`
+	JwtAccessTokenSecretKey  string        `env:"JWT_ACCESS_TOKEN_SECRET_KEY,required"`
+	JwtAccessTokenTTL        time.Duration `env:"JWT_ACCESS_TOKEN_TTL,required"`
+	JwtRefreshTokenSecretKey string        `env:"JWT_REFRESH_TOKEN_SECRET_KEY,required"`
+	JwtRefreshTokenTTL       time.Duration `env:"JWT_REFRESH_TOKEN_TTL,required"`
 }
 
-func NewJwtTokenConfig() (*jwtTokenConfig, error) {
+func NewJwtTokenConfig(opts ...Options) (*jwtTokenConfig, error) {
 	config := new(jwtTokenConfig)
-	if err := env.Parse(config); err != nil {
+	if err := Parse(config, opts...); err != nil {
 		return nil, err
 	}
 

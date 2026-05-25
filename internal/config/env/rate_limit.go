@@ -3,18 +3,16 @@ package env
 import (
 	"errors"
 	"time"
-
-	"github.com/caarlos0/env/v11"
 )
 
 type rateLimitConfig struct {
-	AuthRecoverRequestsValue int           `env:"RATE_LIMIT_AUTH_RECOVER_REQUESTS" envDefault:"6"`
+	AuthRecoverRequestsValue int           `env:"RATE_LIMIT_AUTH_RECOVER_REQUESTS" envDefault:"5"`
 	AuthRecoverDurationValue time.Duration `env:"RATE_LIMIT_AUTH_RECOVER_DURATION" envDefault:"10m"`
 }
 
-func NewRateLimitConfig() (*rateLimitConfig, error) {
+func NewRateLimitConfig(opts ...Options) (*rateLimitConfig, error) {
 	config := new(rateLimitConfig)
-	if err := env.Parse(config); err != nil {
+	if err := Parse(config, opts...); err != nil {
 		return nil, err
 	}
 

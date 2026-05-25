@@ -182,7 +182,7 @@ func TestUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			repo := new(mockCustomerRepository)
-			svc := New(repo)
+			svc := New(repo, nil, nil)
 			tt.mockFn(repo)
 
 			updatedCustomer, err := svc.Update(context.Background(), tt.input)

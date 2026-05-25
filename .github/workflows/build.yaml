@@ -36,7 +36,7 @@ jobs:
           - service: migrator
             ecr_repo: share-bite/migrator
           - service: notifications-lambda
-            ecr_repo: share-bite/notifications-worker
+            ecr_repo: share-bite/notifications-lambda
             platform: linux/arm64
           - service: notifications
             ecr_repo: share-bite/notifications-service
