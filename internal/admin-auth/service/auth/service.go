@@ -12,8 +12,9 @@ import (
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/pkg"
-	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
@@ -54,19 +55,21 @@ type Service interface {
 type service struct {
 	userRepo         user.AuthRepository
 	tokenProvider    TokenProvider
-	emailSender      emailsvc.Sender
+	emailSender      email.Sender
 	txManager        database.TxManager
 	passwordResetTTL time.Duration
+	outboxWriter     outbox.Writer
 	maxSessions      int
 }
 
-func New(userRepo user.AuthRepository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager, resetTTL time.Duration, maxSessions int) Service {
+func New(userRepo user.AuthRepository, tokenProvider TokenProvider, emailSender email.Sender, txManager database.TxManager, resetTTL time.Duration, outboxWriter outbox.Writer, maxSessions int) Service {
 	return &service{
 		userRepo:         userRepo,
 		tokenProvider:    tokenProvider,
 		emailSender:      emailSender,
 		txManager:        txManager,
 		passwordResetTTL: resetTTL,
+		outboxWriter:     outboxWriter,
 		maxSessions:      maxSessions,
 	}
 }
@@ -380,15 +383,34 @@ func (s *service) RecoverAccess(ctx context.Context, email string) error {
 			return apperr.Wrap(http.StatusInternalServerError, "failed to store reset token", err)
 		}
 
+		if s.outboxWriter != nil {
+			event := outbox.Event{
+				EventType: outbox.EventTypePasswordResetRequested,
+				Payload: outbox.Message{
+					EventID:     outbox.NewEventID(u.ID, email, rawToken),
+					EventType:   outbox.EventTypePasswordResetRequested,
+					RecipientID: u.ID,
+					ActorID:     u.ID,
+					EntityType:  "user",
+					EntityID:    u.ID,
+					Metadata: map[string]any{
+						"email":       email,
+						"reset_token": rawToken,
+					},
+					CreatedAt: time.Now().UTC(),
+				},
+				SourceService: outbox.DefaultSourceService,
+			}
+
+			if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
+				return fmt.Errorf("failed to enqueue password_reset_requested outbox event: %w", err)
+			}
+		}
 		return nil
 	})
 
 	if err != nil {
 		return err
-	}
-
-	if err := s.emailSender.SendPasswordResetToken(ctx, u.Email, rawToken); err != nil {
-		return apperr.Wrap(http.StatusInternalServerError, "failed to send password reset email", err)
 	}
 
 	return nil

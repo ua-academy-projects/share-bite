@@ -36,6 +36,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
 	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 )
@@ -126,7 +127,8 @@ func main() {
 	default:
 		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", providerStr))
 	}
-	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager, cfg.Email.PasswordResetTTLValue(), cfg.Auth.MaxSessions())
+	outboxWriter := outbox.NewWriter(client.DB())
+	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager, cfg.Email.PasswordResetTTLValue(), outboxWriter, cfg.Auth.MaxSessions())
 	authHandler := authhttp.NewHandler(authSvc, providerFactory)
 
 	customerClient := guestclient.NewClient(client)
