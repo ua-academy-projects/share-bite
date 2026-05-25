@@ -5,10 +5,30 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 type mockCustomerRepository struct {
 	mock.Mock
+}
+
+type mockOutboxWriter struct {
+	mock.Mock
+}
+
+func (m *mockOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error {
+	args := m.Called(ctx, event)
+	return args.Error(0)
+}
+
+type mockTxManager struct {
+	mock.Mock
+}
+
+func (m *mockTxManager) ReadCommitted(ctx context.Context, fn database.Handler) error {
+	_ = m.Called(ctx, fn)
+	return fn(ctx)
 }
 
 func (m *mockCustomerRepository) GetByID(ctx context.Context, customerID string) (entity.Customer, error) {

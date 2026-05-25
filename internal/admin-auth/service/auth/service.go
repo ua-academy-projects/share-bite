@@ -12,7 +12,7 @@ import (
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/pkg"
-	emailsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
+	emailsvc "github.com/ua-academy-projects/share-bite/pkg/email"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"

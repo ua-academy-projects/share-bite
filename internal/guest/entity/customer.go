@@ -21,6 +21,7 @@ type Customer struct {
 
 type CreateCustomer struct {
 	UserID string
+	Email  string
 
 	UserName  string
 	FirstName string

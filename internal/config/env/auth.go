@@ -2,7 +2,6 @@ package env
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 )
 
@@ -11,7 +10,7 @@ type AuthConfig struct {
 }
 
 func NewAuthConfig() (*AuthConfig, error) {
-	val := os.Getenv("AUTH_MAX_SESSIONS")
+	val := GetSecret("AUTH_MAX_SESSIONS")
 	if val == "" {
 		return nil, fmt.Errorf("AUTH_MAX_SESSIONS is required but not set in environment")
 	}
