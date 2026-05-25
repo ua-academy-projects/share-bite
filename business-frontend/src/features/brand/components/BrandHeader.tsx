@@ -79,14 +79,6 @@ export function BrandHeader({ brand, loading, error, onEdit }: BrandHeaderProps)
 
               {!loading && brand && (
                 <div className="flex gap-3">
-                  <Button
-                    onClick={() => navigate(`/venue/${brand.id}/create-post`)}
-                    className="rounded-2xl bg-[#98FF98] text-[#0d241d] hover:bg-[#7cfc7c] px-6 py-6 text-sm font-black transition-all active:scale-95 shadow-lg shadow-[#98FF98]/10"
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Post
-                  </Button>
-                  
                   {onEdit && (
                     <Button
                       onClick={onEdit}

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { businessApi } from "@/api/business";
 import {
   Form,
   FormControl,
@@ -61,41 +62,10 @@ export default function CreatePostPage() {
     try {
       setLoading(true);
 
-      const apiBase = import.meta.env.VITE_API_URL;
-      if (!apiBase) {
-        setErrorMessage("VITE_API_URL is not configured.");
-        setLoading(false);
-        return;
-      }
-      
-      const url = new URL(`/business/posts/${encodeURIComponent(id)}`, apiBase).toString();
-
-      const fd = new FormData();
-      fd.append("content", values.textData);
-      Array.from(values.images).forEach((file) => fd.append("photos", file));
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-
-      if (!res.ok) {
-        let details = "";
-        try {
-          const ct = res.headers.get("content-type") ?? "";
-          if (ct.includes("application/json")) {
-            const data = await res.json();
-            details = data?.message ? `: ${data.message}` : "";
-          } else {
-            const text = await res.text();
-            details = text ? `: ${text}` : "";
-          }
-        } catch {
-          // ignore
-        }
-        throw new Error(`Request failed (${res.status})${details}`);
-      }
+      await businessApi.createPost(id, {
+        content: values.textData,
+        photos: Array.from(values.images),
+      }, token);
 
       setSuccessMessage("Post successfully created.");
 

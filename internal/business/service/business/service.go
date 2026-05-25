@@ -219,6 +219,7 @@ func (s *service) uploadOrgAsset(ctx context.Context, id int, orgAccountID uuid.
 	}
 
 	var objectKey string
+	
 	if isAvatar {
 		objectKey = key.BusinessAvatarKey(id, uuid.NewString(), ext)
 	} else {

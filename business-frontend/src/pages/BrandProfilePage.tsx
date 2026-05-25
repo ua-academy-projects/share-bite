@@ -7,18 +7,15 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/features/brand/components/EmptyState";
 import { BrandHeader } from "@/features/brand/components/BrandHeader";
 import { BrandLocationCard } from "@/features/brand/components/BrandLocationCard";
-import { BrandPostCard } from "@/features/brand/components/BrandPostCard";
 import { BrandSection } from "@/features/brand/components/BrandSection";
 import { BrandTabs } from "@/features/brand/components/BrandTabs";
 import { EditBrandProfileModal } from "@/features/brand/components/EditBrandProfileModal";
 import {
   useBrandBoxes,
   useBrandLocations,
-  useBrandPosts,
   useBrandProfile,
 } from "@/features/brand/hooks";
 
-const TAB_POSTS = "posts";
 const TAB_BOXES = "boxes";
 const TAB_LOCATIONS = "locations";
 
@@ -57,7 +54,7 @@ export function BrandProfilePage() {
   const brandId = Number(id);
   const isValidId = Number.isFinite(brandId) && brandId > 0;
 
-  const activeTab = searchParams.get("tab") || TAB_POSTS;
+  const activeTab = searchParams.get("tab") || TAB_BOXES;
 
   const setActiveTab = (tabId: string) => {
     setSearchParams({ tab: tabId }, { replace: true });
@@ -68,25 +65,10 @@ export function BrandProfilePage() {
   const brandState = useBrandProfile(isValidId ? brandId : undefined);
   const locationsState = useBrandLocations(isValidId ? brandId : undefined, 50);
 
-  const orgIds = useMemo(() => {
-    if (!isValidId) return [];
-    const ids = new Set<number>();
-    ids.add(brandId);
-    locationsState.items.forEach((loc) => ids.add(loc.id));
-    return Array.from(ids);
-  }, [brandId, isValidId, locationsState.items]);
-
-  const postsState = useBrandPosts(orgIds, 9);
   const coordinates = useMemo(() => getCoordinates(locationsState.items), [locationsState.items]);
   const boxesState = useBrandBoxes({ orgId: isValidId ? brandId : undefined, coordinates, pageSize: 9 });
 
   const tabs = [
-    {
-      id: TAB_POSTS,
-      label: "Posts",
-      count: postsState.totalLoaded,
-      loading: postsState.loading && postsState.totalLoaded === 0,
-    },
     {
       id: TAB_BOXES,
       label: "Magic Boxes",
@@ -133,41 +115,6 @@ export function BrandProfilePage() {
           )}
 
           <BrandTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-
-          {activeTab === TAB_POSTS ? (
-            <BrandSection title="Posts" subtitle="Latest updates from your brand">
-              {postsState.error ? <ErrorBanner message={postsState.error} /> : null}
-              {postsState.loading && postsState.items.length === 0 ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#98FF98]" />
-                </div>
-              ) : postsState.items.length === 0 ? (
-                <EmptyState
-                  title="No posts yet"
-                  description="Start sharing updates to build your brand story."
-                />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {postsState.items.map((post) => (
-                    <BrandPostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              )}
-
-              {postsState.hasMore && postsState.items.length > 0 ? (
-                <div className="flex justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={postsState.loadMore}
-                    disabled={postsState.loading}
-                    className="rounded-full border-white/15 text-[#F9F7F2] hover:bg-white/10"
-                  >
-                    {postsState.loading ? "Loading..." : "Load more"}
-                  </Button>
-                </div>
-              ) : null}
-            </BrandSection>
-          ) : null}
 
           {activeTab === TAB_BOXES ? (
             <BrandSection title="Magic Boxes" subtitle="Active boxes from your locations">

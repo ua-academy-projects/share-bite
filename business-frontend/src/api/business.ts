@@ -115,6 +115,26 @@ export type VenueProfile = {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3900";
 
+export type CreateOrgRequest = {
+  name: string;
+  description?: string;
+  avatar?: string;
+  banner?: string;
+};
+
+export type CreateLocationRequest = {
+  name: string;
+  description?: string;
+  latitude: number;
+  longitude: number;
+  tags: string[];
+};
+
+export type CreatePostRequest = {
+  content: string;
+  photos: File[];
+};
+
 export type UpdateBrandProfileRequest = {
   name?: string;
   avatar?: string;
@@ -265,7 +285,6 @@ export const businessApi = {
     formData.append("expires_at", formattedDate);
     formData.append("quantity", String(data.quantity));
     
-    // Передаємо файл зображення
     if (data.image) {
       formData.append("image", data.image, data.image.name);
     }
@@ -320,7 +339,6 @@ export const businessApi = {
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      // Handle business errors specifically if they exist
       const errorMessage = err.error || err.message || `Update failed (${response.status})`;
       throw new Error(errorMessage);
     }
@@ -365,6 +383,66 @@ export const businessApi = {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || err.message || `Banner upload failed (${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  createBrand: async (data: CreateOrgRequest, token: string): Promise<{ id: number }> => {
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/business`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to create brand (${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  createLocation: async (brandId: number, data: CreateLocationRequest, token: string): Promise<BrandLocation> => {
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/business/${brandId}/locations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to create location (${response.status})`);
+    }
+
+    return response.json();
+  },
+
+  createPost: async (unitId: number | string, data: CreatePostRequest, token: string): Promise<BrandPost> => {
+    const formData = new FormData();
+    formData.append("content", data.content);
+    data.photos.forEach((file) => formData.append("photos", file));
+
+    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/business/posts/${unitId}`, {
+      method: "POST",
+      headers: {
+        Authorization: authHeader,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to create post (${response.status})`);
     }
 
     return response.json();
