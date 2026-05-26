@@ -59,7 +59,7 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}
           tags: |
             type=raw,value=${{ steps.vars.outputs.sha_tag }}
-            latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Frontend image
         id: build-push
@@ -78,7 +78,6 @@ jobs:
     needs: build-and-push-frontend
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -106,6 +105,6 @@ jobs:
               "export IMAGE_TAG=${{ needs.build-and-push-frontend.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.frontend.yaml pull",
-              "docker compose -f compose.frontend.yaml up -d"
+              "docker compose -f compose.frontend.yaml up -d --wait"
             ]')
           aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.PROXY_INSTANCE_ID }}"

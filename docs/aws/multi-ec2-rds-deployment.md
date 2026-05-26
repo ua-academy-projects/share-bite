@@ -99,7 +99,7 @@ To safely update the database schema without risking data inconsistency, migrati
 
 ### Migration Execution Command:
 ```bash
-docker-compose -f compose.migrator.yaml up --abort-on-container-exit --exit-code-from migrator
+docker compose -f compose.migrator.yaml up --abort-on-container-exit --exit-code-from migrator
 ```
 
 ## 6. Deployment Verification Checklist (Smoke Tests)

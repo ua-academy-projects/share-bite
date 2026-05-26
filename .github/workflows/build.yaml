@@ -153,7 +153,7 @@ jobs:
               "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.admin-auth-api.yaml pull",
-              "docker compose -f compose.admin-auth-api.yaml up -d"
+              "docker compose -f compose.admin-auth-api.yaml up -d --wait"
             ]')
           
           echo "Waiting for Admin services to roll out..."
@@ -177,7 +177,7 @@ jobs:
               "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.business-api.yaml pull",
-              "docker compose -f compose.business-api.yaml up -d"
+              "docker compose -f compose.business-api.yaml up -d --wait"
             ]')
           
           echo "Waiting for Business services to roll out..."
@@ -201,7 +201,7 @@ jobs:
               "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f compose.guest-api.yaml pull",
-              "docker compose -f compose.guest-api.yaml up -d"
+              "docker compose -f compose.guest-api.yaml up -d --wait"
             ]')
           
           echo "Waiting for Guest services to roll out..."
@@ -226,7 +226,7 @@ jobs:
               "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
               "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
               "docker compose -f workers.yaml pull",
-              "docker compose -f workers.yaml up -d"
+              "docker compose -f workers.yaml up -d --wait"
             ]')
           
           echo "Waiting for Workers to roll out..."
