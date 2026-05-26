@@ -1,77 +1,125 @@
 # Guest API MCP Server
 
-A Python-based Model Context Protocol (MCP) server built with **FastMCP**. It wraps the Go-based Guest API observability endpoints and exposes them as native MCP tools and resources.
+Model Context Protocol (MCP) server for the Guest API built with **FastMCP**.
+
+The server exposes selected Guest API functionality as MCP **tools** and **resources**, allowing LLM clients to interact with the Guest ecosystem through a structured interface.
 
 ## Project Structure
 
 ```text
 guest-server/
-├── .env.example         # Example environment variables template
-├── pyproject.toml       # Project metadata and dependencies
-├── README.md            # Service documentation
+├── .env.example
+├── pyproject.toml
+├── README.md
 └── app/
-    ├── config.py         # Pydantic configuration
-    ├── constants.py      # Global constants
-    ├── http_client.py    # Go API HTTP client
-    ├── server.py         # FastMCP instance
-    ├── resources.py      # Read-only contexts
-    ├── tools.py          # Executable actions
-    └── main.py           # Application entrypoint
+    ├── auth.py
+    ├── config.py
+    ├── constants.py
+    ├── http_client.py
+    ├── main.py
+    ├── server.py
+    ├── resources/
+    │   ├── __init__.py
+    │   └── api.py
+    └── tools/
+        ├── __init__.py
+        └── health.py
 ```
 
-**Scaling:** To expand the server, add new domain-specific modules for tools or resources (e.g., `app/tools_users.py` or `app/resources_posts.py`). Decorate your functions with `@mcp.tool()` or `@mcp.resource()`, and register them by adding a blank import (e.g., `from . import tools_users`) in `main.py`.
+## Architecture
+
+- **Tools** — executable operations exposed to LLM clients
+- **Resources** — read-only contextual information
+- **HTTP Client** — shared async Guest API client with connection pooling, centralized auth handling, and graceful shutdown
 
 ## Prerequisites
 
-- [uv](https://docs.astral.sh/uv/)
 - Python 3.12+
-- Guest Go API running
+- uv
+- Running Guest API instance
 
 ## Configuration
 
-Copy the provided `.env.example` file to create your local configuration:
+Create a local environment file:
+
 ```bash
 cp .env.example .env
 ```
 
-Then, define the required variables in your new `.env` file:
+Example configuration:
+
 ```env
 GUEST_API_BASE_URL=http://localhost:3800
 TIMEOUT_SECONDS=10
-AUTH_TOKEN=your_admin_jwt_token_here
+GUEST_API_AUTH_TOKEN=
 ```
 
-## Installation & Run
+### Environment Variables
 
-Sync dependencies and create the virtual environment:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GUEST_API_BASE_URL` | Yes | Base URL of the Guest API |
+| `TIMEOUT_SECONDS` | No | HTTP timeout in seconds |
+| `GUEST_API_AUTH_TOKEN` | No | JWT token for protected endpoints |
+
+`GUEST_API_AUTH_TOKEN` is optional. Public endpoints can be accessed without authentication.
+
+## Installation
+
+Install dependencies:
+
 ```bash
 uv sync
 ```
 
-**Run in Stdio Mode (for LLM Desktop Clients):**
+## Running
+
+### Stdio Transport
+
+Recommended for local LLM desktop clients such as Claude Desktop.
+
 ```bash
 uv run python -m app.main --transport stdio
 ```
 
-**Run in SSE Mode (HTTP microservice):**
-```bash
-uv run python -m app.main --transport sse
-```
+### HTTP Transport
 
-## Testing (MCP Inspector)
-
-Use the MCP Inspector to locally debug and test available tools and resources without consuming LLM API credits.
+Recommended for remote deployments.
 
 ```bash
-npx @modelcontextprotocol/inspector uv run python -m app.main --transport stdio
+uv run python -m app.main --transport http
 ```
-*Once started, open the provided localhost URL in your browser, add `GUEST_API_BASE_URL` in the Environment Variables tab, and click Connect.*
+
+## Testing
+
+Use MCP Inspector to debug and test tools/resources locally without consuming LLM API credits.
+
+```bash
+npx @modelcontextprotocol/inspector \
+uv run python -m app.main --transport stdio
+```
+
+Once started:
+
+1. Open the generated localhost URL in your browser
+2. Add `GUEST_API_BASE_URL` in **Environment Variables**
+3. Click **Connect**
+
+Optional authentication can be provided via:
+
+```env
+GUEST_API_AUTH_TOKEN=
+```
 
 ## Claude Desktop Integration
 
-To connect this MCP server to your local Claude Desktop app, you need to update its configuration file. Open Claude Desktop and navigate to **File > Settings > Developer > Edit Config** (or **Claude > Settings...** on macOS).
+Open:
 
-Add the following standard configuration, replacing the absolute path with your actual project location:
+**File → Settings → Developer → Edit Config**
+
+(or **Claude → Settings...** on macOS)
+
+Example configuration:
 
 ```json
 {
@@ -89,16 +137,17 @@ Add the following standard configuration, replacing the absolute path with your 
       "cwd": "/absolute/path/to/share-bite/mcp/guest-server",
       "env": {
         "GUEST_API_BASE_URL": "http://localhost:3800",
-        "AUTH_TOKEN": "your_admin_jwt_token_here",
-        "TIMEOUT_SECONDS": "10"
+        "TIMEOUT_SECONDS": "10",
+        "GUEST_API_AUTH_TOKEN": ""
       }
     }
   }
 }
 ```
 
-### Windows WSL Option
-If you are running Claude Desktop on Windows but your codebase resides inside WSL (Ubuntu) *(because why choose one operating system?)*, you must bridge the connection using `wsl.exe`. Use this configuration instead:
+### Windows + WSL
+
+If Claude Desktop runs on Windows while the project lives inside WSL, use `wsl.exe` as a bridge:
 
 ```json
 {
@@ -112,13 +161,13 @@ If you are running Claude Desktop on Windows but your codebase resides inside WS
       ],
       "env": {
         "GUEST_API_BASE_URL": "http://localhost:3800",
-        "AUTH_TOKEN": "your_admin_jwt_token_here",
         "TIMEOUT_SECONDS": "10",
-        "WSLENV": "GUEST_API_BASE_URL/u:AUTH_TOKEN/u:TIMEOUT_SECONDS/u"
+        "GUEST_API_AUTH_TOKEN": "",
+        "WSLENV": "GUEST_API_BASE_URL/u:GUEST_API_AUTH_TOKEN/u:TIMEOUT_SECONDS/u"
       }
     }
   }
 }
 ```
 
-*Note: Restart Claude Desktop completely for the new configuration to take effect.*
+Restart Claude Desktop after updating the configuration.

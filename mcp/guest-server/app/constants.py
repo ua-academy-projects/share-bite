@@ -15,7 +15,7 @@ MCP_SERVER_NAME = "guest-server"
 
 # Transport protocol options
 TRANSPORT_PROTOCOL_STDIO = "stdio"
-TRANSPORT_PROTOCOL_SSE = "sse"
+TRANSPORT_PROTOCOL_HTTP = "http"
 
 # OpenAPI JSON specification path
 OPENAPI_SPECIFICATION_PATH = "/swagger/doc.json"
