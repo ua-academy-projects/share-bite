@@ -130,10 +130,17 @@ func TestAdminHandler_GetPlatformStatistics(t *testing.T) {
 		h := admin.NewHandler(mockSvc)
 
 		expected := &dto.PlatformStatisticsResponse{
-			TotalUsers:            100,
-			TotalCustomers:        80,
-			TotalBusinessPosts:    15,
-			TotalCollectionVenues: 42,
+			TotalUsers:                   100,
+			TotalCustomers:                 80,
+			TotalBusinessPosts:             15,
+			AvgPostsPerCustomer:            2.5,
+			AvgCommentsPerCustomer:         4.2,
+			AvgCommentsPerPost:             1.3,
+			CollectionsWithCollaborators:   12,
+			PostsWithCollaborators:         7,
+			AvgPostsPerBusiness:            3.1,
+			AvgCommentsPerBusiness:         5.0,
+			AvgBusinessCommentsPerPost:     0.8,
 		}
 
 		mockSvc.On("GetPlatformStatistics", mock.Anything).Return(expected, nil)

@@ -18,17 +18,63 @@ SELECT
     (SELECT COUNT(*) FROM guest.comments) AS total_guest_comments,
     (SELECT COUNT(*) FROM guest.post_likes) AS total_guest_post_likes,
     (SELECT COUNT(*) FROM guest.collections) AS total_collections,
-    (SELECT COUNT(*) FROM guest.collection_venues) AS total_collection_venues,
-    (SELECT COUNT(*) FROM guest.collection_collaborators) AS total_collection_collaborators,
-    (SELECT COUNT(*) FROM guest.collection_invitations) AS total_collection_invitations,
-    (SELECT COUNT(*) FROM guest.customer_follows) AS total_customer_follows,
+    COALESCE(
+        ROUND(
+            (SELECT COUNT(*)::numeric FROM guest.posts) /
+            NULLIF((SELECT COUNT(*) FROM guest.customers), 0),
+            2
+        ),
+        0
+    ) AS avg_posts_per_customer,
+    COALESCE(
+        ROUND(
+            (SELECT COUNT(*)::numeric FROM guest.comments) /
+            NULLIF((SELECT COUNT(*) FROM guest.customers), 0),
+            2
+        ),
+        0
+    ) AS avg_comments_per_customer,
+    COALESCE(
+        ROUND(
+            (SELECT COUNT(*)::numeric FROM guest.comments) /
+            NULLIF((SELECT COUNT(*) FROM guest.posts), 0),
+            2
+        ),
+        0
+    ) AS avg_comments_per_post,
+    (SELECT COUNT(DISTINCT collection_id) FROM guest.collection_collaborators) AS collections_with_collaborators,
+    (SELECT COUNT(DISTINCT post_id) FROM guest.post_collaborators) AS posts_with_collaborators,
 
     (SELECT COUNT(*) FROM business.org_units) AS total_business_org_units,
     (SELECT COUNT(*) FROM business.posts) AS total_business_posts,
     (SELECT COUNT(*) FROM business.comments) AS total_business_comments,
     (SELECT COUNT(*) FROM business.likes) AS total_business_likes,
     (SELECT COUNT(*) FROM business.boxes) AS total_business_boxes,
-    (SELECT COUNT(*) FROM business.box_items) AS total_business_box_items;
+    (SELECT COUNT(*) FROM business.box_items) AS total_business_box_items,
+    COALESCE(
+        ROUND(
+            (SELECT COUNT(*)::numeric FROM business.posts) /
+            NULLIF((SELECT COUNT(*) FROM business.org_units), 0),
+            2
+        ),
+        0
+    ) AS avg_posts_per_business,
+    COALESCE(
+        ROUND(
+            (SELECT COUNT(*)::numeric FROM business.comments) /
+            NULLIF((SELECT COUNT(*) FROM business.org_units), 0),
+            2
+        ),
+        0
+    ) AS avg_comments_per_business,
+    COALESCE(
+        ROUND(
+            (SELECT COUNT(*)::numeric FROM business.comments) /
+            NULLIF((SELECT COUNT(*) FROM business.posts), 0),
+            2
+        ),
+        0
+    ) AS avg_business_comments_per_post;
 -- +goose StatementEnd
 
 -- +goose Down
