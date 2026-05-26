@@ -47,6 +47,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Image Tag Variable
         id: vars
         run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
@@ -115,8 +116,7 @@ jobs:
 
       - name: Run Database Migrations on Admin EC2
         run: |
-          echo "Syncing config and starting database migrations..."
-          MIGRATOR_COMPOSE_B64=$(base64 -w 0 build/aws/compose.migrator.yaml)
+          echo "Starting database migrations via raw Docker run with .env file..."
           
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ secrets.ADMIN_INSTANCE_ID }}" \
@@ -125,13 +125,11 @@ jobs:
             --output text \
             --parameters 'commands=[
               "cd /root",
-              "echo '"$MIGRATOR_COMPOSE_B64"' | base64 -d > compose.migrator.yaml",
-              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
-              "export AWS_REGION=${{ env.AWS_REGION }}",
               "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
-              "aws ecr get-login-password --region '"${{ env.AWS_REGION }}"' | docker login --username AWS --password-stdin '"${{ secrets.AWS_ACCOUNT_ID }}"'.dkr.ecr.'"${{ env.AWS_REGION }}"'.amazonaws.com",
-              "docker compose -f compose.migrator.yaml pull migrator",
-              "docker compose -f compose.migrator.yaml up --abort-on-container-exit --exit-code-from migrator"
+              "export MIGRATOR_IMAGE=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/share-bite/migrator:$IMAGE_TAG",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker pull $MIGRATOR_IMAGE",
+              "docker run --rm --network host --env-file .env $MIGRATOR_IMAGE"
             ]')
           
           echo "Waiting for migrations to complete on remote host..."
