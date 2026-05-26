@@ -9,6 +9,10 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/ua-academy-projects/share-bite/internal/imageprocessing"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/sony/gobreaker"
@@ -209,7 +213,7 @@ func main() {
 			},
 		}),
 		RetryNotify: func(err error, nextRetryIn time.Duration) {
-			logger.Debugf(ctx, "business api retry scheduled in %v: %v", nextRetryIn, err)
+			logger.Warnf(ctx, "business API retry scheduled in %v: %v", nextRetryIn, err)
 		},
 	}
 
@@ -267,6 +271,16 @@ func main() {
 	if err != nil {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
+
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
+	if err != nil {
+		logger.Fatal(ctx, "load aws config:", err)
+	}
+	sqsClient := sqs.NewFromConfig(awsCfg)
+	imageProcessingProducer := imageprocessing.NewProducer(
+		sqsClient,
+		config.Config().ImageProcessingSQS.Queue(),
+	)
 
 	txManager := txmanager.NewTransactionManager(client.DB())
 

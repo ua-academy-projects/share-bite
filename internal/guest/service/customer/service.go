@@ -20,6 +20,10 @@ type CustomerRepository interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
+type OutboxWriter interface {
+	Enqueue(ctx context.Context, event outbox.Event) error
+}
+
 type emailClient interface {
 	GetUserEmail(ctx context.Context, userID, authToken string) (string, error)
 }

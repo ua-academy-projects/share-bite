@@ -30,6 +30,9 @@ build:
 	go build -o bin/guest-api ./cmd/guest-api
 	go build -o bin/business-api ./cmd/business-api
 	go build -o bin/admin-auth-api ./cmd/admin-auth-api
+	go build -o bin/notifications-service ./cmd/notifications-service
+	go build -o bin/outbox-worker ./cmd/outbox-worker
+	go build -o bin/notifications-lambda ./cmd/notifications-lambda
 
 tidy:
 	go mod tidy

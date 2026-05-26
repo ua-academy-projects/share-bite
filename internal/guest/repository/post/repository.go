@@ -441,39 +441,47 @@ func translatePostUpdateError(err error, in entity.UpdatePostInput) error {
 	return nil
 }
 
-func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage) error {
+func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage) ([]entity.PostImage, error) {
 	if len(images) == 0 {
-		return nil
+		return nil, nil
 	}
-	createImagesSql := `
-		INSERT INTO guest.post_images(
+
+	createImagesSQL := `
+		INSERT INTO guest.post_images (
 			post_id,
 			object_key,
 			content_type,
 			file_size,
 			sort_order
-		) VALUES ($1, $2, $3, $4, $5)
+		)
+		VALUES (
+			$1, $2, $3, $4, $5
+		)
+		RETURNING id
 	`
+
 	q := database.Query{
 		Name: "post_repository.CreateImages",
-		Sql:  createImagesSql,
+		Sql:  createImagesSQL,
 	}
 
-	for _, img := range images {
-		_, err := r.db.DB().ExecContext(
+	for i := range images {
+		err := r.db.DB().QueryRowContext(
 			ctx,
 			q,
-			img.PostID,
-			img.ObjectKey,
-			img.ContentType,
-			img.FileSize,
-			img.SortOrder,
-		)
+			images[i].PostID,
+			images[i].ObjectKey,
+			images[i].ContentType,
+			images[i].FileSize,
+			images[i].SortOrder,
+		).Scan(&images[i].ID)
+
 		if err != nil {
-			return executeSQLError(err)
+			return nil, executeSQLError(err)
 		}
 	}
-	return nil
+
+	return images, nil
 }
 
 func (r *Repository) DeleteImagesByPostID(ctx context.Context, postID string) error {
@@ -496,13 +504,19 @@ func (r *Repository) DeleteImagesByPostID(ctx context.Context, postID string) er
 func (r *Repository) loadImagesByPostID(ctx context.Context, postID string) ([]entity.PostImage, error) {
 	sql := `
 		SELECT
-		       id,
-		       post_id,
-		       object_key,
-		       content_type,
-		       file_size,
-		       sort_order,
-		       created_at
+		   id,
+		   post_id,
+		   object_key,
+		   content_type,
+		   file_size,
+		   sort_order,
+		   processing_status,
+		   thumbnail_key,
+		   width,
+		   height,
+		   processed_at,
+		   failure_reason,
+		   created_at
 		FROM guest.post_images
 		WHERE post_id = $1
 		ORDER BY sort_order ASC, id ASC
@@ -527,10 +541,6 @@ func (r *Repository) loadImagesByPostID(ctx context.Context, postID string) ([]e
 }
 
 func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostImage, error) {
-	if len(postIDs) == 0 {
-		return map[string][]entity.PostImage{}, nil
-	}
-
 	sql := `
 		SELECT
 		       id,
@@ -539,6 +549,12 @@ func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) 
 		       content_type,
 		       file_size,
 		       sort_order,
+		       processing_status,
+		       thumbnail_key,
+		       width,
+		       height,
+		       processed_at,
+		       failure_reason,
 		       created_at
 		FROM guest.post_images
 		WHERE post_id::text = ANY($1)
@@ -994,4 +1010,83 @@ func (r *Repository) IsAcceptedCollaborator(ctx context.Context, postID string, 
 	}
 
 	return false, nil
+}
+
+func (r *Repository) UpdateProcessedMetadata(ctx context.Context, imageID string, thumbnailKey string, width int, height int) error {
+	query := `
+		UPDATE guest.post_images
+		SET
+			thumbnail_key = $1,
+			width = $2,
+			height = $3,
+			processing_status = $4,
+			processed_at = NOW(),
+			failure_reason = NULL
+		WHERE id = $5
+	`
+
+	q := database.Query{
+		Name: "post_repository.UpdateProcessedMetadata",
+		Sql:  query,
+	}
+
+	result, err := r.db.DB().ExecContext(ctx, q, thumbnailKey, width, height, entity.ImageStatusCompleted, imageID)
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf(
+			"post image not found: %s",
+			imageID,
+		)
+	}
+
+	return executeSQLError(err)
+}
+
+func (r *Repository) MarkProcessingFailed(ctx context.Context, imageID string, reason string) error {
+	query := `
+		UPDATE guest.post_images
+		SET
+			processing_status = $1,
+			failure_reason = $2
+		WHERE id = $3
+	`
+
+	q := database.Query{
+		Name: "post_repository.MarkProcessingFailed",
+		Sql:  query,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, entity.ImageStatusFailed, reason, imageID)
+
+	return executeSQLError(err)
+}
+
+func (r *Repository) ClaimForProcessing(ctx context.Context, imageID string) (bool, error) {
+	query := `
+		UPDATE guest.post_images
+		SET processing_status = $1
+		WHERE id = $2
+		  AND processing_status = $3
+	`
+
+	q := database.Query{
+		Name: "post_repository.ClaimForProcessing",
+		Sql:  query,
+	}
+
+	result, err := r.db.DB().ExecContext(
+		ctx,
+		q,
+		entity.ImageStatusProcessing,
+		imageID,
+		entity.ImageStatusPending,
+	)
+	if err != nil {
+		return false, executeSQLError(err)
+	}
+
+	rowsAffected := result.RowsAffected()
+
+	return rowsAffected > 0, nil
 }

@@ -22,9 +22,6 @@ WORKDIR /app
 
 COPY --from=builder /app/app .
 
-COPY --from=builder /app/internal/admin-auth/provider/email/templates \
-    /app/internal/admin-auth/provider/email/templates
-
 USER appuser
 
 EXPOSE 3850

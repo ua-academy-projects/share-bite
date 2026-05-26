@@ -57,7 +57,7 @@ func (s *service) Create(ctx context.Context, in entity.CreateCustomer) (string,
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("create customer in repo: %w", err)
 	}
 
 	return customerID, nil
