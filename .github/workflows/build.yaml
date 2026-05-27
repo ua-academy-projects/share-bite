@@ -22,7 +22,8 @@ jobs:
     permissions:
       id-token: write
       contents: read
-
+    outputs:
+      image_tag: ${{ steps.vars.outputs.sha_tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -36,7 +37,7 @@ jobs:
           - service: migrator
             ecr_repo: share-bite/migrator
           - service: notifications-lambda
-            ecr_repo: share-bite/notifications-worker
+            ecr_repo: share-bite/notifications-lambda
             platform: linux/arm64
           - service: notifications
             ecr_repo: share-bite/notifications-service
@@ -47,6 +48,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Image Tag Variable
+        id: vars
+        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -55,7 +60,7 @@ jobs:
       - name: Generate swagger
         run: make generate
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC Role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
@@ -71,8 +76,7 @@ jobs:
         with:
           images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.ecr_repo }}
           tags: |
-            type=sha,prefix=sha-
-            type=sha,format=long
+            type=raw,value=${{ steps.vars.outputs.sha_tag }}
 
       - name: Build and push ${{ matrix.service }} image
         id: build-push
@@ -92,37 +96,138 @@ jobs:
           echo "**${{ matrix.service }}**: \`$IMAGE_URI\`" >> $GITHUB_STEP_SUMMARY
 
   deploy:
-      name: Deploy to EC2 via AWS SSM
-      needs: build-and-push
-      if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-      runs-on: ubuntu-latest
-      permissions:
-        id-token: write
-        contents: read
+    name: Distributed Deploy to Multi-EC2 via AWS SSM
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: Configure AWS credentials
-          uses: aws-actions/configure-aws-credentials@v4
-          with:
-            role-to-assume: ${{ env.AWS_ROLE_ARN }}
-            aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials (OIDC Role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-        - name: Deploy via AWS SSM
-          run: |
-            COMPOSE_B64=$(base64 -w 0 deploy/compose/compose.aws.yaml)
+      - name: Run Database Migrations on Admin EC2
+        run: |
+          echo "Starting database migrations via raw Docker run with .env file..."
+          
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.ADMIN_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --query "Command.CommandId" \
+            --output text \
+            --parameters 'commands=[
+              "cd /root",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
+              "export MIGRATOR_IMAGE=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/share-bite/migrator:$IMAGE_TAG",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker pull $MIGRATOR_IMAGE",
+              "docker run --rm --network host --env-file .env $MIGRATOR_IMAGE"
+            ]')
+          
+          echo "Waiting for migrations to complete on remote host..."
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.ADMIN_INSTANCE_ID }}"
 
-            aws ssm send-command \
-              --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-              --document-name "AWS-RunShellScript" \
-              --parameters 'commands=[
-                "cd /home/ubuntu/share-bite",
-                "echo '"$COMPOSE_B64"' | base64 -d > compose.aws.yaml",
-                "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
-                "export AWS_REGION=${{ env.AWS_REGION }}",
-                "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
-                "docker compose -f compose.aws.yaml pull",
-                "docker compose -f compose.aws.yaml up -d"
-              ]'
+      - name: Deploy Admin Services
+        run: |
+          echo "Deploying Admin services to Admin EC2..."
+          ADMIN_COMPOSE_B64=$(base64 -w 0 build/aws/compose.admin-auth-api.yaml)
+          
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.ADMIN_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --query "Command.CommandId" \
+            --output text \
+            --parameters 'commands=[
+              "cd /root",
+              "echo '"$ADMIN_COMPOSE_B64"' | base64 -d > compose.admin-auth-api.yaml",
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker compose -f compose.admin-auth-api.yaml pull",
+              "docker compose -f compose.admin-auth-api.yaml up -d --wait"
+            ]')
+          
+          echo "Waiting for Admin services to roll out..."
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.ADMIN_INSTANCE_ID }}"
+
+      - name: Deploy Business Services
+        run: |
+          echo "Deploying Business services to Business EC2..."
+          BUSINESS_COMPOSE_B64=$(base64 -w 0 build/aws/compose.business-api.yaml)
+          
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.BUSINESS_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --query "Command.CommandId" \
+            --output text \
+            --parameters 'commands=[
+              "cd /home/ubuntu/share-bite",
+              "echo '"$BUSINESS_COMPOSE_B64"' | base64 -d > compose.business-api.yaml",
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker compose -f compose.business-api.yaml pull",
+              "docker compose -f compose.business-api.yaml up -d --wait"
+            ]')
+          
+          echo "Waiting for Business services to roll out..."
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.BUSINESS_INSTANCE_ID }}"
+
+      - name: Deploy Guest Services
+        run: |
+          echo "Deploying Guest services to Guest EC2..."
+          GUEST_COMPOSE_B64=$(base64 -w 0 build/aws/compose.guest-api.yaml)
+          
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.GUEST_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --query "Command.CommandId" \
+            --output text \
+            --parameters 'commands=[
+              "cd /home/ubuntu/share-bite",
+              "echo '"$GUEST_COMPOSE_B64"' | base64 -d > compose.guest-api.yaml",
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker compose -f compose.guest-api.yaml pull",
+              "docker compose -f compose.guest-api.yaml up -d --wait"
+            ]')
+          
+          echo "Waiting for Guest services to roll out..."
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.GUEST_INSTANCE_ID }}"
+
+      - name: Deploy Workers & Outbox Services
+        run: |
+          echo "Deploying Workers services to Workers EC2..."
+          WORKERS_COMPOSE_B64=$(base64 -w 0 build/aws/compose.workers.yaml)
+          
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.WORKERS_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --query "Command.CommandId" \
+            --output text \
+            --parameters 'commands=[
+              "mkdir -p /home/ubuntu/share-bite",
+              "cd /home/ubuntu/share-bite",
+              "echo '"$WORKERS_COMPOSE_B64"' | base64 -d > workers.yaml",
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push.outputs.image_tag }}",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker compose -f workers.yaml pull",
+              "docker compose -f workers.yaml up -d --wait"
+            ]')
+          
+          echo "Waiting for Workers to roll out..."
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.WORKERS_INSTANCE_ID }}"

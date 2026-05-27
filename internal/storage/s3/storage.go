@@ -20,6 +20,7 @@ var (
 type s3Client interface {
 	PutObject(ctx context.Context, params *awss3.PutObjectInput, optFns ...func(*awss3.Options)) (*awss3.PutObjectOutput, error)
 	DeleteObject(ctx context.Context, params *awss3.DeleteObjectInput, optFns ...func(*awss3.Options)) (*awss3.DeleteObjectOutput, error)
+	GetObject(ctx context.Context, params *awss3.GetObjectInput, optFns ...func(*awss3.Options)) (*awss3.GetObjectOutput, error)
 }
 
 type S3Storage struct {
@@ -44,12 +45,7 @@ func NewS3Storage(client s3Client, bucketName string, endpoint string, region st
 	}
 }
 
-func (s *S3Storage) Upload(
-	ctx context.Context,
-	key string,
-	contentType string,
-	data io.Reader,
-) error {
+func (s *S3Storage) Upload(ctx context.Context, key string, contentType string, data io.Reader) error {
 	if err := validateKey(key); err != nil {
 		return err
 	}
@@ -111,6 +107,28 @@ func (s *S3Storage) GetPresignedURL(ctx context.Context, key string) (string, er
 	}
 
 	return req.URL, nil
+}
+
+func (s *S3Storage) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	if err := validateKey(key); err != nil {
+		return nil, err
+	}
+
+	result, err := s.client.GetObject(
+		ctx,
+		&awss3.GetObjectInput{
+			Bucket: &s.bucketName,
+			Key:    &key,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to get object from storage: %w",
+			err,
+		)
+	}
+
+	return result.Body, nil
 }
 
 // validateKey simply checks whether key is ok to be used

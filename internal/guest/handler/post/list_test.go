@@ -60,8 +60,9 @@ func TestPostHandler_List(t *testing.T) {
 	assert.Equal(t, 1, got.Total)
 	assert.Equal(t, "1", got.Posts[0].ID)
 	require.Len(t, got.Posts[0].Images, 2)
-	assert.Equal(t, "https://cdn.example/posts/1/main.jpg", got.Posts[0].Images[0])
-	assert.Equal(t, "https://cdn.example/posts/1/second.jpg", got.Posts[0].Images[1])
+	assert.Equal(t, "posts/1/main.jpg", got.Posts[0].Images[0].ObjectKey)
+	assert.Equal(t, "posts/1/second.jpg", got.Posts[0].Images[1].ObjectKey)
+	assert.Equal(t, "http://localhost:3900/app-dev-bucket/posts/1/second.jpg?signed=true", got.Posts[0].Images[1].URL)
 }
 
 func TestPostHandler_List_InvalidQuery(t *testing.T) {

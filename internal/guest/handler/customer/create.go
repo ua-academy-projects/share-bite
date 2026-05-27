@@ -59,6 +59,7 @@ func (h *handler) create(c *gin.Context) {
 }
 
 type createRequest struct {
+	Email     string `json:"email" binding:"required,email"`
 	UserName  string `json:"userName" binding:"required,alphanum,min=3,max=30"`
 	FirstName string `json:"firstName" binding:"required,min=2,max=50"`
 	LastName  string `json:"lastName" binding:"required,min=2,max=50"`

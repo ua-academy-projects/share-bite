@@ -2,8 +2,6 @@ package env
 
 import (
 	"time"
-
-	"github.com/caarlos0/env/v11"
 )
 
 type emailConfig struct {
@@ -13,9 +11,9 @@ type emailConfig struct {
 	PasswordResetTTL    time.Duration `env:"PASSWORD_RESET_TTL"`
 }
 
-func NewEmailConfig() (*emailConfig, error) {
+func NewEmailConfig(opts ...Options) (*emailConfig, error) {
 	config := new(emailConfig)
-	if err := env.Parse(config); err != nil {
+	if err := Parse(config, opts...); err != nil {
 		return nil, err
 	}
 

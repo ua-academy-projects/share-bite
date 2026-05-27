@@ -1,7 +1,5 @@
 package env
 
-import "github.com/caarlos0/env/v11"
-
 type RedisConfig struct {
 	RedisHost     string `env:"REDIS_HOST" envDefault:"localhost"`
 	RedisPort     string `env:"REDIS_PORT" envDefault:"6379"`
@@ -10,9 +8,9 @@ type RedisConfig struct {
 	RedisDB       int    `env:"REDIS_DB" envDefault:"0"`
 }
 
-func NewRedisConfig() (*RedisConfig, error) {
+func NewRedisConfig(opts ...Options) (*RedisConfig, error) {
 	cfg := new(RedisConfig)
-	if err := env.Parse(cfg); err != nil {
+	if err := Parse(cfg, opts...); err != nil {
 		return nil, err
 	}
 

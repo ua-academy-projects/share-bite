@@ -40,7 +40,7 @@ func main() {
 	})
 	closer.SetShutdownTimeout(5 * time.Second)
 
-	topicArn := os.Getenv("OUTBOX_SNS_TOPIC_ARN")
+	topicArn := config.GetSecret("OUTBOX_SNS_TOPIC_ARN")
 	if topicArn == "" {
 		logger.Fatal(ctx, "OUTBOX_SNS_TOPIC_ARN is required")
 	}

@@ -30,3 +30,25 @@ func (s *fakeSender) SendPasswordResetToken(ctx context.Context, toEmail, token 
 
 	return nil
 }
+
+func (s *fakeSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]any) error {
+	if toEmail == "" {
+		return errors.New("recipient email is empty")
+	}
+	if subject == "" {
+		return errors.New("subject is empty")
+	}
+	if templateName == "" {
+		return errors.New("template name is empty")
+	}
+
+	logger.InfoKV(
+		ctx,
+		"email sent by fake sender",
+		"to", toEmail,
+		"subject", subject,
+		"template", templateName,
+	)
+
+	return nil
+}

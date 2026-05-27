@@ -10,4 +10,5 @@ type ObjectStorage interface {
 	Delete(context.Context, string) error
 	BuildURL(string) string
 	GetPresignedURL(ctx context.Context, key string) (string, error)
+	Get(ctx context.Context, key string) (io.ReadCloser, error)
 }
