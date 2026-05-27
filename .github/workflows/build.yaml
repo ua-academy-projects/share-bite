@@ -99,7 +99,6 @@ jobs:
   deploy:
     name: Distributed Deploy to Multi-EC2 via AWS SSM
     needs: build-and-push
-    ##if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -108,6 +107,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Image Tag Variable
+        id: vars
+        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Convert variables and print tag
+        run: echo "Using image tag:${{ steps.vars.outputs.sha_tag }}"
 
       - name: Configure AWS credentials (OIDC Role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -120,7 +126,7 @@ jobs:
           echo "Starting database migrations via raw Docker run with .env file..."
           
           ECR_PASSWORD=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          IMAGE_TAG="${{ steps.vars.outputs.sha_tag }}"
           REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           MIGRATOR_IMAGE="$REGISTRY/share-bite/migrator:$IMAGE_TAG"
           
@@ -147,7 +153,7 @@ jobs:
           ADMIN_COMPOSE_B64=$(base64 -w 0 build/aws/compose.admin-auth-api.yaml)
           
           ECR_PASSWORD=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          IMAGE_TAG="${{ steps.vars.outputs.sha_tag }}"
           REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           
           SSM_PARAMS=$(jq -n \
@@ -177,7 +183,7 @@ jobs:
           BUSINESS_COMPOSE_B64=$(base64 -w 0 build/aws/compose.business-api.yaml)
           
           ECR_PASSWORD=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          IMAGE_TAG="${{ steps.vars.outputs.sha_tag }}"
           REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           
           SSM_PARAMS=$(jq -n \
@@ -207,7 +213,7 @@ jobs:
           GUEST_COMPOSE_B64=$(base64 -w 0 build/aws/compose.guest-api.yaml)
           
           ECR_PASSWORD=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          IMAGE_TAG="${{ steps.vars.outputs.sha_tag }}"
           REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           
           SSM_PARAMS=$(jq -n \
@@ -237,7 +243,7 @@ jobs:
           WORKERS_COMPOSE_B64=$(base64 -w 0 build/aws/compose.workers.yaml)
           
           ECR_PASSWORD=$(aws ecr get-login-password --region ${{ env.AWS_REGION }})
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
+          IMAGE_TAG="${{ steps.vars.outputs.sha_tag }}"
           REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           
           SSM_PARAMS=$(jq -n \
@@ -260,6 +266,4 @@ jobs:
             --output text)
           
           echo "Waiting for Workers to roll out..."
-          
-          
           aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.WORKERS_INSTANCE_ID }}"
