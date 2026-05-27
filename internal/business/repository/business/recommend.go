@@ -153,3 +153,71 @@ func scanPosts(rows pgx.Rows, op string) ([]entity.RecommendedPost, error) {
 
 	return result, nil
 }
+
+func (r *Repository) CountPostsByTag(ctx context.Context, tag string, h3Hashes []string) (int, error) {
+	const op = "repository.business.CountPostsByTag"
+
+	sql := `
+		WITH unified_posts AS (
+			SELECT id, venue_id::int AS org_id, text AS content, 'guest' AS post_type, created_at
+			FROM guest.posts
+			WHERE status = 'published'
+			
+			UNION ALL
+			
+			SELECT id, org_id, content, 'business' AS post_type, created_at
+			FROM business.posts
+		)
+		SELECT COUNT(*)
+		FROM unified_posts up
+		JOIN business.org_units ou ON up.org_id = ou.id
+		JOIN business.org_unit_tags out ON ou.id = out.org_unit_id
+		JOIN business.location_tags lt ON out.tag_id = lt.id
+		WHERE lt.name = $1
+		  AND ou.h3_hash = ANY($2::text[])
+	`
+	q := database.Query{
+		Name: "business_repository.CountPostsByTag",
+		Sql:  sql,
+	}
+
+	var count int
+	err := r.db.DB().QueryRowContext(ctx, q, tag, h3Hashes).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return count, nil
+}
+
+func (r *Repository) CountRandomPosts(ctx context.Context, h3Hashes []string) (int, error) {
+	const op = "repository.business.CountRandomPosts"
+	sql := `
+		WITH unified_posts AS (
+			SELECT id, venue_id::int AS org_id, text AS content, 'guest' AS post_type, created_at
+			FROM guest.posts
+			WHERE status = 'published'
+			
+			UNION ALL
+			
+			SELECT id, org_id, content, 'business' AS post_type, created_at
+			FROM business.posts
+		)
+		SELECT COUNT(*)
+		FROM unified_posts up
+		JOIN business.org_units ou ON up.org_id = ou.id
+		WHERE ou.h3_hash = ANY($1::text[])
+	`
+	q := database.Query{
+		Name: "business_repository.CountRandomPosts",
+		Sql:  sql,
+	}
+
+	var count int
+	err := r.db.DB().QueryRowContext(ctx, q, h3Hashes).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return count, nil
+}
