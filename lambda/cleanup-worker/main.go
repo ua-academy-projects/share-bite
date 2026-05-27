@@ -76,7 +76,7 @@ func LambdaHandler(ctx context.Context, request CleanupRequest) (CleanupResponse
 			Success: false,
 			Error:   errMsg,
 			DryRun:  cfg.Cleanup.IsDryRun(),
-		}, fmt.Errorf(errMsg)
+		}, fmt.Errorf("%s", errMsg)
 	}
 
 	results, err := cleanupSvc.RunAllCleanups(
