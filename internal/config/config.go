@@ -143,6 +143,13 @@ type Storage interface {
 	PresignTTL() time.Duration
 }
 
+type Cleanup interface {
+	GetRetentionPeriod() time.Duration
+	GetBatchSize() int
+	IsDryRun() bool
+	IsScheduleEnabled() bool
+}
+
 func Load(paths ...string) error {
 	return LoadWithSecrets(nil, paths...)
 }
