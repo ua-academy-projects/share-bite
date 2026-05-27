@@ -2,6 +2,7 @@ package businessoperator
 
 import (
 	"context"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,11 +42,54 @@ type BusinessAppProfileReconciler struct {
 }
 
 func (in *BusinessAppProfile) DeepCopyObject() runtime.Object {
-	return in
+	if in == nil {
+		return nil
+	}
+
+	out := &BusinessAppProfile{
+		TypeMeta: in.TypeMeta,
+	}
+
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	out.Spec.Replicas = in.Spec.Replicas
+	out.Spec.Enabled = in.Spec.Enabled
+
+	var temp string
+	if in.Spec.DeploymentName != nil {
+		temp = *in.Spec.DeploymentName
+		out.Spec.DeploymentName = &temp
+	}
+
+	if in.Status.Conditions != nil {
+		out.Status.Conditions = make([]metav1.Condition, len(in.Status.Conditions))
+		copy(out.Status.Conditions, in.Status.Conditions)
+	}
+
+	return out
 }
 
 func (in *BusinessAppProfileList) DeepCopyObject() runtime.Object {
-	return in
+	if in == nil {
+		return nil 
+	}
+
+	out := &BusinessAppProfileList{
+		TypeMeta: in.TypeMeta,
+	}
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
+
+	if in.Items != nil {
+		out.Items = make([]BusinessAppProfile, len(in.Items))
+		for i := range in.Items{
+			in.Items[i].DeepCopyInto(&out.Items[i])
+		}
+	}
+	return out
+}
+
+func (in *BusinessAppProfile) DeepCopyInto(out *BusinessAppProfile) {
+	clone := in.DeepCopyObject().(*BusinessAppProfile)
+	*out = *clone 
 }
 
 func (r *BusinessAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -65,6 +109,9 @@ func (r *BusinessAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.R
 	var dep appsv1.Deployment
 
 	if err := r.Client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: targetName}, &dep); err != nil {
+		if !errors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
 		condition := metav1.Condition{
 			Type:               "Ready",
 			Status:             metav1.ConditionFalse,
@@ -91,26 +138,27 @@ func (r *BusinessAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	var condition metav1.Condition
+	res := ctrl.Result{}
 
 	if dep.Status.ReadyReplicas == targetReplicas {
 		condition = metav1.Condition{
-			Type:   "Ready",
-			Status: metav1.ConditionTrue,
-			Reason: "Scaled",
+			Type:               "Ready",
+			Status:             metav1.ConditionTrue,
+			Reason:             "Scaled",
 			LastTransitionTime: metav1.Now(),
+			
 		}
 	} else {
 		condition = metav1.Condition{
-			Type: "Ready",
-			Status: metav1.ConditionFalse,
-			Reason: "Scaling",
+			Type:               "Ready",
+			Status:             metav1.ConditionFalse,
+			Reason:             "Scaling",
 			LastTransitionTime: metav1.Now(),
 		}
+		res = ctrl.Result{RequeueAfter: 5 * time.Second}
 	}
 
 	profile.Status.Conditions = []metav1.Condition{condition}
-
 	err := r.Client.Status().Update(ctx, &profile)
-
-	return ctrl.Result{}, err
+	return res, err
 }

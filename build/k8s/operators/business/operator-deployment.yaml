@@ -14,6 +14,13 @@ spec:
                 app: business-operator
         spec:
             serviceAccountName: businessapi-operator-sa
+            securityContext: 
+                runAsNonRoot: true
             containers:
                 - name: operator
                   image: mykolashevchenko/business-operator:latest
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    readOnlyRootFilesystem: true
+                    capabilities:
+                        drop: ["ALL"]
