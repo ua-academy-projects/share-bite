@@ -9,9 +9,10 @@ import (
 type EventType string
 
 const (
-	PostLiked             EventType = "post_liked"
-	RegistrationConfirmed EventType = "registration_confirmed"
-	InvitationReceived    EventType = "invitation_received"
+	PostLiked              EventType = "post_liked"
+	RegistrationConfirmed  EventType = "registration_confirmed"
+	PasswordResetRequested EventType = "password_reset_requested"
+	InvitationReceived     EventType = "invitation_received"
 
 	PostPublished          EventType = "post_published"
 	PostInvitationAccepted EventType = "post_invitation_accepted"
