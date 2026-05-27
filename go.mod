@@ -42,9 +42,9 @@ require (
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.50.0
-	k8s.io/api v0.34.0-alpha.0
-	k8s.io/apimachinery v0.34.0-alpha.0
-	sigs.k8s.io/controller-runtime v0.21.0
+	k8s.io/api v0.31.0
+	k8s.io/apimachinery v0.31.0
+	sigs.k8s.io/controller-runtime v0.19.0
 )
 
 require (
@@ -54,23 +54,27 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/google/btree v1.1.3 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/apiextensions-apiserver v0.34.0-alpha.0 // indirect
-	k8s.io/client-go v0.34.0-alpha.0 // indirect
+	k8s.io/apiextensions-apiserver v0.31.0 // indirect
+	k8s.io/client-go v0.31.0 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
