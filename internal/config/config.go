@@ -42,7 +42,7 @@ type config struct {
 	Auth AuthConfig
 
 	Cleanup Cleanup
-	
+
 	NotificationHttpServer HttpServer
 	NotificationSQS        SQS
 
@@ -258,6 +258,11 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		return fmt.Errorf("image processing sqs config: %w", err)
 	}
 
+	cleanupConfig, err := env.NewCleanupConfig()
+	if err != nil {
+		return fmt.Errorf("cleanup config: %w", err)
+	}
+
 	cfg = &config{
 		App:    appConfig,
 		Auth:   authConfig,
@@ -282,7 +287,7 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		NotificationSQS:        notificationSQSConfig,
 
 		ImageProcessingSQS: imageProcessingSQSConfig,
-		Cleanup: cleanupConfig,
+		Cleanup:            cleanupConfig,
 	}
 
 	return nil
