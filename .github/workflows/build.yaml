@@ -136,7 +136,7 @@ jobs:
           
           SSM_PARAMS=$(jq -n \
             --arg cmd1 "cd /root" \
-            --arg cmd2 "echo '$ECR_PASSWORD' | docker login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd2 "echo '$ECR_PASSWORD' | docker-compose login --username AWS --password-stdin $REGISTRY" \
             --arg cmd3 "docker pull $MIGRATOR_IMAGE" \
             --arg cmd4 "if ! docker run --rm --network host --env-file .env $MIGRATOR_IMAGE 2> /tmp/migrator_err.log; then if grep -q \"no next version found\" /tmp/migrator_err.log; then echo \"Database is clean or up-to-date. No new migrations found. Proceeding...\"; else echo \"CRITICAL MIGRATION ERROR:\"; cat /tmp/migrator_err.log; exit 1; fi; fi" \
             '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4]}')
@@ -150,6 +150,7 @@ jobs:
           
           echo "Waiting for migrations to complete on remote host..."
           aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.ADMIN_INSTANCE_ID }}"
+
       - name: Deploy Admin Services
         run: |
           echo "Deploying Admin services to Admin EC2..."
@@ -165,9 +166,9 @@ jobs:
             --arg cmd3 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd4 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd5 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd6 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
-            --arg cmd7 "docker compose -f compose.admin-auth-api.yaml pull" \
-            --arg cmd8 "docker compose -f compose.admin-auth-api.yaml up -d --wait" \
+            --arg cmd6 "echo '$ECR_PASSWORD' | docker-compose login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd7 "docker-compose -f compose.admin-auth-api.yaml pull" \
+            --arg cmd8 "docker-compose -f compose.admin-auth-api.yaml up -d" \
             '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8]}')
           
           COMMAND_ID=$(aws ssm send-command \
@@ -195,10 +196,10 @@ jobs:
             --arg cmd3 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd4 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd5 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd6 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
-            --arg cmd7 "docker compose -f compose.business-api.yaml pull" \
-            --arg cmd8 "docker compose -f compose.business-api.yaml up -d --wait" \
-            '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8]}')
+            --arg cmd6 "echo '$ECR_PASSWORD' | docker-compose login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd7 "docker-compose -f compose.business-api.yaml pull" \
+            --arg cmd8 "docker-compose -f compose.business-api.yaml up -d" \
+            '{"commands": [ $cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8 ] }')
           
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ secrets.BUSINESS_INSTANCE_ID }}" \
@@ -225,10 +226,10 @@ jobs:
             --arg cmd3 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd4 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd5 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd6 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
-            --arg cmd7 "docker compose -f compose.guest-api.yaml pull" \
-            --arg cmd8 "docker compose -f compose.guest-api.yaml up -d --wait" \
-            '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8]}')
+            --arg cmd6 "echo '$ECR_PASSWORD' | docker-compose login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd7 "docker-compose -f compose.guest-api.yaml pull" \
+            --arg cmd8 "docker-compose -f compose.guest-api.yaml up -d" \
+            '{"commands": [ $cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8 ] }')
           
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ secrets.GUEST_INSTANCE_ID }}" \
@@ -256,10 +257,10 @@ jobs:
             --arg cmd4 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd5 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd6 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd7 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
-            --arg cmd8 "docker compose -f workers.yaml pull" \
-            --arg cmd9 "docker compose -f workers.yaml up -d --wait" \
-            '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8, $cmd9]}')
+            --arg cmd7 "echo '$ECR_PASSWORD' | docker-compose login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd8 "docker-compose -f workers.yaml pull" \
+            --arg cmd9 "docker-compose -f workers.yaml up -d" \
+            '{"commands": [ $cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8, $cmd9 ] }')
           
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ secrets.WORKERS_INSTANCE_ID }}" \
