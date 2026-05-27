@@ -1,12 +1,13 @@
+version: '3.8'
+
 services:
   guest-api:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/guest-api:${IMAGE_TAG:-latest}
     container_name: share-bite-guest-api
     restart: always
+    network_mode: "host"
     env_file:
       - .env
-    ports:
-      - "8082:3800"
     depends_on:
       redis:
         condition: service_healthy
@@ -19,9 +20,12 @@ services:
     image: redis:7-alpine
     container_name: share-bite-redis-guest
     restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    network_mode: "host"
+    env_file:
+      - .env
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep PONG"]
       interval: 5s
       timeout: 3s
       retries: 5
