@@ -51,7 +51,9 @@ jobs:
 
       - name: Set up Image Tag Variable
         id: vars
-        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+        run: |
+          RAW_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "sha_tag=sha-${RAW_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -110,7 +112,9 @@ jobs:
 
       - name: Set up Image Tag Variable
         id: vars
-        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+        run: |
+          RAW_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "sha_tag=sha-${RAW_SHA::7}" >> $GITHUB_OUTPUT
 
       - name: Convert variables and print tag
         run: echo "Using image tag:${{ steps.vars.outputs.sha_tag }}"
