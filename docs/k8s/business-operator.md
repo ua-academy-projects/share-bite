@@ -11,7 +11,7 @@ Implementation: [#215](https://github.com/ua-academy-projects/share-bite/issues/
 | Binary | `cmd/business-operator` |
 | CRD | `BusinessAppProfile` (`business.sharebite.dev/v1alpha1`) |
 | Default Deployment | `business-api` |
-| Manifests | `deploy/k8s/operators/business/` |
+| Manifests | `build/k8s/operators/business/` |
 | Run locally | `make run-business-operator` |
 
 ---
