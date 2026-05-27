@@ -18,8 +18,9 @@ def extract_bearer_token(
     if not auth_header:
         return None
 
-    if auth_header.startswith("Bearer "):
-        return auth_header.removeprefix("Bearer ").strip()
+    scheme, _, token = auth_header.partition(" ")
+    if scheme.lower() == "bearer" and token.strip():
+        return token.strip()
 
     return None
 

@@ -163,7 +163,7 @@ If Claude Desktop runs on Windows while the project lives inside WSL, use `wsl.e
         "GUEST_API_BASE_URL": "http://localhost:3800",
         "TIMEOUT_SECONDS": "10",
         "GUEST_API_AUTH_TOKEN": "",
-        "WSLENV": "GUEST_API_BASE_URL/u:GUEST_API_AUTH_TOKEN/u:TIMEOUT_SECONDS/u"
+        "WSLENV": "GUEST_API_BASE_URL:GUEST_API_AUTH_TOKEN:TIMEOUT_SECONDS"
       }
     }
   }

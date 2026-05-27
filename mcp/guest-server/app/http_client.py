@@ -85,7 +85,7 @@ class GuestAPIClient:
         is_multipart = bool(data or files)
         headers = self._build_headers(
             auth_token,
-            request_id or str(uuid.uuid7()),
+            request_id or str(uuid.uuid4()),
             is_multipart,
         )
 
@@ -101,7 +101,13 @@ class GuestAPIClient:
             )
 
             _ = response.raise_for_status()
-            response_data = response.json() if response.content else None
+            if not response.content:
+                response_data = None
+            else:
+                try:
+                    response_data = response.json()
+                except ValueError:
+                    response_data = response.text
 
             return APISuccessResponse(
                 is_error=False, status=response.status_code, data=response_data

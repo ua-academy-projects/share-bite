@@ -1,6 +1,6 @@
 import json
 
-from app.auth import resolve_auth_token
+from ..auth import resolve_auth_token
 
 from ..constants import (
     CONTENT_TYPE_JSON,

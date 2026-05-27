@@ -11,8 +11,10 @@ MIGRATIONS_DIR := migrations
 
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "development")
 COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-BUILD_TIME ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 PKG        := github.com/ua-academy-projects/share-bite/pkg/version
+ifndef BUILD_TIME
+BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+endif
 
 LDFLAGS := -ldflags "\
   -X '$(PKG).Version=$(VERSION)' \
