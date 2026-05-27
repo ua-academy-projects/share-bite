@@ -68,7 +68,7 @@ Examples:
 		logger.Info(ctx, "Running in development mode")
 	}
 
-	logger.Info(ctx, fmt.Sprintf("Connecting to database: %s", cfg.Postgres.Dsn()[:50]+"..."))
+	logger.Info(ctx, "Connecting to database...")
 
 	client, err := pg.NewClient(ctx, cfg.Postgres.Dsn())
 	if err != nil {

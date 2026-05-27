@@ -68,6 +68,17 @@ func LambdaHandler(ctx context.Context, request CleanupRequest) (CleanupResponse
 		cfg.Cleanup.IsDryRun(),
 	))
 
+	// Validate that job names filtering is not requested (not yet supported)
+	if len(request.JobNames) > 0 {
+		errMsg := "job_names filtering is not yet supported; use RunAllCleanups or implement job filtering"
+		logger.Error(ctx, errMsg)
+		return CleanupResponse{
+			Success: false,
+			Error:   errMsg,
+			DryRun:  cfg.Cleanup.IsDryRun(),
+		}, fmt.Errorf(errMsg)
+	}
+
 	results, err := cleanupSvc.RunAllCleanups(
 		ctx,
 		cfg.Cleanup.GetRetentionPeriod(),

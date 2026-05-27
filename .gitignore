@@ -43,6 +43,5 @@ terraform/.terraform.lock.hcl
 terraform/session-manager-plugin.deb
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
-package-lock.json
 
 node_modules

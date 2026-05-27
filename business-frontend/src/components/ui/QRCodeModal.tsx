@@ -8,10 +8,36 @@ export function QRCodeModalContainer() {
   const { isOpen, boxCode, closeModal } = useQRCodeModal();
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   // Генерувати QR-код коли модаль відкривається
   useEffect(() => {
     if (isOpen && boxCode) {
+      setIsGenerating(true);
+      setQrError(null);
+      QRCodeLib.toDataURL(boxCode, {
+        width: 256,
+        color: {
+          dark: "#1A3C34",
+          light: "#FFFFFF"
+        }
+      })
+        .then((url) => {
+          setQrCodeDataUrl(url);
+          setQrError(null);
+          setIsGenerating(false);
+        })
+        .catch((err) => {
+          console.error("QR Code generation error:", err);
+          setQrError("Failed to generate QR code. Please try again.");
+          setIsGenerating(false);
+        });
+    }
+  }, [isOpen, boxCode]);
+
+  const handleRetryQR = () => {
+    if (boxCode) {
+      setQrError(null);
       setIsGenerating(true);
       QRCodeLib.toDataURL(boxCode, {
         width: 256,
@@ -22,14 +48,16 @@ export function QRCodeModalContainer() {
       })
         .then((url) => {
           setQrCodeDataUrl(url);
+          setQrError(null);
           setIsGenerating(false);
         })
         .catch((err) => {
           console.error("QR Code generation error:", err);
+          setQrError("Failed to generate QR code. Please try again.");
           setIsGenerating(false);
         });
     }
-  }, [isOpen, boxCode]);
+  };
 
   // Очистити QR-код при закритті
   useEffect(() => {
@@ -58,10 +86,14 @@ export function QRCodeModalContainer() {
         <div
           className="bg-white dark:bg-[#163d32] rounded-3xl shadow-2xl p-8 max-w-md w-full border border-gray-100 dark:border-[#2f5e50] pointer-events-auto animate-in fade-in zoom-in-95 duration-300"
           onClick={handleModalClick}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qr-modal-title"
+          tabIndex={-1}
         >
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-[#1A3C34] dark:text-white">
+            <h2 id="qr-modal-title" className="text-2xl font-bold text-[#1A3C34] dark:text-white">
               Бокс зарезервовано! 🎉
             </h2>
             <button
@@ -74,7 +106,19 @@ export function QRCodeModalContainer() {
           </div>
 
           {/* QR Code Container */}
-          <QRCodeContainer qrCodeDataUrl={qrCodeDataUrl} isGenerating={isGenerating} />
+          {qrError && (
+            <div className="flex flex-col items-center bg-red-50 dark:bg-red-900/20 rounded-2xl p-6 mb-6 border border-red-200 dark:border-red-800">
+              <p className="text-red-700 dark:text-red-300 text-center mb-4">{qrError}</p>
+              <button
+                onClick={handleRetryQR}
+                disabled={isGenerating}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {!qrError && <QRCodeContainer qrCodeDataUrl={qrCodeDataUrl} isGenerating={isGenerating} />}
 
           {/* Box Code */}
           <BoxCodeDisplay boxCode={boxCode} />

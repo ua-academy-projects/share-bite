@@ -113,20 +113,27 @@ func (s *CleanupService) CleanExpiredPasswordResetTokens(ctx context.Context, to
 
 func (s *CleanupService) RunAllCleanups(ctx context.Context, retentionPeriod time.Duration, batchSize int, dryRun bool) ([]*entity.CleanupResult, error) {
 	var results []*entity.CleanupResult
+	var aggregatedErr error
 
 	logger.Info(ctx, "Running cleanup operations")
 	postResult, err := s.ExpireOldPosts(ctx, retentionPeriod, batchSize, dryRun)
+	// Always append result even if error occurred
+	results = append(results, postResult)
 	if err != nil {
 		log.Printf("Error during post cleanup: %v", err)
-	} else {
-		results = append(results, postResult)
+		aggregatedErr = err
 	}
 
 	tokenResult, err := s.CleanExpiredPasswordResetTokens(ctx, retentionPeriod/2, batchSize, dryRun)
+	// Always append result even if error occurred
+	results = append(results, tokenResult)
 	if err != nil {
 		log.Printf("Error during token cleanup: %v", err)
-	} else {
-		results = append(results, tokenResult)
+		if aggregatedErr != nil {
+			aggregatedErr = fmt.Errorf("%w; token cleanup error: %w", aggregatedErr, err)
+		} else {
+			aggregatedErr = err
+		}
 	}
 
 	totalFound := int64(0)
@@ -142,5 +149,5 @@ func (s *CleanupService) RunAllCleanups(ctx context.Context, retentionPeriod tim
 		logger.Info(ctx, fmt.Sprintf("Cleanup complete. Found %d records, deleted %d records", totalFound, totalDeleted))
 	}
 
-	return results, nil
+	return results, aggregatedErr
 }

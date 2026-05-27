@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { businessApi, RecommendedPost } from "@/api/business";
 import { PostCard, PostData } from "@/components/ui/PostCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
@@ -29,6 +29,7 @@ export function HomeFeedPage() {
   const [error, setError] = useState<string | null>(null);
   const [skip, setSkip] = useState(0);
   const [total, setTotal] = useState(0);
+  const requestIdRef = useRef(0);
 
   const currentPage = Math.floor(skip / PAGE_LIMIT) + 1;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
@@ -36,6 +37,9 @@ export function HomeFeedPage() {
   const loadPosts = async (skipValue = 0) => {
     setLoading(true);
     setError(null);
+    // Increment request ID to guard against stale responses
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
     try {
       const token = localStorage.getItem("token") || undefined;
       const data = await businessApi.recommendPosts(
@@ -47,18 +51,27 @@ export function HomeFeedPage() {
         },
         token,
       );
-      // Map API response to PostData format
-      const mappedPosts = data.items.map(mapRecommendedPostToPostData);
-      setPosts(mappedPosts);
-      setTotal(data.total);
-      setSkip(skipValue);
+      // Only apply results if this is still the current request
+      if (currentRequestId === requestIdRef.current) {
+        // Map API response to PostData format
+        const mappedPosts = data.items.map(mapRecommendedPostToPostData);
+        setPosts(mappedPosts);
+        setTotal(data.total);
+        setSkip(skipValue);
+      }
     } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "Failed to load recommendations";
-      setError(errorMessage);
-      console.error("Error loading posts:", e);
+      // Only apply error if this is still the current request
+      if (currentRequestId === requestIdRef.current) {
+        const errorMessage =
+          e instanceof Error ? e.message : "Failed to load recommendations";
+        setError(errorMessage);
+        console.error("Error loading posts:", e);
+      }
     } finally {
-      setLoading(false);
+      // Only clear loading if this is still the current request
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 

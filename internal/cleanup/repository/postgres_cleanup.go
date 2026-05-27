@@ -31,47 +31,34 @@ func (r *PostgresCleanupRepository) ExpireOldPosts(ctx context.Context, olderTha
 	totalDeleted := int64(0)
 
 	for {
-		var postIDs []int64
-
+		// Atomic delete: single statement ensures status check at delete time
 		q := database.Query{
-			Name: "SelectExpiredPostsForDelete",
+			Name: "DeleteExpiredPostsAtomic",
 			Sql: `
-				SELECT id FROM guest.posts
-				WHERE created_at < $1 AND status != 'archived'
-				ORDER BY created_at ASC
-				LIMIT $2
+				DELETE FROM guest.posts
+				WHERE id IN (
+				  SELECT id FROM guest.posts
+				  WHERE created_at < $1 AND status != 'archived'
+				  ORDER BY created_at ASC
+				  LIMIT $2
+				) AND status != 'archived'
 			`,
 		}
 
-		rows, err := r.db.DB().QueryContext(ctx, q, olderThan, batchSize)
+		result, err := r.db.DB().ExecContext(ctx, q, olderThan, batchSize)
 		if err != nil {
-			return totalDeleted, fmt.Errorf("failed to query expired posts: %w", err)
+			return totalDeleted, fmt.Errorf("failed to delete expired posts: %w", err)
 		}
 
-		for rows.Next() {
-			var postID int64
-			if err := rows.Scan(&postID); err != nil {
-				rows.Close()
-				return totalDeleted, fmt.Errorf("failed to scan post ID: %w", err)
-			}
-			postIDs = append(postIDs, postID)
-		}
-
-		rows.Close()
-
-		if len(postIDs) == 0 {
+		deleted := result.RowsAffected()
+		if deleted == 0 {
 			break
-		}
-
-		deleted, err := r.DeletePostsByID(ctx, postIDs)
-		if err != nil {
-			return totalDeleted, err
 		}
 
 		totalDeleted += deleted
 		log.Printf("Deleted batch of %d posts, total: %d", deleted, totalDeleted)
 
-		if int64(len(postIDs)) < int64(batchSize) {
+		if deleted < int64(batchSize) {
 			break
 		}
 	}
@@ -185,12 +172,17 @@ func (r *PostgresCleanupRepository) DeleteExpiredPasswordResetTokens(ctx context
 	totalDeleted := int64(0)
 
 	for {
+		// Use CTE for batch deletion since PostgreSQL doesn't support DELETE ... LIMIT directly
 		q := database.Query{
 			Name: "DeleteExpiredPasswordResetTokens",
 			Sql: `
+				WITH to_delete AS (
+				  SELECT ctid FROM auth.password_reset_tokens
+				  WHERE expires_at < $1 AND used_at IS NULL
+				  LIMIT $2
+				)
 				DELETE FROM auth.password_reset_tokens
-				WHERE expires_at < $1 AND used_at IS NULL
-				LIMIT $2
+				WHERE ctid IN (SELECT ctid FROM to_delete)
 			`,
 		}
 
