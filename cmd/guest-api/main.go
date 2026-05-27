@@ -300,7 +300,7 @@ func main() {
 
 	// services
 	outboxWriter := outbox.NewWriter(client.DB())
-	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter))
+	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter), postsvc.WithImageProcessingProducer(imageProcessingProducer))
 	postsvc.StartPostCleanupJob(ctx, postSvc)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))

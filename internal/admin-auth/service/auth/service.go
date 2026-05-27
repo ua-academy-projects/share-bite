@@ -12,7 +12,6 @@ import (
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/pkg"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/email"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
@@ -55,18 +54,16 @@ type Service interface {
 type service struct {
 	userRepo         user.AuthRepository
 	tokenProvider    TokenProvider
-	emailSender      email.Sender
 	txManager        database.TxManager
 	passwordResetTTL time.Duration
 	outboxWriter     outbox.Writer
 	maxSessions      int
 }
 
-func New(userRepo user.AuthRepository, tokenProvider TokenProvider, emailSender email.Sender, txManager database.TxManager, resetTTL time.Duration, outboxWriter outbox.Writer, maxSessions int) Service {
+func New(userRepo user.AuthRepository, tokenProvider TokenProvider, txManager database.TxManager, resetTTL time.Duration, outboxWriter outbox.Writer, maxSessions int) Service {
 	return &service{
 		userRepo:         userRepo,
 		tokenProvider:    tokenProvider,
-		emailSender:      emailSender,
 		txManager:        txManager,
 		passwordResetTTL: resetTTL,
 		outboxWriter:     outboxWriter,

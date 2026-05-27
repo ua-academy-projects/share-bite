@@ -3,9 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	businessclient "github.com/ua-academy-projects/share-bite/internal/admin-auth/adapter/business"
@@ -15,7 +13,6 @@ import (
 	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
-	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"go.uber.org/zap"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
@@ -109,23 +106,8 @@ func main() {
 		ClientSecret: googleCfg.ClientSecret(),
 		RedirectURL:  googleCfg.RedirectURL(),
 	})
-
-	providerStr := strings.ToLower(strings.TrimSpace(cfg.Email.SenderProviderValue()))
-	var emailSender email.Sender
-
-	switch providerStr {
-	case "", "resend":
-		emailSender = email.NewResendSender(
-			cfg.Email.ResendAPIKeyValue(),
-			cfg.Email.ResendFromEmailValue(),
-		)
-	case "fake":
-		emailSender = email.NewFakeSender()
-	default:
-		logger.Fatal(ctx, "new email sender: ", fmt.Errorf("unknown email sender provider: %s", providerStr))
-	}
 	outboxWriter := outbox.NewWriter(client.DB())
-	authSvc := authsvc.New(userRepo, tokenManager, emailSender, txManager, cfg.Email.PasswordResetTTLValue(), outboxWriter, cfg.Auth.MaxSessions())
+	authSvc := authsvc.New(userRepo, tokenManager, txManager, cfg.Email.PasswordResetTTLValue(), outboxWriter, cfg.Auth.MaxSessions())
 	authHandler := authhttp.NewHandler(authSvc, providerFactory)
 
 	customerClient := guestclient.NewClient(client)
