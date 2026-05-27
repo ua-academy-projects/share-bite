@@ -3,10 +3,13 @@ package entity
 import "time"
 
 type Post struct {
-	ID        int64
-	OrgID     int
-	Content   string
-	CreatedAt time.Time
+	ID          int64
+	OrgID       int
+	Content     string
+	CreatedAt   time.Time
+	OrgStatus   OrgStatus
+	OrgName     string
+	ProfileType string
 }
 
 type PostWithPhotos struct {
@@ -18,4 +21,5 @@ type PostWithPhotos struct {
 
 	OrgName     string
 	ProfileType string
+	OrgStatus   OrgStatus
 }

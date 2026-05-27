@@ -2,6 +2,7 @@ package business
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 )
@@ -17,6 +18,7 @@ type OrgUnit struct {
 	ParentId     *int      `db:"parent_id"`
 	Latitude     *float32  `db:"latitude"`
 	Longitude    *float32  `db:"longitude"`
+	Status       string    `db:"status"`
 }
 
 func (e OrgUnit) ToEntity() entity.OrgUnit {
@@ -31,6 +33,7 @@ func (e OrgUnit) ToEntity() entity.OrgUnit {
 		ParentId:     e.ParentId,
 		Latitude:     e.Latitude,
 		Longitude:    e.Longitude,
+		Status:       entity.OrgStatus(e.Status),
 	}
 }
 

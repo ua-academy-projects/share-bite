@@ -7,6 +7,14 @@ const (
 	ProfileTypeVenue = "VENUE"
 )
 
+type OrgStatus string
+
+const (
+	OrgStatusPending  OrgStatus = "pending"
+	OrgStatusVerified OrgStatus = "verified"
+	OrgStatusRejected OrgStatus = "rejected"
+)
+
 type OrgUnit struct {
 	Id           int
 	OrgAccountId uuid.UUID
@@ -19,6 +27,7 @@ type OrgUnit struct {
 	Latitude     *float32
 	Longitude    *float32
 	Tags         []string
+	Status       OrgStatus
 }
 
 type UpdateOrgUnitInput struct {

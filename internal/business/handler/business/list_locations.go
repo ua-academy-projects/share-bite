@@ -1,9 +1,10 @@
 package business
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
-	"net/http"
 )
 
 // ListNearbyVenues returns nearby locations (venues).
@@ -51,6 +52,7 @@ func (h *handler) ListNearbyVenues(c *gin.Context) {
 			Name:     u.OrgUnit.Name,
 			Avatar:   u.OrgUnit.Avatar,
 			Distance: u.Distance * 1.60934,
+			Status:   string(u.OrgUnit.Status),
 		})
 	}
 

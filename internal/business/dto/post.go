@@ -11,6 +11,7 @@ type PostResponse struct {
 		ID          int    `json:"id"`
 		Name        string `json:"name"`
 		ProfileType string `json:"profileType"`
+		Status      string `json:"status"`
 	} `json:"org"`
 
 	Images []string `json:"images"`

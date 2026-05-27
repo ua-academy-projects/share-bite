@@ -94,6 +94,7 @@ func (h *handler) searchVenues(c *gin.Context) {
 			Latitude:    u.Latitude,
 			Longitude:   u.Longitude,
 			Tags:        normalizeTags(u.Tags),
+			Status:      string(u.Status),
 		})
 	}
 

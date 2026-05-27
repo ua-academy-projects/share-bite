@@ -18,7 +18,7 @@ import (
 func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, error) {
 	const op = "repository.business.GetById"
 	sql := `
-		SELECT id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
+		SELECT id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude,status
 		FROM business.org_units
 		WHERE id = $1
 	`
@@ -41,6 +41,7 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 		&ou.ParentId,
 		&ou.Latitude,
 		&ou.Longitude,
+		&ou.Status,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -76,7 +77,7 @@ func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit
 	units, err := pagination.List(ctx, r.db.DB(), "business_repository.ListByParentID",
 		pagination.Params{
 			Table:   "business.org_units",
-			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
+			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, status",
 			Where:   where,
 			OrderBy: "id",
 			Args:    args,
@@ -96,6 +97,7 @@ func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit
 				&ou.ParentId,
 				&ou.Latitude,
 				&ou.Longitude,
+				&ou.Status,
 			)
 			if err != nil {
 				return entity.OrgUnit{}, fmt.Errorf("%s: %w", op, err)
@@ -115,7 +117,7 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 	q := database.Query{
 		Name: "business_repository.GetVenuesByIDs",
 		Sql: `
-			SELECT id, name, description, avatar, banner
+			SELECT id, name, description, avatar, banner, status
 			FROM business.org_units
 			WHERE id = ANY($1) AND parent_id IS NOT NULL
 		`,
@@ -136,6 +138,7 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 			&ou.Description,
 			&ou.Avatar,
 			&ou.Banner,
+			&ou.Status,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
@@ -202,10 +205,10 @@ func (r *Repository) GetBrandIDByOwnerUserID(ctx context.Context, userID string)
 func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
 	sql := `
 		INSERT INTO business.org_units (
-			org_account_id, profile_type, parent_id, name, avatar, banner, description, latitude, longitude
+			org_account_id, profile_type, parent_id, name, avatar, banner, description, latitude, longitude, status
 		)
-		VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
+		VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, status
 	`
 	q := database.Query{
 		Name: "business_repository.CreateLocation",
@@ -236,6 +239,7 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 		&ou.ParentId,
 		&ou.Latitude,
 		&ou.Longitude,
+		&ou.Status,
 	)
 	if err != nil {
 		return nil, scanRowError(err)
@@ -254,11 +258,12 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 			banner = COALESCE($3, banner),
 			description = COALESCE($4, description),
 			latitude = COALESCE($5, latitude),
-			longitude = COALESCE($6, longitude)
+			longitude = COALESCE($6, longitude),
+			status = 'pending'
 		WHERE id = $7
 		  AND parent_id = $8
 		  AND profile_type = $9
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, status
 	`
 	q := database.Query{
 		Name: "business_repository.UpdateLocation",
@@ -289,6 +294,7 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 		&ou.ParentId,
 		&ou.Latitude,
 		&ou.Longitude,
+		&ou.Status,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -328,7 +334,7 @@ func (r *Repository) ListNearbyVenues(ctx context.Context, lat, lon float64, off
 	const op = "repository.business.ListNearbyVenues"
 
 	dynamicColumns := fmt.Sprintf(
-		"id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, "+
+		"id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude,status, "+
 			"point(%f, %f) <@> point(longitude, latitude) AS distance",
 		lon, lat,
 	)
@@ -358,6 +364,7 @@ func (r *Repository) ListNearbyVenues(ctx context.Context, lat, lon float64, off
 			&ou.ParentId,
 			&ou.Latitude,
 			&ou.Longitude,
+			&ou.Status,
 			&item.Distance,
 		)
 		if err != nil {
@@ -400,7 +407,7 @@ func (r *Repository) SearchVenues(ctx context.Context, query string, offset, lim
 	units, err := pagination.List(ctx, r.db.DB(), "business_repository.SearchVenues",
 		pagination.Params{
 			Table:   "business.org_units",
-			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
+			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude,status",
 			Where:   where,
 			OrderBy: "id",
 			Args:    args,
@@ -420,6 +427,7 @@ func (r *Repository) SearchVenues(ctx context.Context, query string, offset, lim
 				&ou.ParentId,
 				&ou.Latitude,
 				&ou.Longitude,
+				&ou.Status,
 			)
 			if err != nil {
 				return entity.OrgUnit{}, fmt.Errorf("%s: %w", op, err)

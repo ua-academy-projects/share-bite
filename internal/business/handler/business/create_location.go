@@ -39,6 +39,7 @@ type locationResponse struct {
 	Latitude     *float32 `json:"latitude"`
 	Longitude    *float32 `json:"longitude"`
 	Tags         []string `json:"tags"`
+	Status       string   `json:"status"`
 }
 
 func toLocationResponse(loc *entity.OrgUnit) locationResponse {
@@ -54,6 +55,7 @@ func toLocationResponse(loc *entity.OrgUnit) locationResponse {
 		Latitude:     loc.Latitude,
 		Longitude:    loc.Longitude,
 		Tags:         normalizeTags(loc.Tags),
+		Status:       string(loc.Status),
 	}
 }
 
