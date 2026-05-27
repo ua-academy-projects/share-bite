@@ -191,15 +191,16 @@ jobs:
           REGISTRY="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
           
           SSM_PARAMS=$(jq -n \
-            --arg cmd1 "cd /root" \
+            --arg cmd1 "cd /home/ubuntu" \
             --arg cmd2 "echo '$BUSINESS_COMPOSE_B64' | base64 -d > compose.business-api.yaml" \
             --arg cmd3 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd4 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd5 "export IMAGE_TAG=$IMAGE_TAG" \
             --arg cmd6 "echo '$ECR_PASSWORD' | docker login --username AWS --password-stdin $REGISTRY" \
-            --arg cmd7 "docker-compose -f compose.business-api.yaml pull" \
-            --arg cmd8 "docker-compose -f compose.business-api.yaml up -d" \
-            '{"commands": [ $cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8 ] }')
+            --arg cmd7 "echo '$ECR_PASSWORD' | docker-compose login --username AWS --password-stdin $REGISTRY || true" \
+            --arg cmd8 "docker-compose -f compose.business-api.yaml pull" \
+            --arg cmd9 "docker-compose -f compose.business-api.yaml up -d" \
+            '{"commands": [ $cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8, $cmd9 ] }')
           
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ secrets.BUSINESS_INSTANCE_ID }}" \
