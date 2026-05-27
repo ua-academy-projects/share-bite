@@ -138,7 +138,7 @@ jobs:
             --arg cmd1 "cd /root" \
             --arg cmd2 "echo '$ECR_PASSWORD' | docker login --username AWS --password-stdin $REGISTRY" \
             --arg cmd3 "docker pull $MIGRATOR_IMAGE" \
-            --arg cmd4 "docker run --rm --network host --env-file .env $MIGRATOR_IMAGE" \
+            --arg cmd4 "if ! docker run --rm --network host --env-file .env $MIGRATOR_IMAGE 2> /tmp/migrator_err.log; then if grep -q \"no next version found\" /tmp/migrator_err.log; then echo \"Database is clean or up-to-date. No new migrations found. Proceeding...\"; else echo \"CRITICAL MIGRATION ERROR:\"; cat /tmp/migrator_err.log; exit 1; fi; fi" \
             '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4]}')
           
           COMMAND_ID=$(aws ssm send-command \
@@ -150,7 +150,6 @@ jobs:
           
           echo "Waiting for migrations to complete on remote host..."
           aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.ADMIN_INSTANCE_ID }}"
-
       - name: Deploy Admin Services
         run: |
           echo "Deploying Admin services to Admin EC2..."
