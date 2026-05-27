@@ -41,6 +41,8 @@ type config struct {
 
 	Auth AuthConfig
 
+	Cleanup Cleanup
+
 	NotificationHttpServer HttpServer
 	NotificationSQS        SQS
 
@@ -139,6 +141,13 @@ type Storage interface {
 	Bucket() string
 	UsePathStyle() bool
 	PresignTTL() time.Duration
+}
+
+type Cleanup interface {
+	GetRetentionPeriod() time.Duration
+	GetBatchSize() int
+	IsDryRun() bool
+	IsScheduleEnabled() bool
 }
 
 func Load(paths ...string) error {
@@ -249,6 +258,11 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		return fmt.Errorf("image processing sqs config: %w", err)
 	}
 
+	cleanupConfig, err := env.NewCleanupConfig()
+	if err != nil {
+		return fmt.Errorf("cleanup config: %w", err)
+	}
+
 	cfg = &config{
 		App:    appConfig,
 		Auth:   authConfig,
@@ -273,6 +287,7 @@ func LoadWithSecrets(secrets map[string]string, paths ...string) error {
 		NotificationSQS:        notificationSQSConfig,
 
 		ImageProcessingSQS: imageProcessingSQSConfig,
+		Cleanup:            cleanupConfig,
 	}
 
 	return nil
