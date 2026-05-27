@@ -13,7 +13,7 @@ type CleanupResult struct {
 }
 
 func (r *CleanupResult) Duration() time.Duration {
-	return r.CompletedAt.Sub(r.StartedAt)
+	return r.CompletedAt.Sub(r.StartedAt).Round(time.Second)
 }
 
 type CleanupJob struct {
