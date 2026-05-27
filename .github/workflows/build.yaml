@@ -88,7 +88,7 @@ jobs:
           context: .
           file: ./build/Dockerfile.${{ matrix.service }}
           platforms: ${{ matrix.platform || 'linux/amd64' }}
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -101,6 +101,7 @@ jobs:
   deploy:
     name: Distributed Deploy to Multi-EC2 via AWS SSM
     needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -211,6 +212,7 @@ jobs:
           
           echo "Waiting for Business services to roll out..."
           aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.BUSINESS_INSTANCE_ID }}"
+
       - name: Deploy Guest Services
         run: |
           echo "Deploying Guest services to Guest EC2..."
