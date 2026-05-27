@@ -165,7 +165,7 @@ jobs:
             --arg cmd3 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd4 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd5 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd6 "echo '$ECR_PASSWORD' | docker login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd6 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
             --arg cmd7 "docker compose -f compose.admin-auth-api.yaml pull" \
             --arg cmd8 "docker compose -f compose.admin-auth-api.yaml up -d --wait" \
             '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8]}')
@@ -195,7 +195,7 @@ jobs:
             --arg cmd3 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd4 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd5 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd6 "echo '$ECR_PASSWORD' | docker login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd6 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
             --arg cmd7 "docker compose -f compose.business-api.yaml pull" \
             --arg cmd8 "docker compose -f compose.business-api.yaml up -d --wait" \
             '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8]}')
@@ -225,7 +225,7 @@ jobs:
             --arg cmd3 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd4 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd5 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd6 "echo '$ECR_PASSWORD' | docker login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd6 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
             --arg cmd7 "docker compose -f compose.guest-api.yaml pull" \
             --arg cmd8 "docker compose -f compose.guest-api.yaml up -d --wait" \
             '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8]}')
@@ -256,7 +256,7 @@ jobs:
             --arg cmd4 "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" \
             --arg cmd5 "export AWS_REGION=${{ env.AWS_REGION }}" \
             --arg cmd6 "export IMAGE_TAG=$IMAGE_TAG" \
-            --arg cmd7 "echo '$ECR_PASSWORD' | docker login --username AWS --password-stdin $REGISTRY" \
+            --arg cmd7 "echo \"$ECR_PASSWORD\" | docker login --username AWS --password-stdin $REGISTRY" \
             --arg cmd8 "docker compose -f workers.yaml pull" \
             --arg cmd9 "docker compose -f workers.yaml up -d --wait" \
             '{"commands": [$cmd1, $cmd2, $cmd3, $cmd4, $cmd5, $cmd6, $cmd7, $cmd8, $cmd9]}')
