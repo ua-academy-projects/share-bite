@@ -259,4 +259,6 @@ jobs:
             --output text)
           
           echo "Waiting for Workers to roll out..."
+          
+          
           aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.WORKERS_INSTANCE_ID }}"
