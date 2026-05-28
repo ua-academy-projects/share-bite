@@ -11,22 +11,22 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, in entity.CreateCustomer) (string, error) {
+	authToken, ok := ctx.Value(middleware.CtxAccessToken).(string)
+	if !ok || authToken == "" {
+		return "", fmt.Errorf("missing access token to resolve customer email")
+	}
+
+	email, err := s.adminClient.GetUserEmail(ctx, in.UserID, authToken)
+	if err != nil {
+		return "", fmt.Errorf("get customer email: %w", err)
+	}
+
 	var customerID string
-	err := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		var err error
 		customerID, err = s.customerRepo.Create(txCtx, in)
 		if err != nil {
 			return fmt.Errorf("create customer in repo: %w", err)
-		}
-
-		authToken, ok := txCtx.Value(middleware.CtxAccessToken).(string)
-		if !ok || authToken == "" {
-			return fmt.Errorf("missing access token to resolve customer email")
-		}
-
-		email, err := s.adminClient.GetUserEmail(txCtx, in.UserID, authToken)
-		if err != nil {
-			return fmt.Errorf("get customer email: %w", err)
 		}
 
 		metadata := map[string]any{

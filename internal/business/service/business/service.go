@@ -129,27 +129,27 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 		return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
 	}
 
+	authToken, ok := ctx.Value(middleware.CtxAccessToken).(string)
+	if !ok || authToken == "" {
+		return 0, fmt.Errorf("missing access token to resolve business email")
+	}
+
+	email, err := s.emailClient.GetUserEmail(ctx, in.OrgAccountId.String(), authToken)
+	if err != nil {
+		return 0, fmt.Errorf("get business email: %w", err)
+	}
+
 	var id int
-	err := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		var err error
 		id, err = s.businessRepo.Create(txCtx, in)
 		if err != nil {
 			return fmt.Errorf("failed to create business profile: %w", err)
 		}
 
-		authToken, ok := txCtx.Value(middleware.CtxAccessToken).(string)
-		if !ok || authToken == "" {
-			return fmt.Errorf("missing access token to resolve business email")
-		}
-
-		email, err := s.emailClient.GetUserEmail(txCtx, in.OrgAccountId.String(), authToken)
-		if err != nil {
-			return fmt.Errorf("get business email: %w", err)
-		}
-
 		metadata := map[string]any{
-			"name":  in.Name,
-			"email": email,
+			"username": in.Name,
+			"email":    email,
 		}
 
 		event := outbox.Event{
