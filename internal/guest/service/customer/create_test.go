@@ -14,6 +14,73 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
+func TestCreate_EmailResolutionFailures(t *testing.T) {
+	t.Parallel()
+
+	var (
+		userID    = gofakeit.UUID()
+		email     = gofakeit.Email()
+		userName  = gofakeit.Username()
+		firstName = gofakeit.Person().FirstName
+		lastName  = gofakeit.Person().LastName
+	)
+
+	tests := []struct {
+		name       string
+		ctx        context.Context
+		setupAdmin func(adminClient *mockEmailClient, input entity.CreateCustomer)
+		wantErrMsg string
+	}{
+		{
+			name:       "missing access token",
+			ctx:        context.Background(),
+			wantErrMsg: "missing access token to resolve customer email",
+		},
+		{
+			name: "admin email lookup fails",
+			ctx:  context.WithValue(context.Background(), middleware.CtxAccessToken, "access-token"),
+			setupAdmin: func(adminClient *mockEmailClient, input entity.CreateCustomer) {
+				emailErr := errors.New("admin email lookup failed")
+				adminClient.On("GetUserEmail", mock.Anything, input.UserID, "access-token").Return("", emailErr).Once()
+			},
+			wantErrMsg: "admin email lookup failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			repo := new(mockCustomerRepository)
+			outboxWriter := new(mockOutboxWriter)
+			txManager := new(mockTxManager)
+			adminClient := new(mockEmailClient)
+			svc := New(repo, outboxWriter, txManager, adminClient)
+
+			input := entity.CreateCustomer{
+				UserID:    userID,
+				Email:     email,
+				UserName:  userName,
+				FirstName: firstName,
+				LastName:  lastName,
+			}
+
+			if tt.setupAdmin != nil {
+				tt.setupAdmin(adminClient, input)
+			}
+
+			_, err := svc.Create(tt.ctx, input)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErrMsg)
+
+			repo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+			outboxWriter.AssertNotCalled(t, "Enqueue", mock.Anything, mock.Anything)
+			txManager.AssertNotCalled(t, "ReadCommitted", mock.Anything, mock.Anything)
+			adminClient.AssertExpectations(t)
+		})
+	}
+}
+
 func TestCreate(t *testing.T) {
 	t.Parallel()
 

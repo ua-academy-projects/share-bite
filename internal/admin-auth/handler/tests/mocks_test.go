@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -316,12 +317,22 @@ func (n noopOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error
 type emailOutboxAdapter struct{ sender *mockEmailSender }
 
 func (a emailOutboxAdapter) Enqueue(ctx context.Context, event outbox.Event) error {
-	if msg, ok := event.Payload.(outbox.Message); ok {
-		e, _ := msg.Metadata["email"].(string)
-		t, _ := msg.Metadata["reset_token"].(string)
-		return a.sender.SendPasswordResetToken(ctx, e, t)
+	msg, ok := event.Payload.(outbox.Message)
+	if !ok {
+		return fmt.Errorf("invalid outbox payload type %T", event.Payload)
 	}
-	return nil
+
+	email, ok := msg.Metadata["email"].(string)
+	if !ok || email == "" {
+		return fmt.Errorf("missing or invalid outbox metadata email")
+	}
+
+	token, ok := msg.Metadata["reset_token"].(string)
+	if !ok || token == "" {
+		return fmt.Errorf("missing or invalid outbox metadata reset_token")
+	}
+
+	return a.sender.SendPasswordResetToken(ctx, email, token)
 }
 
 func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *auth.Handler {

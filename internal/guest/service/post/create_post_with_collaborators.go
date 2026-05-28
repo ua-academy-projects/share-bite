@@ -112,7 +112,7 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 			for _, collaboratorID := range invited {
 				customer, err := s.customerRepo.GetByID(txCtx, collaboratorID)
 				if err != nil {
-					if errors.Is(err, apperror.CustomerNotFoundUserID(collaboratorID)) {
+					if errors.Is(err, apperror.CustomerNotFoundID(collaboratorID)) {
 						logger.WarnKV(txCtx, "skip missing collaborator customer", "collaborator_id", collaboratorID, "error", err)
 						continue
 					}
