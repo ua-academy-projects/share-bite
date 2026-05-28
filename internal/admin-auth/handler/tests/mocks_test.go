@@ -240,6 +240,14 @@ func (m *MockAuthService) RecoverAccess(ctx context.Context, email string) error
 	return args.Error(0)
 }
 
+func (m *MockAuthService) GetUserEmail(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (string, error) {
+	args := m.Called(ctx, requesterUserID, requesterRole, targetUserID)
+	if args.Get(0) != nil {
+		return args.String(0), args.Error(1)
+	}
+	return "", args.Error(1)
+}
+
 func (m *MockAuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
 	args := m.Called(ctx, token, newPassword)
 	return args.Error(0)
@@ -305,8 +313,19 @@ func (n noopOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error
 	return nil
 }
 
+type emailOutboxAdapter struct{ sender *mockEmailSender }
+
+func (a emailOutboxAdapter) Enqueue(ctx context.Context, event outbox.Event) error {
+	if msg, ok := event.Payload.(outbox.Message); ok {
+		e, _ := msg.Metadata["email"].(string)
+		t, _ := msg.Metadata["reset_token"].(string)
+		return a.sender.SendPasswordResetToken(ctx, e, t)
+	}
+	return nil
+}
+
 func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *auth.Handler {
-	service := authsvc.New(repo, stubTokenProvider{}, emailSender, noopTxManager{}, time.Hour, 5)
+	service := authsvc.New(repo, stubTokenProvider{}, noopTxManager{}, time.Hour, emailOutboxAdapter{sender: emailSender}, 5)
 	return auth.NewHandler(service, nil)
 }
 

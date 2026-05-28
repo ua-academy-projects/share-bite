@@ -26,9 +26,18 @@ type mockTxManager struct {
 	mock.Mock
 }
 
+type mockEmailClient struct {
+	mock.Mock
+}
+
 func (m *mockTxManager) ReadCommitted(ctx context.Context, fn database.Handler) error {
 	_ = m.Called(ctx, fn)
 	return fn(ctx)
+}
+
+func (m *mockEmailClient) GetUserEmail(ctx context.Context, userID, authToken string) (string, error) {
+	args := m.Called(ctx, userID, authToken)
+	return args.String(0), args.Error(1)
 }
 
 func (m *mockCustomerRepository) GetByID(ctx context.Context, customerID string) (entity.Customer, error) {

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
 	_ "github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
@@ -35,8 +36,10 @@ func TestInviteCollaborator(t *testing.T) {
 
 		mockFn func(collectionRepo *mockCollectionRepository, customerRepo *mockCustomerRepository, tx *mockTxManager, pub *mockPublisher)
 
-		wait    bool
-		wantErr error
+		wait           bool
+		wantErr        error
+		wantErrCode    code.Code
+		wantErrContain string
 	}{
 		{
 			name: "success - new invitation",
@@ -451,7 +454,8 @@ func TestInviteCollaborator(t *testing.T) {
 					}, nil).
 					Once()
 			},
-			wantErr: apperror.InvitationCooldown(59 * time.Minute),
+			wantErrCode:    code.TooManyRequests,
+			wantErrContain: "before resending this invitation",
 		},
 		{
 			name: "error - refresh invitation repository fails",
@@ -575,6 +579,13 @@ func TestInviteCollaborator(t *testing.T) {
 			if tt.wantErr != nil {
 				require.Error(t, err)
 				assert.ErrorIs(t, err, tt.wantErr)
+			} else if tt.wantErrCode != "" {
+				require.Error(t, err)
+
+				var appErr *apperror.Error
+				require.ErrorAs(t, err, &appErr)
+				assert.Equal(t, tt.wantErrCode, appErr.Code)
+				assert.Contains(t, appErr.Error(), tt.wantErrContain)
 			} else {
 				require.NoError(t, err)
 			}
