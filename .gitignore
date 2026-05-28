@@ -44,3 +44,8 @@ terraform/session-manager-plugin.deb
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 package-lock.json
+
+
+__pycache__/
+*.py[cod]
+.venv/
