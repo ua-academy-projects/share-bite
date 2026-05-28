@@ -77,6 +77,8 @@ type businessRepository interface {
 	GetTopTagsByUserLikes(ctx context.Context, userID string, tagsToFetch int) ([]string, error)
 	GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)
 	GetRandomPosts(ctx context.Context, deficit int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)
+	CountPostsByTag(ctx context.Context, tag string, h3Hashes []string) (int, error)
+	CountRandomPosts(ctx context.Context, h3Hashes []string) (int, error)
 }
 
 type H3Settings struct {
