@@ -2,11 +2,14 @@ package post
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
@@ -109,7 +112,13 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 			for _, collaboratorID := range invited {
 				customer, err := s.customerRepo.GetByID(txCtx, collaboratorID)
 				if err != nil {
-					continue
+					if errors.Is(err, apperror.CustomerNotFoundUserID(collaboratorID)) {
+						logger.WarnKV(txCtx, "skip missing collaborator customer", "collaborator_id", collaboratorID, "error", err)
+						continue
+					}
+
+					logger.WarnKV(txCtx, "failed to load collaborator customer", "collaborator_id", collaboratorID, "error", err)
+					return fmt.Errorf("get collaborator customer %q: %w", collaboratorID, err)
 				}
 
 				eventType := "post_invitation_received"

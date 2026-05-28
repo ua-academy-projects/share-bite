@@ -236,6 +236,9 @@ func main() {
 			MaxInterval:         2 * time.Second,
 			MaxElapsedTime:      8 * time.Second,
 		},
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.WarnKV(ctx, "admin retry attempt", "next_retry_in", nextRetryIn, "err", err)
+		},
 		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
 			Name:        "guest-admin-auth",
 			MaxRequests: 2,

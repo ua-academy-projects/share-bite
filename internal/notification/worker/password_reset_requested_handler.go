@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
@@ -17,11 +18,13 @@ func NewPasswordResetRequestedHandler() *PasswordResetRequestedHandler {
 
 func (h *PasswordResetRequestedHandler) Handle(ctx context.Context, event notification.Message, emailSender email.Sender) error {
 	emailAddr, ok := event.Metadata["email"].(string)
+	emailAddr = strings.TrimSpace(emailAddr)
 	if !ok || emailAddr == "" {
 		return fmt.Errorf("invalid or missing email in metadata")
 	}
 
 	resetToken, ok := event.Metadata["reset_token"].(string)
+	resetToken = strings.TrimSpace(resetToken)
 	if !ok || resetToken == "" {
 		return fmt.Errorf("invalid or missing reset_token in metadata")
 	}

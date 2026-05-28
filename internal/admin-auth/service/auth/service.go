@@ -306,7 +306,7 @@ func (s *service) GetUserEmail(ctx context.Context, requesterUserID, requesterRo
 	}
 
 	if !canReadUserStatus(requesterRole, requesterUserID, targetUserID) {
-		return "", apperr.ErrForbiddenStatusRead
+		return "", apperr.ErrForbiddenEmailRead
 	}
 
 	return u.Email, nil
