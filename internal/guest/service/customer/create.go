@@ -19,39 +19,38 @@ func (s *service) Create(ctx context.Context, in entity.CreateCustomer) (string,
 			return fmt.Errorf("create customer in repo: %w", err)
 		}
 
-		if s.outboxWriter != nil {
-			var email string
-			metadata := map[string]any{
-				"username": in.UserName,
-			}
+		authToken, ok := txCtx.Value(middleware.CtxAccessToken).(string)
+		if !ok || authToken == "" {
+			return fmt.Errorf("missing access token to resolve customer email")
+		}
 
-			if s.adminClient != nil {
-				if authToken, ok := txCtx.Value(middleware.CtxAccessToken).(string); ok && authToken != "" {
-					if fetchedEmail, err := s.adminClient.GetUserEmail(txCtx, in.UserID, authToken); err == nil && fetchedEmail != "" {
-						email = fetchedEmail
-						metadata["email"] = fetchedEmail
-					}
-				}
-			}
+		email, err := s.adminClient.GetUserEmail(txCtx, in.UserID, authToken)
+		if err != nil {
+			return fmt.Errorf("get customer email: %w", err)
+		}
 
-			event := outbox.Event{
-				EventType: outbox.EventTypeRegistrationConfirmed,
-				Payload: outbox.Message{
-					EventID:     outbox.NewEventID(customerID, email),
-					EventType:   outbox.EventTypeRegistrationConfirmed,
-					RecipientID: in.UserID,
-					ActorID:     in.UserID,
-					EntityType:  "customer",
-					EntityID:    customerID,
-					Metadata:    metadata,
-					CreatedAt:   time.Now().UTC(),
-				},
-				SourceService: outbox.DefaultSourceService,
-			}
+		metadata := map[string]any{
+			"username": in.UserName,
+			"email":    email,
+		}
 
-			if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
-				return fmt.Errorf("failed to enqueue registration_confirmed outbox event: %w", err)
-			}
+		event := outbox.Event{
+			EventType: outbox.EventTypeRegistrationConfirmed,
+			Payload: outbox.Message{
+				EventID:     outbox.NewEventID(customerID, email),
+				EventType:   outbox.EventTypeRegistrationConfirmed,
+				RecipientID: in.UserID,
+				ActorID:     in.UserID,
+				EntityType:  "customer",
+				EntityID:    customerID,
+				Metadata:    metadata,
+				CreatedAt:   time.Now().UTC(),
+			},
+			SourceService: outbox.DefaultSourceService,
+		}
+
+		if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
+			return fmt.Errorf("failed to enqueue registration_confirmed outbox event: %w", err)
 		}
 
 		return nil

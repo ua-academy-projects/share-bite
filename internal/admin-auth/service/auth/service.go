@@ -380,28 +380,26 @@ func (s *service) RecoverAccess(ctx context.Context, email string) error {
 			return apperr.Wrap(http.StatusInternalServerError, "failed to store reset token", err)
 		}
 
-		if s.outboxWriter != nil {
-			event := outbox.Event{
-				EventType: outbox.EventTypePasswordResetRequested,
-				Payload: outbox.Message{
-					EventID:     outbox.NewEventID(u.ID, email, rawToken),
-					EventType:   outbox.EventTypePasswordResetRequested,
-					RecipientID: u.ID,
-					ActorID:     u.ID,
-					EntityType:  "user",
-					EntityID:    u.ID,
-					Metadata: map[string]any{
-						"email":       email,
-						"reset_token": rawToken,
-					},
-					CreatedAt: time.Now().UTC(),
+		event := outbox.Event{
+			EventType: outbox.EventTypePasswordResetRequested,
+			Payload: outbox.Message{
+				EventID:     outbox.NewEventID(u.ID, email, rawToken),
+				EventType:   outbox.EventTypePasswordResetRequested,
+				RecipientID: u.ID,
+				ActorID:     u.ID,
+				EntityType:  "user",
+				EntityID:    u.ID,
+				Metadata: map[string]any{
+					"email":       email,
+					"reset_token": rawToken,
 				},
-				SourceService: outbox.DefaultSourceService,
-			}
+				CreatedAt: time.Now().UTC(),
+			},
+			SourceService: outbox.DefaultSourceService,
+		}
 
-			if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
-				return fmt.Errorf("failed to enqueue password_reset_requested outbox event: %w", err)
-			}
+		if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
+			return fmt.Errorf("failed to enqueue password_reset_requested outbox event: %w", err)
 		}
 		return nil
 	})

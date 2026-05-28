@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,9 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
+	admingateway "github.com/ua-academy-projects/share-bite/pkg/gateway/admin"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 
 	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
 	h3 "github.com/ua-academy-projects/share-bite/pkg/aws"
@@ -96,9 +100,28 @@ func main() {
 	h3Service := h3.NewH3Service()
 	h3Settings := businesssvc.H3Settings{
 		Resolution:      config.Config().H3.Resolution(),
-		RecommendRadius:          config.Config().H3.RecommendRadius(),
+		RecommendRadius: config.Config().H3.RecommendRadius(),
 	}
-	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service, h3Settings)
+	outboxWriter := outbox.NewWriter(client.DB())
+
+	adminResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     200 * time.Millisecond,
+			RandomizationFactor: 0.25,
+			Multiplier:          2,
+			MaxInterval:         2 * time.Second,
+			MaxElapsedTime:      8 * time.Second,
+		},
+	}
+
+	adminGateway := admingateway.New(
+		config.Config().AdminHttpServer.Address(),
+		"/",
+		"http",
+		&adminResiliencePolicy,
+	)
+
+	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service, h3Settings, outboxWriter, adminGateway)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),

@@ -35,12 +35,7 @@ type service struct {
 	adminClient  emailClient
 }
 
-func New(
-	customerRepo CustomerRepository,
-	txManager database.TxManager,
-	outboxWriter outbox.Writer,
-	adminClient emailClient,
-) *service {
+func New(customerRepo CustomerRepository, outboxWriter outbox.Writer, txManager database.TxManager, adminClient emailClient) *service {
 	return &service{
 		customerRepo: customerRepo,
 		txManager:    txManager,

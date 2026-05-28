@@ -7,7 +7,7 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	"github.com/ua-academy-projects/share-bite/internal/guest/gateway/admin/client/admin_auth_client/user"
+	"github.com/ua-academy-projects/share-bite/pkg/gateway/admin/client/admin_client/user"
 	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 )
 
@@ -25,7 +25,7 @@ func New(host, basePath, scheme string, policy *resilience.Policy) *Client {
 
 func (c *Client) execute(ctx context.Context, operation func() error) error {
 	if c.policy == nil {
-		return operation()
+		return fmt.Errorf("resilience policy is required")
 	}
 	return c.policy.Execute(ctx, operation)
 }

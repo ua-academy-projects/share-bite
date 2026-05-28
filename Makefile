@@ -92,12 +92,23 @@ generate-guest-business-client: docs-business
 		-c business_client \
 		-m dto
 
-generate: docs generate-guest-business-client
+generate-admin-client: docs-admin-auth
+	@echo "generating admin client into pkg/gateway/admin/client..."
+	rm -rf pkg/gateway/admin/client
+	mkdir -p pkg/gateway/admin/client
+	go tool swagger generate client \
+		-f docs/api/admin-auth/swagger.yaml \
+		-t pkg/gateway/admin/client \
+		-c admin_client \
+		-m dto
+
+generate: docs generate-guest-business-client generate-admin-client
 
 clean:
 	@echo "cleaning generated files..."
 	rm -rf docs/api
 	rm -rf internal/guest/gateway/business/client
+	rm -rf pkg/gateway/admin/client
 
 docker-build:
 	docker build -t guest-api -f build/Dockerfile.guest .

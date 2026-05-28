@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,9 +14,11 @@ import (
 
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/pkg/aws"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 const (
@@ -87,15 +90,23 @@ type service struct {
 	storage      storage.ObjectStorage
 	h3Service    aws.H3Service
 	h3Config     H3Settings
+	outboxWriter outbox.Writer
+	emailClient  interface {
+		GetUserEmail(ctx context.Context, userID, authToken string) (string, error)
+	}
 }
 
-func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage, h3Service aws.H3Service, h3Config H3Settings) *service {
+func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage, h3Service aws.H3Service, h3Config H3Settings, outboxWriter outbox.Writer, emailClient interface {
+	GetUserEmail(ctx context.Context, userID, authToken string) (string, error)
+}) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
 		storage:      st,
 		h3Service:    h3Service,
 		h3Config:     h3Config,
+		outboxWriter: outboxWriter,
+		emailClient:  emailClient,
 	}
 }
 
@@ -116,9 +127,53 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 		return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
 	}
 
-	id, err := s.businessRepo.Create(ctx, in)
+	var id int
+	err := s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
+		var err error
+		id, err = s.businessRepo.Create(txCtx, in)
+		if err != nil {
+			return fmt.Errorf("failed to create business profile: %w", err)
+		}
+
+		authToken, ok := txCtx.Value(middleware.CtxAccessToken).(string)
+		if !ok || authToken == "" {
+			return fmt.Errorf("missing access token to resolve business email")
+		}
+
+		email, err := s.emailClient.GetUserEmail(txCtx, in.OrgAccountId.String(), authToken)
+		if err != nil {
+			return fmt.Errorf("get business email: %w", err)
+		}
+
+		metadata := map[string]any{
+			"name":  in.Name,
+			"email": email,
+		}
+
+		event := outbox.Event{
+			EventType: outbox.EventTypeRegistrationConfirmed,
+			Payload: outbox.Message{
+				EventID:     outbox.NewEventID(strconv.Itoa(id), email),
+				EventType:   outbox.EventTypeRegistrationConfirmed,
+				RecipientID: in.OrgAccountId.String(),
+				ActorID:     in.OrgAccountId.String(),
+				EntityType:  "org_unit",
+				EntityID:    strconv.Itoa(id),
+				Metadata:    metadata,
+				CreatedAt:   time.Now().UTC(),
+			},
+			SourceService: outbox.DefaultSourceService,
+		}
+
+		if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
+			return fmt.Errorf("failed to enqueue registration_confirmed outbox event: %w", err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return 0, fmt.Errorf("failed to create business profile: %w", err)
+		return 0, err
 	}
 
 	return id, nil

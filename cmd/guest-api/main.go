@@ -20,7 +20,6 @@ import (
 	ginswagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/guest"
 	"github.com/ua-academy-projects/share-bite/internal/config"
-	admingateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/admin"
 	businessgateway "github.com/ua-academy-projects/share-bite/internal/guest/gateway/business"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
@@ -41,6 +40,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
+	admingateway "github.com/ua-academy-projects/share-bite/pkg/gateway/admin"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
@@ -305,7 +305,7 @@ func main() {
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
 	followSvc := followsvc.New(followRepo, customerRepo)
-	customerSvc := customersvc.New(customerRepo, txManager, outboxWriter, adminGateway)
+	customerSvc := customersvc.New(customerRepo, outboxWriter, txManager, adminGateway)
 
 	// middlewares
 	authMiddleware := middleware.Auth(tokenManager)
