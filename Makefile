@@ -2,7 +2,11 @@
 .PHONY: test test-cover docs docs-guest docs-business docs-admin-auth
 .PHONY: generate generate-guest-business-client clean
 .PHONY: goose-up goose-down goose-status goose-create
-.PHONY: docker-build
+.PHONY: docker-build docker-build-business-operator docker-push-business-operator
+
+REGISTRY ?= mykolashevchenko
+TAG ?= latest
+OPERATOR_IMAGE := $(REGISTRY)/business-operator:$(TAG)
 
 COUNT ?= 1
 MIGRATIONS_DIR := migrations
@@ -30,9 +34,6 @@ build:
 	go build -o bin/guest-api ./cmd/guest-api
 	go build -o bin/business-api ./cmd/business-api
 	go build -o bin/admin-auth-api ./cmd/admin-auth-api
-	go build -o bin/notifications-service ./cmd/notifications-service
-	go build -o bin/outbox-worker ./cmd/outbox-worker
-	go build -o bin/notifications-lambda ./cmd/notifications-lambda
 
 tidy:
 	go mod tidy
@@ -104,3 +105,17 @@ docker-build:
 	docker build -t business-api -f build/Dockerfile.business .
 	docker build -t admin-auth-api -f build/Dockerfile.admin .
 	docker build -t migrator -f build/Dockerfile.migrator .
+
+docker-build-business-operator:
+	docker build -t $(OPERATOR_IMAGE) -f build/Dockerfile.business-operator .
+
+docker-push-business-operator:
+	docker push $(OPERATOR_IMAGE)
+
+run-business-operator:
+	kubectl apply -f deploy/k8s/operators/business/crd.yaml
+	kubectl apply -f deploy/k8s/operators/business/rbac.yaml
+	go run ./cmd/business-operator
+
+deploy-operator:
+	kubectl apply -f deploy/k8s/operators/business/operator-deployment.yaml

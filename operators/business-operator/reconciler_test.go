@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -15,8 +16,8 @@ import (
 
 func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 	s := runtime.NewScheme()
-	_ = appsv1.AddToScheme(s)
-	_ = AddToScheme(s)
+	utilruntime.Must(appsv1.AddToScheme(s))
+	utilruntime.Must(AddToScheme(s))
 
 	type testCase struct {
 		name           string
@@ -97,13 +98,16 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to get profile: %v", err)
 				}
-				if len(profile.Status.Conditions) == 0 {
-					t.Fatalf("Expected status conditions, got none")
-				}
 
-				cond := profile.Status.Conditions[0]
-				if cond.Reason != "DeploymentNotFound" || cond.Status != metav1.ConditionFalse {
-					t.Errorf("Expected Reason DeploymentNotFound and Status False, got %s and %s", cond.Reason, cond.Status)
+				found := false
+				for _, cond := range profile.Status.Conditions {
+					if cond.Reason == "DeploymentNotFound" && cond.Status == metav1.ConditionFalse {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("Expected condition with Reason DeploymentNotFound and Status False not found in conditions: %v", profile.Status.Conditions)
 				}
 			},
 		},
@@ -159,12 +163,16 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to get profile: %v", err)
 				}
-				if len(profile.Status.Conditions) == 0 {
-					t.Fatalf("Expected status conditions, got none")
+				
+				found := false
+				for _, cond := range profile.Status.Conditions {
+					if cond.Reason == "Scaled" && cond.Status == metav1.ConditionTrue {
+						found = true
+						break
+					}
 				}
-				cond := profile.Status.Conditions[0]
-				if cond.Status != metav1.ConditionTrue || cond.Reason != "Scaled" {
-					t.Errorf("Expected Status True and Reason Scaled, got %s and %s", cond.Status, cond.Reason)
+				if !found {
+					t.Errorf("Expected condition with Reason Scaled and Status True not found in conditions: %v", profile.Status.Conditions)
 				}
 			},
 		},
