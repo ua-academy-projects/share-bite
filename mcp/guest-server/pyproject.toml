@@ -1,0 +1,13 @@
+readme = "README.md"
+license = {text = "MIT"}
+
+[project]
+name = "mcp-guest-server"
+version = "0.1.0"
+description = "MCP server for Guest API"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=3.3.1",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.14.1",
+]
