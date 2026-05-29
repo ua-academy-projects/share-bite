@@ -5,9 +5,14 @@
 .PHONY: generate generate-guest-business-client
 .PHONY: s3-up s3-ui docker-build
 .PHONY: goose-up goose-down goose-status goose-create
+.PHONY: k8s-secrets k8s-up k8s-down k8s-migrate
 
 COUNT ?= 1
 MIGRATIONS_DIR := migrations
+K8S_NAMESPACE ?= share-bite-local
+K8S_SECRETS_FILE ?= docs/k8s/secrets.local.yaml
+K8S_SECRET_NAME ?= share-bite-secrets
+K8S_READY_TIMEOUT ?= 180s
 
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "development")
 COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -148,3 +153,24 @@ docker-build:
 	  --build-arg COMMIT=$(COMMIT) \
 	  --build-arg BUILD_TIME=$(BUILD_TIME) \
 	  -t migrator -f build/Dockerfile.migrator .
+
+k8s-secrets:
+	kubectl apply -f deploy/k8s/infra/namespace.yaml
+	kubectl apply -f $(K8S_SECRETS_FILE)
+
+k8s-up: k8s-secrets
+	kubectl apply -k deploy/k8s/infra
+	kubectl wait --for=create secret/$(K8S_SECRET_NAME) -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl rollout status statefulset/postgres -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl rollout status deployment/redis -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	@echo "Infrastructure ready in namespace $(K8S_NAMESPACE)."
+	@echo "Next step: run 'make k8s-migrate'."
+
+# Job pod templates are immutable; set image in deploy/k8s/infra/migrator-job.yaml before apply.
+k8s-migrate:
+	kubectl delete job share-bite-migrator -n $(K8S_NAMESPACE) --ignore-not-found=true
+	kubectl apply -f deploy/k8s/infra/migrator-job.yaml
+	kubectl wait --for=condition=complete --timeout=180s job/share-bite-migrator -n $(K8S_NAMESPACE)
+
+k8s-down:
+	kubectl delete namespace $(K8S_NAMESPACE) --ignore-not-found=true
