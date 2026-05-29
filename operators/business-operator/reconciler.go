@@ -101,10 +101,10 @@ func (r *BusinessAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	targetName := "business-api"
-	if profile.Spec.DeploymentName != nil {
-		targetName = *profile.Spec.DeploymentName
-	}
+	targetName := profile.Name
+    if profile.Spec.DeploymentName != nil {
+        targetName = *profile.Spec.DeploymentName
+    }
 
 	var dep appsv1.Deployment
 

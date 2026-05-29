@@ -32,7 +32,7 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 			name: "Happy Path: Scale from 1 to 3",
 			initialObjects: []client.Object{
 				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Name: "business-api", Namespace: "default"},
+					ObjectMeta: metav1.ObjectMeta{Name: "test-profile", Namespace: "default"},
 					Spec:       appsv1.DeploymentSpec{Replicas: func() *int32 { r := int32(1); return &r }()},
 				},
 				&BusinessAppProfile{
@@ -45,7 +45,7 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 			wantErr:      false,
 			validate: func(t *testing.T, fakeClient client.Client) {
 				var dep appsv1.Deployment
-				err := fakeClient.Get(context.Background(), types.NamespacedName{Name: "business-api", Namespace: "default"}, &dep)
+				err := fakeClient.Get(context.Background(), types.NamespacedName{Name: "test-profile", Namespace: "default"}, &dep)
 				if err != nil {
 					t.Fatalf("Failed to get deployment: %v", err)
 				}
@@ -58,7 +58,7 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 			name: "Scale to Zero when Enabled is false",
 			initialObjects: []client.Object{
 				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Name: "business-api", Namespace: "default"},
+					ObjectMeta: metav1.ObjectMeta{Name: "test-profile", Namespace: "default"},
 					Spec:       appsv1.DeploymentSpec{Replicas: func() *int32 { r := int32(3); return &r }()},
 				},
 				&BusinessAppProfile{
@@ -71,7 +71,7 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 			wantErr:      false,
 			validate: func(t *testing.T, fakeClient client.Client) {
 				var dep appsv1.Deployment
-				err := fakeClient.Get(context.Background(), types.NamespacedName{Name: "business-api", Namespace: "default"}, &dep)
+				err := fakeClient.Get(context.Background(), types.NamespacedName{Name: "test-profile", Namespace: "default"}, &dep)
 				if err != nil {
 					t.Fatalf("Failed to get deployment: %v", err)
 				}
@@ -141,7 +141,7 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 			name: "Status updates to Ready=True when readyReplicas match",
 			initialObjects: []client.Object{
 				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Name: "business-api", Namespace: "default"},
+					ObjectMeta: metav1.ObjectMeta{Name: "test-profile", Namespace: "default"},
 					Spec:       appsv1.DeploymentSpec{Replicas: func() *int32 { r := int32(3); return &r }()},
 					Status:     appsv1.DeploymentStatus{ReadyReplicas: 3},
 				},

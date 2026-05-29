@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata: 
-    name: business-operator
-    namespace: default
+  name: business-operator
+  namespace: default
 spec:
-    replicas: 1
-    selector:
-        matchLabels:
-            app: business-operator
-    template:
-        metadata:
-            labels: 
-                app: business-operator
-        spec:
-            serviceAccountName: businessapi-operator-sa
-            securityContext: 
-                runAsNonRoot: true
-            containers:
-                - name: operator
-                  image: mykolashevchenko/business-operator:latest
-                  securityContext:
-                    allowPrivilegeEscalation: false
-                    readOnlyRootFilesystem: true
-                    capabilities:
-                        drop: ["ALL"]
+  replicas: 1
+  selector:
+    matchLabels:
+      app: business-operator
+  template:
+    metadata:
+      labels: 
+        app: business-operator
+    spec:
+      serviceAccountName: businessapi-operator-sa
+      securityContext: 
+        runAsNonRoot: true
+      containers:
+        - name: operator
+          image: mykolashevchenko/business-operator:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
