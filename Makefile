@@ -1,38 +1,66 @@
-.PHONY: run-guest run-business run-auth migrate-up run-all build tidy s3-up s3-ui
-.PHONY: test test-cover docs docs-guest docs-business docs-admin-auth
-.PHONY: generate generate-guest-business-client clean
+.PHONY: build build-guest build-business build-auth build-migrator build-notifications build-outbox build-lambda
+.PHONY: run-all run-guest run-business run-auth migrate-up
+.PHONY: test test-cover tidy clean
+.PHONY: docs docs-guest docs-business docs-admin-auth
+.PHONY: generate generate-guest-business-client
+.PHONY: s3-up s3-ui docker-build
 .PHONY: goose-up goose-down goose-status goose-create
-.PHONY: docker-build
 
 COUNT ?= 1
 MIGRATIONS_DIR := migrations
 
+VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "development")
+COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+PKG        := github.com/ua-academy-projects/share-bite/pkg/version
+ifndef BUILD_TIME
+BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+endif
+
+LDFLAGS := -ldflags "\
+  -X '$(PKG).Version=$(VERSION)' \
+  -X '$(PKG).CommitHash=$(COMMIT)' \
+  -X '$(PKG).BuildTime=$(BUILD_TIME)'"
+
 -include .env
 DB_DSN := host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password='$(POSTGRES_PASSWORD)' dbname=$(POSTGRES_DB) sslmode=$(POSTGRES_SSL)
 
-run-guest:
-	go run ./cmd/guest-api
+run-guest: build-guest
+	./bin/guest-api
 
-run-business:
-	go run ./cmd/business-api
+run-business: build-business
+	./bin/business-api
 
-run-auth:
-	go run ./cmd/admin-auth-api
+run-auth: build-auth
+	./bin/admin-auth-api
 
-migrate-up:
-	go run ./cmd/migrator
+migrate-up: build-migrator
+	./bin/migrator
 
 run-all:
 	$(MAKE) -j 3 run-guest run-business run-auth
 
-build:
-	go build -o bin/migrator ./cmd/migrator
-	go build -o bin/guest-api ./cmd/guest-api
-	go build -o bin/business-api ./cmd/business-api
-	go build -o bin/admin-auth-api ./cmd/admin-auth-api
-	go build -o bin/notifications-service ./cmd/notifications-service
-	go build -o bin/outbox-worker ./cmd/outbox-worker
-	go build -o bin/notifications-lambda ./cmd/notifications-lambda
+build-guest:
+	go build $(LDFLAGS) -o bin/guest-api ./cmd/guest-api
+
+build-business:
+	go build $(LDFLAGS) -o bin/business-api ./cmd/business-api
+
+build-auth:
+	go build $(LDFLAGS) -o bin/admin-auth-api ./cmd/admin-auth-api
+
+build-migrator:
+	go build $(LDFLAGS) -o bin/migrator ./cmd/migrator
+
+build-notifications:
+	go build $(LDFLAGS) -o bin/notifications-service ./cmd/notifications-service
+
+build-outbox:
+	go build $(LDFLAGS) -o bin/outbox-worker ./cmd/outbox-worker
+
+build-lambda:
+	go build $(LDFLAGS) -o bin/notifications-lambda ./cmd/notifications-lambda
+
+build: build-guest build-business build-auth build-migrator build-notifications build-outbox build-lambda
 
 tidy:
 	go mod tidy
@@ -100,7 +128,23 @@ clean:
 	rm -rf internal/guest/gateway/business/client
 
 docker-build:
-	docker build -t guest-api -f build/Dockerfile.guest .
-	docker build -t business-api -f build/Dockerfile.business .
-	docker build -t admin-auth-api -f build/Dockerfile.admin .
-	docker build -t migrator -f build/Dockerfile.migrator .
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t guest-api -f build/Dockerfile.guest .
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t business-api -f build/Dockerfile.business .
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t admin-auth-api -f build/Dockerfile.admin .
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t migrator -f build/Dockerfile.migrator .
