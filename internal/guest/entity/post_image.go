@@ -9,5 +9,13 @@ type PostImage struct {
 	ContentType string
 	FileSize    int64
 	SortOrder   int16
-	CreatedAt   time.Time
+
+	ProcessingStatus ImageProcessingStatus
+	ThumbnailKey     *string
+	Width            *int
+	Height           *int
+	ProcessedAt      *time.Time
+	FailureReason    *string
+
+	CreatedAt time.Time
 }

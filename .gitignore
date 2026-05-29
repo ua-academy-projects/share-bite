@@ -14,6 +14,7 @@ coverage.html
 .vscode/
 *.swp
 *.swo
+*.zip
 
 .DS_Store
 Thumbs.db
@@ -33,7 +34,6 @@ docs/k8s/secrets.local.yaml
 # generated api clients
 internal/guest/gateway/business/client/
 
-
 .agent
 
 frontend/.vite
@@ -45,4 +45,5 @@ terraform/.terraform.lock.hcl
 terraform/session-manager-plugin.deb
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
-package-lock.json
+
+node_modules
