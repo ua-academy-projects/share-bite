@@ -1,4 +1,4 @@
-name: compose.aws.yaml
+name: compose.local.yaml
 services:
   frontend:
     build:

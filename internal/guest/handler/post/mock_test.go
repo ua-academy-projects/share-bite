@@ -207,6 +207,12 @@ func (m tokenParserMock) ParseAccessToken(token string) (jwt.AccessTokenPayload,
 
 type objectStorageMock struct{}
 
+func (objectStorageMock) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	return io.NopCloser(
+		strings.NewReader("mock image"),
+	), nil
+}
+
 func (objectStorageMock) Upload(context.Context, string, string, io.Reader) error {
 	return nil
 }
