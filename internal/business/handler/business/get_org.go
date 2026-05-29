@@ -40,5 +40,11 @@ func (h *handler) getOrgUnit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, h.toBrandResponse(c.Request.Context(), org))
+	c.JSON(http.StatusOK, dto.UpdateOrgResponse{
+		Id:          org.Id,
+		Name:        org.Name,
+		Avatar:      h.presign(c.Request.Context(), org.Avatar),
+		Banner:      h.presign(c.Request.Context(), org.Banner),
+		Description: org.Description,
+	})
 }

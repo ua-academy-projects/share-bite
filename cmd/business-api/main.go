@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-
-	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
-	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
 	businessrepo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	businesssvc "github.com/ua-academy-projects/share-bite/internal/business/service/business"
@@ -20,22 +18,15 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
-
-	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
+
+	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 )
 
-// @title						ShareBite Business API
-// @version					1.0
-// @description				API for discovering brand locations (venues).
-//
-// @securityDefinitions.apikey	BearerAuth
-// @in							header
-// @name						Authorization
-//
-// @BasePath					/
 func main() {
 	ctx := context.Background()
 
@@ -46,8 +37,6 @@ func main() {
 	cfg := config.Config()
 
 	router := gin.New()
-	router.RedirectTrailingSlash = true
-	router.RedirectFixedPath = true
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.BusinessHttpServer.AllowedOrigins(),
 		AllowMethods:     cfg.BusinessHttpServer.AllowedMethods(),
@@ -71,7 +60,7 @@ func main() {
 	}
 	closer.SetShutdownTimeout(config.Config().App.GracefulShutdownTimeout())
 
-	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
+	client, err := pg.NewClient(ctx, config.Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
 	}
@@ -145,14 +134,10 @@ func ErrorMiddleware() gin.HandlerFunc {
 			case code.Conflict:
 				c.JSON(http.StatusConflict, gin.H{"error": appErr.Error()})
 				return
-			case code.Internal:
-				logger.ErrorKV(ctx, "internal app error", "error", appErr.Err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-				return
 			}
 		}
 
-		logger.ErrorKV(ctx, "unhandled error", "error", err.Err)
+		logger.ErrorKV(ctx, "internal error", "error", err.Err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 	}
 }

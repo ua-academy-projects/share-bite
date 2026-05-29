@@ -51,7 +51,7 @@ type businessService interface {
 	DeleteComment(ctx context.Context, postID, commentID int64, authorID string) error
 	GetComments(ctx context.Context, postID int64, limit, offset int) ([]entity.CommentWithAuthor, error)
 	List(ctx context.Context, brandId, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
-	GetPosts(ctx context.Context, skip, limit int, orgIDs []int) (pagination.Result[entity.PostWithPhotos], error)
+	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error)
 
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
@@ -161,16 +161,6 @@ func RegisterHandlers(
 		Use(auth)
 	{
 		reservations.PATCH("/:boxID/reserve", h.reserveBox)
-	}
-}
-
-func (h *handler) toBrandResponse(ctx context.Context, org *entity.OrgUnit) dto.UpdateOrgResponse {
-	return dto.UpdateOrgResponse{
-		Id:          org.Id,
-		Name:        org.Name,
-		Avatar:      h.presign(ctx, org.Avatar),
-		Banner:      h.presign(ctx, org.Banner),
-		Description: org.Description,
 	}
 }
 

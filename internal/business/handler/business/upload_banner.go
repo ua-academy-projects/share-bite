@@ -40,5 +40,11 @@ func (h *handler) uploadBanner(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, h.toBrandResponse(c.Request.Context(), updated))
+	c.JSON(http.StatusOK, dto.UpdateOrgResponse{
+		Id:          updated.Id,
+		Name:        updated.Name,
+		Avatar:      h.presign(c.Request.Context(), updated.Avatar),
+		Banner:      h.presign(c.Request.Context(), updated.Banner),
+		Description: updated.Description,
+	})
 }

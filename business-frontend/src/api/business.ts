@@ -93,7 +93,6 @@ export type BrandPost = {
 
 export type BrandPostsResponse = ListResponse<BrandPost>;
 export type BrandLocationsResponse = ListResponse<BrandLocation>;
-export type NearbyBoxesResponse = ListResponse<Box>;
 
 export type VenueBrand = {
   id: number;
@@ -143,33 +142,16 @@ export type UpdateBrandProfileRequest = {
 };
 
 export const businessApi = {
-  getNearbyBoxes: async (params: {
-    lat: number;
-    lon: number;
-    skip?: number;
-    limit?: number;
-    orgId?: number;
-    categoryId?: number;
-  }): Promise<NearbyBoxesResponse> => {
-    const search = new URLSearchParams();
-    search.set("lat", String(params.lat));
-    search.set("lon", String(params.lon));
-    search.set("skip", String(params.skip ?? 0));
-    search.set("limit", String(params.limit ?? 10));
-    if (params.orgId) search.set("org_id", String(params.orgId));
-    if (params.categoryId) search.set("category_id", String(params.categoryId));
-
-    const response = await fetch(`${API_BASE_URL}/business/nearby-boxes?${search.toString()}`);
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || `Failed to load boxes (${response.status})`);
+  getNearbyBoxes: async (lat: number, lon: number): Promise<Box[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/business/nearby-boxes?lat=${lat}&lon=${lon}`);
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+      return data.items || [];
+    } catch (error) {
+      console.error("API error:", error);
+      return [];
     }
-
-    const data = await response.json();
-    return {
-      items: data.items || [],
-      total: data.total || 0,
-    };
   },
 
   getLocationTags: async (): Promise<LocationTag[]> => {
@@ -289,12 +271,10 @@ export const businessApi = {
       formData.append("image", data.image, data.image.name);
     }
 
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-
     const response = await fetch(`${API_BASE_URL}/business/boxes`, {
       method: "POST",
       headers: {
-        "Authorization": authHeader
+        "Authorization": `Bearer ${token}`
       },
       body: formData,
     });
@@ -308,12 +288,10 @@ export const businessApi = {
   },
 
   reserveBox: async (boxId: number, token: string): Promise<ReserveBoxResponse> => {
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-
     const response = await fetch(`${API_BASE_URL}/business/boxes/${boxId}/reserve`, {
       method: "PATCH",
       headers: {
-        Authorization: authHeader,
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -326,13 +304,11 @@ export const businessApi = {
   },
 
   updateBrandProfile: async (id: number, data: UpdateBrandProfileRequest, token: string): Promise<BrandProfile> => {
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-    
     const response = await fetch(`${API_BASE_URL}/business/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -350,11 +326,10 @@ export const businessApi = {
     const formData = new FormData();
     formData.append("image", file);
 
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/business/${id}/avatar`, {
       method: "POST",
       headers: {
-        Authorization: authHeader,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
@@ -371,11 +346,10 @@ export const businessApi = {
     const formData = new FormData();
     formData.append("image", file);
 
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/business/${id}/banner`, {
       method: "POST",
       headers: {
-        Authorization: authHeader,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
@@ -389,12 +363,11 @@ export const businessApi = {
   },
 
   createBrand: async (data: CreateOrgRequest, token: string): Promise<{ id: number }> => {
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/business`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -408,12 +381,11 @@ export const businessApi = {
   },
 
   createLocation: async (brandId: number, data: CreateLocationRequest, token: string): Promise<BrandLocation> => {
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/business/${brandId}/locations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: authHeader,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -431,11 +403,10 @@ export const businessApi = {
     formData.append("content", data.content);
     data.photos.forEach((file) => formData.append("photos", file));
 
-    const authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/business/posts/${unitId}`, {
       method: "POST",
       headers: {
-        Authorization: authHeader,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });

@@ -213,7 +213,7 @@ func (s *service) CheckOwnership(ctx context.Context, userID string, unitID int)
 	return nil
 }
 
-func (s *service) GetPosts(ctx context.Context, skip, limit int, orgIDs []int) (pagination.Result[entity.PostWithPhotos], error) {
+func (s *service) GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.PostWithPhotos], error) {
 	const op = "service.post.GetPosts"
 	const maxLimit = 100
 
@@ -229,7 +229,7 @@ func (s *service) GetPosts(ctx context.Context, skip, limit int, orgIDs []int) (
 		limit = maxLimit
 	}
 
-	posts, err := s.businessRepo.GetPosts(ctx, limit, skip, orgIDs)
+	posts, err := s.businessRepo.GetPosts(ctx, limit, skip)
 	if err != nil {
 		return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("%s: %w", op, err)
 	}

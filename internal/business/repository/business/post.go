@@ -20,10 +20,10 @@ func (r *Repository) GetPostByID(ctx context.Context, postID int64) (*entity.Pos
 	q := database.Query{
 		Name: "get_post_by_id",
 		Sql: `
-			SELECT id, org_id, content, created_at
-		FROM business.posts
-		WHERE id = $1
-		`,
+                        SELECT id, org_id, content, created_at
+                FROM business.posts
+                WHERE id = $1
+                `,
 	}
 
 	var post entity.Post
@@ -49,12 +49,12 @@ func (r *Repository) GetOrgIDByUserID(ctx context.Context, userID string) (int, 
 	q := database.Query{
 		Name: "get_org_by_user_id",
 		Sql: `
-			SELECT id
-			FROM business.org_units
-			WHERE org_account_id = $1::uuid
-			AND profile_type = $2
-			LIMIT 1
-		`,
+                        SELECT id
+                        FROM business.org_units
+                        WHERE org_account_id = $1::uuid
+                        AND profile_type = $2
+                        LIMIT 1
+                `,
 	}
 
 	var orgID int
@@ -75,11 +75,11 @@ func (r *Repository) GetPostPhotos(ctx context.Context, postID int64) ([]string,
 	q := database.Query{
 		Name: "get_post_photos",
 		Sql: `
-		SELECT image_url
-		FROM business.post_photos
-		WHERE post_id = $1
-		ORDER BY sort_order;
-		`,
+                SELECT image_url
+                FROM business.post_photos
+                WHERE post_id = $1
+                ORDER BY sort_order;
+                `,
 	}
 
 	rows, err := r.db.DB().QueryContext(ctx, q, postID)
@@ -110,11 +110,11 @@ func (r *Repository) UpdatePost(ctx context.Context, postID int64, orgID int, co
 	q := database.Query{
 		Name: "update_post",
 		Sql: `
-		UPDATE business.posts
-		SET content = $1
-		WHERE id = $2 AND org_id = $3
-		RETURNING id, org_id, content, created_at
-	`,
+                UPDATE business.posts
+                SET content = $1
+                WHERE id = $2 AND org_id = $3
+                RETURNING id, org_id, content, created_at
+        `,
 	}
 
 	var post entity.Post
@@ -137,9 +137,9 @@ func (r *Repository) DeletePost(ctx context.Context, id int64, orgID int) error 
 	q := database.Query{
 		Name: "delete_post",
 		Sql: `
-		DELETE FROM business.posts
-		WHERE id = $1 AND org_id = $2
-	`,
+                DELETE FROM business.posts
+                WHERE id = $1 AND org_id = $2
+        `,
 	}
 
 	tag, err := r.db.DB().ExecContext(ctx, q, id, orgID)
@@ -157,15 +157,15 @@ func (r *Repository) DeletePost(ctx context.Context, id int64, orgID int) error 
 func (r *Repository) CheckOwnership(ctx context.Context, userID string, unitID int) error {
 	const op = "repository.post.CheckOwnership"
 	checkQuery := `SELECT id
-					FROM business.org_units
-					WHERE id = $1
-					  AND (
-					  	org_account_id = $2
-						OR 
-						parent_id IN (
-							SELECT id FROM business.org_units WHERE org_account_id = $2
-						)
-					);`
+                                        FROM business.org_units
+                                        WHERE id = $1
+                                          AND (
+                                                org_account_id = $2
+                                                OR 
+                                                parent_id IN (
+                                                        SELECT id FROM business.org_units WHERE org_account_id = $2
+                                                )
+                                        );`
 
 	q := database.Query{
 		Name: "check_ownership.CheckOwnership",
@@ -197,13 +197,13 @@ func (r *Repository) CreatePost(ctx context.Context, userID string, unitID int, 
 	}
 	var post entity.Post
 	postQuery := `INSERT INTO business.posts (org_id, content)
-					SELECT $1, $2
-					WHERE EXISTS (
-   							SELECT 1 
-							FROM business.org_units 
-							WHERE id = $1 AND (org_account_id = $3 OR parent_id IN (SELECT id FROM business.org_units WHERE org_account_id = $3))
-							)
-					RETURNING id, org_id, content, created_at;`
+                                        SELECT $1, $2
+                                        WHERE EXISTS (
+                                                        SELECT 1 
+                                                        FROM business.org_units 
+                                                        WHERE id = $1 AND (org_account_id = $3 OR parent_id IN (SELECT id FROM business.org_units WHERE org_account_id = $3))
+                                                        )
+                                        RETURNING id, org_id, content, created_at;`
 
 	err := tx.QueryRow(ctx, postQuery, unitID, description, userID).
 		Scan(&post.ID, &post.OrgID, &post.Content, &post.CreatedAt)
@@ -223,7 +223,7 @@ func (r *Repository) InsertPostImages(ctx context.Context, postID int64, URLs []
 		return fmt.Errorf("%s: transaction not found in context", op)
 	}
 	imagesQuery := `INSERT INTO business.post_photos (post_id, image_url, sort_order) 
-					VALUES ($1, $2, $3)`
+                                        VALUES ($1, $2, $3)`
 	for order, url := range URLs {
 		if _, err := tx.Exec(ctx, imagesQuery, postID, url, order); err != nil {
 			return fmt.Errorf("%s: %w", op, err)
@@ -232,22 +232,14 @@ func (r *Repository) InsertPostImages(ctx context.Context, postID int64, URLs []
 	return nil
 }
 
-func (r *Repository) GetPosts(ctx context.Context, limit, offset int, orgIDs []int) (pagination.Result[entity.Post], error) {
+func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (pagination.Result[entity.Post], error) {
 	const op = "repository.post.GetPosts"
-	
-	where := "TRUE"
-	var args []any
-	if len(orgIDs) > 0 {
-		where = "org_id = ANY($1)"
-		args = append(args, orgIDs)
-	}
-
 	params := pagination.Params{
 		Table:   "business.posts",
 		Columns: "id, org_id, content, created_at",
-		Where:   where,
+		Where:   "TRUE",
 		OrderBy: "created_at DESC, id DESC",
-		Args:    args,
+		Args:    []any{},
 		Offset:  offset,
 		Limit:   limit,
 	}
