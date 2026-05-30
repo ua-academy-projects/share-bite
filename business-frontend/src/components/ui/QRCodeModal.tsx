@@ -22,12 +22,12 @@ export function QRCodeModalContainer() {
           light: "#FFFFFF"
         }
       })
-        .then((url) => {
+        .then((url: string) => {
           setQrCodeDataUrl(url);
           setQrError(null);
           setIsGenerating(false);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           console.error("QR Code generation error:", err);
           setQrError("Failed to generate QR code. Please try again.");
           setIsGenerating(false);
@@ -46,12 +46,12 @@ export function QRCodeModalContainer() {
           light: "#FFFFFF"
         }
       })
-        .then((url) => {
+        .then((url: string) => {
           setQrCodeDataUrl(url);
           setQrError(null);
           setIsGenerating(false);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           console.error("QR Code generation error:", err);
           setQrError("Failed to generate QR code. Please try again.");
           setIsGenerating(false);

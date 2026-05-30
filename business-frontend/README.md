@@ -1,73 +1,43 @@
-# React + TypeScript + Vite
+# Share Bite — Unified Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Single React SPA for guest community features and business tools. Sidebar-first layout (no top navbar on main routes).
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+React 19, Vite, TypeScript, React Router 7, TanStack Query, Axios, RHF + zod, Tailwind v4, shadcn/ui, sonner, lucide.
 
-## React Compiler
+## Local development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+From repo root:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+docker compose -f build/compose.infra.yaml --env-file .env up -d
+make migrate-up
+make run-guest && make run-business && make run-auth
+go run ./cmd/notifications-service
+cd business-frontend && npm install && npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Set `VITE_API_BASE_URL=` empty so Vite proxies are used.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+OAuth: `VITE_GOOGLE_CLIENT_ID`, redirect `…/oauth/google/callback`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Vite proxies
+
+| Service | Port | Proxy |
+|---------|------|-------|
+| Guest API | 3800 | `/api/guest` → strips `/api/guest` |
+| Business API | 3900 | `/api/business` → strips `/api` |
+| Auth / admin | 3850 | `/api/auth`, `/api/admin`, `/api/users`, `/api/user` |
+| Notifications | 4005 | `/api/notifications` → strips `/api/notifications` |
+
+## Layout
+
+- **Main routes**: left `Sidebar` (brand, avatar + @username + notification bell, theme toggle, post CTA, nav, logout) + full-width content.
+- **Auth / OAuth**: minimal SB header only, no sidebar.
+
+## Build
+
+```bash
+cd business-frontend && npm run build
 ```

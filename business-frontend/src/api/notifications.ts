@@ -6,9 +6,11 @@ export type NotificationItem = {
   entity_id: string;
   metadata?: NotificationMetadata;
   created_at: string;
+  read?: boolean;
+  message?: string;
 };
 
-const API_BASE_URL = import.meta.env.VITE_NOTIFICATIONS_API_URL || "http://localhost:4005";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 function authHeaders(token: string) {
   return {
@@ -17,20 +19,28 @@ function authHeaders(token: string) {
   };
 }
 
-export async function fetchNotifications(token: string, limit = 20): Promise<NotificationItem[]> {
-  const response = await fetch(`${API_BASE_URL}/notifications?limit=${limit}`, {
-    headers: authHeaders(token),
-  });
+export async function fetchNotifications(
+  token: string,
+  limit = 20
+): Promise<NotificationItem[]> {
+  const response = await fetch(
+    `${API_BASE}/api/notifications/history?limit=${limit}`,
+    { headers: authHeaders(token) }
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to load notifications: ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return Array.isArray(data) ? data : data.items || [];
 }
 
-export async function markNotificationsRead(token: string, notificationIds: string[]): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/notifications/mark-read`, {
+export async function markNotificationsRead(
+  token: string,
+  notificationIds: string[]
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/api/notifications/mark-read`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({ notification_ids: notificationIds }),
@@ -42,5 +52,5 @@ export async function markNotificationsRead(token: string, notificationIds: stri
 }
 
 export function buildNotificationsStreamUrl(token: string) {
-  return `${API_BASE_URL}/notifications/stream?access_token=${encodeURIComponent(token)}`;
+  return `${API_BASE}/api/notifications/stream?access_token=${encodeURIComponent(token)}`;
 }

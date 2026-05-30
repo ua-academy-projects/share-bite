@@ -5,7 +5,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-
 :root {
   --background: #F9F7F2;
   --foreground: #1A3C34;
@@ -13,26 +12,25 @@
   --card-foreground: #1A3C34;
   --popover: #FFFFFF;
   --popover-foreground: #1A3C34;
-  
-  --primary: #1A3C34; 
-  --primary-foreground: #F9F7F2; 
-  
+
+  --primary: #1A3C34;
+  --primary-foreground: #F9F7F2;
+
   --secondary: #98FF98;
   --secondary-foreground: #1A3C34;
-  
+
   --muted: #E2E8F0;
   --muted-foreground: #64748B;
-  
+
   --accent: #FFD700;
   --accent-foreground: #1A3C34;
-  
+
   --destructive: #EF4444;
   --border: #E2E8F0;
   --input: #E2E8F0;
   --ring: #1A3C34;
   --radius: 0.625rem;
 }
-
 
 .dark {
   --background: #0b0f0e;
@@ -41,19 +39,19 @@
   --card-foreground: #F9F7F2;
   --popover: #163d32;
   --popover-foreground: #F9F7F2;
-  
+
   --primary: #98FF98;
   --primary-foreground: #0b0f0e;
-  
+
   --secondary: #1A3C34;
   --secondary-foreground: #F9F7F2;
-  
+
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
-  
+
   --accent: #FFD700;
   --accent-foreground: #0b0f0e;
-  
+
   --destructive: #7f1d1d;
   --border: #2f5e50;
   --input: #2f5e50;
@@ -61,9 +59,36 @@
 }
 
 @layer base {
+  .bg-card {
+    background-color: var(--card);
+    background-image: linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--primary) 5%, transparent),
+      transparent
+    );
+  }
+
+  .bg-card-solid {
+    background-color: var(--card);
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans, system-ui, sans-serif);
+  }
+}
+
+@layer utilities {
+  .glass-middling {
+    background-color: rgba(22, 61, 50, 0.4);
+    backdrop-filter: blur(20px);
+    box-shadow: inset 0 0 0 1px rgba(152, 255, 152, 0.1);
+  }
+
+  .glass-top {
+    background-color: rgba(22, 61, 50, 0.6);
+    backdrop-filter: blur(30px);
+    box-shadow: 0 10px 30px rgba(11, 15, 14, 0.8);
   }
 }
