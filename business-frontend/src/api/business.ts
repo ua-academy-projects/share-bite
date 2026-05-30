@@ -94,13 +94,25 @@ export type RecommendPostsRequest = {
   limit?: number;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
+function getBusinessApiBase(): string {
+  const proxyBase = import.meta.env.VITE_API_BASE_URL ?? "";
+  if (proxyBase !== "") {
+    return `${proxyBase}/api/business`;
+  }
+  const direct = import.meta.env.VITE_API_URL;
+  if (direct) {
+    return `${direct}/business`;
+  }
+  return "/api/business";
+}
+
+const API_BASE_URL = getBusinessApiBase();
 
 export const businessApi = {
   // Тепер ми приймаємо categoryId і кидаємо його в запит
   getNearbyBoxes: async (lat: number, lon: number, categoryId?: string): Promise<Box[]> => {
     try {
-      let url = `${API_BASE_URL}/business/nearby-boxes?lat=${lat}&lon=${lon}&limit=50`;
+      let url = `${API_BASE_URL}/nearby-boxes?lat=${lat}&lon=${lon}&limit=50`;
       if (categoryId && categoryId !== "all") {
         url += `&category_id=${categoryId}`;
       }
@@ -116,7 +128,7 @@ export const businessApi = {
   },
 
   getLocationTags: async (): Promise<LocationTag[]> => {
-    const response = await fetch(`${API_BASE_URL}/business/location-tags`);
+    const response = await fetch(`${API_BASE_URL}/location-tags`);
     if (!response.ok) {
       throw new Error(`Failed to load location tags (${response.status})`);
     }
@@ -139,7 +151,7 @@ export const businessApi = {
     search.set("skip", String(params.skip ?? 0));
     search.set("limit", String(params.limit ?? 10));
 
-    const response = await fetch(`${API_BASE_URL}/business/venues/search?${search.toString()}`);
+    const response = await fetch(`${API_BASE_URL}/venues/search?${search.toString()}`);
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || err.message || `Search failed (${response.status})`);
@@ -153,7 +165,7 @@ export const businessApi = {
   },
 
   getVenueProfile: async (id: number): Promise<VenueProfile> => {
-    const response = await fetch(`${API_BASE_URL}/business/org-units/${id}`);
+    const response = await fetch(`${API_BASE_URL}/org-units/${id}`);
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || err.message || `Failed to load venue (${response.status})`);
@@ -177,7 +189,7 @@ export const businessApi = {
       formData.append("image", data.image, data.image.name);
     }
 
-    const response = await fetch(`${API_BASE_URL}/business/boxes`, {
+    const response = await fetch(`${API_BASE_URL}/boxes`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`
@@ -194,7 +206,7 @@ export const businessApi = {
   },
 
   reserveBox: async (boxID: number, token: string): Promise<ReserveBoxResponse> => {
-    const response = await fetch(`${API_BASE_URL}/business/boxes/${boxID}/reserve`, {
+    const response = await fetch(`${API_BASE_URL}/boxes/${boxID}/reserve`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -225,7 +237,7 @@ export const businessApi = {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/business/posts/recommend?${search.toString()}`, {
+    const response = await fetch(`${API_BASE_URL}/posts/recommend?${search.toString()}`, {
       method: "GET",
       headers,
     });

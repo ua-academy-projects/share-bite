@@ -5,65 +5,94 @@
 
 @custom-variant dark (&:is(.dark *));
 
-
 :root {
-  --background: #F9F7F2;
-  --foreground: #1A3C34;
-  --card: #FFFFFF;
-  --card-foreground: #1A3C34;
-  --popover: #FFFFFF;
-  --popover-foreground: #1A3C34;
-  
-  --primary: #1A3C34; 
-  --primary-foreground: #F9F7F2; 
-  
-  --secondary: #98FF98;
-  --secondary-foreground: #1A3C34;
-  
-  --muted: #E2E8F0;
-  --muted-foreground: #64748B;
-  
-  --accent: #FFD700;
-  --accent-foreground: #1A3C34;
-  
-  --destructive: #EF4444;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #1A3C34;
-  --radius: 0.625rem;
-}
+  --background: #fdfcf8;
+  --foreground: #1a3c34;
+  --card: #ffffff;
+  --card-foreground: #1a3c34;
+  --popover: #ffffff;
+  --popover-foreground: #1a3c34;
 
+  --primary: #1a3c34;
+  --primary-foreground: #f9f7f2;
+
+  --secondary: #98ff98;
+  --secondary-foreground: #1a3c34;
+
+  --muted: #e2e8f0;
+  --muted-foreground: #64748b;
+
+  --accent: #ffd700;
+  --accent-foreground: #1a3c34;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #f9f7f2;
+
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #1a3c34;
+  --radius: 0.625rem;
+
+  --navbar-bg: #1a3c34;
+  --navbar-foreground: #f9f7f2;
+  --navbar-muted: #98ff98;
+  --navbar-border: rgba(152, 255, 152, 0.2);
+}
 
 .dark {
   --background: #0b0f0e;
-  --foreground: #F9F7F2;
+  --foreground: #f9f7f2;
   --card: #163d32;
-  --card-foreground: #F9F7F2;
+  --card-foreground: #f9f7f2;
   --popover: #163d32;
-  --popover-foreground: #F9F7F2;
-  
-  --primary: #98FF98;
+  --popover-foreground: #f9f7f2;
+
+  --primary: #98ff98;
   --primary-foreground: #0b0f0e;
-  
-  --secondary: #1A3C34;
-  --secondary-foreground: #F9F7F2;
-  
+
+  --secondary: #1a3c34;
+  --secondary-foreground: #f9f7f2;
+
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
-  
-  --accent: #FFD700;
+
+  --accent: #ffd700;
   --accent-foreground: #0b0f0e;
-  
+
   --destructive: #7f1d1d;
+  --destructive-foreground: #f9f7f2;
+
   --border: #2f5e50;
   --input: #2f5e50;
-  --ring: #98FF98;
+  --ring: #98ff98;
+
+  --navbar-bg: #1a3c34;
+  --navbar-foreground: #f9f7f2;
+  --navbar-muted: #98ff98;
+  --navbar-border: rgba(152, 255, 152, 0.15);
 }
 
 @layer base {
+  .bg-card {
+    background-color: var(--card);
+    background-image: linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--primary) 5%, transparent),
+      transparent
+    );
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans, system-ui, sans-serif);
+  }
+}
+
+@layer utilities {
+  .glass-middling {
+    background-color: rgba(26, 60, 50, 0.4);
+    backdrop-filter: blur(20px);
+    box-shadow: inset 0 0 0 1px rgba(119, 220, 122, 0.1);
   }
 }

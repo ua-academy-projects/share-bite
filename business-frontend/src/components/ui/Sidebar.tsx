@@ -1,70 +1,81 @@
 import { NavLink } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useTheme } from "@/components/theme-provider";
-import { Moon, Sun } from "lucide-react";
+import { isAdminOrModerator } from "@/utils/auth";
+
+const sectionLabel =
+  "text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-3 py-1";
 
 export function Sidebar() {
-  const { theme, setTheme } = useTheme();
-
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `px-3 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2 ${
-      isActive 
-        ? "bg-[#2f5e50] text-white" 
-        : "text-gray-300 hover:bg-[#2f5e50]/50 hover:text-white"
+      isActive
+        ? "bg-secondary text-secondary-foreground"
+        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
     }`;
 
+  const hasToken = !!localStorage.getItem("token");
+
   return (
-    <aside className="w-64 bg-[#163d32] border-r border-[#2f5e50] p-6 flex flex-col justify-between">
-      <div>
-        {/* Логотип */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-[#0b0f0e] rounded-full flex items-center justify-center text-[#98FF98] font-bold">
-            SB
-          </div>
-          <div>
-            <h2 className="text-white font-semibold">Share Bite</h2>
-            <p className="text-gray-400 text-xs">The Art of Dining</p>
-          </div>
-        </div>
+    <aside className="flex w-64 shrink-0 flex-col justify-between border-r border-border bg-card p-6">
+      <nav className="flex flex-col gap-2">
+        <p className={sectionLabel}>Home</p>
+        <NavLink to="/" end className={linkClass}>
+          Home
+        </NavLink>
 
-        {/* Кнопка перемикання теми (тепер зверху) */}
-        <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start px-3 text-gray-300 hover:text-white hover:bg-[#2f5e50]/50"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-            {theme === "dark" ? "Light Mode" : "Dark Mode"}
-          </Button>
-        </div>
+        <p className={`${sectionLabel} mt-4`}>Community</p>
+        <NavLink to="/explore" className={linkClass}>
+          Explore
+        </NavLink>
+        {hasToken && (
+          <>
+            <NavLink to="/collections" className={linkClass}>
+              Collections
+            </NavLink>
+            <NavLink to="/notifications" className={linkClass}>
+              Notifications
+            </NavLink>
+            <NavLink to="/profile" className={linkClass}>
+              Profile
+            </NavLink>
+          </>
+        )}
 
-        {/* Основна кнопка дії */}
-        <Button className="w-full bg-[#FFD700] text-[#1A3C34] hover:bg-[#FFD700]/80 rounded-full mb-8 font-bold">
-          + Share a Bite
-        </Button>
+        <p className={`${sectionLabel} mt-4`}>Business</p>
+        <NavLink to="/boxes" className={linkClass}>
+          Magic Boxes
+        </NavLink>
+        <NavLink to="/discover" className={linkClass}>
+          Discover
+        </NavLink>
+        <NavLink to="/venues/search" className={linkClass}>
+          Venue Search
+        </NavLink>
 
-        {/* Навігація */}
-        <nav className="flex flex-col gap-2">
-          <NavLink to="/" end className={linkClass}>Home Feed</NavLink>
-          <NavLink to="/boxes" className={linkClass}>Magic Boxes</NavLink>
-          <NavLink to="/discover" className={linkClass}>Discover</NavLink>
-          <NavLink to="/venues/search" className={linkClass}>Venue Search</NavLink>
-          
-          <div className="mt-4 flex flex-col gap-2">
-            <span className="text-gray-400 px-3 py-2 text-sm font-medium">Social Bites</span>
-            <span className="text-gray-400 px-3 py-2 text-sm font-medium">Settings</span>
-          </div>
-        </nav>
-      </div>
+        <p className={`${sectionLabel} mt-4`}>Settings</p>
+        {hasToken ? (
+          <>
+            <NavLink to="/profile/edit" className={linkClass}>
+              Edit profile
+            </NavLink>
+            <NavLink to="/settings/security" className={linkClass}>
+              Security
+            </NavLink>
+          </>
+        ) : (
+          <NavLink to="/auth" className={linkClass}>
+            Sign in
+          </NavLink>
+        )}
 
-      {/* Нижній блок: залишилися тільки лінки */}
-      <div className="flex flex-col gap-4">
-        <div className="text-gray-400 text-xs flex gap-4 px-3">
-          <span className="cursor-pointer hover:text-white transition-colors">Support</span>
-          <span className="cursor-pointer hover:text-white transition-colors">Privacy</span>
-        </div>
-      </div>
+        {isAdminOrModerator() && (
+          <>
+            <p className={`${sectionLabel} mt-4`}>Admin</p>
+            <NavLink to="/admin" className={linkClass}>
+              Users
+            </NavLink>
+          </>
+        )}
+      </nav>
     </aside>
   );
 }

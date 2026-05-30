@@ -71,7 +71,7 @@ export function BoxesPage() {
   }, [boxes, activeMaxDistance, activeMaxPrice]);
 
   return (
-    <div className="min-h-screen bg-[#F9F7F2] dark:bg-[#0d241d] p-8 md:p-12 w-full transition-colors duration-300">
+    <div className="min-h-screen w-full bg-background p-8 md:p-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-[#1A3C34] dark:text-white tracking-tight mb-3">

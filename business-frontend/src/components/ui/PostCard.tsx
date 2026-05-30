@@ -22,11 +22,11 @@ export type PostData = {
   images: string[];
 };
 
-interface PostCardProps {
+interface BusinessPostCardProps {
   post: PostData;
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function BusinessPostCard({ post }: BusinessPostCardProps) {
   const getInitials = (name: string) => {
     return name ? name.substring(0, 2).toUpperCase() : "SB";
   };

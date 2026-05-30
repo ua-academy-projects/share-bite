@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { businessApi, RecommendedPost } from "@/api/business";
-import { PostCard, PostData } from "@/components/ui/PostCard";
+import { BusinessPostCard, PostData } from "@/components/ui/PostCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -98,7 +98,7 @@ export function HomeFeedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F7F2] dark:bg-[#0d241d] p-8 md:p-12 w-full transition-colors duration-300">
+    <div className="min-h-screen w-full bg-background p-8 md:p-12 transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -158,7 +158,7 @@ export function HomeFeedPage() {
             <div className="flex flex-col items-center w-full gap-6">
               <div className="w-full max-w-2xl flex flex-col gap-6">
                 {posts.map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <BusinessPostCard key={post.id} post={post} />
                 ))}
               </div>
             </div>

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 
 // Імпортуємо наш новий уніфікований компонент та його тип
-import { PostCard, PostData } from "@/components/ui/PostCard";
+import { BusinessPostCard, PostData } from "@/components/ui/PostCard";
 
 const createPostSchema = z.object({
   textData: z
@@ -66,14 +66,13 @@ export default function CreatePostPage() {
     try {
       setLoading(true);
 
-      const apiBase = import.meta.env.VITE_API_URL;
-      if (!apiBase) {
-        setErrorMessage("VITE_API_URL is not configured.");
-        setLoading(false);
-        return;
-      }
-      
-      const url = new URL(`/business/posts/${encodeURIComponent(id)}`, apiBase).toString();
+      const apiBase = import.meta.env.VITE_API_BASE_URL ?? "";
+      const url = apiBase
+        ? new URL(
+            `/business/posts/${encodeURIComponent(id)}`,
+            import.meta.env.VITE_API_URL || "http://localhost:3900"
+          ).toString()
+        : `/api/business/posts/${encodeURIComponent(id)}`;
 
       const fd = new FormData();
       fd.append("content", values.textData);
@@ -139,7 +138,7 @@ export default function CreatePostPage() {
             </div>
 
             {/* Використовуємо наш новий уніфікований компонент! */}
-            <PostCard post={createdPost} />
+            <BusinessPostCard post={createdPost} />
 
             {/* Кнопка "Створити ще" */}
             <Button 
