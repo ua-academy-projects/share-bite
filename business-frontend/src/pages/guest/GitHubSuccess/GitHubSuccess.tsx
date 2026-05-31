@@ -30,12 +30,6 @@ export function GitHubSuccess() {
 
     localStorage.setItem("token", token);
     document.cookie = "session=; Max-Age=0; path=/";
-
-    if (localStorage.getItem("guest_has_customer") !== "1") {
-      navigate("/profile/create", { replace: true });
-      return;
-    }
-
     navigate("/", { replace: true });
   }, [navigate]);
 

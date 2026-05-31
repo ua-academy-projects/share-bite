@@ -72,15 +72,9 @@ export function Auth() {
       return authData;
     },
     onSuccess: () => {
-      if (
-        !isLogin &&
-        roleSlug === "user" &&
-        localStorage.getItem("guest_has_customer") !== "1"
-      ) {
-        navigate("/profile/create", { replace: true });
-        return;
-      }
-      navigate("/");
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from
+        ?.pathname;
+      navigate(from || "/", { replace: true });
     },
   });
 

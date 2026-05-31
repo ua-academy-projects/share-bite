@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/api/client";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,10 +12,12 @@ import {
   pagePanel,
 } from "@/components/layout/pageStyles";
 import { Button } from "@/components/ui/button";
+import { getDefaultHomePath, resolvePostAuthDestination } from "@/utils/navigation";
 import { cn } from "@/lib/utils";
 
 export function ProfileCreatePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     userName: "",
@@ -24,12 +26,28 @@ export function ProfileCreatePage() {
     bio: "",
   });
 
+  const { data: hasCustomer, isLoading } = useQuery({
+    queryKey: ["hasCustomer"],
+    queryFn: () => apiClient.hasCurrentCustomer(),
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (hasCustomer) {
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from
+        ?.pathname;
+      navigate(resolvePostAuthDestination(from), { replace: true });
+    }
+  }, [hasCustomer, location.state, navigate]);
+
   const createMutation = useMutation({
     mutationFn: () => apiClient.createCustomer(form),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["currentCustomer"] });
+      void queryClient.invalidateQueries({ queryKey: ["currentCustomer"] });
+      void queryClient.invalidateQueries({ queryKey: ["onboardingStatus"] });
+      void queryClient.invalidateQueries({ queryKey: ["hasCustomer"] });
       toast.success("Profile created successfully!");
-      navigate("/profile", { replace: true });
+      navigate(getDefaultHomePath(), { replace: true });
     },
     onError: (error: unknown) => {
       const e = error as { response?: { data?: { error?: string } } };
@@ -41,6 +59,14 @@ export function ProfileCreatePage() {
     e.preventDefault();
     createMutation.mutate();
   };
+
+  if (isLoading || hasCustomer) {
+    return (
+      <PageLayout center>
+        <p className="text-gray-500">Loading…</p>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>

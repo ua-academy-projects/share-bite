@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route, useParams } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin/RequireAdmin";
@@ -11,11 +11,11 @@ import CreatePostPage from "@/pages/CreatePostPage";
 import { CreateBoxPage } from "@/pages/CreateBoxPage";
 import { VenueSearchPage } from "@/pages/VenueSearchPage";
 import { VenueProfilePage } from "@/pages/VenueProfilePage";
+import { BusinessSetupPage } from "@/pages/business/BusinessSetupPage";
 import { Auth } from "@/pages/guest/Auth/Auth";
 import { OAuthCallback } from "@/pages/guest/OAuthCallback/OAuthCallback";
 import { GitHubSuccess } from "@/pages/guest/GitHubSuccess/GitHubSuccess";
 import { HomeFeed } from "@/pages/guest/HomeFeed/HomeFeed";
-import { ExplorePage } from "@/pages/guest/Explore/ExplorePage";
 import { CollectionsPage } from "@/pages/guest/Collections/CollectionsPage";
 import { NotificationsPage } from "@/pages/guest/Notifications/NotificationsPage";
 import { SecurityPage } from "@/pages/guest/Settings/SecurityPage";
@@ -26,6 +26,12 @@ import { RestaurantProfile } from "@/pages/guest/RestaurantProfile/RestaurantPro
 import { CreatePost } from "@/pages/guest/CreatePost/CreatePost";
 import { AdminUsersPage } from "@/pages/guest/Admin/AdminUsersPage";
 import { AdminUserDetailPage } from "@/pages/guest/Admin/AdminUserDetailPage";
+import { ForbiddenPage } from "@/pages/guest/Forbidden/ForbiddenPage";
+
+function RestaurantRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/venue/${id}`} replace />;
+}
 
 function App() {
   return (
@@ -35,7 +41,8 @@ function App() {
           <Route path="/" element={<RoleBasedHome />} />
           <Route path="/boxes" element={<BoxesPage />} />
           <Route path="/discover" element={<VenueSearchPage />} />
-          <Route path="/venues/search" element={<VenueSearchPage />} />
+          <Route path="/venues/search" element={<Navigate to="/discover" replace />} />
+          <Route path="/explore" element={<Navigate to="/discover" replace />} />
           <Route path="/venue/:id/create-post" element={<CreatePostPage />} />
           <Route path="/venue/:id/create-box" element={<CreateBoxPage />} />
           <Route path="/venue/:id" element={<VenueProfilePage />} />
@@ -44,7 +51,6 @@ function App() {
           <Route path="/oauth/google/callback" element={<OAuthCallback />} />
           <Route path="/oauth/github/success" element={<GitHubSuccess />} />
 
-          <Route path="/explore" element={<ExplorePage />} />
           <Route
             path="/collections"
             element={
@@ -109,8 +115,9 @@ function App() {
               </RequireAuth>
             }
           />
-          <Route path="/restaurant/:id" element={<RestaurantProfile />} />
+          <Route path="/restaurant/:id" element={<RestaurantRedirect />} />
 
+          <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route
             path="/admin"
             element={
@@ -131,6 +138,15 @@ function App() {
           <Route path="/feed/users" element={<HomeFeed />} />
           <Route path="/feed/business" element={<HomeFeedPage />} />
           <Route path="/feed" element={<Navigate to="/feed/users" replace />} />
+
+          <Route
+            path="/business/setup"
+            element={
+              <RequireAuth>
+                <BusinessSetupPage />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </AppShell>
       <QRCodeModalContainer />

@@ -9,7 +9,7 @@ export function RequireAdmin({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAdminOrModerator()) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/forbidden" replace />;
   }
 
   return <>{children}</>;

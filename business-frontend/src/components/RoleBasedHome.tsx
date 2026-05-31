@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { HomeFeed } from "@/pages/guest/HomeFeed/HomeFeed";
+import { getDefaultHomePath } from "@/utils/navigation";
 
 export function RoleBasedHome() {
   const location = useLocation();
@@ -12,5 +12,5 @@ export function RoleBasedHome() {
     );
   }
 
-  return <HomeFeed />;
+  return <Navigate to={getDefaultHomePath()} replace />;
 }

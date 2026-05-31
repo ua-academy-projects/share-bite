@@ -415,6 +415,19 @@ export const apiClient = {
     return res.data.customer;
   },
 
+  hasCurrentCustomer: async (): Promise<boolean> => {
+    try {
+      await guestApi.get<{ customer: CustomerResponse }>("customers/");
+      markGuestHasCustomer();
+      return true;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return false;
+      }
+      throw error;
+    }
+  },
+
   updateCustomer: async (data: {
     userName?: string;
     firstName?: string;

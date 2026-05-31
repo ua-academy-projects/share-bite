@@ -94,6 +94,26 @@ export type RecommendPostsRequest = {
   limit?: number;
 };
 
+export type BusinessOnboardingContext = {
+  brandId: number | null;
+  venueId: number | null;
+};
+
+export type CreateBrandRequest = {
+  name: string;
+  description?: string;
+  avatar?: string;
+  banner?: string;
+};
+
+export type CreateLocationRequest = {
+  name: string;
+  description?: string;
+  latitude?: number;
+  longitude?: number;
+  tagIds?: number[];
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const BUSINESS_BASE = `${API_BASE}/api/business`;
 
@@ -283,5 +303,62 @@ export const businessApi = {
       items: data.items || [],
       total: data.total || 0,
     };
+  },
+
+  getMyOnboardingContext: async (token: string): Promise<BusinessOnboardingContext> => {
+    const response = await fetch(`${BUSINESS_BASE}/me`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(token),
+      },
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(
+        err.error || err.message || `Failed to load business profile (${response.status})`
+      );
+    }
+    const data = await response.json();
+    return {
+      brandId: data.brandId ?? null,
+      venueId: data.venueId ?? null,
+    };
+  },
+
+  createBrand: async (payload: CreateBrandRequest, token: string): Promise<{ id: number }> => {
+    const response = await fetch(`${BUSINESS_BASE}/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to create brand (${response.status})`);
+    }
+    return response.json();
+  },
+
+  createLocation: async (
+    brandId: number,
+    payload: CreateLocationRequest,
+    token: string
+  ): Promise<{ id: number }> => {
+    const response = await fetch(`${BUSINESS_BASE}/${brandId}/locations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(token),
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to create venue (${response.status})`);
+    }
+    const data = await response.json();
+    return { id: data.id };
   },
 };

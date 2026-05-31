@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { businessApi, RecommendedPost } from "@/api/business";
 import { PostCard, PostData } from "@/components/ui/PostCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getBusinessOrgId } from "@/utils/auth";
 
 const HARDCODED_LAT = 1;
 const HARDCODED_LON = 2;
@@ -195,12 +197,23 @@ export function HomeFeedPage() {
         ) : (
           <div className="text-center bg-white dark:bg-[#163d32] border border-gray-200 dark:border-[#2f5e50] rounded-3xl p-20 shadow-sm dark:shadow-none transition-colors duration-300">
             <p className="text-[#1A3C34] dark:text-gray-300 text-2xl font-bold">
-              No recommendations found 😢
+              No recommendations found
             </p>
             <p className="text-gray-500 dark:text-gray-400 mt-3">
-              Try checking back later or enable notifications to get notified
-              about new posts.
+              Try checking back later or explore nearby venues.
             </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Button asChild variant="outline">
+                <Link to="/discover">Find venues</Link>
+              </Button>
+              {getBusinessOrgId() ? (
+                <Button asChild className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200]">
+                  <Link to={`/venue/${getBusinessOrgId()}/create-post`}>
+                    Create a post
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
           </div>
         )}
       </div>

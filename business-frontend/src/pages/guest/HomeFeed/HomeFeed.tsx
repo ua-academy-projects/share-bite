@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
 import { apiClient } from "@/api/client";
 import { GuestPostCard } from "@/components/PostCard/PostCard";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { pageEmpty, pageLoader } from "@/components/layout/pageStyles";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { pageBtnPrimary } from "@/components/layout/pageStyles";
 
 export function HomeFeed() {
+  const token = localStorage.getItem("token");
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["posts"],
     queryFn: () => apiClient.getPosts(20, 0),
@@ -56,6 +59,20 @@ export function HomeFeed() {
               <p className="mt-2 text-gray-500">
                 Be the first to share a bite!
               </p>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                {token ? (
+                  <Button asChild className={pageBtnPrimary}>
+                    <Link to="/post/create">Write a review</Link>
+                  </Button>
+                ) : (
+                  <Button asChild className={pageBtnPrimary}>
+                    <Link to="/auth">Sign in</Link>
+                  </Button>
+                )}
+                <Button asChild variant="outline">
+                  <Link to="/discover">Find venues</Link>
+                </Button>
+              </div>
             </div>
           )}
         </div>

@@ -41,6 +41,22 @@ export function isBusinessRole(): boolean {
   return role === "business";
 }
 
+export function isUserRole(): boolean {
+  const role = getTokenRole();
+  return role === "user";
+}
+
+export function setBusinessOrgId(venueId: number) {
+  localStorage.setItem("business_org_id", String(venueId));
+}
+
+export function getBusinessOrgId(): number | null {
+  const raw = localStorage.getItem("business_org_id");
+  if (!raw) return null;
+  const id = Number(raw);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
 export function clearSessionStorage() {
   localStorage.removeItem("token");
   localStorage.removeItem("refresh_token");

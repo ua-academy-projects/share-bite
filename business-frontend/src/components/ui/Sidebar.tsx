@@ -5,20 +5,33 @@ import { useTheme } from "@/components/theme-provider";
 import { NotificationBell } from "@/components/Notifications/NotificationBell";
 import { LogoutDialog } from "@/components/LogoutDialog";
 import { useCurrentCustomer } from "@/hooks/useCurrentCustomer";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import {
+  getBusinessOrgId,
   getTokenRole,
   isAdminOrModerator,
   isBusinessRole,
+  isUserRole,
 } from "@/utils/auth";
 import { Moon, Sun, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function NavSection({ label }: { label: string }) {
+  return (
+    <span className="mt-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      {label}
+    </span>
+  );
+}
 
 export function Sidebar() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const { data: customer } = useCurrentCustomer();
+  useOnboardingStatus(!!token);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const businessOrgId = getBusinessOrgId();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -28,14 +41,21 @@ export function Sidebar() {
         : "text-gray-300 hover:bg-[#2f5e50]/50 hover:text-white"
     );
 
-  const shareCtaPath = () => {
-    if (!token) return "/auth";
+  const primaryCta = () => {
+    if (!token) return { label: "Sign in to post", path: "/auth" };
     if (isBusinessRole()) {
-      const orgId = localStorage.getItem("business_org_id");
-      return orgId ? `/venue/${orgId}/create-box` : "/discover";
+      if (businessOrgId) {
+        return {
+          label: "List a rescue box",
+          path: `/venue/${businessOrgId}/create-box`,
+        };
+      }
+      return { label: "Set up your venue", path: "/business/setup" };
     }
-    return "/post/create";
+    return { label: "Write a review", path: "/post/create" };
   };
+
+  const cta = primaryCta();
 
   const avatarInitial =
     customer?.userName?.charAt(0)?.toUpperCase() ||
@@ -71,7 +91,11 @@ export function Sidebar() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">
-                  {customer?.userName ? `@${customer.userName}` : "Guest"}
+                  {customer?.userName
+                    ? `@${customer.userName}`
+                    : isBusinessRole()
+                      ? "Business"
+                      : "Guest"}
                 </p>
               </div>
               <NotificationBell variant="compact" />
@@ -95,48 +119,63 @@ export function Sidebar() {
 
           <Button
             className="mb-8 w-full rounded-full bg-[#FFD700] font-bold text-[#1A3C34] hover:bg-[#FFD700]/80"
-            onClick={() => navigate(shareCtaPath())}
+            onClick={() => navigate(cta.path)}
           >
-            + Share a Bite
+            + {cta.label}
           </Button>
 
           <nav className="flex flex-col gap-2">
+            <NavSection label="Feeds" />
             <NavLink to="/feed/users" className={linkClass}>
               Users Feed
             </NavLink>
             <NavLink to="/feed/business" className={linkClass}>
               Business Feed
             </NavLink>
-            <NavLink to="/boxes" className={linkClass}>
-              Magic Boxes
-            </NavLink>
+
+            <NavSection label="Discover" />
             <NavLink to="/discover" className={linkClass}>
-              Discover
+              Find Venues
             </NavLink>
-            <NavLink to="/venues/search" className={linkClass}>
-              Venue Search
-            </NavLink>
-
-            <span className="mt-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Social
-            </span>
-            <NavLink to="/explore" className={linkClass}>
-              Explore
-            </NavLink>
-            <NavLink to="/collections" className={linkClass}>
-              Collections
+            <NavLink to="/boxes" className={linkClass}>
+              Rescue Boxes
             </NavLink>
 
-            {token ? (
+            {token && isUserRole() ? (
               <>
-                <span className="mt-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Settings
-                </span>
+                <NavSection label="For you" />
+                <NavLink to="/collections" className={linkClass}>
+                  Collections
+                </NavLink>
                 <NavLink to="/profile" className={linkClass}>
                   Profile
                 </NavLink>
                 <NavLink to="/profile/edit" className={linkClass}>
                   Edit Profile
+                </NavLink>
+              </>
+            ) : null}
+
+            {token && isBusinessRole() ? (
+              <>
+                <NavSection label="Your venue" />
+                {businessOrgId ? (
+                  <NavLink to={`/venue/${businessOrgId}`} className={linkClass}>
+                    Venue profile
+                  </NavLink>
+                ) : (
+                  <NavLink to="/business/setup" className={linkClass}>
+                    Set up venue
+                  </NavLink>
+                )}
+              </>
+            ) : null}
+
+            {token ? (
+              <>
+                <NavSection label="Settings" />
+                <NavLink to="/notifications" className={linkClass}>
+                  Notifications
                 </NavLink>
                 <NavLink to="/settings/security" className={linkClass}>
                   Security
@@ -146,9 +185,7 @@ export function Sidebar() {
 
             {isAdminOrModerator() ? (
               <>
-                <span className="mt-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Admin
-                </span>
+                <NavSection label="Admin" />
                 <NavLink to="/admin" className={linkClass}>
                   Admin Users
                 </NavLink>

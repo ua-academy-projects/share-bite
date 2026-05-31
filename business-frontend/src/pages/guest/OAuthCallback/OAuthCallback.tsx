@@ -38,15 +38,6 @@ export function OAuthCallback() {
       try {
         await apiClient.oauthCallback("google", code, slug);
         sessionStorage.removeItem("oauth_role_slug");
-
-        if (
-          slug === "user" &&
-          localStorage.getItem("guest_has_customer") !== "1"
-        ) {
-          window.location.href = "/profile/create";
-          return;
-        }
-
         window.location.href = "/";
       } catch (err: unknown) {
         const e = err as { response?: { data?: { error?: string } }; message?: string };
@@ -58,7 +49,7 @@ export function OAuthCallback() {
       }
     };
 
-    exchange();
+    void exchange();
   }, [searchParams]);
 
   const content = error ? (
