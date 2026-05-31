@@ -34,12 +34,15 @@ def register_tools(mcp: FastMCP, settings: Settings) -> None:
         except BusinessApiError as exc:
             raise RuntimeError(str(exc)) from exc
 
+        info_raw = data.get("info")
+        info = info_raw if isinstance(info_raw, dict) else {}
+
         return {
             "ok": True,
             "service": "business-api",
             "base_url": settings.business_api_base_url,
-            "title": data.get("info", {}).get("title"),
-            "version": data.get("info", {}).get("version"),
+            "title": info.get("title"),
+            "version": info.get("version"),
         }
 
     @mcp.tool()
@@ -61,7 +64,8 @@ def register_tools(mcp: FastMCP, settings: Settings) -> None:
         except BusinessApiError as exc:
             raise RuntimeError(str(exc)) from exc
 
-        info = data.get("info", {})
+        info_raw = data.get("info")
+        info = info_raw if isinstance(info_raw, dict) else {}
         paths = data.get("paths", {})
 
         return {

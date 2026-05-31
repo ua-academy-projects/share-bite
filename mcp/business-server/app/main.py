@@ -42,7 +42,6 @@ def configure_logging() -> None:
 
 
 def create_server(settings: Settings) -> FastMCP:
-    
     mcp = FastMCP(
         "sharebite-business-mcp-server",
         instructions=(
