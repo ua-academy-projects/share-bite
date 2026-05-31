@@ -94,7 +94,7 @@ export function AdminUserDetailPage() {
 
   if (loading) {
     return (
-      <PageLayout maxWidth="3xl">
+      <PageLayout>
         <div className="flex h-64 items-center justify-center">
           <Loader2 className={cn(pageLoader, "h-12 w-12")} />
         </div>
@@ -104,7 +104,7 @@ export function AdminUserDetailPage() {
 
   if (error || !user) {
     return (
-      <PageLayout maxWidth="3xl">
+      <PageLayout>
         <Link to="/admin" className={cn(pageLinkAccent, "mb-4 inline-block text-sm")}>
           ← Back to users
         </Link>
@@ -114,14 +114,14 @@ export function AdminUserDetailPage() {
   }
 
   return (
-    <PageLayout maxWidth="3xl">
+    <PageLayout>
       <Link to="/admin" className={cn(pageLinkAccent, "mb-4 inline-block text-sm")}>
         ← Back to users
       </Link>
 
       <PageHeader title={user.email} />
 
-      <div className="grid gap-6">
+      <div className="grid max-w-4xl gap-6">
         <div className={cn(pagePanel, "p-6")}>
           <h2 className="mb-4 text-lg font-semibold text-[#1A3C34] dark:text-white">Account</h2>
           <div className="space-y-3">

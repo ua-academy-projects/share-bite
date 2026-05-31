@@ -78,7 +78,7 @@ export function BoxesPage() {
   }, [boxes, activeMaxDistance, activeMaxPrice]);
 
   return (
-    <PageLayout maxWidth="7xl">
+    <PageLayout>
       <PageHeader
         title={
           <>

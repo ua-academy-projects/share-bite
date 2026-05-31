@@ -139,7 +139,7 @@ export function UserProfile() {
 
   if (userLoading || (!username && !currentCustomer)) {
     return (
-      <PageLayout maxWidth="3xl">
+      <PageLayout>
         <div className="flex h-64 items-center justify-center">
           <Loader2 className={cn(pageLoader, "h-12 w-12")} />
         </div>
@@ -164,8 +164,8 @@ export function UserProfile() {
     }
 
     return (
-      <PageLayout maxWidth="md">
-        <div className={cn(pageEmpty, "max-w-md p-8")}>
+      <PageLayout>
+        <div className={cn(pageEmpty, "mx-auto max-w-lg p-8")}>
           <h2 className="text-2xl font-bold text-[#1A3C34] dark:text-white">User Not Found</h2>
           <p className="mt-2 text-gray-500">
             The profile you are looking for doesn't exist or has been removed.
@@ -181,7 +181,7 @@ export function UserProfile() {
   const userPosts = postsData?.Posts || [];
 
   return (
-    <PageLayout maxWidth="3xl">
+    <PageLayout>
       <PageHeader title="Profile" description={`@${user.userName}`} />
 
       <div className={cn(pagePanel, "relative mb-8 overflow-hidden p-6 md:p-8")}>
@@ -259,7 +259,7 @@ export function UserProfile() {
       </div>
 
         {activeTab === "posts" ? (
-          <div className="space-y-6">
+          <div className="mx-auto max-w-3xl space-y-6">
             {postsLoading ? (
               <div className={cn(pageEmpty, "py-12")}>
                 <p className="text-gray-500">Loading posts...</p>
@@ -273,7 +273,7 @@ export function UserProfile() {
             )}
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {collectionsLoading ? (
               <div className={cn(pageEmpty, "py-12")}>
                 <p className="text-gray-500">Loading collections...</p>

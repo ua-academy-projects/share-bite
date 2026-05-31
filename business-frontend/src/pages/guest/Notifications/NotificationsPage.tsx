@@ -16,7 +16,7 @@ export function NotificationsPage() {
   });
 
   return (
-    <PageLayout maxWidth="2xl">
+    <PageLayout>
       <PageHeader
         title="Notifications"
         description="Stay up to date with your Share Bite activity"

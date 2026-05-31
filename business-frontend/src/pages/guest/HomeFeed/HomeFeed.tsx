@@ -14,7 +14,7 @@ export function HomeFeed() {
   });
 
   return (
-    <PageLayout maxWidth="xl">
+    <PageLayout>
       <PageHeader
         title="The Home Feed"
         description="Discover what your friends are eating"
@@ -30,7 +30,7 @@ export function HomeFeed() {
           Error loading posts. Try refreshing the page.
         </div>
       ) : (
-        <div className="mx-auto flex flex-col gap-8">
+        <div className="mx-auto flex max-w-3xl flex-col gap-8">
           {data?.Posts?.map((post) => (
             <GuestPostCard key={post.id} post={post} />
           ))}

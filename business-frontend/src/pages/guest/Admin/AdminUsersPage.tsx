@@ -93,7 +93,7 @@ export function AdminUsersPage() {
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
-    <PageLayout maxWidth="7xl">
+    <PageLayout>
       <PageHeader title="Admin — Users" description={`${totalCount} total users`} />
 
       <div className={cn(pageFilterBar, "mb-8 flex flex-col gap-4 xl:flex-row xl:items-center")}>

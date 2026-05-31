@@ -32,7 +32,7 @@ export function RestaurantProfile() {
 
   if (resLoading) {
     return (
-      <PageLayout maxWidth="xl">
+      <PageLayout>
         <div className="flex h-64 items-center justify-center">
           <Loader2 className={cn(pageLoader, "h-12 w-12")} />
         </div>
@@ -42,7 +42,7 @@ export function RestaurantProfile() {
 
   if (resError || !restaurant) {
     return (
-      <PageLayout maxWidth="lg" center>
+      <PageLayout center>
         <div className={cn(pageEmpty, "max-w-lg p-8")}>
           <h2 className="text-xl font-bold text-[#1A3C34] dark:text-white">
             Restaurant not found
@@ -68,7 +68,7 @@ export function RestaurantProfile() {
   };
 
   return (
-    <PageLayout maxWidth="xl">
+    <PageLayout>
       <div className={cn(pagePanel, "mb-8 overflow-hidden")}>
         <div className="relative h-48 bg-gray-100 md:h-64 dark:bg-[#0d241d]">
           <img
@@ -114,7 +114,7 @@ export function RestaurantProfile() {
       </div>
 
       <PageHeader title="Recent Posts" />
-      <div className="flex flex-col gap-8">
+      <div className="mx-auto flex max-w-3xl flex-col gap-8">
         {postsLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className={cn(pageLoader, "h-12 w-12")} />

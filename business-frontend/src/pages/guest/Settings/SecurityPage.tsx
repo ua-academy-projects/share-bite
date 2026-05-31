@@ -25,13 +25,13 @@ export const SecurityPage: React.FC = () => {
   };
 
   return (
-    <PageLayout maxWidth="2xl">
+    <PageLayout>
       <PageHeader
         title="Security Settings"
         description="Manage active sessions and account security"
       />
 
-      <div className={cn(pagePanel, "overflow-hidden")}>
+      <div className={cn(pagePanel, "mx-auto max-w-2xl overflow-hidden")}>
         <div className="border-b border-gray-200 p-6 dark:border-[#2f5e50]">
           <div className="flex items-start gap-4">
             <div className="rounded-lg bg-gray-100 p-2 dark:bg-[#0d241d]">

@@ -55,7 +55,7 @@ export function ProfileEditPage() {
 
   if (isLoading) {
     return (
-      <PageLayout maxWidth="md">
+      <PageLayout>
         <div className="flex h-64 items-center justify-center">
           <Loader2 className={cn(pageLoader, "h-12 w-12")} />
         </div>
@@ -69,9 +69,9 @@ export function ProfileEditPage() {
   }
 
   return (
-    <PageLayout maxWidth="md">
+    <PageLayout>
       <PageHeader title="Edit Profile" description="Update your public guest profile" />
-      <div className={cn(pagePanel, "p-8")}>
+      <div className={cn(pagePanel, "mx-auto max-w-lg p-8")}>
         <form
           onSubmit={(e) => {
             e.preventDefault();

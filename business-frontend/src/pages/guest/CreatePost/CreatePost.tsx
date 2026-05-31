@@ -134,13 +134,13 @@ export const CreatePost: React.FC = () => {
   };
 
   return (
-    <PageLayout maxWidth="3xl">
+    <PageLayout>
       <PageHeader
         title="Create a Post"
         description="Share your latest culinary experience"
       />
 
-      <div className={cn(pagePanel, "p-8 md:p-10")}>
+      <div className={cn(pagePanel, "mx-auto max-w-3xl p-8 md:p-10")}>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <span className={pageLabel}>Photos</span>

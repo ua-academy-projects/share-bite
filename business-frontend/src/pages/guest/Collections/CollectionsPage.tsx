@@ -81,7 +81,7 @@ export function CollectionsPage() {
   };
 
   return (
-    <PageLayout maxWidth="5xl">
+    <PageLayout>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <PageHeader
           title="My Collections"
@@ -153,7 +153,7 @@ export function CollectionsPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {collections.map((collection) => (
             <div
               key={collection.id}

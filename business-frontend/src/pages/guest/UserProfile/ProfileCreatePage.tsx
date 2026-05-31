@@ -43,12 +43,12 @@ export function ProfileCreatePage() {
   };
 
   return (
-    <PageLayout maxWidth="md">
+    <PageLayout>
       <PageHeader
         title="Create Profile"
         description="Set up your guest profile to start sharing bites"
       />
-      <div className={cn(pagePanel, "p-8")}>
+      <div className={cn(pagePanel, "mx-auto max-w-lg p-8")}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <label htmlFor="userName" className={pageLabel}>
