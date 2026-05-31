@@ -140,11 +140,11 @@ export const CreatePost: React.FC = () => {
         description="Share your latest culinary experience"
       />
 
-      <div className={cn(pagePanel, "mx-auto max-w-3xl p-8 md:p-10")}>
+      <div className={cn(pagePanel, "p-8 md:p-10")}>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <span className={pageLabel}>Photos</span>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-5">
               {images.map((img, idx) => (
                 <div
                   key={img.previewUrl}
@@ -211,7 +211,7 @@ export const CreatePost: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor="venueId" className={cn(pageLabel, "flex items-center gap-1")}>
                 <MapPin size={14} /> Venue Selection

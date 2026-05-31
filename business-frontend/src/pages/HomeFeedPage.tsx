@@ -4,8 +4,8 @@ import { PostCard, PostData } from "@/components/ui/PostCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const HARDCODED_LAT = 37.77351509723814;
-const HARDCODED_LON = -122.4182710369247;
+const HARDCODED_LAT = 1;
+const HARDCODED_LON = 2;
 
 const PAGE_LIMIT = 10;
 
@@ -111,7 +111,7 @@ export function HomeFeedPage() {
               Discover posts recommended for you based on your preferences
             </p>
             <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-              📍 Location: San Francisco (37.77°N, 122.42°W)
+              📍 Location: 1°N, 2°E
             </p>
           </div>
           <Button

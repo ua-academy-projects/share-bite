@@ -662,7 +662,6 @@ func (r *Repository) GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, l
               p.updated_at,
               p.published_at,
               (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
-			  // TODO: add a join or subquery to determine if the post is liked by the current user
               false AS is_liked_by_me
           FROM guest.posts p
           WHERE p.venue_id = ANY($1) AND p.status = 'published'

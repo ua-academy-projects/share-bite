@@ -1,17 +1,23 @@
 import { useState } from "react";
+import { LogOut, Monitor, ShieldAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { apiClient } from "@/api/client";
 import { clearSessionStorage } from "@/utils/auth";
+import {
+  pageBtnPrimary,
+  pageBtnSecondary,
+  pagePanelLg,
+} from "@/components/layout/pageStyles";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 type LogoutDialogProps = {
   open: boolean;
@@ -56,30 +62,47 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-3xl border-border bg-card-solid sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Log out</DialogTitle>
-          <DialogDescription>
+      <DialogContent
+        className={cn(
+          pagePanelLg,
+          "gap-0 overflow-hidden border-0 p-0 shadow-2xl sm:max-w-md"
+        )}
+      >
+        <DialogHeader className="space-y-2 border-b border-gray-200 px-6 py-5 dark:border-[#2f5e50]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:bg-[#98FF98]/15 dark:text-[#98FF98]">
+              <LogOut className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-[#1A3C34] dark:text-white">
+              Log out
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
             Choose whether to sign out on this device only or on all devices.
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
+
+        <div className="flex flex-col gap-3 p-6">
           <Button
-            className="w-full rounded-xl"
+            className={cn(pageBtnPrimary, "h-12 w-full gap-2")}
             onClick={handleCurrentDevice}
             disabled={loading !== null}
           >
+            <Monitor className="h-4 w-4" />
             {loading === "device" ? "Signing out…" : "This device"}
           </Button>
           <Button
-            variant="destructive"
-            className="w-full rounded-xl"
+            className={cn(
+              pageBtnSecondary,
+              "h-12 w-full gap-2 border border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive dark:border-destructive/40 dark:text-red-300 dark:hover:bg-destructive/15"
+            )}
             onClick={handleAllDevices}
             disabled={loading !== null}
           >
+            <ShieldAlert className="h-4 w-4" />
             {loading === "all" ? "Signing out…" : "All devices"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
