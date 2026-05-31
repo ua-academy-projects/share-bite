@@ -64,7 +64,12 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 	}
 
 	if len(topTags) == 0 {
-		fillPosts, err := s.businessRepo.GetRandomPosts(ctx, limit, []string{}, h3Hashes)
+		total, err := s.businessRepo.CountRandomPosts(ctx, h3Hashes)
+		if err != nil {
+			return pagination.Result[entity.RecommendedPost]{}, err
+		}
+
+		fillPosts, err := s.businessRepo.GetRandomPosts(ctx, skip+limit+1, []string{}, h3Hashes)
 		if err != nil {
 			return pagination.Result[entity.RecommendedPost]{}, err
 		}
@@ -74,13 +79,47 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 			fillPosts[i], fillPosts[j] = fillPosts[j], fillPosts[i]
 		})
 
+		end := skip + limit
+		if end > len(fillPosts) {
+			end = len(fillPosts)
+		}
+		if skip >= len(fillPosts) {
+			return pagination.Result[entity.RecommendedPost]{
+				Items: []entity.RecommendedPost{},
+				Total: total,
+			}, nil
+		}
+
+		paginatedPosts := fillPosts[skip:end]
+
 		return pagination.Result[entity.RecommendedPost]{
-			Items: fillPosts,
-			Total: len(fillPosts), // TODO: Get the count
+			Items: paginatedPosts,
+			Total: total,
 		}, nil
 	}
 
-	quotas := calculateTagQuotas(topTags, limit)
+	totalByTags := 0
+	for _, tag := range topTags {
+		count, err := s.businessRepo.CountPostsByTag(ctx, tag, h3Hashes)
+		if err == nil {
+			totalByTags += count
+		}
+	}
+
+	totalRandom := 0
+	if totalByTags > 0 {
+		totalRandom, err = s.businessRepo.CountRandomPosts(ctx, h3Hashes)
+		if err != nil {
+			return pagination.Result[entity.RecommendedPost]{}, err
+		}
+	}
+
+	total := totalByTags
+	if totalRandom > totalByTags {
+		total = totalRandom
+	}
+
+	quotas := calculateTagQuotas(topTags, skip+limit+1)
 	var finalPosts []entity.RecommendedPost
 	var seenCompositeIDs = make([]string, 0)
 	deficit := 0
@@ -118,8 +157,21 @@ func (s *service) RecommendPosts(ctx context.Context, userID string, lat, lon fl
 		finalPosts[i], finalPosts[j] = finalPosts[j], finalPosts[i]
 	})
 
+	end := skip + limit
+	if end > len(finalPosts) {
+		end = len(finalPosts)
+	}
+	if skip >= len(finalPosts) {
+		return pagination.Result[entity.RecommendedPost]{
+			Items: []entity.RecommendedPost{},
+			Total: total,
+		}, nil
+	}
+
+	paginatedPosts := finalPosts[skip:end]
+
 	return pagination.Result[entity.RecommendedPost]{
-		Items: finalPosts,
-		Total: len(finalPosts),
+		Items: paginatedPosts,
+		Total: total,
 	}, nil
 }

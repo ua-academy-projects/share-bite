@@ -74,6 +74,26 @@ export type VenueProfile = {
   brand?: VenueBrand | null;
 };
 
+export type RecommendedPost = {
+  id: number;
+  org_id: number;
+  content: string;
+  post_type: string;
+  created_at: string;
+};
+
+export type RecommendedPostsResponse = {
+  items: RecommendedPost[];
+  total: number;
+};
+
+export type RecommendPostsRequest = {
+  lat: number;
+  lon: number;
+  skip?: number;
+  limit?: number;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
 
 export const businessApi = {
@@ -173,19 +193,51 @@ export const businessApi = {
     return response.json();
   },
 
-  reserveBox: async (boxId: number, token: string): Promise<ReserveBoxResponse> => {
-    const response = await fetch(`${API_BASE_URL}/business/boxes/${boxId}/reserve`, {
+  reserveBox: async (boxID: number, token: string): Promise<ReserveBoxResponse> => {
+    const response = await fetch(`${API_BASE_URL}/business/boxes/${boxID}/reserve`, {
       method: "PATCH",
       headers: {
-        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || `Reservation failed (${response.status})`);
+      throw new Error(err.error || `Помилка резервування боксу (${response.status})`);
     }
 
     return response.json();
   },
+
+  recommendPosts: async (params: RecommendPostsRequest, token?: string): Promise<RecommendedPostsResponse> => {
+    const search = new URLSearchParams();
+    search.set("lat", String(params.lat));
+    search.set("lon", String(params.lon));
+    search.set("skip", String(params.skip ?? 0));
+    search.set("limit", String(params.limit ?? 24));
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/business/posts/recommend?${search.toString()}`, {
+      method: "GET",
+      headers,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load recommendations (${response.status})`);
+    }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
+  }
 };
