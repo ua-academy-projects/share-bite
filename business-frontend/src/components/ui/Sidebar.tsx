@@ -101,8 +101,11 @@ export function Sidebar() {
           </Button>
 
           <nav className="flex flex-col gap-2">
-            <NavLink to="/" end className={linkClass}>
-              Home Feed
+            <NavLink to="/feed/users" className={linkClass}>
+              Users Feed
+            </NavLink>
+            <NavLink to="/feed/business" className={linkClass}>
+              Business Feed
             </NavLink>
             <NavLink to="/boxes" className={linkClass}>
               Magic Boxes

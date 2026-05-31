@@ -1,25 +1,39 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { GuestPostCard } from "@/components/PostCard/PostCard";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { pageEmpty, pageLoader } from "@/components/layout/pageStyles";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function HomeFeed() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["posts"],
     queryFn: () => apiClient.getPosts(20, 0),
   });
 
   return (
-    <PageLayout>
-      <PageHeader
-        title="The Home Feed"
-        description="Discover what your friends are eating"
-        className="justify-center text-center [&>div]:mx-auto"
-      />
+    <PageLayout className="space-y-8">
+      <div className="flex w-full items-start justify-between gap-4">
+        <div>
+          <h1 className="mb-3 text-4xl font-bold tracking-tight text-[#1A3C34] dark:text-white md:text-5xl">
+            Users Feed{" "}
+            <span className="text-emerald-500 dark:text-[#98FF98]">👥</span>
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Discover what your friends are eating
+          </p>
+        </div>
+        <Button
+          onClick={() => void refetch()}
+          disabled={isFetching}
+          className="flex shrink-0 items-center gap-2 rounded-xl bg-[#FFD700] px-6 py-6 font-semibold text-[#1A3C34] shadow-md transition-all hover:bg-[#e6c200] disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-lg dark:shadow-[#FFD700]/20 dark:hover:bg-[#FFD700]/80"
+        >
+          <RefreshCw size={18} className={isFetching ? "animate-spin" : ""} />
+          Refresh
+        </Button>
+      </div>
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">

@@ -104,11 +104,11 @@ export function HomeFeedPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold text-[#1A3C34] dark:text-white tracking-tight mb-3">
-              Home Feed{" "}
+              Business Feed{" "}
               <span className="text-emerald-500 dark:text-[#98FF98]">🔥</span>
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg">
-              Discover posts recommended for you based on your preferences
+              Recommended posts from nearby venues based on your location
             </p>
             <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
               📍 Location: 1°N, 2°E

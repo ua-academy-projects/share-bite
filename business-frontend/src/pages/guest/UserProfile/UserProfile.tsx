@@ -170,8 +170,8 @@ export function UserProfile() {
           <p className="mt-2 text-gray-500">
             The profile you are looking for doesn't exist or has been removed.
           </p>
-          <Button onClick={() => navigate("/")} className={cn(pageBtnPrimary, "mt-6")}>
-            Back to Home Feed
+          <Button onClick={() => navigate("/feed/users")} className={cn(pageBtnPrimary, "mt-6")}>
+            Back to Users Feed
           </Button>
         </div>
       </PageLayout>

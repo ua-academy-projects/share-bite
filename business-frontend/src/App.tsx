@@ -1,8 +1,9 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin/RequireAdmin";
 import { RoleBasedHome } from "@/components/RoleBasedHome";
+import { HomeFeedPage } from "@/pages/HomeFeedPage";
 import { QRCodeModalProvider } from "@/contexts/QRCodeModalContext";
 import { QRCodeModalContainer } from "@/components/ui/QRCodeModal";
 import { BoxesPage } from "@/pages/BoxesPage";
@@ -127,8 +128,9 @@ function App() {
             }
           />
 
-          {/* Guest home alias for direct navigation */}
-          <Route path="/feed" element={<HomeFeed />} />
+          <Route path="/feed/users" element={<HomeFeed />} />
+          <Route path="/feed/business" element={<HomeFeedPage />} />
+          <Route path="/feed" element={<Navigate to="/feed/users" replace />} />
         </Routes>
       </AppShell>
       <QRCodeModalContainer />
