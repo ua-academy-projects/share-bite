@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle, ArrowLeft } from "lucide-react";
 
+import { businessApi } from "@/api/business";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,43 +67,15 @@ export default function CreatePostPage() {
     try {
       setLoading(true);
 
-      const apiBase = import.meta.env.VITE_API_URL;
-      if (!apiBase) {
-        setErrorMessage("VITE_API_URL is not configured.");
-        setLoading(false);
-        return;
-      }
-      
-      const url = new URL(`/business/posts/${encodeURIComponent(id)}`, apiBase).toString();
-
       const fd = new FormData();
       fd.append("content", values.textData);
       Array.from(values.images).forEach((file) => fd.append("photos", file));
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-
-      if (!res.ok) {
-        let details = "";
-        try {
-          const ct = res.headers.get("content-type") ?? "";
-          if (ct.includes("application/json")) {
-            const data = await res.json();
-            details = data?.message ? `: ${data.message}` : "";
-          } else {
-            const text = await res.text();
-            details = text ? `: ${text}` : "";
-          }
-        } catch {
-          // ignore
-        }
-        throw new Error(`Request failed (${res.status})${details}`);
-      }
-
-      const postData: PostData = await res.json();
+      const postData: PostData = await businessApi.createBusinessPost(
+        Number(id),
+        fd,
+        token
+      );
 
       // ✨ Optimistic UI: Створюємо локальні прев'ю
       if (values.images && values.images.length > 0) {

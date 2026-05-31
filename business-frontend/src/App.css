@@ -67,3 +67,20 @@
     font-family: var(--font-sans, system-ui, sans-serif);
   }
 }
+
+.bg-card-solid {
+  background-color: var(--card);
+}
+
+.bg-card {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--card) 92%, var(--background)) 0%,
+    var(--card) 100%
+  );
+}
+
+.glass-panel {
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  backdrop-filter: blur(12px);
+}

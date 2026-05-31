@@ -67,7 +67,7 @@ func main() {
 	ctx := context.Background()
 
 	// for local development only
-	if err := config.Load(".env"); err != nil {
+	if err := config.Load("./../../.env"); err != nil {
 		logger.Fatal(ctx, err)
 	}
 

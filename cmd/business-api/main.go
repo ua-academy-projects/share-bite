@@ -40,7 +40,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	if err := config.Load(".env"); err != nil {
+	if err := config.Load("./../../.env"); err != nil {
 		logger.Fatal(ctx, err)
 	}
 

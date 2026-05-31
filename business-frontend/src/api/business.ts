@@ -94,17 +94,27 @@ export type RecommendPostsRequest = {
   limit?: number;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const BUSINESS_BASE = `${API_BASE}/api/business`;
+
+function authHeaders(token?: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
 
 export const businessApi = {
-  // Тепер ми приймаємо categoryId і кидаємо його в запит
-  getNearbyBoxes: async (lat: number, lon: number, categoryId?: string): Promise<Box[]> => {
+  getNearbyBoxes: async (
+    lat: number,
+    lon: number,
+    categoryId?: string
+  ): Promise<Box[]> => {
     try {
-      let url = `${API_BASE_URL}/business/nearby-boxes?lat=${lat}&lon=${lon}&limit=50`;
+      let url = `${BUSINESS_BASE}/nearby-boxes?lat=${lat}&lon=${lon}&limit=50`;
       if (categoryId && categoryId !== "all") {
         url += `&category_id=${categoryId}`;
       }
-      
+
       const response = await fetch(url);
       if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
@@ -116,14 +126,16 @@ export const businessApi = {
   },
 
   getLocationTags: async (): Promise<LocationTag[]> => {
-    const response = await fetch(`${API_BASE_URL}/business/location-tags`);
+    const response = await fetch(`${BUSINESS_BASE}/location-tags`);
     if (!response.ok) {
       throw new Error(`Failed to load location tags (${response.status})`);
     }
     return response.json();
   },
 
-  searchVenues: async (params: SearchVenuesRequest): Promise<SearchVenuesResponse> => {
+  searchVenues: async (
+    params: SearchVenuesRequest
+  ): Promise<SearchVenuesResponse> => {
     const query = (params.query || "").trim();
     const tags = (params.tags || [])
       .map((tag) => tag.trim().toLowerCase())
@@ -139,10 +151,14 @@ export const businessApi = {
     search.set("skip", String(params.skip ?? 0));
     search.set("limit", String(params.limit ?? 10));
 
-    const response = await fetch(`${API_BASE_URL}/business/venues/search?${search.toString()}`);
+    const response = await fetch(
+      `${BUSINESS_BASE}/venues/search?${search.toString()}`
+    );
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || `Search failed (${response.status})`);
+      throw new Error(
+        err.error || err.message || `Search failed (${response.status})`
+      );
     }
 
     const data = await response.json();
@@ -153,85 +169,113 @@ export const businessApi = {
   },
 
   getVenueProfile: async (id: number): Promise<VenueProfile> => {
-    const response = await fetch(`${API_BASE_URL}/business/org-units/${id}`);
+    const response = await fetch(`${BUSINESS_BASE}/org-units/${id}`);
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || `Failed to load venue (${response.status})`);
+      throw new Error(
+        err.error || err.message || `Failed to load venue (${response.status})`
+      );
     }
     return response.json();
   },
 
   createBox: async (data: CreateBoxRequest, token: string) => {
     const formData = new FormData();
-    
     const formattedDate = new Date(data.expires_at).toISOString();
-    
+
     formData.append("venue_id", String(data.venue_id));
     formData.append("category_id", String(data.category_id || 1));
     formData.append("price_full", String(data.price_full));
     formData.append("price_discount", String(data.price_discount));
     formData.append("expires_at", formattedDate);
     formData.append("quantity", String(data.quantity));
-    
+
     if (data.image) {
       formData.append("image", data.image, data.image.name);
     }
 
-    const response = await fetch(`${API_BASE_URL}/business/boxes`, {
+    const response = await fetch(`${BUSINESS_BASE}/boxes`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`
-      },
+      headers: authHeaders(token),
       body: formData,
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || `Помилка: ${response.status}`);
+      throw new Error(err.error || err.message || `Error: ${response.status}`);
     }
 
     return response.json();
   },
 
-  reserveBox: async (boxID: number, token: string): Promise<ReserveBoxResponse> => {
-    const response = await fetch(`${API_BASE_URL}/business/boxes/${boxID}/reserve`, {
+  reserveBox: async (
+    boxID: number,
+    token: string
+  ): Promise<ReserveBoxResponse> => {
+    const response = await fetch(`${BUSINESS_BASE}/boxes/${boxID}/reserve`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        ...authHeaders(token),
       },
     });
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || `Помилка резервування боксу (${response.status})`);
+      throw new Error(
+        err.error || `Failed to reserve box (${response.status})`
+      );
     }
 
     return response.json();
   },
 
-  recommendPosts: async (params: RecommendPostsRequest, token?: string): Promise<RecommendedPostsResponse> => {
+  createBusinessPost: async (
+    venueId: number,
+    formData: FormData,
+    token: string
+  ) => {
+    const response = await fetch(`${BUSINESS_BASE}/posts/${venueId}`, {
+      method: "POST",
+      headers: authHeaders(token),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Error: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  recommendPosts: async (
+    params: RecommendPostsRequest,
+    token?: string
+  ): Promise<RecommendedPostsResponse> => {
     const search = new URLSearchParams();
     search.set("lat", String(params.lat));
     search.set("lon", String(params.lon));
     search.set("skip", String(params.skip ?? 0));
     search.set("limit", String(params.limit ?? 24));
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/business/posts/recommend?${search.toString()}`, {
-      method: "GET",
-      headers,
-    });
+    const response = await fetch(
+      `${BUSINESS_BASE}/posts/recommend?${search.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(token),
+        },
+      }
+    );
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || err.message || `Failed to load recommendations (${response.status})`);
+      throw new Error(
+        err.error ||
+          err.message ||
+          `Failed to load recommendations (${response.status})`
+      );
     }
 
     const data = await response.json();
@@ -239,5 +283,5 @@ export const businessApi = {
       items: data.items || [],
       total: data.total || 0,
     };
-  }
+  },
 };
