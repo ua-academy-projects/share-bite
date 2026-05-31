@@ -18,7 +18,7 @@ import { GitHubSuccess } from "@/pages/guest/GitHubSuccess/GitHubSuccess";
 import { HomeFeed } from "@/pages/guest/HomeFeed/HomeFeed";
 import { CollectionsPage } from "@/pages/guest/Collections/CollectionsPage";
 import { NotificationsPage } from "@/pages/guest/Notifications/NotificationsPage";
-import { SecurityPage } from "@/pages/guest/Settings/SecurityPage";
+import { AccountSettingsPage } from "@/pages/guest/Settings/AccountSettingsPage";
 import { UserProfile } from "@/pages/guest/UserProfile/UserProfile";
 import { ProfileCreatePage } from "@/pages/guest/UserProfile/ProfileCreatePage";
 import { ProfileEditPage } from "@/pages/guest/UserProfile/ProfileEditPage";
@@ -68,12 +68,16 @@ function App() {
             }
           />
           <Route
-            path="/settings/security"
+            path="/settings/account"
             element={
               <RequireAuth>
-                <SecurityPage />
+                <AccountSettingsPage />
               </RequireAuth>
             }
+          />
+          <Route
+            path="/settings/security"
+            element={<Navigate to="/settings/account" replace />}
           />
           <Route
             path="/profile"

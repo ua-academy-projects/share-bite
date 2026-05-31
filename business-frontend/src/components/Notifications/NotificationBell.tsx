@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
 import { fetchNotifications } from "@/api/notifications";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -11,6 +10,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { pageLinkAccent } from "@/components/layout/pageStyles";
 import { cn } from "@/lib/utils";
 
 type NotificationBellProps = {
@@ -51,14 +51,14 @@ export function NotificationBell({ variant = "default" }: NotificationBellProps)
           className={cn(
             "relative shrink-0",
             variant === "compact"
-              ? "h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-              : "rounded-full bg-accent/15 text-accent hover:bg-accent/25"
+              ? "h-8 w-8 rounded-full text-gray-400 hover:bg-[#2f5e50]/40 hover:text-[#98FF98]"
+              : "rounded-full bg-[#FFD700]/15 text-[#FFD700] hover:bg-[#FFD700]/25"
           )}
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -66,34 +66,48 @@ export function NotificationBell({ variant = "default" }: NotificationBellProps)
       </PopoverTrigger>
       <PopoverContent
         side="right"
-        align="end"
-        className="w-80 gap-0 overflow-hidden border-border bg-card-solid p-0 shadow-2xl"
+        align="start"
+        sideOffset={12}
+        collisionPadding={16}
+        className="w-80 gap-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-0 shadow-lg dark:border-[#2f5e50] dark:bg-[#163d32]"
       >
-        <PopoverHeader className="flex flex-row items-center justify-between border-b border-border bg-card-solid px-4 py-3">
-          <PopoverTitle className="text-sm font-semibold tracking-tight">
-            Latest stories
-          </PopoverTitle>
-          <Badge variant="default">{unreadCount} new</Badge>
+        <PopoverHeader className="flex flex-row items-center justify-between gap-2 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Bell size={18} className="text-emerald-500 dark:text-[#98FF98]" />
+            <PopoverTitle className="text-sm font-semibold text-[#1A3C34] dark:text-white">
+              Notifications
+            </PopoverTitle>
+          </div>
+          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-300">
+            {unreadCount} new
+          </span>
         </PopoverHeader>
 
-        <div className="max-h-80 overflow-y-auto bg-card-solid">
+        <div className="max-h-80 overflow-y-auto border-t border-gray-200 dark:border-[#2f5e50]">
           {notifications.length === 0 ? (
-            <div className="bg-card-solid px-4 py-10 text-center text-muted-foreground">
-              <Bell className="mx-auto mb-3 h-8 w-8 opacity-30" />
-              <p className="text-sm font-medium">No new notifications</p>
-              <p className="mt-1 text-xs">You&apos;re all caught up!</p>
+            <div className="px-5 py-10 text-center">
+              <Bell className="mx-auto mb-3 h-10 w-10 text-gray-400 opacity-30 dark:text-gray-500" />
+              <p className="text-sm font-semibold text-[#1A3C34] dark:text-gray-200">
+                No notifications yet
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                When you get notifications, they&apos;ll show up here.
+              </p>
             </div>
           ) : (
             notifications.map((notification) => (
               <Link
                 key={String(notification.id)}
                 to="/notifications"
-                className="block border-b border-border/60 bg-card-solid px-4 py-3 transition-colors hover:bg-[#2f5e50]/30"
+                className={cn(
+                  "block border-b border-gray-200 px-5 py-3 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-[#2f5e50] dark:hover:bg-[#0d241d]/60",
+                  !notification.read && "bg-emerald-500/5 dark:bg-[#98FF98]/5"
+                )}
               >
-                <p className="text-sm leading-snug text-foreground">
+                <p className="text-sm leading-snug text-[#1A3C34] dark:text-white">
                   {formatMessage(notification)}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   {formatDate(notification)}
                 </p>
               </Link>
@@ -103,7 +117,10 @@ export function NotificationBell({ variant = "default" }: NotificationBellProps)
 
         <Link
           to="/notifications"
-          className="block bg-card-solid px-4 py-3 text-center text-sm font-semibold text-accent hover:bg-[#2f5e50]/40"
+          className={cn(
+            pageLinkAccent,
+            "block border-t border-gray-200 px-5 py-3 text-center text-sm dark:border-[#2f5e50]"
+          )}
         >
           View all notifications
         </Link>

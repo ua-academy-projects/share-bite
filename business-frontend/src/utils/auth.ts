@@ -23,12 +23,17 @@ export function parseJwt(token: string): JwtPayload | null {
 }
 
 export function getTokenRole(): string | null {
+  const payload = getTokenPayload();
+  return payload?.role ?? null;
+}
+
+export function getTokenPayload(): JwtPayload | null {
   const token = localStorage.getItem("token");
   if (!token) return null;
   const payload = parseJwt(token);
   if (!payload) return null;
   if (Date.now() >= payload.exp * 1000) return null;
-  return payload.role;
+  return payload;
 }
 
 export function isAdminOrModerator(): boolean {

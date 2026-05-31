@@ -176,11 +176,6 @@ export function GuestPostCard({ post, restaurantName }: PostCardProps) {
         });
       });
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-      queryClient.invalidateQueries({ queryKey: ['venuePosts'] });
-    }
   });
 
   const deletePostMutation = useMutation({

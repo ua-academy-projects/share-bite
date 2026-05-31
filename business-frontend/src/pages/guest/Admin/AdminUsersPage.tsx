@@ -1,22 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Filter, Loader2 } from "lucide-react";
+import { Calendar, Filter, Loader2, Mail, Shield, User } from "lucide-react";
 import { apiClient } from "@/api/client";
 import type { AdminUserListItem } from "@/types/api";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { PageLayout } from "@/components/layout/PageLayout";
 import {
   pageBtnPrimary,
-  pageBtnSecondary,
   pageEmpty,
-  pageFilterBar,
-  pageInput,
-  pageLinkAccent,
+  pageFilterControl,
   pageLoader,
-  pagePanel,
 } from "@/components/layout/pageStyles";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -30,10 +25,21 @@ const PAGE_SIZE = 10;
 const ROLE_OPTIONS = ["user", "business", "moderator", "admin"];
 const STATUS_OPTIONS = ["active", "muted", "suspended"];
 
-function roleBadgeVariant(role: string) {
-  if (role === "admin") return "destructive";
-  if (role === "moderator") return "secondary";
-  return "outline";
+function rolePillClass(role: string) {
+  if (role === "admin") return "border-red-500/40 bg-red-500/10 text-red-300";
+  if (role === "moderator") return "border-[#FFD700]/40 bg-[#FFD700]/10 text-[#FFD700]";
+  if (role === "business") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  return "border-[#2f5e50] bg-[#0d241d] text-gray-200";
+}
+
+function statusPillClass(status: string) {
+  if (status === "active") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+  if (status === "suspended") return "border-red-500/40 bg-red-500/10 text-red-300";
+  return "border-[#2f5e50] bg-[#0d241d] text-gray-300";
+}
+
+function userInitial(email: string) {
+  return email.charAt(0).toUpperCase();
 }
 
 export function AdminUsersPage() {
@@ -84,151 +90,181 @@ export function AdminUsersPage() {
         if (mounted) setLoading(false);
       }
     };
-    load();
+    void load();
     return () => {
       mounted = false;
     };
   }, [page, debouncedSearch, roleFilter, statusFilter, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const currentPage = page + 1;
+  const filterControl = cn(pageFilterControl, "data-[size=default]:h-11");
 
   return (
-    <PageLayout>
-      <PageHeader title="Admin — Users" description={`${totalCount} total users`} />
-
-      <div className={cn(pageFilterBar, "mb-8 flex flex-col gap-4 xl:flex-row xl:items-center")}>
-        <div className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#1A3C34] dark:text-white">
-          <Filter size={20} className="text-emerald-500 dark:text-[#98FF98]" />
-          <span>Filters:</span>
-        </div>
-        <div className="grid flex-1 gap-3 md:grid-cols-3">
-          <input
-            placeholder="Search by email…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={pageInput}
-          />
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className={cn(pageInput, "h-auto cursor-pointer")}>
-              <SelectValue placeholder="All roles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All roles</SelectItem>
-              {ROLE_OPTIONS.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className={cn(pageInput, "h-auto cursor-pointer")}>
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <PageLayout className="space-y-8">
+      <div>
+        <h1 className="mb-3 text-4xl font-bold tracking-tight text-[#1A3C34] dark:text-white md:text-5xl">
+          Admin — Users{" "}
+          <span className="text-emerald-500 dark:text-[#98FF98]">🛡️</span>
+        </h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400">
+          Manage accounts and permissions
+        </p>
       </div>
 
-      {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
+      <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-[#2f5e50] dark:bg-[#163d32]">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center gap-2 font-semibold text-[#1A3C34] dark:text-white">
+            <Filter size={20} className="text-emerald-500 dark:text-[#98FF98]" />
+            <span>Filters</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <input
+              placeholder="Search by email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={filterControl}
+            />
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className={cn(filterControl, "cursor-pointer")}>
+                <SelectValue placeholder="All roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All roles</SelectItem>
+                {ROLE_OPTIONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className={cn(filterControl, "cursor-pointer")}>
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <p className="text-gray-600 dark:text-gray-300">
+              Results: <span className="font-semibold">{totalCount}</span>
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-gray-500 hover:text-emerald-600 dark:hover:text-[#98FF98]"
+              onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+            >
+              Sort by created {sortOrder === "asc" ? "↑" : "↓"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {error ? (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400">
+          {error}
+        </div>
+      ) : null}
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className={cn(pageLoader, "h-12 w-12")} />
+        <div className="flex h-44 items-center justify-center">
+          <Loader2 className={cn(pageLoader, "h-10 w-10")} />
         </div>
       ) : users.length === 0 ? (
         <div className={pageEmpty}>
-          <p className="text-xl font-bold text-[#1A3C34] dark:text-gray-300">No users found</p>
+          <p className="text-xl font-bold text-[#1A3C34] dark:text-gray-200">No users found</p>
+          <p className="mt-2 text-gray-500">Try adjusting your filters.</p>
         </div>
       ) : (
-        <div className={cn(pagePanel, "overflow-hidden")}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 dark:border-[#2f5e50] dark:bg-[#0d241d]/50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-[#1A3C34] dark:text-white">
-                    Email
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-[#1A3C34] dark:text-white">
-                    Role
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-[#1A3C34] dark:text-white">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-[#1A3C34] dark:text-white">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto px-0 text-left hover:text-emerald-600 dark:hover:text-[#98FF98]"
-                      onClick={() =>
-                        setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
-                      }
-                    >
-                      Created {sortOrder === "asc" ? "↑" : "↓"}
-                    </Button>
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-[#1A3C34] dark:text-white">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-gray-200 dark:border-[#2f5e50]/60"
-                  >
-                    <td className="px-4 py-3 text-[#1A3C34] dark:text-gray-200">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {users.map((user) => (
+            <Card
+              key={user.id}
+              className="rounded-3xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-[#2f5e50] dark:bg-[#163d32]"
+            >
+              <CardContent className="space-y-4 p-5">
+                <div className="flex gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-[#163d32] text-2xl font-bold text-[#98FF98] dark:border-[#2f5e50]">
+                    {userInitial(user.email)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-lg font-bold text-[#1A3C34] dark:text-white">
                       {user.email}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={roleBadgeVariant(user.role_slug)}>
-                        {user.role_slug}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline">{user.status}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link to={`/admin/users/${user.id}`} className={pageLinkAccent}>
-                        Details →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </h3>
+                    <p className="mt-1 inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Joined {new Date(user.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs capitalize",
+                      rolePillClass(user.role_slug)
+                    )}
+                  >
+                    <Shield className="h-3 w-3" />
+                    {user.role_slug}
+                  </span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs capitalize",
+                      statusPillClass(user.status)
+                    )}
+                  >
+                    <User className="h-3 w-3" />
+                    {user.status}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-300">
+                    <Mail className="h-4 w-4" />
+                    User ID: {user.id.slice(0, 8)}…
+                  </div>
+                  <Button
+                    asChild
+                    className="rounded-xl bg-[#163d32] px-5 font-semibold text-white ring-1 ring-[#FFD700]/40 hover:bg-[#1A3C34]"
+                  >
+                    <Link to={`/admin/users/${user.id}`}>View details</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
       {totalPages > 1 ? (
-        <div className="mt-6 flex items-center justify-center gap-4">
+        <div className="flex items-center justify-between border-t border-gray-200 py-6 dark:border-[#2f5e50]">
           <Button
-            className={pageBtnSecondary}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            type="button"
+            variant="outline"
             disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            className="rounded-full"
           >
-            ← Prev
+            Previous
           </Button>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Page {page + 1} of {totalPages}
-          </span>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Page {currentPage} of {totalPages}
+          </p>
           <Button
+            type="button"
             className={pageBtnPrimary}
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
           >
             Next →
           </Button>

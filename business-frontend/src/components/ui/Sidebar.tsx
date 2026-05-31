@@ -64,8 +64,8 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="flex w-64 flex-col justify-between border-r border-[#2f5e50] bg-[#163d32] p-6">
-        <div>
+      <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-[#2f5e50] bg-[#163d32]">
+        <div className="sidebar-scroll flex min-h-0 flex-1 flex-col overflow-y-auto p-6 pb-4">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0b0f0e] font-bold text-[#98FF98]">
               SB
@@ -147,9 +147,6 @@ export function Sidebar() {
                 <NavLink to="/collections" className={linkClass}>
                   Collections
                 </NavLink>
-                <NavLink to="/profile" className={linkClass}>
-                  Profile
-                </NavLink>
                 <NavLink to="/profile/edit" className={linkClass}>
                   Edit Profile
                 </NavLink>
@@ -174,11 +171,14 @@ export function Sidebar() {
             {token ? (
               <>
                 <NavSection label="Settings" />
+                <NavLink to="/profile" className={linkClass}>
+                  Profile
+                </NavLink>
+                <NavLink to="/settings/account" className={linkClass}>
+                  Account settings
+                </NavLink>
                 <NavLink to="/notifications" className={linkClass}>
                   Notifications
-                </NavLink>
-                <NavLink to="/settings/security" className={linkClass}>
-                  Security
                 </NavLink>
               </>
             ) : null}
@@ -194,7 +194,7 @@ export function Sidebar() {
           </nav>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex shrink-0 flex-col gap-4 border-t border-[#2f5e50] p-6 pt-4">
           {token ? (
             <Button
               variant="ghost"

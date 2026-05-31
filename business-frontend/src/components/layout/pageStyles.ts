@@ -17,6 +17,10 @@ export const pageFilterBar =
 export const pageInput =
   "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-[#1A3C34] outline-none transition-all focus:ring-2 focus:ring-emerald-500 dark:border-transparent dark:bg-[#0d241d] dark:text-white dark:focus:ring-[#98FF98]";
 
+/** Same height/typography for filter rows mixing inputs and selects */
+export const pageFilterControl =
+  "h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm text-[#1A3C34] outline-none transition-all focus:ring-2 focus:ring-emerald-500 dark:border-transparent dark:bg-[#0d241d] dark:text-white dark:focus:ring-[#98FF98]";
+
 export const pageLabel =
   "text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400";
 
