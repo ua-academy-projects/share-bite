@@ -24,6 +24,7 @@ import (
 const (
 	minBusinessNameLength = 3
 	maxBusinessNameLength = 40
+	orgUnitEntityType     = "org_unit"
 )
 
 type businessRepository interface {
@@ -159,7 +160,7 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 				EventType:   outbox.EventTypeRegistrationConfirmed,
 				RecipientID: in.OrgAccountId.String(),
 				ActorID:     in.OrgAccountId.String(),
-				EntityType:  "org_unit",
+				EntityType:  orgUnitEntityType,
 				EntityID:    strconv.Itoa(id),
 				Metadata:    metadata,
 				CreatedAt:   time.Now().UTC(),
