@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { businessApi, Box } from "@/api/business";
 import { BoxCard } from "@/components/ui/BoxCard";
-import { Loader2, Filter, Search, RotateCcw } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Filter, Search, RotateCcw } from "lucide-react";
 
 const CATEGORIES = [
   { id: "all", name: "All Categories" },
@@ -13,6 +13,10 @@ const CATEGORIES = [
 export function BoxesPage() {
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reserveError, setReserveError] = useState<string | null>(null);
+  const [reserveSuccess, setReserveSuccess] = useState<string | null>(null);
+  const [reservingBoxId, setReservingBoxId] = useState<number | null>(null);
+  const [reservedBoxIds, setReservedBoxIds] = useState<Set<number>>(() => new Set());
 
   // Стейт "чернетки" (що відображається в інпутах)
   const [draftCategory, setDraftCategory] = useState<string>("all");
@@ -57,8 +61,26 @@ export function BoxesPage() {
     setActiveMaxPrice(500);
   };
 
-  const handleReserveBox = (box: Box) => {
-    alert(`Reservation for box #${box.id} is coming soon!`);
+  const handleReserveBox = async (box: Box) => {
+    const token = localStorage.getItem("token");
+    setReserveError(null);
+    setReserveSuccess(null);
+
+    if (!token) {
+      setReserveError("Token missing. Please log in before reserving a box.");
+      return;
+    }
+
+    try {
+      setReservingBoxId(box.id);
+      await businessApi.reserveBox(box.id, token);
+      setReservedBoxIds((current) => new Set(current).add(box.id));
+      setReserveSuccess(`Box #${box.id} reserved successfully.`);
+    } catch (e) {
+      setReserveError(e instanceof Error ? e.message : "Failed to reserve box");
+    } finally {
+      setReservingBoxId(null);
+    }
   };
 
   // Фільтрація по ціні та відстані залишається на фронтенді
@@ -157,6 +179,20 @@ export function BoxesPage() {
           </div>
         </div>
 
+        {reserveError && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-50 dark:bg-red-500/10 px-5 py-4 text-sm text-red-700 dark:text-red-300 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <span>{reserveError}</span>
+          </div>
+        )}
+
+        {reserveSuccess && (
+          <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-5 py-4 text-sm text-emerald-700 dark:text-emerald-300 flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <span>{reserveSuccess}</span>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center items-center h-64 w-full">
             <Loader2 className="w-12 h-12 text-emerald-500 dark:text-[#98FF98] animate-spin" />
@@ -164,7 +200,13 @@ export function BoxesPage() {
         ) : filteredBoxes.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {filteredBoxes.map((box) => (
-              <BoxCard key={box.id} box={box} onReserve={handleReserveBox} />
+              <BoxCard
+                key={box.id}
+                box={box}
+                onReserve={handleReserveBox}
+                reserving={reservingBoxId === box.id}
+                isReserved={reservedBoxIds.has(box.id)}
+              />
             ))}
           </div>
         ) : (

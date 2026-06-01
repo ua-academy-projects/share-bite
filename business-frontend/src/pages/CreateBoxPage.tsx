@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as React from "react";
 import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { ArrowLeft, CalendarIcon } from "lucide-react";
 
 import { businessApi } from "@/api/business";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,6 +107,14 @@ export function CreateBoxPage() {
   return (
     <div className="min-h-screen w-full flex justify-center p-4 bg-[#F9F7F2] dark:bg-[#0d241d] transition-colors duration-300">
       <div className="w-full max-w-2xl mt-12">
+        {id && (
+          <Button asChild variant="ghost" className="mb-4 text-[#1A3C34] dark:text-gray-200 hover:bg-white/70 dark:hover:bg-[#163d32] rounded-xl">
+            <Link to={`/venue/${id}`}>
+              <ArrowLeft size={18} />
+              Back to venue
+            </Link>
+          </Button>
+        )}
         <Card className="w-full bg-white dark:bg-[#0d241d] border border-gray-200 dark:border-[#2f5e50] shadow-xl rounded-3xl overflow-hidden transition-colors duration-300">
           <CardHeader className="bg-gray-50 dark:bg-[#163d32]/50 border-b border-gray-200 dark:border-[#2f5e50] pb-6 transition-colors duration-300">
             <CardTitle className="text-2xl font-bold tracking-tight text-[#1A3C34] dark:text-white mb-4">
