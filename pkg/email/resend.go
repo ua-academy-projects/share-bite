@@ -61,12 +61,12 @@ func (s *resendSender) SendPasswordResetToken(ctx context.Context, toEmail, toke
 		return errors.New("reset token is empty")
 	}
 
-	return s.SendEmail(ctx, toEmail, resetEmailSubject, "password_reset", passwordResetTemplateData{
-		Token: token,
+	return s.SendEmail(ctx, toEmail, resetEmailSubject, "password_reset", map[string]string{
+		"Token": token,
 	})
 }
 
-func (s *resendSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data any) error {
+func (s *resendSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]string) error {
 	if toEmail == "" {
 		return errors.New("recipient email is empty")
 	}

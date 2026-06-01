@@ -283,7 +283,7 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 	return args.Error(0)
 }
 
-func (s *mockEmailSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]any) error {
+func (s *mockEmailSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]string) error {
 	args := s.Called(ctx, toEmail, subject, templateName, data)
 	return args.Error(0)
 }
