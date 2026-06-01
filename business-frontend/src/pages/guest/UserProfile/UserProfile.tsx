@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Bookmark, Edit3, Grid, Loader2, Plus } from "lucide-react";
@@ -45,14 +45,7 @@ export function UserProfile() {
   const isOwnProfile = !id || currentCustomer?.userName === id;
 
   const [activeTab, setActiveTab] = useState<"posts" | "collections">("posts");
-  const [isEditing, setIsEditing] = useState(false);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
-  const [editProfile, setEditProfile] = useState({
-    firstName: "",
-    lastName: "",
-    userName: "",
-    bio: "",
-  });
   const [newCollection, setNewCollection] = useState({
     name: "",
     description: "",
@@ -85,19 +78,6 @@ export function UserProfile() {
     enabled: activeTab === "collections" && isOwnProfile,
   });
 
-  const updateProfileMutation = useMutation({
-    mutationFn: (data: typeof editProfile) => apiClient.updateCustomer(data),
-    onSuccess: (updatedUser) => {
-      queryClient.invalidateQueries({ queryKey: ["currentCustomer"] });
-      queryClient.invalidateQueries({ queryKey: ["user", updatedUser.userName] });
-      setIsEditing(false);
-      toast.success("Profile updated successfully!");
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || "Failed to update profile");
-    },
-  });
-
   const createCollectionMutation = useMutation({
     mutationFn: (data: { name: string; description: string; isPublic: boolean }) =>
       apiClient.createCollection(data),
@@ -111,22 +91,6 @@ export function UserProfile() {
       toast.error(error?.response?.data?.error || "Failed to create collection");
     },
   });
-
-  const handleOpenEdit = () => {
-    if (!user) return;
-    setEditProfile({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      userName: user.userName,
-      bio: user.bio || "",
-    });
-    setIsEditing(true);
-  };
-
-  const handleUpdateProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfileMutation.mutate(editProfile);
-  };
 
   const handleCreateCollection = (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,9 +185,11 @@ export function UserProfile() {
             </div>
           </div>
           {isOwnProfile ? (
-            <Button onClick={handleOpenEdit} className={pageBtnSecondary}>
-              <Edit3 className="mr-2 h-4 w-4" />
-              Edit Profile
+            <Button asChild className={pageBtnSecondary}>
+              <Link to="/settings/account">
+                <Edit3 className="mr-2 h-4 w-4" />
+                Edit Profile
+              </Link>
             </Button>
           ) : null}
         </div>
@@ -316,81 +282,6 @@ export function UserProfile() {
             )}
           </div>
         )}
-
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className={cn(pagePanel, "border-0 p-6 sm:max-w-md")}>
-          <DialogHeader>
-            <DialogTitle className="text-[#1A3C34] dark:text-white">Edit Profile</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="editUserName" className={pageLabel}>
-                Username
-              </label>
-              <input
-                id="editUserName"
-                required
-                value={editProfile.userName}
-                onChange={(e) =>
-                  setEditProfile({ ...editProfile, userName: e.target.value })
-                }
-                className={pageInput}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label htmlFor="editFirstName" className={pageLabel}>
-                  First Name
-                </label>
-                <input
-                  id="editFirstName"
-                  required
-                  value={editProfile.firstName}
-                  onChange={(e) =>
-                    setEditProfile({ ...editProfile, firstName: e.target.value })
-                  }
-                  className={pageInput}
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="editLastName" className={pageLabel}>
-                  Last Name
-                </label>
-                <input
-                  id="editLastName"
-                  required
-                  value={editProfile.lastName}
-                  onChange={(e) =>
-                    setEditProfile({ ...editProfile, lastName: e.target.value })
-                  }
-                  className={pageInput}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="editBio" className={pageLabel}>
-                Bio
-              </label>
-              <textarea
-                id="editBio"
-                value={editProfile.bio}
-                onChange={(e) =>
-                  setEditProfile({ ...editProfile, bio: e.target.value })
-                }
-                className={cn(pageInput, "min-h-[100px] resize-y py-3")}
-              />
-            </div>
-            <DialogFooter className="gap-2">
-              <Button type="button" className={pageBtnSecondary} onClick={() => setIsEditing(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className={pageBtnPrimary} disabled={updateProfileMutation.isPending}>
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={isCreatingCollection} onOpenChange={setIsCreatingCollection}>
         <DialogContent className={cn(pagePanel, "border-0 p-6 sm:max-w-md")}>

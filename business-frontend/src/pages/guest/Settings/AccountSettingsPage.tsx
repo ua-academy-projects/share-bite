@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  Camera,
   Loader2,
   Mail,
   Shield,
@@ -37,6 +38,50 @@ const settingsCardClass =
 const pageBtnDangerOutline =
   "rounded-xl border border-red-500/50 bg-transparent px-6 py-2.5 font-bold text-red-400 shadow-sm transition-all hover:border-red-500 hover:bg-red-500/10 disabled:opacity-70";
 
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_ACCEPT = "image/jpeg,image/png";
+
+function avatarInitialFrom(
+  userName: string | undefined,
+  displayName: string
+): string {
+  return (
+    userName?.charAt(0)?.toUpperCase() || displayName.charAt(0).toUpperCase()
+  );
+}
+
+function AvatarPreview({
+  avatarURL,
+  initial,
+  size = "md",
+}: {
+  avatarURL?: string | null;
+  initial: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const sizeClass =
+    size === "lg"
+      ? "h-24 w-24 text-2xl"
+      : size === "sm"
+        ? "h-14 w-14 text-xl"
+        : "h-20 w-20 text-xl";
+
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-[#0d241d] font-bold text-[#98FF98] dark:border-[#2f5e50]",
+        sizeClass
+      )}
+    >
+      {avatarURL ? (
+        <img src={avatarURL} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initial
+      )}
+    </div>
+  );
+}
+
 function rolePillClass(role: string) {
   if (role === "admin") return "border-red-500/40 bg-red-500/10 text-red-300";
   if (role === "moderator") return "border-[#FFD700]/40 bg-[#FFD700]/10 text-[#FFD700]";
@@ -61,8 +106,11 @@ export function AccountSettingsPage() {
     userName: "",
     firstName: "",
     lastName: "",
+    bio: "",
   });
   const [isRevoking, setIsRevoking] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (customer) {
@@ -70,9 +118,55 @@ export function AccountSettingsPage() {
         userName: customer.userName,
         firstName: customer.firstName,
         lastName: customer.lastName,
+        bio: customer.bio || "",
       });
     }
   }, [customer]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    };
+  }, [avatarPreview]);
+
+  const invalidateProfileQueries = (userName?: string) => {
+    void queryClient.invalidateQueries({ queryKey: ["currentCustomer"] });
+    if (userName) {
+      void queryClient.invalidateQueries({ queryKey: ["user", userName] });
+    }
+  };
+
+  const uploadAvatarMutation = useMutation({
+    mutationFn: (file: File) => apiClient.uploadCustomerAvatar(file),
+    onSuccess: (updated) => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+        setAvatarPreview(null);
+      }
+      invalidateProfileQueries(updated.userName);
+      toast.success("Avatar updated");
+    },
+    onError: (error: unknown) => {
+      const e = error as { response?: { data?: { error?: string } } };
+      toast.error(e?.response?.data?.error || "Failed to upload avatar");
+    },
+  });
+
+  const removeAvatarMutation = useMutation({
+    mutationFn: () => apiClient.removeCustomerAvatar(),
+    onSuccess: (updated) => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+        setAvatarPreview(null);
+      }
+      invalidateProfileQueries(updated.userName);
+      toast.success("Avatar removed");
+    },
+    onError: (error: unknown) => {
+      const e = error as { response?: { data?: { error?: string } } };
+      toast.error(e?.response?.data?.error || "Failed to remove avatar");
+    },
+  });
 
   const updateMutation = useMutation({
     mutationFn: () =>
@@ -80,6 +174,7 @@ export function AccountSettingsPage() {
         userName: form.userName,
         firstName: form.firstName,
         lastName: form.lastName,
+        bio: form.bio,
       }),
     onSuccess: (updated) => {
       void queryClient.invalidateQueries({ queryKey: ["currentCustomer"] });
@@ -101,6 +196,37 @@ export function AccountSettingsPage() {
     customer?.firstName && customer?.lastName
       ? `${customer.firstName} ${customer.lastName}`
       : payload?.name ?? email;
+
+  const avatarInitial = avatarInitialFrom(customer?.userName, displayName);
+  const displayedAvatarURL = avatarPreview ?? customer?.avatarURL;
+  const avatarBusy = uploadAvatarMutation.isPending || removeAvatarMutation.isPending;
+
+  const handleAvatarFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      toast.error("Only JPEG and PNG images are supported");
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      toast.error("Image must be 5 MB or smaller");
+      return;
+    }
+
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarPreview(URL.createObjectURL(file));
+    uploadAvatarMutation.mutate(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(null);
+    }
+    removeAvatarMutation.mutate();
+  };
 
   const handleRevokeSessions = async () => {
     setIsRevoking(true);
@@ -138,10 +264,11 @@ export function AccountSettingsPage() {
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-[#0d241d] text-xl font-bold text-[#98FF98] dark:border-[#2f5e50]">
-                {customer?.userName?.charAt(0)?.toUpperCase() ||
-                  displayName.charAt(0).toUpperCase()}
-              </div>
+              <AvatarPreview
+                avatarURL={displayedAvatarURL}
+                initial={avatarInitial}
+                size="sm"
+              />
               <div className="min-w-0 flex-1 space-y-3">
                 <p className="text-sm font-medium text-[#1A3C34] dark:text-white">
                   {displayName}
@@ -189,7 +316,70 @@ export function AccountSettingsPage() {
                 <Loader2 className={cn(pageLoader, "h-8 w-8")} />
               </div>
             ) : customer ? (
-              <form
+              <div className="space-y-6">
+                <div className="flex flex-col gap-4 border-b border-gray-200 pb-6 sm:flex-row sm:items-center dark:border-[#2f5e50]">
+                  <AvatarPreview
+                    avatarURL={displayedAvatarURL}
+                    initial={avatarInitial}
+                    size="lg"
+                  />
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-[#1A3C34] dark:text-white">
+                        Profile photo
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        JPEG or PNG, up to 5 MB. Shown on your profile and in the
+                        feed.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={AVATAR_ACCEPT}
+                        className="hidden"
+                        onChange={handleAvatarFileChange}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-xl"
+                        disabled={avatarBusy}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploadAvatarMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading…
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="mr-2 h-4 w-4" />
+                            {customer.avatarURL || avatarPreview
+                              ? "Change photo"
+                              : "Upload photo"}
+                          </>
+                        )}
+                      </Button>
+                      {customer.avatarURL || avatarPreview ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(pageBtnDangerOutline, "h-auto px-4 py-2")}
+                          disabled={avatarBusy}
+                          onClick={handleRemoveAvatar}
+                        >
+                          {removeAvatarMutation.isPending
+                            ? "Removing…"
+                            : "Remove photo"}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   updateMutation.mutate();
@@ -241,6 +431,20 @@ export function AccountSettingsPage() {
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <label htmlFor="bio" className={pageLabel}>
+                    Bio
+                  </label>
+                  <textarea
+                    id="bio"
+                    value={form.bio}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, bio: e.target.value }))
+                    }
+                    className={cn(pageInput, "min-h-[100px] resize-y py-3")}
+                    placeholder="Tell others a little about yourself"
+                  />
+                </div>
                 <div className="flex flex-wrap gap-3 border-t border-gray-200 pt-6 dark:border-[#2f5e50]">
                   <Button
                     type="submit"
@@ -254,6 +458,7 @@ export function AccountSettingsPage() {
                   </Button>
                 </div>
               </form>
+              </div>
             ) : (
               <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
                 <p>

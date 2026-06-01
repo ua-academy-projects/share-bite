@@ -144,10 +144,7 @@ export function Sidebar() {
             {token && isUserRole() ? (
               <>
                 <NavSection label="For you" />
-                <NavLink to="/collections" className={linkClass}>
-                  Collections
-                </NavLink>
-                <NavLink to="/profile/edit" className={linkClass}>
+                <NavLink to="/settings/account" className={linkClass}>
                   Edit Profile
                 </NavLink>
               </>
@@ -171,6 +168,9 @@ export function Sidebar() {
             {token ? (
               <>
                 <NavSection label="Settings" />
+                <NavLink to="/collections" className={linkClass}>
+                  Collections
+                </NavLink>
                 <NavLink to="/profile" className={linkClass}>
                   Profile
                 </NavLink>

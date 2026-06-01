@@ -21,7 +21,6 @@ import { NotificationsPage } from "@/pages/guest/Notifications/NotificationsPage
 import { AccountSettingsPage } from "@/pages/guest/Settings/AccountSettingsPage";
 import { UserProfile } from "@/pages/guest/UserProfile/UserProfile";
 import { ProfileCreatePage } from "@/pages/guest/UserProfile/ProfileCreatePage";
-import { ProfileEditPage } from "@/pages/guest/UserProfile/ProfileEditPage";
 import { RestaurantProfile } from "@/pages/guest/RestaurantProfile/RestaurantProfile";
 import { CreatePost } from "@/pages/guest/CreatePost/CreatePost";
 import { AdminUsersPage } from "@/pages/guest/Admin/AdminUsersPage";
@@ -97,11 +96,7 @@ function App() {
           />
           <Route
             path="/profile/edit"
-            element={
-              <RequireAuth>
-                <ProfileEditPage />
-              </RequireAuth>
-            }
+            element={<Navigate to="/settings/account" replace />}
           />
           <Route
             path="/user/:id"

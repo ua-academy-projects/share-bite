@@ -59,6 +59,13 @@ const markGuestHasCustomer = () => {
   localStorage.setItem("guest_has_customer", "1");
 };
 
+type RawCustomerResponse = CustomerResponse & { avatarUrl?: string | null };
+
+const mapCustomer = (c: RawCustomerResponse): CustomerResponse => ({
+  ...c,
+  avatarURL: c.avatarURL ?? c.avatarUrl ?? null,
+});
+
 interface RawPost {
   id: string;
   customer_id?: string;
@@ -394,8 +401,10 @@ export const apiClient = {
   },
 
   getUser: async (username: string) => {
-    const res = await guestApi.get(`customers/${username}`);
-    return res.data.customer;
+    const res = await guestApi.get<{ customer: RawCustomerResponse }>(
+      `customers/${username}`
+    );
+    return mapCustomer(res.data.customer);
   },
 
   createCustomer: async (data: {
@@ -410,9 +419,9 @@ export const apiClient = {
   },
 
   getCurrentCustomer: async () => {
-    const res = await guestApi.get<{ customer: CustomerResponse }>("customers/");
+    const res = await guestApi.get<{ customer: RawCustomerResponse }>("customers/");
     markGuestHasCustomer();
-    return res.data.customer;
+    return mapCustomer(res.data.customer);
   },
 
   hasCurrentCustomer: async (): Promise<boolean> => {
@@ -433,13 +442,31 @@ export const apiClient = {
     firstName?: string;
     lastName?: string;
     bio?: string;
+    avatarObjectKey?: string;
   }) => {
-    const res = await guestApi.patch<{ customer: CustomerResponse }>(
+    const res = await guestApi.patch<{ customer: RawCustomerResponse }>(
       "customers/",
       data
     );
     markGuestHasCustomer();
-    return res.data.customer;
+    return mapCustomer(res.data.customer);
+  },
+
+  uploadCustomerAvatar: async (file: File) => {
+    const formData = new FormData();
+    formData.append("image", file, file.name);
+    const res = await guestApi.post<RawCustomerResponse>("customers/avatar", formData);
+    markGuestHasCustomer();
+    return mapCustomer(res.data);
+  },
+
+  removeCustomerAvatar: async () => {
+    const res = await guestApi.patch<{ customer: RawCustomerResponse }>(
+      "customers/",
+      { avatarObjectKey: "" }
+    );
+    markGuestHasCustomer();
+    return mapCustomer(res.data.customer);
   },
 
   getComments: async (postId: string | number, limit = 20, offset = 0) => {

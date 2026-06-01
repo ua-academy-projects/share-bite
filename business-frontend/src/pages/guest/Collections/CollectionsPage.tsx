@@ -84,7 +84,12 @@ export function CollectionsPage() {
     <PageLayout>
       <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <PageHeader
-          title="My Collections"
+          title={
+            <>
+              My Collections{" "}
+              <FolderHeart className="inline h-9 w-9 align-[-0.15em] text-emerald-500 dark:text-[#98FF98]" />
+            </>
+          }
           description="Organize and share your favorite places"
           className="mb-0"
         />
