@@ -4,6 +4,7 @@ import json
 import asyncio
 import logging
 import sys
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 
@@ -44,6 +45,12 @@ def configure_logging() -> None:
 
 
 def create_server(settings: Settings, client: BusinessApiClient) -> FastMCP:
+    @asynccontextmanager
+    async def server_lifespan(ctx: FastMCP):
+        yield
+        logging.info("Closing HTTP client connection pool...")
+        await client.close()
+    
     mcp = FastMCP(
         "sharebite-business-mcp-server",
         instructions=(
@@ -56,6 +63,7 @@ def create_server(settings: Settings, client: BusinessApiClient) -> FastMCP:
         streamable_http_path=settings.path,
         stateless_http=True,
         json_response=True,
+        lifespan=server_lifespan,
     )
 
     register_tools(mcp, settings,client)
@@ -88,11 +96,7 @@ def main() -> None:
     )
 
     mcp = create_server(settings, client)
-    try:
-        mcp.run(transport=settings.transport)
-    finally:
-        logging.info("Closing HTTP client connection pool...")
-        asyncio.run(client.close())
+    mcp.run(transport=settings.transport)
 
 
 if __name__ == "__main__":

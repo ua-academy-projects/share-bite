@@ -18,8 +18,11 @@ require (
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
+	github.com/go-openapi/errors v0.22.7
 	github.com/go-openapi/runtime v0.29.4
 	github.com/go-openapi/strfmt v0.26.1
+	github.com/go-openapi/swag v0.26.0
+	github.com/go-openapi/validate v0.25.2
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
@@ -39,12 +42,6 @@ require (
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.50.0
-)
-
-require (
-	github.com/go-openapi/errors v0.22.7 // indirect
-	github.com/go-openapi/swag v0.26.0 // indirect
-	github.com/go-openapi/validate v0.25.2 // indirect
 )
 
 require (
