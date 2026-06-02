@@ -108,6 +108,7 @@ type BusinessProfileData struct {
 	Description string   `json:"description"`
 	Latitude    *float64 `json:"latitude"`
 	Longitude   *float64 `json:"longitude"`
+	Status      string   `json:"status"`
 }
 
 type GitHubUser struct {
@@ -124,4 +125,25 @@ type User struct {
 	Email     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type PendingBusinessListItem struct {
+	ID           int    `json:"id"`
+	OrgAccountID string `json:"org_account_id"`
+	Name         string `json:"name"`
+	Avatar       string `json:"avatar"`
+	Description  string `json:"description"`
+	Status       string `json:"status"`
+}
+
+type PaginatedPendingBusinessesResponse struct {
+	Items      []PendingBusinessListItem `json:"items"`
+	TotalCount int                       `json:"total_count"`
+}
+
+type ReviewBusinessParams struct {
+	OrgUnitID int
+	AdminID   string
+	NewStatus string
+	Comment   *string
 }

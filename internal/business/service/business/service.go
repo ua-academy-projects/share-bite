@@ -58,6 +58,7 @@ type businessRepository interface {
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+	ResubmitVerification(ctx context.Context, id int, userID string) error
 }
 
 type service struct {
@@ -88,9 +89,9 @@ func (s *service) Create(ctx context.Context, in entity.OrgUnit) (int, error) {
 	}
 
 	if in.ProfileType != entity.ProfileTypeBrand {
-        return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
-    }
-	
+		return 0, apperror.BadRequest("only BRAND creation is allowed via this service")
+	}
+
 	id, err := s.businessRepo.Create(ctx, in)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create business profile: %w", err)

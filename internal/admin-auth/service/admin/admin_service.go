@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
 type CustomerServiceClient interface {
@@ -19,12 +21,17 @@ type CustomerServiceClient interface {
 
 type BusinessServiceClient interface {
 	GetBusinessByUserID(ctx context.Context, userID string) (*dto.BusinessProfileData, error)
+	GetPendingBusinesses(ctx context.Context, limit, offset int) ([]dto.PendingBusinessListItem, int, error)
+	GetBusinessStatusAndOwner(ctx context.Context, orgUnitID int) (string, string, error)
+	ReviewBusiness(ctx context.Context, params dto.ReviewBusinessParams) error
 }
 
 type Service interface {
 	GetUserDetails(ctx context.Context, userID string) (*dto.FullUserDetails, error)
 	GetUsersList(ctx context.Context, filter dto.AdminUserFilter) (*dto.PaginatedAdminUsersResponse, error)
 	ChangeUserRole(ctx context.Context, targetUserID string, newRoleSlug string) error
+	GetPendingBusinessesList(ctx context.Context, limit, offset int) (*dto.PaginatedPendingBusinessesResponse, error)
+	ReviewBusinessStatus(ctx context.Context, params dto.ReviewBusinessParams) error
 }
 
 type service struct {
@@ -32,6 +39,7 @@ type service struct {
 	authRepo        user.AuthRepository
 	customerService CustomerServiceClient
 	businessService BusinessServiceClient
+	broker          notification.Publisher
 	txManager       database.TxManager
 }
 
@@ -40,6 +48,7 @@ func NewService(
 	authRepo user.AuthRepository,
 	customerSvc CustomerServiceClient,
 	businessSvc BusinessServiceClient,
+	broker notification.Publisher,
 	txManager database.TxManager,
 ) Service {
 	return &service{
@@ -47,6 +56,7 @@ func NewService(
 		authRepo:        authRepo,
 		customerService: customerSvc,
 		businessService: businessSvc,
+		broker:          broker,
 		txManager:       txManager,
 	}
 }
@@ -163,4 +173,69 @@ func (s *service) ChangeUserRole(ctx context.Context, targetUserID string, newRo
 	})
 
 	return txErr
+}
+
+func (s *service) GetPendingBusinessesList(ctx context.Context, limit, offset int) (*dto.PaginatedPendingBusinessesResponse, error) {
+
+	items, totalCount, err := s.businessService.GetPendingBusinesses(ctx, limit, offset)
+	if err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to get pending businesses list", err)
+	}
+
+	return &dto.PaginatedPendingBusinessesResponse{
+		Items:      items,
+		TotalCount: totalCount,
+	}, nil
+}
+
+func (s *service) ReviewBusinessStatus(ctx context.Context, params dto.ReviewBusinessParams) error {
+	if params.NewStatus != "verified" && params.NewStatus != "rejected" {
+		return apperr.New(http.StatusBadRequest, "invalid verification status, must be 'verified' or 'rejected'")
+	}
+
+	if params.NewStatus == "rejected" && (params.Comment == nil || *params.Comment == "") {
+		return apperr.New(http.StatusBadRequest, "feedback comment is required when rejecting a business")
+	}
+
+	currentStatus, ownerID, err := s.businessService.GetBusinessStatusAndOwner(ctx, params.OrgUnitID)
+	if err != nil {
+		if errors.Is(err, apperr.ErrBusinessNotFound) {
+			return apperr.Wrap(http.StatusNotFound, "business establishment not found", err)
+		}
+		return apperr.Wrap(http.StatusInternalServerError, "failed to check current business status", err)
+	}
+
+	if currentStatus != "pending" {
+		return apperr.New(
+			http.StatusConflict,
+			fmt.Sprintf("cannot review business: it has already been reviewed and has status '%s'", currentStatus),
+		)
+	}
+
+	err = s.businessService.ReviewBusiness(ctx, params)
+	if err != nil {
+		return apperr.Wrap(http.StatusInternalServerError, "failed to complete business verification review", err)
+	}
+
+	var eventType notification.EventType
+	var messageData string
+
+	if params.NewStatus == "verified" {
+		eventType = notification.BusinessVerified
+		messageData = "Congratulations! Your business verification request has been successfully approved."
+	} else {
+		eventType = notification.BusinessRejected
+		messageData = fmt.Sprintf("We regret to inform you that your business verification request has been rejected. Reason: %s", *params.Comment)
+	}
+	notificationMsg := notification.Message{
+		UserID:    ownerID,
+		Type:      eventType,
+		Data:      messageData,
+		CreatedAt: time.Now(),
+	}
+
+	if pubErr := s.broker.Publish(ctx, ownerID, notificationMsg); pubErr != nil {
+		logger.ErrorKV(ctx, "failed to publish review notification to redis", "org_unit_id", params.OrgUnitID, "error", pubErr.Error())
+	}
+	return nil
 }

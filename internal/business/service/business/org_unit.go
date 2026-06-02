@@ -129,3 +129,17 @@ func (s *service) SearchVenues(ctx context.Context, query string, skip, limit in
 
 	return result, nil
 }
+
+func (s *service) ResubmitVerification(ctx context.Context, id int, userID string) error {
+	const op = "service.business.ResubmitVerification"
+
+	err := s.businessRepo.ResubmitVerification(ctx, id, userID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return fmt.Errorf("%s: %w", op, apperror.OrgUnitNotFoundID(id))
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

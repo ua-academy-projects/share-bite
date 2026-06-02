@@ -441,3 +441,29 @@ func (r *Repository) SearchVenues(ctx context.Context, query string, offset, lim
 
 	return units, nil
 }
+
+func (r *Repository) ResubmitVerification(ctx context.Context, id int, userID string) error {
+	const op = "repository.business.ResubmitVerification"
+	sqlQuery := `
+       UPDATE business.org_units
+       SET status = 'pending'
+       WHERE id = $1
+         AND org_account_id = $2::uuid
+         AND status = 'rejected'
+    `
+	q := database.Query{
+		Name: "business_repository.ResubmitVerification",
+		Sql:  sqlQuery,
+	}
+
+	tag, err := r.db.DB().ExecContext(ctx, q, id, userID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("%s: %w", op, ErrNotFound)
+	}
+
+	return nil
+}
