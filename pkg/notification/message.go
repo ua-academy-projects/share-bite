@@ -7,6 +7,8 @@ type EventType string
 const (
 	PostLiked          EventType = "post_liked"
 	InvitationReceived EventType = "invitation_received"
+	BusinessVerified   EventType = "business_verified"
+	BusinessRejected   EventType = "business_rejected"
 )
 
 type Message struct {
