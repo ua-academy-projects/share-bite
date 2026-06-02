@@ -1,9 +1,15 @@
 import { Box } from "@/api/business";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Flame } from "lucide-react";
+import { useState } from "react";
+import { businessApi } from "@/api/business";
+import { useQRCodeModal } from "@/contexts/QRCodeModalContext";
 
 interface BoxCardProps {
   box: Box;
+  onReserve?: (box: Box) => void;
+  reserving?: boolean;
+  isReserved?: boolean;
 }
 
 const CATEGORY_MAP: Record<number, string> = {
@@ -13,9 +19,46 @@ const CATEGORY_MAP: Record<number, string> = {
 };
 
 export function BoxCard({ box }: BoxCardProps) {
-  // Видалено небезпечний split по amazonaws, тепер нормальні URL не ламаються
+  const [isLoading, setIsLoading] = useState(false);
+  const [reserveError, setReserveError] = useState<string | null>(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const { openModal } = useQRCodeModal();
+
+  const handleReserveClick = async () => {
+    setReserveError(null);
+    setShowSuccessMessage(false);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setReserveError("Ви мусите бути авторизовані для резервування");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await businessApi.reserveBox(box.id, token);
+      openModal(result.box_code);
+      setShowSuccessMessage(true);
+      console.log("Box reserved successfully:", result);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    } catch (error) {
+      setReserveError(error instanceof Error ? error.message : "Помилка при резервуванні");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatImageUrl = (url: string) => {
-    if (!url) return "https://placehold.co/600x400/163d32/FFF?text=Magic+Box";
+    // Надійний плейсхолдер (via.placeholder часто блокується адблоками, placehold.co - ні)
+    const fallback = "https://placehold.co/600x400/163d32/FFF?text=ShareBite";
+    if (!url) return fallback;
+
+    // Якщо бекенд випадково склеїв S3 урл і Unsplash (наприклад: https://s3.com/bucket/https://images...)
+    const httpIndex = url.lastIndexOf("http");
+    if (httpIndex > 0) {
+      return url.substring(httpIndex);
+    }
+    
     return url;
   };
 
@@ -33,6 +76,17 @@ export function BoxCard({ box }: BoxCardProps) {
 
   return (
     <div className="bg-white dark:bg-[#163d32] border border-gray-100 dark:border-[#2f5e50] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl dark:shadow-lg dark:hover:shadow-[#98FF98]/10 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full group">
+      {/* Success/Error Messages */}
+      {reserveError && (
+        <div className="mx-5 mt-4 px-4 py-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded-lg">
+          {reserveError}
+        </div>
+      )}
+      {showSuccessMessage && (
+        <div className="mx-5 mt-4 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-sm rounded-lg">
+          ✓ Бокс успішно зарезервовано!
+        </div>
+      )}
       {/* Upper part: Photo and badges */}
       <div className="relative h-52 overflow-hidden bg-gray-100 dark:bg-[#0d241d]">
         <img
@@ -40,6 +94,7 @@ export function BoxCard({ box }: BoxCardProps) {
           alt={categoryName}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           onError={(e) => {
+            e.currentTarget.onerror = null;
             e.currentTarget.src = "https://placehold.co/600x400/163d32/FFF?text=ShareBite";
           }}
         />
@@ -87,8 +142,12 @@ export function BoxCard({ box }: BoxCardProps) {
               {Number.isFinite(discountPrice) ? discountPrice.toFixed(2) : "—"} ₴
             </span>
           </div>
-          <Button className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200] dark:hover:bg-[#FFD700]/80 font-bold rounded-xl px-6 py-5 shadow-md dark:shadow-lg dark:shadow-[#FFD700]/20 transition-all">
-            Reserve
+          <Button 
+            onClick={handleReserveClick}
+            disabled={isLoading}
+            className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200] dark:hover:bg-[#FFD700]/80 font-bold rounded-xl px-6 py-5 shadow-md dark:shadow-lg dark:shadow-[#FFD700]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Резервування..." : "Reserve"}
           </Button>
         </div>
       </div>

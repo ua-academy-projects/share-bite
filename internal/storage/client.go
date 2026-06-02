@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	awscred "github.com/aws/aws-sdk-go-v2/credentials"
@@ -10,11 +11,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/storage/s3"
 )
 
-func NewStorageClient(ctx context.Context, cfg config.Storage) (*s3.S3Storage, error) {
-	if cfg == nil || cfg.Bucket() == "" {
-		return nil, nil
-	}
-
+func NewStorageClient(ctx context.Context, cfg config.Storage) (ObjectStorage, error) {
 	loaderOpts := []func(*awscfg.LoadOptions) error{
 		awscfg.WithRegion(cfg.Region()),
 	}
@@ -25,17 +22,6 @@ func NewStorageClient(ctx context.Context, cfg config.Storage) (*s3.S3Storage, e
 		))
 	}
 
-	if cfg.Endpoint() != "" {
-		loaderOpts = append(loaderOpts, awscfg.WithEndpointResolverWithOptions(
-			aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-				return aws.Endpoint{
-					URL:               cfg.Endpoint(),
-					HostnameImmutable: true,
-				}, nil
-			}),
-		))
-	}
-
 	awsCfg, err := awscfg.LoadDefaultConfig(ctx, loaderOpts...)
 	if err != nil {
 		return nil, err
@@ -43,12 +29,15 @@ func NewStorageClient(ctx context.Context, cfg config.Storage) (*s3.S3Storage, e
 
 	s3Client := s3sdk.NewFromConfig(awsCfg, func(o *s3sdk.Options) {
 		o.UsePathStyle = cfg.UsePathStyle()
+
+		// BaseEndpoint is set when cfg.Endpoint is passed
+		// This option makes possible using different solutions (e.g. Garage, MinIO) instead of original AWS S3
+		if endpoint := cfg.Endpoint(); len(endpoint) > 0 {
+			o.BaseEndpoint = aws.String(endpoint)
+		}
 	})
 
 	presignClient := s3sdk.NewPresignClient(s3Client)
-	
-	ttl := cfg.PresignTTL()
-	region := cfg.Region()
 
-	return s3.NewS3Storage(s3Client, cfg.Bucket(), cfg.Endpoint(), presignClient, ttl, region), nil
+	return s3.NewS3Storage(s3Client, cfg.Bucket(), cfg.Endpoint(), cfg.Region(), presignClient, cfg.PresignTTL()), nil
 }

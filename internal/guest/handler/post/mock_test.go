@@ -17,6 +17,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/internal/guest/error/code"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 type postServiceMock struct {
@@ -28,6 +29,13 @@ type postServiceMock struct {
 	likeFn          func(ctx context.Context, postID string, customerID string) error
 	unlikeFn        func(ctx context.Context, postID string, customerID string) error
 	exploreNearbyFn func(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
+
+	createPostWithCollaboratorsFn func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+
+	acceptInvitationFn     func(ctx context.Context, collaboratorID string, customerID string) error
+	declineInvitationFn    func(ctx context.Context, collaboratorID string, customerID string) error
+	getMyPostInvitationsFn func(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	getPostAuthorsFn       func(ctx context.Context, postID string) ([]string, error)
 
 	lastCreateInput      dto.CreatePostInput
 	lastUpdateInput      entity.UpdatePostInput
@@ -104,6 +112,63 @@ func (m *postServiceMock) ExploreNearby(ctx context.Context, lat, lon float64, l
 	return []dto.ExploreVenueItem{}, nil
 }
 
+func (m *postServiceMock) CreatePostWithCollaborators(
+	ctx context.Context,
+	in dto.CreatePostInput,
+) (entity.Post, error) {
+	if m.createPostWithCollaboratorsFn != nil {
+		return m.createPostWithCollaboratorsFn(ctx, in)
+	}
+
+	return entity.Post{}, nil
+}
+
+func (m *postServiceMock) AcceptInvitation(
+	ctx context.Context,
+	collaboratorID string,
+	customerID string,
+) error {
+	if m.acceptInvitationFn != nil {
+		return m.acceptInvitationFn(ctx, collaboratorID, customerID)
+	}
+
+	return nil
+}
+
+func (m *postServiceMock) DeclineInvitation(
+	ctx context.Context,
+	collaboratorID string,
+	customerID string,
+) error {
+	if m.declineInvitationFn != nil {
+		return m.declineInvitationFn(ctx, collaboratorID, customerID)
+	}
+
+	return nil
+}
+
+func (m *postServiceMock) GetMyPostInvitations(
+	ctx context.Context,
+	customerID string,
+) ([]entity.PostCollaborator, error) {
+	if m.getMyPostInvitationsFn != nil {
+		return m.getMyPostInvitationsFn(ctx, customerID)
+	}
+
+	return []entity.PostCollaborator{}, nil
+}
+
+func (m *postServiceMock) GetPostAuthors(
+	ctx context.Context,
+	postID string,
+) ([]string, error) {
+	if m.getPostAuthorsFn != nil {
+		return m.getPostAuthorsFn(ctx, postID)
+	}
+
+	return []string{}, nil
+}
+
 type customerServiceMock struct {
 	getByUserIDFn func(ctx context.Context, userID string) (entity.Customer, error)
 	getByIDsFn    func(ctx context.Context, ids []string) ([]entity.Customer, error)
@@ -129,21 +194,27 @@ func (m *customerServiceMock) GetByIDs(ctx context.Context, ids []string) ([]ent
 }
 
 type tokenParserMock struct {
-	parseAccessTokenFn func(token string) (string, string, error)
+	parseAccessTokenFn func(token string) (jwt.AccessTokenPayload, error)
 }
 
-func (m tokenParserMock) ParseAccessToken(token string) (string, string, error) {
+func (m tokenParserMock) ParseAccessToken(token string) (jwt.AccessTokenPayload, error) {
 	if m.parseAccessTokenFn != nil {
 		return m.parseAccessTokenFn(token)
 	}
 
-	return "", "", nil
+	return jwt.AccessTokenPayload{}, nil
 }
 
 type objectStorageMock struct{}
 
-func (objectStorageMock) Upload(context.Context, string, string, io.Reader) (string, error) {
-	return "", nil
+func (objectStorageMock) Get(ctx context.Context, key string) (io.ReadCloser, error) {
+	return io.NopCloser(
+		strings.NewReader("mock image"),
+	), nil
+}
+
+func (objectStorageMock) Upload(context.Context, string, string, io.Reader) error {
+	return nil
 }
 
 func (objectStorageMock) Delete(context.Context, string) error {
@@ -155,7 +226,7 @@ func (objectStorageMock) BuildURL(key string) string {
 }
 
 func (objectStorageMock) GetPresignedURL(ctx context.Context, key string) (string, error) {
-    return "http://localhost:3900/app-dev-bucket/" + key + "?signed=true", nil
+	return "http://localhost:3900/app-dev-bucket/" + key + "?signed=true", nil
 }
 
 func testRouter(postSvc postService, customerSvc customerService, authMiddleware gin.HandlerFunc) *gin.Engine {

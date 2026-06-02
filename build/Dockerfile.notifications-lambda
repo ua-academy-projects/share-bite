@@ -1,0 +1,15 @@
+FROM --platform=$BUILDPLATFORM golang:1.26.1-bookworm AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -o bootstrap ./cmd/notifications-lambda
+
+FROM public.ecr.aws/lambda/provided:al2-arm64
+
+COPY --from=builder /app/bootstrap ${LAMBDA_RUNTIME_DIR}/bootstrap
+
+CMD [ "bootstrap" ]

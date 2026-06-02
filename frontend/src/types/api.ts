@@ -22,10 +22,29 @@ export interface User {
   avatar?: string | null;
 }
 
+export interface NotificationItem {
+  id: number;
+  type: string;
+  read: boolean;
+  message: string;
+  createdAt: string;
+  link?: string;
+}
+
+export interface CollectionItem {
+  id: string;
+  name: string;
+  description: string;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Guest DTOs
 export interface PostResponse {
   id: string;
   customerId: string;
+  customerUsername: string;
   userName: string;
   avatarURL?: string | null;
   venueId: number;
@@ -51,6 +70,9 @@ export interface PostItem {
 
 export interface ExploreVenueItem {
   venue_id: number;
+  name?: string;
+  id?: number;
+  avatar?: string;
   posts: PostItem[];
 }
 
@@ -104,6 +126,57 @@ export interface CommentResponse {
 export interface PaginatedComments {
   total: number;
   entities: CommentResponse[];
+}
+
+// Admin DTOs
+export interface AdminUserListItem {
+  id: string;
+  email: string;
+  role_slug: string;
+  status: string;
+  created_at: string;
+}
+
+export interface PaginatedAdminUsers {
+  items: AdminUserListItem[];
+  total_count: number;
+}
+
+export interface CustomerProfileData {
+  username: string;
+  first_name: string;
+  last_name: string;
+  avatar_object_key: string;
+  bio: string;
+}
+
+export interface BusinessProfileData {
+  profile_type: string;
+  name: string;
+  avatar: string;
+  banner: string;
+  description: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface FullUserDetails {
+  id: string;
+  email: string;
+  role_slug: string;
+  status: string;
+  created_at: string;
+  customer_profile?: CustomerProfileData | null;
+  business_profile?: BusinessProfileData | null;
+}
+
+export interface AdminUsersParams {
+  limit?: number;
+  offset?: number;
+  search_email?: string;
+  role?: string;
+  status?: string;
+  sort_order?: string;
 }
 
 // Business DTOs (if needed)

@@ -12,16 +12,17 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	internalmiddleware "github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 func validAuthMiddleware() gin.HandlerFunc {
 	return internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 }
@@ -92,5 +93,5 @@ func TestPostHandler_Delete_UnauthorizedWithoutHeader(t *testing.T) {
 	router.ServeHTTP(res, req)
 
 	require.Equal(t, http.StatusUnauthorized, res.Code)
-	assert.Contains(t, res.Body.String(), "empty auth header")
+	assert.Contains(t, res.Body.String(), "unauthorized: missing token")
 }

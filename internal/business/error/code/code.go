@@ -7,4 +7,5 @@ var (
 	BadRequest   Code = "BAD_REQUEST"
 	Forbidden    Code = "FORBIDDEN"
 	Unauthorized Code = "UNAUTHORIZED"
+	Conflict     Code = "CONFLICT"
 )

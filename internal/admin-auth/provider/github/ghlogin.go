@@ -1,18 +1,20 @@
 package github
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"html/template"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
 
 type Config struct {
@@ -27,7 +29,8 @@ type Handler struct {
 	gh      *githubClient
 	users   UserRepo
 	session SessionStore
-  	secret  []byte
+	txm    database.TxManager
+	secret []byte
 }
 
 type statePayload struct {
@@ -35,7 +38,7 @@ type statePayload struct {
 	Exp   int64  `json:"exp"`
 }
 
-func NewHandler(cfg Config, users UserRepo, session SessionStore) *Handler {
+func NewHandler(cfg Config, users UserRepo, session SessionStore, txm database.TxManager) *Handler {
 	return &Handler{
 		cfg: cfg,
 		gh: &githubClient{
@@ -45,6 +48,7 @@ func NewHandler(cfg Config, users UserRepo, session SessionStore) *Handler {
 		},
 		users:   users,
 		session: session,
+		txm:     txm,
 	}
 }
 
@@ -117,14 +121,38 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to get github user", http.StatusBadGateway)
 		return
 	}
+	if ghUser.Email == "" {
+		primaryEmail, err := h.gh.getPrimaryEmail(ctx, accessToken)
+		if err != nil {
+			http.Error(w, "failed to get github user email", http.StatusBadGateway)
+			return
+		}
+		ghUser.Email = primaryEmail
+	}
 
-	user, err := h.users.UpsertByGitHubID(ctx, *ghUser)
-	if err != nil {
+	role := "user"
+	var userID string
+	if err := h.txm.ReadCommitted(ctx, func(txCtx context.Context) error {
+		user, err := h.users.UpsertByGitHubID(txCtx, *ghUser)
+		if err != nil {
+			return err
+		}
+		userID = user.ID
+
+		userWithRole, err := h.users.FindByID(txCtx, userID)
+		if err != nil {
+			return err
+		}
+		if userWithRole != nil && userWithRole.RoleSlug != "" {
+			role = userWithRole.RoleSlug
+		}
+		return nil
+	}); err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
 	}
 
-	token, err := h.session.Create(ctx, fmt.Sprintf("%d", user.ID))
+	token, err := h.session.Create(ctx, userID, role)
 	if err != nil {
 		http.Error(w, "session error", http.StatusInternalServerError)
 		return
@@ -133,8 +161,8 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    token,
-		HttpOnly: true,
-		Secure:   true,
+		HttpOnly: false,
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 	})
@@ -143,6 +171,7 @@ func (h *Handler) Callback(w http.ResponseWriter, r *http.Request) {
 	if redirectURL == "" {
 		redirectURL = "/auth/github/success"
 	}
+
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 

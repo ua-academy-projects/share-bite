@@ -1,6 +1,5 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { ReviewCard } from '../../components/ReviewCard/ReviewCard';
 import { PostCard } from '../../components/PostCard/PostCard';
 import styles from './RestaurantProfile.module.css';
 import { MapPin, Star } from 'lucide-react';

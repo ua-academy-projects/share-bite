@@ -282,7 +282,6 @@ func (h *Handler) OAuthLinkAccount(c *gin.Context) {
 // @Success      200      {object}  handler.MessageResponse  "Success message."
 // @Failure      400      {object}  handler.ErrorResponse    "Validation error."
 // @Failure      401      {object}  handler.ErrorResponse    "Unauthorized access."
-// @Failure      403      {object}  handler.ErrorResponse    "Forbidden. Token belongs to another user."
 // @Failure      500      {object}  handler.ErrorResponse    "Internal server error."
 // @Router       /user/logout [post]
 func (h *Handler) Logout(c *gin.Context) {

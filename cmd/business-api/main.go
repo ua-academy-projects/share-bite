@@ -30,6 +30,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 
 	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
+	h3 "github.com/ua-academy-projects/share-bite/pkg/aws"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
@@ -159,7 +160,12 @@ func main() {
 	businessRepo := businessrepo.New(client)
 
 	// services
-	businessSvc := businesssvc.New(businessRepo, txManager, storageClient)
+	h3Service := h3.NewH3Service()
+	h3Settings := businesssvc.H3Settings{
+		Resolution:      config.Config().H3.Resolution(),
+		RecommendRadius:          config.Config().H3.RecommendRadius(),
+	}
+	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service, h3Settings)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -171,7 +177,7 @@ func main() {
 	authMw := middleware.Auth(tokenManager)
 
 	// handlers
-	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager)
+  business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient)
 	notifhandler.RegisterHandlers(router.Group("/business"), notifHub, authMw)
 
 	go func() {
@@ -209,6 +215,9 @@ func ErrorMiddleware() gin.HandlerFunc {
 				return
 			case code.Unauthorized:
 				c.JSON(http.StatusUnauthorized, gin.H{"error": appErr.Error()})
+				return
+			case code.Conflict:
+				c.JSON(http.StatusConflict, gin.H{"error": appErr.Error()})
 				return
 			}
 		}

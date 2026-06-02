@@ -14,6 +14,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/pkg/aws"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -37,11 +38,22 @@ type businessRepository interface {
 	GetPosts(ctx context.Context, skip, limit int) (pagination.Result[entity.Post], error)
 	GetPostByID(ctx context.Context, postID int64) (*entity.Post, error)
 
+	CreateLike(ctx context.Context, postID int64, authorID string) (*entity.Like, error)
+	DeleteLike(ctx context.Context, postID int64, authorID string) error
+	CheckUserLiked(ctx context.Context, postID int64, authorID string) (bool, error)
+	CountLikesByPost(ctx context.Context, postID int64) (int, error)
+	GetLikesByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.LikeWithAuthor, error)
+	CreateComment(ctx context.Context, postID int64, authorID, content string) (*entity.Comment, error)
+	GetCommentByID(ctx context.Context, commentID int64) (*entity.Comment, error)
+	UpdateComment(ctx context.Context, commentID int64, content string) (*entity.Comment, error)
+	DeleteComment(ctx context.Context, commentID int64) error
+	ListCommentsWithAuthorsByPost(ctx context.Context, postID int64, limit, offset int) ([]entity.CommentWithAuthor, error)
+	CountCommentsByPost(ctx context.Context, postID int64) (int, error)
 	CreateBox(ctx context.Context, box *entity.Box) (int64, time.Time, error)
 	CreateBoxItem(ctx context.Context, boxID int64, code string) error
 	GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error)
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
-	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput) (*entity.OrgUnit, error)
+	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput, h3Hash *string) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
 	ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error)
 	GetOrgUnitTagSlugs(ctx context.Context, orgUnitID int) ([]string, error)
@@ -59,19 +71,34 @@ type businessRepository interface {
 	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	ResubmitVerification(ctx context.Context, id int, userID string) error
+
+	GetTopTagsByUserLikes(ctx context.Context, userID string, tagsToFetch int) ([]string, error)
+	GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)
+	GetRandomPosts(ctx context.Context, deficit int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)
+	CountPostsByTag(ctx context.Context, tag string, h3Hashes []string) (int, error)
+	CountRandomPosts(ctx context.Context, h3Hashes []string) (int, error)
+}
+
+type H3Settings struct {
+	Resolution      int
+	RecommendRadius int
 }
 
 type service struct {
 	businessRepo businessRepository
 	txManager    database.TxManager
 	storage      storage.ObjectStorage
+	h3Service    aws.H3Service
+	h3Config     H3Settings
 }
 
-func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage) *service {
+func New(businessRepo businessRepository, txManager database.TxManager, st storage.ObjectStorage, h3Service aws.H3Service, h3Config H3Settings) *service {
 	return &service{
 		businessRepo: businessRepo,
 		txManager:    txManager,
 		storage:      st,
+		h3Service:    h3Service,
+		h3Config:     h3Config,
 	}
 }
 

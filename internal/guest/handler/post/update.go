@@ -13,11 +13,12 @@ import (
 )
 
 type updateRequest struct {
-	VenueID *int64                  `form:"venue_id" binding:"omitempty"`
-	Text    *string                 `form:"text" binding:"omitempty,max=2000"`
-	Rating  *int16                  `form:"rating" binding:"omitempty,min=1,max=5"`
-	Status  *entity.PostStatus      `form:"status" binding:"omitempty,oneof=draft published archived"`
-	Images  []*multipart.FileHeader `form:"images" binding:"omitempty"`
+	VenueID    *int64                  `form:"venueId" binding:"omitempty"`
+	Text       *string                 `form:"text" binding:"omitempty,max=2000"`
+	Rating     *int16                  `form:"rating" binding:"omitempty,gte=1,lte=5"`
+	Status     *entity.PostStatus      `form:"status" binding:"omitempty,oneof=draft published archived"`
+	Images     []*multipart.FileHeader `form:"images" binding:"omitempty"`
+	KeptImages []string                `form:"keptImages" binding:"omitempty"`
 }
 
 type updateURIRequest struct {
@@ -37,7 +38,7 @@ type updateResponse struct {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id			path		int				true	"Post ID"
-//	@Param			venue_id	formData	int				false	"Venue ID"
+//	@Param			venueId		formData	int				false	"Venue ID"
 //	@Param			text		formData	string			false	"Post text"
 //	@Param			rating		formData	int				false	"Rating (1..5)"
 //	@Param			status		formData	string			false	"Allowed: draft,published,archived"
@@ -101,6 +102,7 @@ func (h *handler) update(c *gin.Context) {
 		Rating:        req.Rating,
 		Status:        req.Status,
 		Images:        images,
+		KeptImages:    req.KeptImages,
 		RewriteImages: rewriteImages,
 	}
 
@@ -110,6 +112,13 @@ func (h *handler) update(c *gin.Context) {
 		return
 	}
 
-	resp := updateResponse{Post: postToResponse(post, h.storage, customer)}
+	authors, err := h.buildAuthors(ctx, post.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	resp := updateResponse{
+		Post: postToResponse(post, h.storage, customer, authors),
+	}
 	c.JSON(http.StatusOK, resp)
 }

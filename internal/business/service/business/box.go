@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	biserr "github.com/ua-academy-projects/share-bite/internal/business/error"
+	"github.com/ua-academy-projects/share-bite/internal/storage/mediatype"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 )
 
@@ -28,10 +30,6 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 
 	if image == nil {
 		return nil, fmt.Errorf("%s: image is required", op)
-	}
-
-	if image.Size > maxImageSize {
-		return nil, biserr.FileToLargeErr
 	}
 
 	openedFile, err := image.Open()
@@ -48,8 +46,16 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	}
 
 	contentType := http.DetectContentType(buffer[:n])
-	if !isAllowedImageType(contentType) {
-		return nil, biserr.WrongFileExtErr
+	if err := postImageValidator.Validate(contentType, image.Size); err != nil {
+		if errors.Is(err, mediatype.ErrUnsupportedType) {
+			return nil, biserr.WrongFileExtErr
+		}
+
+		if errors.Is(err, mediatype.ErrFileTooLarge) {
+			return nil, biserr.FileToLargeErr
+		}
+
+		return nil, fmt.Errorf("%s: validation failed: %w", op, err)
 	}
 
 	if req.DiscountPrice.GreaterThan(req.FullPrice) {
@@ -72,7 +78,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	fileExt := filepath.Ext(image.Filename)
 	objectKey := fmt.Sprintf("boxes/%d/%s%s", req.VenueID, uuid.New().String(), fileExt)
 
-	key, err := s.storage.Upload(ctx, objectKey, contentType, openedFile)
+	err = s.storage.Upload(ctx, objectKey, contentType, openedFile)
 	openedFile.Close()
 
 	if err != nil {
@@ -85,8 +91,8 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 			cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			if err := s.storage.Delete(cleanupCtx, key); err != nil {
-				log.Printf("failed to cleanup uploaded object: key=%s err=%v", key, err)
+			if err := s.storage.Delete(cleanupCtx, objectKey); err != nil {
+				log.Printf("failed to cleanup uploaded object: key=%s err=%v", objectKey, err)
 			}
 		}
 	}()
@@ -102,7 +108,7 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 		box = &entity.Box{
 			VenueID:       req.VenueID,
 			CategoryID:    req.CategoryID,
-			Image:         key,
+			Image:         objectKey,
 			FullPrice:     req.FullPrice,
 			DiscountPrice: req.DiscountPrice,
 			ExpiresAt:     req.ExpiresAt,
@@ -136,34 +142,58 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	return box, nil
 }
 
+// func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
+// 	const op = "service.box.ListNearbyBoxes"
+
+// 	result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID, orgID)
+// 	if err != nil {
+// 		return pagination.Result[entity.BoxWithDistance]{}, fmt.Errorf("%s: %w", op, err)
+// 	}
+
+// 	for i := range result.Items {
+// 		result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
+
+// 		if result.Items[i].Box.Image != "" {
+// 			imageURL, err := s.storage.GetPresignedURL(ctx, result.Items[i].Box.Image)
+// 			if err != nil {
+// 				log.Printf(
+// 					"failed to generate presigned URL for box %d: %v",
+// 					result.Items[i].Box.ID,
+// 					err,
+// 				)
+
+// 				result.Items[i].Box.Image = ""
+// 			} else {
+// 				result.Items[i].Box.Image = imageURL
+// 			}
+// 		}
+// 	}
+
+// 	return result, nil
+// }
+
 func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
-	const op = "service.box.ListNearbyBoxes"
+    const op = "service.box.ListNearbyBoxes"
 
-	result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID, orgID)
-	if err != nil {
-		return pagination.Result[entity.BoxWithDistance]{}, fmt.Errorf("%s: %w", op, err)
-	}
+    result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID, orgID)
+    if err != nil {
+        return pagination.Result[entity.BoxWithDistance]{}, fmt.Errorf("%s: %w", op, err)
+    }
 
-	for i := range result.Items {
-		result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
+    for i := range result.Items {
+        result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
 
-		if result.Items[i].Box.Image != "" {
-			imageURL, err := s.storage.GetPresignedURL(ctx, result.Items[i].Box.Image)
-			if err != nil {
-				log.Printf(
-					"failed to generate presigned URL for box %d: %v",
-					result.Items[i].Box.ID,
-					err,
-				)
+        img := result.Items[i].Box.Image
+        if img != "" {
+            if strings.HasPrefix(img, "http://") || strings.HasPrefix(img, "https://") {
+                result.Items[i].Box.Image = img
+            } else {
+                result.Items[i].Box.Image = s.storage.BuildURL(img)
+            }
+        }
+    }
 
-				result.Items[i].Box.Image = ""
-			} else {
-				result.Items[i].Box.Image = imageURL
-			}
-		}
-	}
-
-	return result, nil
+    return result, nil
 }
 
 func (s *service) ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error) {

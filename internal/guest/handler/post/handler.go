@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 	"github.com/ua-academy-projects/share-bite/internal/util/httpctx"
 )
@@ -30,6 +31,12 @@ type postService interface {
 	Like(ctx context.Context, postID string, customerID string) error
 	Unlike(ctx context.Context, postID string, customerID string) error
 	ExploreNearby(ctx context.Context, lat, lon float64, limit int) ([]dto.ExploreVenueItem, error)
+
+	CreatePostWithCollaborators(ctx context.Context, in dto.CreatePostInput) (entity.Post, error)
+	AcceptInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	DeclineInvitation(ctx context.Context, collaboratorID string, customerID string) error
+	GetMyPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error)
+	GetPostAuthors(ctx context.Context, postID string) ([]string, error)
 }
 
 type customerService interface {
@@ -50,8 +57,8 @@ func RegisterHandlers(
 		storage:         storage,
 	}
 
-	r.GET("/", h.list)
-	r.GET("/:id", h.get)
+	r.GET("/", middleware.CustomerID(h.customerService), h.list)
+	r.GET("/:id", middleware.CustomerID(h.customerService), h.get)
 
 	protected := r.Group("/").Use(authMiddleware)
 	protected.POST("/", h.create)
@@ -60,42 +67,82 @@ func RegisterHandlers(
 	protected.POST("/:id/like", h.like)
 	protected.DELETE("/:id/like", h.unlike)
 
+	protected.GET("/invitations", h.getMyInvitations)
+	protected.POST("/invitations/:id/accept", h.acceptInvitation)
+	protected.POST("/invitations/:id/decline", h.declineInvitation)
+
 	r.GET("/explore", h.ExploreNearby)
 }
 
 type postResponse struct {
-	ID          string            `json:"id"`
-	CustomerID  string            `json:"customerId"`
-	UserName    string            `json:"userName"`
-	AvatarURL   *string           `json:"avatarURL"`
-	VenueID     int64             `json:"venueId"`
-	Text        string            `json:"text"`
-	Rating      int16             `json:"rating"`
-	Status      entity.PostStatus `json:"status"`
-	LikesCount  int               `json:"likesCount"`
-	IsLikedByMe bool              `json:"isLikedByMe"`
-	Images      []string          `json:"images"`
-	CreatedAt   time.Time         `json:"createdAt"`
-	UpdatedAt   time.Time         `json:"updatedAt"`
-	PublishedAt *time.Time        `json:"publishedAt,omitempty"`
-	Mentions      []mentionResponse `json:"mentions"`
-	MentionsCount int               `json:"mentions_count"`
+	ID            string              `json:"id"`
+	CustomerID    string              `json:"customerId"`
+	UserName      string              `json:"userName"`
+	AvatarURL     *string             `json:"avatarURL"`
+	VenueID       int64               `json:"venueId"`
+	Text          string              `json:"text"`
+	Rating        int16               `json:"rating"`
+	Status        entity.PostStatus   `json:"status"`
+	LikesCount    int                 `json:"likesCount"`
+	IsLikedByMe   bool                `json:"isLikedByMe"`
+	Images        []postImageResponse `json:"images"`
+	CreatedAt     time.Time           `json:"createdAt"`
+	UpdatedAt     time.Time           `json:"updatedAt"`
+	PublishedAt   *time.Time          `json:"publishedAt,omitempty"`
+	Mentions      []mentionResponse   `json:"mentions"`
+	MentionsCount int                 `json:"mentionsCount"`
+	Authors       []authorResponse    `json:"authors"`
+}
+
+type postImageResponse struct {
+	ObjectKey        string                       `json:"objectKey"`
+	URL              string                       `json:"url"`
+	ThumbnailKey     *string                      `json:"thumbnailKey,omitempty"`
+	ThumbnailURL     *string                      `json:"thumbnailURL,omitempty"`
+	ProcessingStatus entity.ImageProcessingStatus `json:"processingStatus"`
+	Width            *int                         `json:"width,omitempty"`
+	Height           *int                         `json:"height,omitempty"`
+}
+type authorResponse struct {
+	ID        string `json:"id"`
+	UserName  string `json:"username"`
+	AvatarURL string `json:"avatarURL,omitempty"`
 }
 
 type mentionResponse struct {
 	ID        string `json:"id"`
 	UserName  string `json:"username"`
-	AvatarURL string `json:"avatar_url,omitempty"`
+	AvatarURL string `json:"avatarUrl,omitempty"`
 }
 
-func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer) postResponse {
-	imageURLs := make([]string, 0, len(post.Images))
+func postToResponse(post entity.Post, storage storage.ObjectStorage, customer entity.Customer, authors []authorResponse) postResponse {
+	images := make([]postImageResponse, 0, len(post.Images))
+
 	if storage != nil {
 		for _, img := range post.Images {
-			imageURLs = append(imageURLs, storage.BuildURL(img.ObjectKey))
+			var imageURL string
+			url, err := storage.GetPresignedURL(context.Background(), img.ObjectKey)
+			if err == nil {
+				imageURL = url
+			}
+			imageResponse := postImageResponse{
+				ObjectKey:        img.ObjectKey,
+				URL:              imageURL,
+				ThumbnailKey:     img.ThumbnailKey,
+				ProcessingStatus: img.ProcessingStatus,
+				Width:            img.Width,
+				Height:           img.Height,
+			}
+			if img.ThumbnailKey != nil {
+				thumbnailURL := storage.BuildURL(*img.ThumbnailKey)
+				imageResponse.ThumbnailURL = &thumbnailURL
+			}
+			images = append(images, imageResponse)
 		}
 	}
+
 	var avatarURL *string
+
 	if customer.AvatarObjectKey != nil && storage != nil {
 		url := storage.BuildURL(*customer.AvatarObjectKey)
 		avatarURL = &url
@@ -104,34 +151,37 @@ func postToResponse(post entity.Post, storage storage.ObjectStorage, customer en
 	mentions := make([]mentionResponse, 0, len(post.Mentions))
 
 	for _, m := range post.Mentions {
-		var avatarURL string
+		var mentionAvatarURL string
+
 		if m.AvatarObjectKey != nil && storage != nil {
-			avatarURL = storage.BuildURL(*m.AvatarObjectKey)
+			mentionAvatarURL = storage.BuildURL(*m.AvatarObjectKey)
 		}
 
 		mentions = append(mentions, mentionResponse{
 			ID:        m.ID,
 			UserName:  m.UserName,
-			AvatarURL: avatarURL,
+			AvatarURL: mentionAvatarURL,
 		})
 	}
+
 	return postResponse{
-		ID:          post.ID,
-		CustomerID:  post.CustomerID,
-		UserName:    customer.UserName,
-		AvatarURL:   avatarURL,
-		VenueID:     post.VenueID,
-		Text:        post.Text,
-		Rating:      post.Rating,
-		Status:      post.Status,
-		LikesCount:  post.LikesCount,
-		IsLikedByMe: post.IsLikedByMe,
-		Images:      imageURLs,
-		CreatedAt:   post.CreatedAt,
-		UpdatedAt:   post.UpdatedAt,
-		PublishedAt: post.PublishedAt,
+		ID:            post.ID,
+		CustomerID:    post.CustomerID,
+		UserName:      customer.UserName,
+		AvatarURL:     avatarURL,
+		VenueID:       post.VenueID,
+		Text:          post.Text,
+		Rating:        post.Rating,
+		Status:        post.Status,
+		LikesCount:    post.LikesCount,
+		IsLikedByMe:   post.IsLikedByMe,
+		Images:        images,
+		CreatedAt:     post.CreatedAt,
+		UpdatedAt:     post.UpdatedAt,
+		PublishedAt:   post.PublishedAt,
 		Mentions:      mentions,
 		MentionsCount: len(mentions),
+		Authors:       authors,
 	}
 }
 
