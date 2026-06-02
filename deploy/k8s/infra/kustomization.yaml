@@ -6,4 +6,4 @@ resources:
 - postgres.yaml
 - redis.yaml
 - secret.yaml
-- .\migrator-job.yaml
+- migrator-job.yaml

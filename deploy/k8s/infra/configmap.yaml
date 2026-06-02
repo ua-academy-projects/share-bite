@@ -33,4 +33,8 @@ data:
   REDIS_PORT: "6379"
   S3_REGION: garage
   S3_BUCKET: app-dev-bucket
+  # S3_ENDPOINT must be configured for your environment - see docs/k8s/business-api.md
+  # Docker Desktop (macOS/Windows): http://host.docker.internal:4300
+  # Linux: http://172.17.0.1:4300 (or your bridge IP)
+  # In-cluster Garage: http://garage:4300
   S3_ENDPOINT: http://host.docker.internal:4300
