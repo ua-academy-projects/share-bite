@@ -4,16 +4,16 @@ go 1.25.7
 
 require (
 	github.com/JGLTechnologies/gin-rate-limit v1.5.8
+	github.com/aws/aws-lambda-go v1.54.0
 	github.com/aws/aws-sdk-go-v2 v1.41.9
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.19
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.102.2
-	github.com/brianvoe/gofakeit/v7 v7.15.0
-	github.com/caarlos0/env/v11 v11.4.1
-	github.com/aws/aws-lambda-go v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.7
 	github.com/aws/aws-sdk-go-v2/service/sns v1.39.17
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.27
+	github.com/brianvoe/gofakeit/v7 v7.15.0
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/gin-contrib/cors v1.7.7
@@ -42,12 +42,6 @@ require (
 	github.com/swaggo/swag v1.16.6
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.52.0
-)
-
-require (
-	github.com/go-openapi/errors v0.22.7 // indirect
-	github.com/go-openapi/swag v0.26.0 // indirect
-	github.com/go-openapi/validate v0.25.2 // indirect
 )
 
 require (
