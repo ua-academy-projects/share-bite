@@ -3,6 +3,10 @@ FROM golang:1.26.1-bookworm AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
+ARG VERSION=development
+ARG COMMIT=unknown
+ARG BUILD_TIME=unknown
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y make git
@@ -16,7 +20,7 @@ RUN go install github.com/swaggo/swag/cmd/swag@v1.16.6
 RUN make generate
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -o app ./cmd/guest-api
+    make build-guest VERSION=${VERSION} COMMIT=${COMMIT} BUILD_TIME=${BUILD_TIME}
 
 FROM alpine:3.20
 
@@ -24,7 +28,7 @@ RUN adduser -D appuser
 
 WORKDIR /app
 
-COPY --from=builder /app/app .
+COPY --from=builder /app/bin/guest-api ./app
 
 USER appuser
 

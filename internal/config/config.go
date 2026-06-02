@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	adminPrefix        = "ADMIN_"
-	guestPrefix        = "GUEST_"
-	businessPrefix     = "BUSINESS_"
-	notificationPrefix = "NOTIFICATION_"
+	adminPrefix           = "ADMIN_"
+	guestPrefix           = "GUEST_"
+	businessPrefix        = "BUSINESS_"
+	notificationPrefix    = "NOTIFICATION_"
+	imageProcessingPrefix = "IMAGE_PROCESSING_"
 )
 
 type config struct {
@@ -40,8 +41,12 @@ type config struct {
 
 	Auth AuthConfig
 
+	Cleanup Cleanup
+
 	NotificationHttpServer HttpServer
 	NotificationSQS        SQS
+
+	ImageProcessingSQS SQS
 }
 
 type SQS interface {
@@ -138,12 +143,37 @@ type Storage interface {
 	PresignTTL() time.Duration
 }
 
+type Cleanup interface {
+	GetRetentionPeriod() time.Duration
+	GetBatchSize() int
+	IsDryRun() bool
+	IsScheduleEnabled() bool
+}
+
 func Load(paths ...string) error {
+	return LoadWithSecrets(nil, paths...)
+}
+
+// LoadWithSecrets loads configuration from .env files and merges them with provided secrets.
+// Caller-provided secrets take precedence over .env entries to allow runtime overrides (e.g. from AWS Secrets Manager).
+func LoadWithSecrets(secrets map[string]string, paths ...string) error {
+	allSecrets := make(map[string]string)
 	if len(paths) > 0 {
-		if err := godotenv.Load(paths...); err != nil {
+		dotEnv, err := godotenv.Read(paths...)
+		if err == nil {
+			for k, v := range dotEnv {
+				allSecrets[k] = v
+			}
+		} else {
 			logger.Info(context.Background(), "No .env file found, relying on system environment variables")
 		}
 	}
+
+	for k, v := range secrets {
+		allSecrets[k] = v
+	}
+
+	env.Init(allSecrets)
 
 	appConfig, err := env.NewAppConfig()
 	if err != nil {
@@ -223,6 +253,16 @@ func Load(paths ...string) error {
 		return fmt.Errorf("notification sqs config: %w", err)
 	}
 
+	imageProcessingSQSConfig, err := env.NewSQSConfig(imageProcessingPrefix)
+	if err != nil {
+		return fmt.Errorf("image processing sqs config: %w", err)
+	}
+
+	cleanupConfig, err := env.NewCleanupConfig()
+	if err != nil {
+		return fmt.Errorf("cleanup config: %w", err)
+	}
+
 	cfg = &config{
 		App:    appConfig,
 		Auth:   authConfig,
@@ -245,7 +285,14 @@ func Load(paths ...string) error {
 
 		NotificationHttpServer: notificationHttpServerConfig,
 		NotificationSQS:        notificationSQSConfig,
+
+		ImageProcessingSQS: imageProcessingSQSConfig,
+		Cleanup:            cleanupConfig,
 	}
 
 	return nil
+}
+
+func GetSecret(key string) string {
+	return env.GetSecret(key)
 }

@@ -2,12 +2,10 @@ package env
 
 import (
 	"time"
-
-	"github.com/caarlos0/env/v11"
 )
 
 type httpClientConfig struct {
-	BaseURLVal             string        `env:"HTTP_CLIENT_BASE_URL"`
+	BaseURLVal             string        `env:"HTTP_CLIENT_BASE_URL,required"`
 	SchemeVal              string        `env:"HTTP_CLIENT_SCHEME" envDefault:"http"`
 	TimeoutVal             time.Duration `env:"HTTP_CLIENT_TIMEOUT" envDefault:"10s"`
 	MaxIdleConnsVal        int           `env:"HTTP_CLIENT_MAX_IDLE_CONNS" envDefault:"100"`
@@ -15,11 +13,9 @@ type httpClientConfig struct {
 	IdleConnTimeoutVal     time.Duration `env:"HTTP_CLIENT_IDLE_CONN_TIMEOUT" envDefault:"90s"`
 }
 
-func NewHttpClientConfig(prefix string) (*httpClientConfig, error) {
+func NewHttpClientConfig(prefix string, opts ...Options) (*httpClientConfig, error) {
 	config := new(httpClientConfig)
-	if err := env.ParseWithOptions(config, env.Options{
-		Prefix: prefix,
-	}); err != nil {
+	if err := Parse(config, append([]Options{{Prefix: prefix}}, opts...)...); err != nil {
 		return nil, err
 	}
 

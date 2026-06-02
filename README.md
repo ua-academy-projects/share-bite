@@ -1,5 +1,11 @@
 # Share Bite
 
+## Kubernetes (local)
+
+For local cluster setup (k3s, Podman Desktop, Docker Desktop), infrastructure manifests, migration flow, and troubleshooting, see:
+
+- [docs/k8s/local-kubernetes.md](docs/k8s/local-kubernetes.md)
+
 ## How to Run Locally
 
 ### 1. Configuration
@@ -95,9 +101,7 @@ S3_SECRET_KEY=your-aws-secret-key
 
 > `S3_ENDPOINT` and `S3_USE_PATH_STYLE` are not required for native AWS S3.
 
-### 6. Notifications helper and Redis
-
-The repository includes a shared Redis Pub/Sub helper in `pkg/notification` for notification events.
+### 6. Redis
 
 For local development, add Redis connection values to `.env` based on `.env.example`:
 
@@ -147,7 +151,7 @@ If you deploy infrastructure with Terraform, export the queue URL from the outpu
 make s3-ui
 ```
 
-Open http://localhost:3909
+Open http://localhost:4309
 
 ### Notifications test page
 

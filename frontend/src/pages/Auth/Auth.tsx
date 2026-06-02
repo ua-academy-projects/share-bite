@@ -65,6 +65,7 @@ export const Auth: React.FC = () => {
         const userName = `${prefix}${randomSuffix}`;
         
         await apiClient.createCustomer({
+          email,
           userName,
           firstName,
           lastName,

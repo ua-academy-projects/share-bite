@@ -1,4 +1,4 @@
-name: Deploy Frontend to EC2
+name: Build and Deploy Frontend to Proxy EC2
 
 on:
   push:
@@ -7,47 +7,106 @@ on:
     paths:
       - 'frontend/**'
       - 'build/Dockerfile.frontend'
-      - 'compose.aws.yaml'
+      - 'build/aws/compose.frontend.yaml'
+      - 'build/frontend.conf'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'build/Dockerfile.frontend'
+      - 'build/aws/compose.frontend.yaml'
+      - 'build/frontend.conf'
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-2
+  AWS_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+  ECR_REPO: share-bite/frontend
+
 jobs:
-  security-and-deploy:
-    name: Check and Deploy Frontend
+  build-and-push-frontend:
+    name: Build and Push Frontend
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.vars.outputs.sha_tag }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Image Tag Variable
+        id: vars
+        run: echo "sha_tag=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials (OIDC Role)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          node-version: '22.20.0'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
 
-      - name: Install dependencies
-        run: npm ci
-        working-directory: frontend
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Security Scan (npm audit)
-        run: npm audit --audit-level=high
-        working-directory: frontend
-
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/share-bite/share-bite
-            git fetch origin main
-            git reset --hard origin/main
-            
-            docker build --no-cache --build-arg VITE_API_BASE_URL=http://***:8080 -t share-bite-frontend -f build/Dockerfile.frontend .
-            
-            docker stop share-bite-frontend || true
-            docker rm share-bite-frontend || true
-            
-            docker run -d --name share-bite-frontend -p 80:80 --restart always share-bite-frontend
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}
+          tags: |
+            type=raw,value=${{ steps.vars.outputs.sha_tag }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Frontend image
+        id: build-push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./build/Dockerfile.frontend
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-frontend:
+    name: Deploy Frontend via AWS SSM
+    needs: build-and-push-frontend
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC Role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Deploy to Proxy EC2
+        run: |
+          FRONTEND_COMPOSE_B64=$(base64 -w 0 build/aws/compose.frontend.yaml)
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ secrets.PROXY_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --query "Command.CommandId" \
+            --output text \
+            --parameters 'commands=[
+              "cd /home/ubuntu/api-gateway",
+              "echo '"$FRONTEND_COMPOSE_B64"' | base64 -d > compose.frontend.yaml",
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ env.AWS_REGION }}",
+              "export IMAGE_TAG=${{ needs.build-and-push-frontend.outputs.image_tag }}",
+              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
+              "docker compose -f compose.frontend.yaml pull",
+              "docker compose -f compose.frontend.yaml up -d --wait"
+            ]')
+          aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "${{ secrets.PROXY_INSTANCE_ID }}"

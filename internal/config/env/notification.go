@@ -1,20 +1,14 @@
 package env
 
-import (
-	"github.com/caarlos0/env/v11"
-)
-
 type sqsConfig struct {
 	QueueURLVal string `env:"SQS_QUEUE_URL"`
 	RegionVal   string `env:"AWS_REGION"`
 	EndpointVal string `env:"SQS_ENDPOINT_URL"`
 }
 
-func NewSQSConfig(prefix string) (*sqsConfig, error) {
+func NewSQSConfig(prefix string, opts ...Options) (*sqsConfig, error) {
 	cfg := new(sqsConfig)
-	if err := env.ParseWithOptions(cfg, env.Options{
-		Prefix: prefix,
-	}); err != nil {
+	if err := Parse(cfg, append([]Options{{Prefix: prefix}}, opts...)...); err != nil {
 		return nil, err
 	}
 

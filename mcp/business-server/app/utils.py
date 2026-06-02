@@ -1,47 +1,10 @@
 from typing import Any
 from datetime import datetime
 
-from .constants import ROLE_BUSINESS
-
 ValidationErrors = list[dict[str, str]]
-
-
-class AccessError(RuntimeError):
-    pass
-
 
 class ForbiddenError(RuntimeError):
     pass
-
-
-def resolve_business_access(auth_context: dict[str, Any] | None, explicit_business_id: int | None) -> dict[str, Any]:
-    if auth_context is None:
-     raise AccessError("missing auth context (must be injected by server runtime)")
-
-    if not auth_context:
-        raise AccessError("missing auth context")
-
-    role = auth_context.get("role")
-    if role != ROLE_BUSINESS:
-        raise ForbiddenError("only business accounts are allowed")
-
-    auth_token = auth_context.get("auth_token") or auth_context.get("token")
-    if not auth_token:
-        raise AccessError("missing auth token")
-
-    ctx_business_id = auth_context.get("business_id")
-    business_id = ctx_business_id if ctx_business_id is not None else explicit_business_id
-    if business_id is None:
-        raise AccessError("business_id must come from auth context or explicit input")
-
-    if ctx_business_id is not None and explicit_business_id is not None and int(ctx_business_id) != int(explicit_business_id):
-        raise ForbiddenError("business_id mismatch with auth context")
-
-    return {
-        "business_id": int(business_id),
-        "auth_token": str(auth_token),
-        "request_id": auth_context.get("request_id"),
-    }
 
 
 def validate_profile_update(payload: dict[str, Any]) -> ValidationErrors:
@@ -137,10 +100,18 @@ def changed_fields(before: dict[str, Any], after: dict[str, Any], fields: tuple[
 
 
 def ensure_venue_owned_by_business(venue_data: dict[str, Any], business_id: int) -> None:
+    brand_id = None
+
     brand = venue_data.get("brand")
-    if not isinstance(brand, dict) or brand.get("id") is None:
+    if isinstance(brand, dict):
+        brand_id = brand.get("id")
+
+    brand_id = brand_id or venue_data.get("brandId") or venue_data.get("brand_id") or venue_data.get("parentId") or venue_data.get("parent_id")
+
+    if brand_id is None:
         raise ForbiddenError("cannot verify venue ownership")
-    if int(brand["id"]) != int(business_id):
+
+    if int(brand_id) != int(business_id):
         raise ForbiddenError("unauthorized access to another business venue")
 
 

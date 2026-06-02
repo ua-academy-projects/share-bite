@@ -41,12 +41,15 @@ func TestHandler_HandleBatch_ValidEvent(t *testing.T) {
 
 	event := notification.Message{
 		EventID:     "test-event-123",
-		EventType:   notification.PostLiked,
+		EventType:   notification.RegistrationConfirmed,
 		RecipientID: "user-42",
 		ActorID:     "user-99",
 		EntityType:  "post",
 		EntityID:    "post-123",
 		CreatedAt:   time.Now(),
+		Metadata: map[string]any{
+			"email": "test@example.com",
+		},
 	}
 
 	body, err := json.Marshal(event)
@@ -88,12 +91,12 @@ func TestHandler_HandleBatch_InvalidEvent(t *testing.T) {
 			{
 				MessageId:     "msg-001",
 				ReceiptHandle: "handle-001",
-				Body:          `{"eventType":"post_liked"}`,
+				Body:          `{"eventType":"registration_confirmed"}`,
 			},
 		},
 	}
 
-	validator := worker.NewDefaultValidator(notification.PostLiked)
+	validator := worker.NewDefaultValidator(notification.RegistrationConfirmed)
 	processor := &mockProcessor{}
 
 	h := worker.New(validator, processor)
@@ -109,12 +112,15 @@ func TestHandler_HandleBatch_PartialFailure(t *testing.T) {
 
 	validEvent := notification.Message{
 		EventID:     "test-event-valid",
-		EventType:   notification.PostLiked,
+		EventType:   notification.RegistrationConfirmed,
 		RecipientID: "user-42",
 		ActorID:     "user-99",
 		EntityType:  "post",
 		EntityID:    "post-123",
 		CreatedAt:   time.Now(),
+		Metadata: map[string]any{
+			"email": "test@example.com",
+		},
 	}
 
 	validBody, err := json.Marshal(validEvent)
@@ -136,7 +142,7 @@ func TestHandler_HandleBatch_PartialFailure(t *testing.T) {
 	}
 
 	processed := false
-	validator := worker.NewDefaultValidator(notification.PostLiked)
+	validator := worker.NewDefaultValidator(notification.RegistrationConfirmed)
 	processor := &mockProcessor{
 		processFn: func(ctx context.Context, e notification.Message) error {
 			processed = true
@@ -182,12 +188,15 @@ func TestHandler_HandleBatch_ProcessorError(t *testing.T) {
 
 	event := notification.Message{
 		EventID:     "test-event-123",
-		EventType:   notification.PostLiked,
+		EventType:   notification.RegistrationConfirmed,
 		RecipientID: "user-42",
 		ActorID:     "user-99",
 		EntityType:  "post",
 		EntityID:    "post-123",
 		CreatedAt:   time.Now(),
+		Metadata: map[string]any{
+			"email": "test@example.com",
+		},
 	}
 
 	body, err := json.Marshal(event)
@@ -229,7 +238,7 @@ func TestHandler_HandleBatch_FromFixtures(t *testing.T) {
 	require.NoError(t, err)
 
 	processed := false
-	validator := worker.NewDefaultValidator(notification.PostLiked)
+	validator := worker.NewDefaultValidator(notification.RegistrationConfirmed)
 	processor := &mockProcessor{
 		processFn: func(ctx context.Context, e notification.Message) error {
 			processed = true

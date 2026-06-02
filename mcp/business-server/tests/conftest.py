@@ -14,16 +14,16 @@ class FakeMCP:
         self.tools: dict[str, callable] = {}
         self.resources: dict[str, callable] = {}
 
-    def tool(self, name: str, description: str = "", exclude_args: list[str] | None = None):
+    def tool(self, name: str | None = None, description: str = "", exclude_args: list[str] | None = None):
         def decorator(func):
-            self.tools[name] = func
+            self.tools[name or func.__name__] = func
             return func
         return decorator
 
     def resource(
         self,
         uri: str,
-        name: str,
+        name: str | None = None,
         title: str = "",
         description: str = "",
         mime_type: str = "",
@@ -58,14 +58,9 @@ class FakeAPIClient:
         return self.patch_responses.pop(0)
 
 
-@pytest.fixture
-def auth_context():
-    return {
-        "role": "business",
-        "auth_token": "token-123",
-        "business_id": 10,
-        "request_id": "req-1",
-    }
+class FakeSettings:
+    business_api_base_url = "http://business-api.test"
+    request_timeout_seconds = 10
 
 
 @pytest.fixture
@@ -79,14 +74,21 @@ def api_client():
 
 
 @pytest.fixture
-def registered_tools(fake_mcp, api_client):
+def settings():
+    return FakeSettings()
+
+
+@pytest.fixture
+def registered_tools(fake_mcp, settings, api_client):
     from app.tools import register_tools
-    register_tools(fake_mcp, api_client)
+
+    register_tools(fake_mcp, settings, api_client)
     return fake_mcp.tools
 
 
 @pytest.fixture
-def registered_resources(fake_mcp):
+def registered_resources(fake_mcp, settings):
     from app.resources import register_resources
-    register_resources(fake_mcp)
+
+    register_resources(fake_mcp, settings)
     return fake_mcp.resources
