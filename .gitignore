@@ -47,3 +47,7 @@ terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 
 node_modules
+
+__pycache__/
+*.py[cod]
+.venv/
