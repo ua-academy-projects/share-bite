@@ -121,3 +121,160 @@ func TestAdminHandler_ChangeUserRole(t *testing.T) {
 		mockSvc.AssertExpectations(t)
 	})
 }
+
+func TestAdminHandler_GetPendingBusinesses(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("Success returns 200 with custom pagination", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		expectedResp := &dto.PaginatedPendingBusinessesResponse{}
+		mockSvc.On("GetPendingBusinessesList", mock.Anything, 15, 5).Return(expectedResp, nil)
+
+		r := gin.New()
+		r.GET("/admin/businesses/pending", h.GetPendingBusinesses)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/businesses/pending?limit=15&offset=5", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockSvc.AssertExpectations(t)
+	})
+
+	t.Run("Success sanitizes out of bounds parameters", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		expectedResp := &dto.PaginatedPendingBusinessesResponse{}
+		mockSvc.On("GetPendingBusinessesList", mock.Anything, 50, 0).Return(expectedResp, nil)
+
+		r := gin.New()
+		r.GET("/admin/businesses/pending", h.GetPendingBusinesses)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/businesses/pending?limit=150&offset=0", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockSvc.AssertExpectations(t)
+	})
+
+	t.Run("Service error returns 500 via middleware", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		appError := &apperr.AppError{Code: http.StatusInternalServerError, Message: "database connection failed"}
+		mockSvc.On("GetPendingBusinessesList", mock.Anything, 10, 0).Return(nil, appError)
+
+		r := gin.New()
+		r.Use(testErrorMiddleware())
+		r.GET("/admin/businesses/pending", h.GetPendingBusinesses)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/businesses/pending", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "database connection failed")
+		mockSvc.AssertExpectations(t)
+	})
+}
+
+func TestAdminHandler_ReviewBusiness(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	type ReviewRequest struct {
+		Status  string `json:"status"`
+		Comment string `json:"comment"`
+	}
+
+	mockAdminUUID := "admin-uuid-1111-2222"
+	mockAuthMw := func(c *gin.Context) {
+		c.Set("userId", mockAdminUUID)
+		c.Next()
+	}
+
+	t.Run("Success verification returns 200", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		commentVal := "All documents are fine"
+
+		expectedParams := dto.ReviewBusinessParams{
+			OrgUnitID: 42,
+			NewStatus: "verified",
+			AdminID:   mockAdminUUID,
+			Comment:   &commentVal,
+		}
+
+		mockSvc.On("ReviewBusinessStatus", mock.Anything, expectedParams).Return(nil)
+
+		r := gin.New()
+		r.Use(mockAuthMw)
+		r.PATCH("/admin/businesses/:id/review", h.ReviewBusiness)
+
+		body := ReviewRequest{Status: "verified", Comment: "All documents are fine"}
+		jsonBody, _ := json.Marshal(body)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/admin/businesses/42/review", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "Business verification status updated successfully.")
+		mockSvc.AssertExpectations(t)
+	})
+
+	t.Run("Invalid integer ID format returns 400", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		r := gin.New()
+		r.PATCH("/admin/businesses/:id/review", h.ReviewBusiness)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/admin/businesses/abc/review", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "must be a positive integer")
+	})
+
+	t.Run("Invalid body payload returns 400", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		r := gin.New()
+		r.PATCH("/admin/businesses/:id/review", h.ReviewBusiness)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/admin/businesses/10/review", bytes.NewBufferString("{invalid-json"))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid request payload")
+	})
+
+	t.Run("Unauthorized when admin context is unresolved", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		r := gin.New()
+		r.PATCH("/admin/businesses/:id/review", h.ReviewBusiness)
+
+		body := ReviewRequest{Status: "rejected", Comment: "Bad license"}
+		jsonBody, _ := json.Marshal(body)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/admin/businesses/10/review", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Contains(t, w.Body.String(), "admin identity could not be resolved")
+	})
+}
