@@ -13,30 +13,33 @@ import (
 )
 
 type createRequest struct {
-	VenueID  int64                   `form:"venue_id" binding:"required"`
+	VenueID  int64                   `form:"venueId" binding:"required"`
 	Text     string                  `form:"text" binding:"required,max=2000"`
-	Rating   int16                   `form:"rating" binding:"required,min=1,max=5"`
+	Rating   int16                   `form:"rating" binding:"required,gte=1,lte=5"`
 	Images   []*multipart.FileHeader `form:"images" binding:"omitempty"`
 	Mentions []string                `form:"mentions" binding:"omitempty"`
+
+	InvitedCustomerIDs []string `form:"invitedCustomerIds" binding:"omitempty,dive,uuid"`
 }
 
 type createResponse struct {
 	Post postResponse `json:"post"`
 }
 
-// create creates a guest post with optional images.
+// create creates a guest post with optional images and collaborators.
 //
 //	@Summary		Create post
-//	@Description	Creates a post for the authenticated customer.
+//	@Description	Creates a post for the authenticated customer. If invited_customer_ids are provided, the post will remain in draft status until all invited collaborators accept the invitation.
 //	@Tags			guest-posts
 //	@Accept			mpfd
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			venue_id	formData	int		true	"Venue ID"
+//	@Param			venueId		formData	int		true	"Venue ID"
 //	@Param			text		formData	string	true	"Post text"
 //	@Param			rating		formData	int		true	"Rating (1..5)"
 //	@Param			images		formData	file	false	"Post images (jpeg/png, up to 5)"
 //	@Param			mentions	formData	[]string	false	"Mentions (usernames)"
+//	@Param			invited_customer_ids	formData	[]string	false	"Collaborator customer IDs (UUID)"
 //	@Success		201			{object}	createResponse
 //	@Failure		400			{object}	response.ErrorResponse
 //	@Failure		401			{object}	response.ErrorResponse
@@ -71,6 +74,8 @@ func (h *handler) create(c *gin.Context) {
 		return
 	}
 
+	req.InvitedCustomerIDs = filterEmpty(req.InvitedCustomerIDs)
+
 	images, err := buildUploadImages(req.Images)
 	if err != nil {
 		c.Error(err)
@@ -87,20 +92,34 @@ func (h *handler) create(c *gin.Context) {
 	}
 
 	in := dto.CreatePostInput{
-		CustomerID: customer.ID,
-		VenueID:    req.VenueID,
-		Text:       req.Text,
-		Rating:     req.Rating,
-		Images:     dtoImages,
-		Mentions:   req.Mentions,
+		CustomerID:         customer.ID,
+		VenueID:            req.VenueID,
+		Text:               req.Text,
+		Rating:             req.Rating,
+		Images:             dtoImages,
+		Mentions:           req.Mentions,
+		InvitedCustomerIDs: req.InvitedCustomerIDs,
 	}
 
-	post, err := h.service.Create(ctx, in)
+	post, err := h.service.CreatePostWithCollaborators(ctx, in)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	resp := createResponse{Post: postToResponse(post, h.storage, customer)}
+	resp := createResponse{
+		Post: postToResponse(post, h.storage, customer, []authorResponse{}),
+	}
 	c.JSON(http.StatusCreated, resp)
+}
+
+func filterEmpty(ds []string) []string {
+	result := make([]string, 0, len(ds))
+	for _, d := range ds {
+		if s := strings.TrimSpace(d); s != "" {
+			result = append(result, s)
+		}
+	}
+
+	return result
 }

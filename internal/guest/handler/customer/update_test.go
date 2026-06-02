@@ -71,6 +71,47 @@ func TestUpdate(t *testing.T) {
 					Return(expectedCustomer, nil).
 					Once()
 
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return(baseURL+avatarObjectKey, nil).
+					Once()
+			},
+			wantCode: http.StatusOK,
+			wantBody: updateResponse{
+				Customer: customerResponse{
+					ID:        expectedCustomer.ID,
+					UserID:    expectedCustomer.UserID,
+					UserName:  expectedCustomer.UserName,
+					FirstName: expectedCustomer.FirstName,
+					LastName:  expectedCustomer.LastName,
+					Bio:       expectedCustomer.Bio,
+					AvatarURL: strPtr(baseURL + avatarObjectKey),
+				},
+			},
+		},
+		{
+			name:   "success with fallback",
+			userID: userID,
+			input: updateRequest{
+				UserName:  strPtr(userName),
+				FirstName: strPtr(firstName),
+				LastName:  strPtr(lastName),
+				Bio:       strPtr(bio),
+			},
+			mockFn: func(s *mockCustomerService, st *mockObjectStorage) {
+				s.On("Update", mock.Anything, entity.UpdateCustomer{
+					UserID:    userID,
+					UserName:  strPtr(userName),
+					FirstName: strPtr(firstName),
+					LastName:  strPtr(lastName),
+					Bio:       strPtr(bio),
+				}).
+					Return(expectedCustomer, nil).
+					Once()
+
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return("", errors.New("presign failed")).
+					Once()
+
 				st.On("BuildURL", avatarObjectKey).
 					Return(baseURL + avatarObjectKey).
 					Once()
@@ -107,8 +148,8 @@ func TestUpdate(t *testing.T) {
 					Return(expectedCustomer, nil).
 					Once()
 
-				st.On("BuildURL", avatarObjectKey).
-					Return(baseURL + avatarObjectKey).
+				st.On("GetPresignedURL", mock.Anything, avatarObjectKey).
+					Return(baseURL+avatarObjectKey, nil).
 					Once()
 			},
 			wantCode: http.StatusOK,

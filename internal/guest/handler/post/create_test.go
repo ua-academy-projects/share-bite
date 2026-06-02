@@ -16,24 +16,27 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	internalmiddleware "github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 func TestPostHandler_Create(t *testing.T) {
 	t.Parallel()
 
-	postSvc := &postServiceMock{
-		createFn: func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
-			return entity.Post{
-				ID:         "post-1",
-				CustomerID: in.CustomerID,
-				VenueID:    in.VenueID,
-				Text:       in.Text,
-				Rating:     in.Rating,
-				Status:     entity.PostStatusPublished,
-				CreatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
-				UpdatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
-			}, nil
-		},
+	postSvc := &postServiceMock{}
+
+	postSvc.createPostWithCollaboratorsFn = func(ctx context.Context, in dto.CreatePostInput) (entity.Post, error) {
+		postSvc.lastCreateInput = in
+
+		return entity.Post{
+			ID:         "post-1",
+			CustomerID: in.CustomerID,
+			VenueID:    in.VenueID,
+			Text:       in.Text,
+			Rating:     in.Rating,
+			Status:     entity.PostStatusPublished,
+			CreatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
+			UpdatedAt:  time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC),
+		}, nil
 	}
 
 	customerSvc := &customerServiceMock{
@@ -43,12 +46,12 @@ func TestPostHandler_Create(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 
@@ -56,7 +59,7 @@ func TestPostHandler_Create(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	require.NoError(t, writer.WriteField("venue_id", "123"))
+	require.NoError(t, writer.WriteField("venueId", "123"))
 	require.NoError(t, writer.WriteField("text", "nice food"))
 	require.NoError(t, writer.WriteField("rating", "5"))
 	require.NoError(t, writer.Close())
@@ -86,7 +89,7 @@ func TestPostHandler_Create_UnauthorizedWithoutHeader(t *testing.T) {
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{})
 	router := testRouter(&postServiceMock{}, &customerServiceMock{}, authMiddleware)
 
-	body := `{"venue_id":123,"text":"nice food","rating":5}`
+	body := `{"venueId":123,"text":"nice food","rating":5}`
 	req := httptest.NewRequest(http.MethodPost, "/posts/", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -94,7 +97,7 @@ func TestPostHandler_Create_UnauthorizedWithoutHeader(t *testing.T) {
 	router.ServeHTTP(res, req)
 
 	require.Equal(t, http.StatusUnauthorized, res.Code)
-	assert.Contains(t, res.Body.String(), "empty auth header")
+	assert.Contains(t, res.Body.String(), "unauthorized: missing token")
 }
 
 func TestPostHandler_Create_InvalidPayload(t *testing.T) {
@@ -107,12 +110,12 @@ func TestPostHandler_Create_InvalidPayload(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 
@@ -120,7 +123,7 @@ func TestPostHandler_Create_InvalidPayload(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	require.NoError(t, writer.WriteField("venue_id", "123"))
+	require.NoError(t, writer.WriteField("venueId", "123"))
 	require.NoError(t, writer.WriteField("rating", "5"))
 	require.NoError(t, writer.Close())
 
@@ -140,18 +143,18 @@ func TestPostHandler_Create_InvalidContentType(t *testing.T) {
 	t.Parallel()
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer", Status: jwt.UserStatusActive}, nil
 		},
 	})
 
 	router := testRouter(&postServiceMock{}, &customerServiceMock{}, authMiddleware)
 
-	req := httptest.NewRequest(http.MethodPost, "/posts/", strings.NewReader(`{"venue_id":123,"text":"nice food","rating":5}`))
+	req := httptest.NewRequest(http.MethodPost, "/posts/", strings.NewReader(`{"venueId":123,"text":"nice food","rating":5}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer valid-token")
 

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	internalmiddleware "github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 )
 
 func TestPostHandler_Update(t *testing.T) {
@@ -50,12 +51,11 @@ func TestPostHandler_Update(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
-
-			return "user-1", "customer", nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer"}, nil
 		},
 	})
 
@@ -63,7 +63,7 @@ func TestPostHandler_Update(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	require.NoError(t, writer.WriteField("venue_id", "456"))
+	require.NoError(t, writer.WriteField("venueId", "456"))
 	require.NoError(t, writer.WriteField("text", "updated text"))
 	require.NoError(t, writer.WriteField("rating", "4"))
 	require.NoError(t, writer.WriteField("status", "archived"))
@@ -114,7 +114,7 @@ func TestPostHandler_Update_UnauthorizedWithoutHeader(t *testing.T) {
 	router.ServeHTTP(res, req)
 
 	require.Equal(t, http.StatusUnauthorized, res.Code)
-	assert.Contains(t, res.Body.String(), "empty auth header")
+	assert.Contains(t, res.Body.String(), "unauthorized: missing token")
 }
 
 func TestPostHandler_Update_RejectsDeletedStatus(t *testing.T) {
@@ -128,12 +128,12 @@ func TestPostHandler_Update_RejectsDeletedStatus(t *testing.T) {
 	}
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer"}, nil
 		},
 	})
 
@@ -162,12 +162,12 @@ func TestPostHandler_Update_InvalidContentType(t *testing.T) {
 	t.Parallel()
 
 	authMiddleware := internalmiddleware.Auth(tokenParserMock{
-		parseAccessTokenFn: func(token string) (string, string, error) {
+		parseAccessTokenFn: func(token string) (jwt.AccessTokenPayload, error) {
 			if token != "valid-token" {
-				return "", "", context.Canceled
+				return jwt.AccessTokenPayload{}, context.Canceled
 			}
 
-			return "user-1", "customer", nil
+			return jwt.AccessTokenPayload{UserID: "user-1", Role: "customer"}, nil
 		},
 	})
 

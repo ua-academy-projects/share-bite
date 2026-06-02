@@ -119,7 +119,7 @@ type GitHubUser struct {
 }
 
 type User struct {
-	ID        int64
+	ID        string
 	GitHubID  int64
 	Login     string
 	Email     string

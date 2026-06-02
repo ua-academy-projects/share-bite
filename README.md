@@ -1,5 +1,11 @@
 # Share Bite
 
+## Kubernetes (local)
+
+For local cluster setup (k3s, Podman Desktop, Docker Desktop), infrastructure manifests, migration flow, and troubleshooting, see:
+
+- [docs/k8s/local-kubernetes.md](docs/k8s/local-kubernetes.md)
+
 ## How to Run Locally
 
 ### 1. Configuration
@@ -44,18 +50,20 @@ make run-all
 
 _(To run them individually, you can use `make run-guest`, `make run-business`, or `make run-auth`)._
 
-### 5. Run local S3 storage
+### 5. Object Storage (S3 / Garage)
 
-### Start
+The application uses S3-compatible storage for storing media files. It supports both local development via Garage and real AWS S3 for production.
 
+#### Local Development (Garage)
+
+Start the local Garage instance:
 ```bash
 make s3-up
 ```
 
-After bootstrap, copy credentials printed in the terminal into `.env`:
-
+After bootstrap, copy the credentials printed in the terminal into your `.env`:
 ```env
-S3_ENDPOINT=http://localhost:3900
+S3_ENDPOINT=http://localhost:4300
 S3_REGION=garage
 S3_ACCESS_KEY=<printed by bootstrap>
 S3_SECRET_KEY=<printed by bootstrap>
@@ -65,9 +73,35 @@ S3_USE_PATH_STYLE=true
 
 > Bootstrap runs once. On subsequent starts credentials stay the same.
 
-### 6. Notifications helper and Redis
+**Web UI (optional)**
+```bash
+make s3-ui
+```
 
-The repository includes a shared Redis Pub/Sub helper in `pkg/notification` for notification events.
+> Open http://localhost:4309
+
+#### Production (AWS S3)
+
+For real AWS deployment, configure your production `.env` like this:
+
+```env
+S3_REGION=eu-central-1
+S3_BUCKET=your-production-bucket-name
+```
+
+**Recommended: IAM Roles (no keys needed)**
+When running on AWS infrastructure (EC2, ECS, Lambda), leave `S3_ACCESS_KEY` and `S3_SECRET_KEY` empty.
+The client will automatically use the instance's IAM role.
+
+**Alternative: Static credentials**
+```env
+S3_ACCESS_KEY=your-aws-access-key
+S3_SECRET_KEY=your-aws-secret-key
+```
+
+> `S3_ENDPOINT` and `S3_USE_PATH_STYLE` are not required for native AWS S3.
+
+### 6. Redis
 
 For local development, add Redis connection values to `.env` based on `.env.example`:
 
@@ -82,15 +116,53 @@ Start the Redis service using the provided docker-compose configuration:
 docker compose -f build/compose.infra.yaml up -d
 ```
 
+### 7. Notifications service
+
+The `notifications-service` consumes UI notifications from the SQS queue, enriches them with actor metadata, stores them in `notifications_history`, and forwards them to SSE clients.
+
+Add the notifications-specific env vars to `.env`:
+
+```env
+NOTIFICATION_HTTP_SERVER_HOST=0.0.0.0
+NOTIFICATION_HTTP_SERVER_PORT=4005
+NOTIFICATION_SQS_QUEUE_URL=<terraform output notifications_sse_queue_url>
+```
+
+Run it locally:
+
+```bash
+go run cmd/notifications-service/main.go
+```
+
+For local SQS testing, point the service to a local emulator or your AWS queue with:
+
+```env
+NOTIFICATION_AWS_REGION=us-east-2
+NOTIFICATION_SQS_ENDPOINT_URL=http://localhost:4566
+```
+
+If you are using localstack, create the queue in the `notifications-service` consumer path and keep the SSE/UI queue separated as in Terraform.
+
+If you deploy infrastructure with Terraform, export the queue URL from the outputs and point the service at the SSE queue.
+
 ### Web UI (optional)
 
 ```bash
 make s3-ui
 ```
 
-Open http://localhost:3909
+Open http://localhost:4309
 
-### 7. Code Generation & API Clients
+### Notifications test page
+
+The frontend includes a notifications lab at `/notifications-lab`.
+Use it in two browsers with two different bearer tokens to:
+
+1. Open an SSE stream for the author account.
+2. Like a post from another account.
+3. Watch the author receive the notification with enriched `actor_name` and `actor_avatar`.
+
+### 8. Code Generation & API Clients
 
 To prevent excessive git churn, **generated Swagger documentation and API clients are not committed to the repository**. You must generate them locally before building or running tests.
 
@@ -111,9 +183,9 @@ This orchestrates the correct execution order:
 
 ---
 
-### 8. Testing
+### 9. Testing
 
-> Ensure API clients are generated (step 7) before running tests.
+> Ensure API clients are generated (step 8) before running tests.
 
 Run the full test suite:
 

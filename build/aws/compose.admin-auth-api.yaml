@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  admin-api:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/admin-auth-api:${IMAGE_TAG}
+    container_name: share-bite-admin-api
+    restart: always
+    network_mode: "host"
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - /lib64/ld-linux-x86-64.so.2:/lib64/ld-linux-x86-64.so.2:ro
+      - /lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:ro
+      - /usr/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: share-bite-redis-admin
+    restart: always
+    network_mode: "host"
+    env_file:
+      - .env
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

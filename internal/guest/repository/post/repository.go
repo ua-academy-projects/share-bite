@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	_ "time"
+	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 
@@ -117,7 +117,7 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (ent
 	}
 
 	sql += fmt.Sprintf(
-		" %s WHERE id=@id AND customer_id=@customer_id RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at, published_at",
+		" %s WHERE id=@id RETURNING id, customer_id, venue_id, text, rating, status, created_at, updated_at, published_at",
 		strings.Join(updates, ", "),
 	)
 	args["id"] = in.ID
@@ -164,18 +164,35 @@ func (r *Repository) Update(ctx context.Context, in entity.UpdatePostInput) (ent
 }
 
 func (r *Repository) List(ctx context.Context, in dto.ListPostsInput) (dto.ListPostsOutput, error) {
-	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = $1`
+	// Build a dynamic WHERE clause so we can optionally filter by author.
+	countArgs := []interface{}{entity.PostStatusPublished}
+	countFilter := ""
+	if in.AuthorID != "" {
+		countArgs = append(countArgs, in.AuthorID)
+		countFilter = fmt.Sprintf(" AND customer_id = $%d", len(countArgs))
+	}
+
+	countSQL := `SELECT COUNT(*) FROM guest.posts WHERE status = $1` + countFilter
 	countQ := database.Query{
 		Name: "post_repository.List.Count",
 		Sql:  countSQL,
 	}
 	var total int
-	err := r.db.DB().QueryRowContext(ctx, countQ, entity.PostStatusPublished).Scan(&total)
+	err := r.db.DB().QueryRowContext(ctx, countQ, countArgs...).Scan(&total)
 	if err != nil {
 		return dto.ListPostsOutput{}, scanRowError(err)
 	}
 
-	// Get paginated posts
+	// Build the paginated SELECT. Fixed param positions:
+	//   $1 = status, $2 = limit, $3 = offset, $4 = currentUserID (is_liked_by_me)
+	// Optional: $5 = authorID filter
+	authorFilter := ""
+	listArgs := []interface{}{entity.PostStatusPublished, in.Limit, in.Offset, in.CustomerID}
+	if in.AuthorID != "" {
+		listArgs = append(listArgs, in.AuthorID)
+		authorFilter = fmt.Sprintf(" AND p.customer_id = $%d", len(listArgs))
+	}
+
 	sql := `
 		  SELECT
 		        p.id,
@@ -190,16 +207,16 @@ func (r *Repository) List(ctx context.Context, in dto.ListPostsInput) (dto.ListP
 		        (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
 		        EXISTS(SELECT 1 FROM guest.post_likes pl WHERE pl.post_id = p.id AND pl.customer_id = NULLIF($4, '')::uuid) AS is_liked_by_me
 		  FROM guest.posts p
-		  WHERE p.status = $1
+		  WHERE p.status = $1` + authorFilter + `
 		  ORDER BY p.created_at DESC, p.id DESC
-	 	  LIMIT $2 OFFSET $3
+		  LIMIT $2 OFFSET $3
 	  `
 	q := database.Query{
 		Name: "post_repository.List",
 		Sql:  sql,
 	}
 
-	rows, err := r.db.DB().QueryContext(ctx, q, entity.PostStatusPublished, in.Limit, in.Offset, in.CustomerID)
+	rows, err := r.db.DB().QueryContext(ctx, q, listArgs...)
 	if err != nil {
 		return dto.ListPostsOutput{}, executeSQLError(err)
 	}
@@ -365,6 +382,34 @@ func (r *Repository) GetAuthorUserID(ctx context.Context, postID string) (string
 	return userID, nil
 }
 
+func (r *Repository) GetAuthorCustomerID(ctx context.Context, postID string) (string, error) {
+	sql := `
+		SELECT customer_id
+		FROM guest.posts
+		WHERE id = $1;
+	`
+	q := database.Query{
+		Name: "post_repository.GetAuthorCustomerID",
+		Sql:  sql,
+	}
+
+	var customerID string
+	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&customerID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperror.PostNotFoundID(postID)
+		}
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.InvalidTextRepresentation {
+			return "", apperror.PostNotFoundID(postID)
+		}
+
+		return "", scanRowError(err)
+	}
+
+	return customerID, nil
+}
+
 func translatePostInsertError(err error, in dto.CreatePostInput) error {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
@@ -396,39 +441,47 @@ func translatePostUpdateError(err error, in entity.UpdatePostInput) error {
 	return nil
 }
 
-func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage) error {
+func (r *Repository) CreateImages(ctx context.Context, images []entity.PostImage) ([]entity.PostImage, error) {
 	if len(images) == 0 {
-		return nil
+		return nil, nil
 	}
-	createImagesSql := `
-		INSERT INTO guest.post_images(
+
+	createImagesSQL := `
+		INSERT INTO guest.post_images (
 			post_id,
 			object_key,
 			content_type,
 			file_size,
 			sort_order
-		) VALUES ($1, $2, $3, $4, $5)
+		)
+		VALUES (
+			$1, $2, $3, $4, $5
+		)
+		RETURNING id
 	`
+
 	q := database.Query{
 		Name: "post_repository.CreateImages",
-		Sql:  createImagesSql,
+		Sql:  createImagesSQL,
 	}
 
-	for _, img := range images {
-		_, err := r.db.DB().ExecContext(
+	for i := range images {
+		err := r.db.DB().QueryRowContext(
 			ctx,
 			q,
-			img.PostID,
-			img.ObjectKey,
-			img.ContentType,
-			img.FileSize,
-			img.SortOrder,
-		)
+			images[i].PostID,
+			images[i].ObjectKey,
+			images[i].ContentType,
+			images[i].FileSize,
+			images[i].SortOrder,
+		).Scan(&images[i].ID)
+
 		if err != nil {
-			return executeSQLError(err)
+			return nil, executeSQLError(err)
 		}
 	}
-	return nil
+
+	return images, nil
 }
 
 func (r *Repository) DeleteImagesByPostID(ctx context.Context, postID string) error {
@@ -451,13 +504,19 @@ func (r *Repository) DeleteImagesByPostID(ctx context.Context, postID string) er
 func (r *Repository) loadImagesByPostID(ctx context.Context, postID string) ([]entity.PostImage, error) {
 	sql := `
 		SELECT
-		       id,
-		       post_id,
-		       object_key,
-		       content_type,
-		       file_size,
-		       sort_order,
-		       created_at
+		   id,
+		   post_id,
+		   object_key,
+		   content_type,
+		   file_size,
+		   sort_order,
+		   processing_status,
+		   thumbnail_key,
+		   width,
+		   height,
+		   processed_at,
+		   failure_reason,
+		   created_at
 		FROM guest.post_images
 		WHERE post_id = $1
 		ORDER BY sort_order ASC, id ASC
@@ -482,10 +541,6 @@ func (r *Repository) loadImagesByPostID(ctx context.Context, postID string) ([]e
 }
 
 func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) (map[string][]entity.PostImage, error) {
-	if len(postIDs) == 0 {
-		return map[string][]entity.PostImage{}, nil
-	}
-
 	sql := `
 		SELECT
 		       id,
@@ -494,6 +549,12 @@ func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) 
 		       content_type,
 		       file_size,
 		       sort_order,
+		       processing_status,
+		       thumbnail_key,
+		       width,
+		       height,
+		       processed_at,
+		       failure_reason,
 		       created_at
 		FROM guest.post_images
 		WHERE post_id::text = ANY($1)
@@ -523,7 +584,31 @@ func (r *Repository) loadImagesByPostIDs(ctx context.Context, postIDs []string) 
 	return grouped, nil
 }
 
-func (r *Repository) Like(ctx context.Context, postID string, customerID string) error {
+func (r *Repository) DeleteImagesByPostIDReturningKeys(ctx context.Context, postID string) ([]string, error) {
+	q := database.Query{
+		Name: "postImages.deleteByPostIDReturningKeys",
+		Sql: `
+			DELETE FROM guest.post_images
+			WHERE post_id = $1
+			RETURNING object_key;
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postID)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	keys, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	return keys, nil
+}
+
+func (r *Repository) Like(ctx context.Context, postID string, customerID string) (bool, error) {
 	sql := `
         INSERT INTO guest.post_likes (post_id, customer_id) 
         VALUES ($1, $2) 
@@ -534,12 +619,12 @@ func (r *Repository) Like(ctx context.Context, postID string, customerID string)
 		Sql:  sql,
 	}
 
-	_, err := r.db.DB().ExecContext(ctx, q, postID, customerID)
+	result, err := r.db.DB().ExecContext(ctx, q, postID, customerID)
 	if err != nil {
-		return executeSQLError(err)
+		return false, executeSQLError(err)
 	}
 
-	return nil
+	return result.RowsAffected() > 0, nil
 }
 
 func (r *Repository) Unlike(ctx context.Context, postID string, customerID string) error {
@@ -691,4 +776,317 @@ func (r *Repository) ListMentionsByPostIDs(ctx context.Context, postIDs []string
 	}
 
 	return result, nil
+}
+
+func (r *Repository) CreatePostCollaborators(ctx context.Context, postID string, invitedBy string, customerIDs []string, expiresAt time.Time) error {
+	if len(customerIDs) == 0 {
+		return nil
+	}
+
+	q := database.Query{
+		Name: "postCollaborators.createBulk",
+		Sql: `
+            INSERT INTO guest.post_collaborators (post_id, customer_id, invited_by, expires_at)
+            SELECT $1, unnest($2::uuid[]), $3, $4
+            ON CONFLICT (post_id, customer_id) DO NOTHING;
+        `,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, postID, customerIDs, invitedBy, expiresAt)
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	return nil
+}
+
+func (r *Repository) GetPendingPostInvitations(ctx context.Context, customerID string) ([]entity.PostCollaborator, error) {
+	q := database.Query{
+		Name: "postCollaborators.getPendingByUser",
+		Sql: `
+			SELECT
+				id,
+				post_id,
+				customer_id,
+				invited_by,
+				status,
+				expires_at,
+				responded_at,
+				created_at
+			FROM guest.post_collaborators
+			WHERE customer_id = $1
+			  AND status = 'pending'
+			  AND expires_at > NOW();
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, customerID)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var collaborators []entity.PostCollaborator
+
+	if err := pgxscan.ScanAll(&collaborators, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	return collaborators, nil
+}
+
+func (r *Repository) AcceptPostInvitation(ctx context.Context, collaboratorID string, customerID string) (string, error) {
+	q := database.Query{
+		Name: "postCollaborators.accept",
+		Sql: `
+			UPDATE guest.post_collaborators
+			SET status = 'accepted',
+			    responded_at = NOW()
+			WHERE id = $1
+			  AND customer_id = $2
+			  AND status = 'pending'
+			  AND expires_at > NOW()
+			RETURNING post_id;
+		`,
+	}
+
+	var postID string
+
+	err := r.db.DB().
+		QueryRowContext(ctx, q, collaboratorID, customerID).
+		Scan(&postID)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperror.ErrPostInvitationForbidden
+		}
+		return "", scanRowError(err)
+	}
+
+	return postID, nil
+}
+
+func (r *Repository) DeclinePostInvitation(ctx context.Context, collaboratorID string, customerID string) error {
+	q := database.Query{
+		Name: "postCollaborators.decline",
+		Sql: `
+			UPDATE guest.post_collaborators
+			SET status = 'declined',
+			    responded_at = NOW()
+			WHERE id = $1
+			  AND customer_id = $2
+			  AND status = 'pending'
+			  AND expires_at > NOW();
+		`,
+	}
+
+	tag, err := r.db.DB().ExecContext(
+		ctx,
+		q,
+		collaboratorID,
+		customerID,
+	)
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return apperror.ErrPostInvitationForbidden
+	}
+
+	return nil
+}
+
+func (r *Repository) TryPublishPostIfAllAccepted(ctx context.Context, postID string) (bool, error) {
+	q := database.Query{
+		Name: "posts.tryPublishIfAllAccepted",
+		Sql: `
+			UPDATE guest.posts
+			SET status = 'published'
+			WHERE id = $1
+			  AND status = 'draft'
+			  AND NOT EXISTS (
+				SELECT 1
+				FROM guest.post_collaborators
+				WHERE post_id = $1
+				  AND status != 'accepted'
+				  AND expires_at > NOW()
+			  )
+			RETURNING id;
+		`,
+	}
+
+	var id string
+	err := r.db.DB().QueryRowContext(ctx, q, postID).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, scanRowError(err)
+	}
+
+	return true, nil
+}
+
+func (r *Repository) GetAcceptedPostCollaborators(ctx context.Context, postID string) ([]string, error) {
+	q := database.Query{
+		Name: "postCollaborators.getAccepted",
+		Sql: `
+			SELECT customer_id
+			FROM guest.post_collaborators
+			WHERE post_id = $1
+			  AND status = 'accepted';
+		`,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+
+	return result, nil
+}
+
+func (r *Repository) DeleteExpiredDraftPosts(ctx context.Context) error {
+	q := database.Query{
+		Name: "post.deleteExpiredDrafts",
+		Sql: `
+			UPDATE guest.posts p
+			SET status = 'deleted'
+			WHERE p.status = 'draft'
+			  AND EXISTS (
+				SELECT 1
+				FROM guest.post_collaborators pc
+				WHERE pc.post_id = p.id
+				  AND pc.status = 'pending'
+				  AND pc.expires_at < NOW()
+			  );
+		`,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q)
+	return executeSQLError(err)
+}
+
+func (r *Repository) IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error) {
+	q := database.Query{
+		Name: "post_collaborators.isAcceptedCollaborator",
+		Sql: `
+			SELECT EXISTS (
+				SELECT 1
+				FROM guest.post_collaborators
+				WHERE post_id = $1
+				  AND customer_id = $2
+				  AND status = 'accepted'
+			)
+		`,
+	}
+
+	row, err := r.db.DB().QueryContext(
+		ctx,
+		q,
+		postID,
+		customerID,
+	)
+	if err != nil {
+		return false, executeSQLError(err)
+	}
+	defer row.Close()
+
+	var exists bool
+
+	if row.Next() {
+		if err := row.Scan(&exists); err != nil {
+			return false, scanRowError(err)
+		}
+
+		return exists, nil
+	}
+
+	return false, nil
+}
+
+func (r *Repository) UpdateProcessedMetadata(ctx context.Context, imageID string, thumbnailKey string, width int, height int) error {
+	query := `
+		UPDATE guest.post_images
+		SET
+			thumbnail_key = $1,
+			width = $2,
+			height = $3,
+			processing_status = $4,
+			processed_at = NOW(),
+			failure_reason = NULL
+		WHERE id = $5
+	`
+
+	q := database.Query{
+		Name: "post_repository.UpdateProcessedMetadata",
+		Sql:  query,
+	}
+
+	result, err := r.db.DB().ExecContext(ctx, q, thumbnailKey, width, height, entity.ImageStatusCompleted, imageID)
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf(
+			"post image not found: %s",
+			imageID,
+		)
+	}
+
+	return executeSQLError(err)
+}
+
+func (r *Repository) MarkProcessingFailed(ctx context.Context, imageID string, reason string) error {
+	query := `
+		UPDATE guest.post_images
+		SET
+			processing_status = $1,
+			failure_reason = $2
+		WHERE id = $3
+	`
+
+	q := database.Query{
+		Name: "post_repository.MarkProcessingFailed",
+		Sql:  query,
+	}
+
+	_, err := r.db.DB().ExecContext(ctx, q, entity.ImageStatusFailed, reason, imageID)
+
+	return executeSQLError(err)
+}
+
+func (r *Repository) ClaimForProcessing(ctx context.Context, imageID string) (bool, error) {
+	query := `
+		UPDATE guest.post_images
+		SET processing_status = $1
+		WHERE id = $2
+		  AND processing_status = $3
+	`
+
+	q := database.Query{
+		Name: "post_repository.ClaimForProcessing",
+		Sql:  query,
+	}
+
+	result, err := r.db.DB().ExecContext(
+		ctx,
+		q,
+		entity.ImageStatusProcessing,
+		imageID,
+		entity.ImageStatusPending,
+	)
+	if err != nil {
+		return false, executeSQLError(err)
+	}
+
+	rowsAffected := result.RowsAffected()
+
+	return rowsAffected > 0, nil
 }

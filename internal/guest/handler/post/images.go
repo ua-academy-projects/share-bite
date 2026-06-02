@@ -1,6 +1,7 @@
 package post
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -9,11 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
+	"github.com/ua-academy-projects/share-bite/internal/storage/mediatype"
 )
 
 const (
 	maxPostImages      = 5
-	maxPostImageSize   = 5 * 1024 * 1024
 	fileSniffSizeBytes = 512
 )
 
@@ -23,11 +24,8 @@ func buildUploadImages(files []*multipart.FileHeader) ([]entity.UploadImageInput
 	}
 
 	images := make([]entity.UploadImageInput, 0, len(files))
-	for _, f := range files {
-		if f.Size > maxPostImageSize {
-			return nil, apperror.BadRequest("image too large")
-		}
 
+	for _, f := range files {
 		file, err := f.Open()
 		if err != nil {
 			return nil, err
@@ -41,9 +39,16 @@ func buildUploadImages(files []*multipart.FileHeader) ([]entity.UploadImageInput
 		}
 
 		contentType := http.DetectContentType(buffer[:n])
-		if !isAllowedImageContentType(contentType) {
+		if err := mediatype.DefaultImageValidator.Validate(contentType, f.Size); err != nil {
 			file.Close()
-			return nil, apperror.ErrUnsupportedImageType
+
+			if errors.Is(err, mediatype.ErrUnsupportedType) {
+				return nil, apperror.ErrUnsupportedImageType
+			}
+			if errors.Is(err, mediatype.ErrFileTooLarge) {
+				return nil, apperror.BadRequest(err.Error())
+			}
+			return nil, err
 		}
 
 		seeker, ok := file.(io.Seeker)
@@ -65,15 +70,6 @@ func buildUploadImages(files []*multipart.FileHeader) ([]entity.UploadImageInput
 	}
 
 	return images, nil
-}
-
-func isAllowedImageContentType(contentType string) bool {
-	switch contentType {
-	case "image/jpeg", "image/png":
-		return true
-	default:
-		return false
-	}
 }
 
 func multipartFieldProvided(c *gin.Context, field string) bool {

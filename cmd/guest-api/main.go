@@ -7,7 +7,12 @@ import (
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/observability"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
+
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/ua-academy-projects/share-bite/internal/imageprocessing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -20,7 +25,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/collection"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/comment"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/customer"
-	notif_handler "github.com/ua-academy-projects/share-bite/internal/guest/handler/notification"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/post"
 	guest_middleware "github.com/ua-academy-projects/share-bite/internal/guest/middleware"
 	collectionrepo "github.com/ua-academy-projects/share-bite/internal/guest/repository/collection"
@@ -41,6 +45,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 	redis "github.com/ua-academy-projects/share-bite/pkg/redis"
 	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 	"github.com/ua-academy-projects/share-bite/pkg/validator"
@@ -161,8 +166,6 @@ func main() {
 	}
 	broker := notification.NewBroker(rdb, notification.WithPublishPolicy(notificationResiliencePolicy))
 
-	notifHub := notification.NewHub(broker)
-
 	clientCfg := config.Config().BusinessHttpClient
 	httpClient := &http.Client{
 		Timeout: clientCfg.Timeout(),
@@ -230,6 +233,16 @@ func main() {
 		logger.Fatal(ctx, "init storage client:", err)
 	}
 
+	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
+	if err != nil {
+		logger.Fatal(ctx, "load aws config:", err)
+	}
+	sqsClient := sqs.NewFromConfig(awsCfg)
+	imageProcessingProducer := imageprocessing.NewProducer(
+		sqsClient,
+		config.Config().ImageProcessingSQS.Queue(),
+	)
+
 	txManager := txmanager.NewTransactionManager(client.DB())
 
 	tokenManager := jwt.NewTokenManager(
@@ -247,8 +260,10 @@ func main() {
 	followRepo := followrepo.New(client)
 
 	// services
-	customerSvc := customersvc.New(customerRepo)
-	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithPublisher(broker))
+	outboxWriter := outbox.NewWriter(client.DB())
+	customerSvc := customersvc.New(customerRepo, outboxWriter, txManager)
+	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter), postsvc.WithImageProcessingProducer(imageProcessingProducer))
+	postsvc.StartPostCleanupJob(ctx, postSvc)
 	commentSvc := commentsvc.New(commentRepo, postSvc)
 	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
 	followSvc := followsvc.New(followRepo, customerRepo)
@@ -262,7 +277,6 @@ func main() {
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
 	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
-	notif_handler.RegisterHandlers(router.Group("/notification", optionalAuthMiddleware), notifHub, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
 		router.Group("/collections"),
 		collectionSvc,
@@ -272,6 +286,7 @@ func main() {
 		storageClient,
 	)
 	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
+	observability.RegisterHandlers(router.Group("/"), authMiddleware, client, rdb)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

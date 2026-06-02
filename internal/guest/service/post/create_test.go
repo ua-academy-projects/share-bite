@@ -173,3 +173,199 @@ func TestPostService_Create_ForbiddenMention_Error(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, apperror.ErrForbiddenMention)
 }
+
+func TestPostService_CreatePostWithCollaborators_RemovesDuplicateInvites(t *testing.T) {
+	t.Parallel()
+
+	var invited []string
+
+	repo := &postRepositoryMock{
+		createFn: func(
+			ctx context.Context,
+			in dto.CreatePostInput,
+		) (entity.Post, error) {
+			return entity.Post{
+				ID: "post-1",
+			}, nil
+		},
+		createPostCollaboratorsFn: func(
+			ctx context.Context,
+			postID string,
+			invitedBy string,
+			customerIDs []string,
+			expiresAt time.Time,
+		) error {
+			invited = customerIDs
+			return nil
+		},
+	}
+
+	svc := New(
+		repo,
+		&venueProviderMock{
+			checkExistsFn: func(
+				ctx context.Context,
+				venueID int64,
+			) (bool, error) {
+				return true, nil
+			},
+		},
+		&followRepoMock{},
+		&customerRepoMock{},
+		&storageMock{},
+		&txManagerMock{},
+	)
+
+	_, err := svc.CreatePostWithCollaborators(
+		context.Background(),
+		dto.CreatePostInput{
+			CustomerID: "user-1",
+			VenueID:    1,
+			InvitedCustomerIDs: []string{
+				"user-2",
+				"user-2",
+				"user-3",
+			},
+		},
+	)
+
+	require.NoError(t, err)
+
+	assert.ElementsMatch(
+		t,
+		[]string{"user-2", "user-3"},
+		invited,
+	)
+}
+
+func TestPostService_CreatePostWithCollaborators_ExcludesOwnerFromInvites(t *testing.T) {
+	t.Parallel()
+
+	var invited []string
+
+	repo := &postRepositoryMock{
+		createFn: func(
+			ctx context.Context,
+			in dto.CreatePostInput,
+		) (entity.Post, error) {
+			return entity.Post{
+				ID: "post-1",
+			}, nil
+		},
+		createPostCollaboratorsFn: func(
+			ctx context.Context,
+			postID string,
+			invitedBy string,
+			customerIDs []string,
+			expiresAt time.Time,
+		) error {
+			invited = customerIDs
+			return nil
+		},
+	}
+
+	svc := New(
+		repo,
+		&venueProviderMock{
+			checkExistsFn: func(
+				ctx context.Context,
+				venueID int64,
+			) (bool, error) {
+				return true, nil
+			},
+		},
+		&followRepoMock{},
+		&customerRepoMock{},
+		&storageMock{},
+		&txManagerMock{},
+	)
+
+	_, err := svc.CreatePostWithCollaborators(
+		context.Background(),
+		dto.CreatePostInput{
+			CustomerID: "user-1",
+			VenueID:    1,
+			InvitedCustomerIDs: []string{
+				"user-1",
+				"user-2",
+			},
+		},
+	)
+
+	require.NoError(t, err)
+
+	assert.Equal(
+		t,
+		[]string{"user-2"},
+		invited,
+	)
+}
+
+func TestPostService_CreatePostWithCollaborators_PublishesImmediatelyWithoutCollaborators(t *testing.T) {
+	t.Parallel()
+
+	called := false
+
+	repo := &postRepositoryMock{
+		createFn: func(
+			ctx context.Context,
+			in dto.CreatePostInput,
+		) (entity.Post, error) {
+			return entity.Post{
+				ID: "post-1",
+			}, nil
+		},
+		updateStatusFn: func(
+			ctx context.Context,
+			postID string,
+			customerID string,
+			status entity.PostStatus,
+		) error {
+			called = true
+
+			assert.Equal(
+				t,
+				entity.PostStatusPublished,
+				status,
+			)
+
+			return nil
+		},
+		getByIDFn: func(
+			ctx context.Context,
+			postID string,
+		) (entity.Post, error) {
+			return entity.Post{
+				ID:     postID,
+				Status: entity.PostStatusPublished,
+			}, nil
+		},
+	}
+
+	svc := New(
+		repo,
+		&venueProviderMock{
+			checkExistsFn: func(
+				ctx context.Context,
+				venueID int64,
+			) (bool, error) {
+				return true, nil
+			},
+		},
+		&followRepoMock{},
+		&customerRepoMock{},
+		&storageMock{},
+		&txManagerMock{},
+	)
+
+	_, err := svc.CreatePostWithCollaborators(
+		context.Background(),
+		dto.CreatePostInput{
+			CustomerID: "user-1",
+			VenueID:    1,
+		},
+	)
+
+	require.NoError(t, err)
+	assert.True(t, called)
+}

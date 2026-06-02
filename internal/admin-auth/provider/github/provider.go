@@ -8,8 +8,9 @@ import (
 
 type UserRepo interface {
 	UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error)
+	FindByID(ctx context.Context, userID string) (*dto.UserWithRole, error)
 }
 
 type SessionStore interface {
-	Create(ctx context.Context, userID string) (token string, err error)
+	Create(ctx context.Context, userID, role string) (token string, err error)
 }

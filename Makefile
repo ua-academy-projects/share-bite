@@ -1,34 +1,71 @@
-.PHONY: run-guest run-business run-auth migrate-up run-all build tidy s3-up s3-ui
-.PHONY: test test-cover docs docs-guest docs-business docs-admin-auth
-.PHONY: generate generate-guest-business-client clean
+.PHONY: build build-guest build-business build-auth build-migrator build-notifications build-outbox build-lambda
+.PHONY: run-all run-guest run-business run-auth migrate-up
+.PHONY: test test-cover tidy clean
+.PHONY: docs docs-guest docs-business docs-admin-auth
+.PHONY: generate generate-guest-business-client
+.PHONY: s3-up s3-ui docker-build
 .PHONY: goose-up goose-down goose-status goose-create
+.PHONY: k8s-secrets k8s-up k8s-down k8s-migrate
 
 COUNT ?= 1
 MIGRATIONS_DIR := migrations
+K8S_NAMESPACE ?= share-bite-local
+K8S_SECRETS_FILE ?= docs/k8s/secrets.local.yaml
+K8S_SECRET_NAME ?= share-bite-secrets
+K8S_READY_TIMEOUT ?= 180s
+
+VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "development")
+COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+PKG        := github.com/ua-academy-projects/share-bite/pkg/version
+ifndef BUILD_TIME
+BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+endif
+
+LDFLAGS := -ldflags "\
+  -X '$(PKG).Version=$(VERSION)' \
+  -X '$(PKG).CommitHash=$(COMMIT)' \
+  -X '$(PKG).BuildTime=$(BUILD_TIME)'"
 
 -include .env
 DB_DSN := host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password='$(POSTGRES_PASSWORD)' dbname=$(POSTGRES_DB) sslmode=$(POSTGRES_SSL)
 
-run-guest:
-	go run ./cmd/guest-api
+run-guest: build-guest
+	./bin/guest-api
 
-run-business:
-	go run ./cmd/business-api
+run-business: build-business
+	./bin/business-api
 
-run-auth:
-	go run ./cmd/admin-auth-api
+run-auth: build-auth
+	./bin/admin-auth-api
 
-migrate-up:
-	go run ./cmd/migrator
+migrate-up: build-migrator
+	./bin/migrator
 
 run-all:
 	$(MAKE) -j 3 run-guest run-business run-auth
 
-build:
-	go build -o bin/migrator ./cmd/migrator
-	go build -o bin/guest-api ./cmd/guest-api
-	go build -o bin/business-api ./cmd/business-api
-	go build -o bin/admin-auth-api ./cmd/admin-auth-api
+build-guest:
+	go build $(LDFLAGS) -o bin/guest-api ./cmd/guest-api
+
+build-business:
+	go build $(LDFLAGS) -o bin/business-api ./cmd/business-api
+
+build-auth:
+	go build $(LDFLAGS) -o bin/admin-auth-api ./cmd/admin-auth-api
+
+build-migrator:
+	go build $(LDFLAGS) -o bin/migrator ./cmd/migrator
+
+build-notifications:
+	go build $(LDFLAGS) -o bin/notifications-service ./cmd/notifications-service
+
+build-outbox:
+	go build $(LDFLAGS) -o bin/outbox-worker ./cmd/outbox-worker
+
+build-lambda:
+	go build $(LDFLAGS) -o bin/notifications-lambda ./cmd/notifications-lambda
+
+build: build-guest build-business build-auth build-migrator build-notifications build-outbox build-lambda
 
 tidy:
 	go mod tidy
@@ -45,17 +82,17 @@ s3-up:
 	bash scripts/bootstrap.sh
 
 s3-ui:
-	docker compose -f docker/compose.yaml up -d garage_webui
-	@echo "web_ui: http://localhost:3909"
+	docker compose -f build/compose.yaml up -d garage_webui
+	@echo "web_ui: http://localhost:4309"
 
 goose-up:
-	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" up
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$(DB_DSN)" goose -dir $(MIGRATIONS_DIR) up
 
 goose-down:
-	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" down
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$(DB_DSN)" goose -dir $(MIGRATIONS_DIR) down
 
 goose-status:
-	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" status
+	GOOSE_DRIVER=postgres GOOSE_DBSTRING="$(DB_DSN)" goose -dir $(MIGRATIONS_DIR) status
 
 goose-create:
 	@if [ -z "$(name)" ]; then \
@@ -94,3 +131,46 @@ clean:
 	@echo "cleaning generated files..."
 	rm -rf docs/api
 	rm -rf internal/guest/gateway/business/client
+
+docker-build:
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t guest-api -f build/Dockerfile.guest .
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t business-api -f build/Dockerfile.business .
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t admin-auth-api -f build/Dockerfile.admin .
+	docker build \
+	  --build-arg VERSION=$(VERSION) \
+	  --build-arg COMMIT=$(COMMIT) \
+	  --build-arg BUILD_TIME=$(BUILD_TIME) \
+	  -t migrator -f build/Dockerfile.migrator .
+
+k8s-secrets:
+	kubectl apply -f deploy/k8s/infra/namespace.yaml
+	kubectl apply -f $(K8S_SECRETS_FILE)
+
+k8s-up: k8s-secrets
+	kubectl apply -k deploy/k8s/infra
+	kubectl wait --for=create secret/$(K8S_SECRET_NAME) -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl rollout status statefulset/postgres -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl rollout status deployment/redis -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	@echo "Infrastructure ready in namespace $(K8S_NAMESPACE)."
+	@echo "Next step: run 'make k8s-migrate'."
+
+# Job pod templates are immutable; set image in deploy/k8s/infra/migrator-job.yaml before apply.
+k8s-migrate:
+	kubectl delete job share-bite-migrator -n $(K8S_NAMESPACE) --ignore-not-found=true
+	kubectl apply -f deploy/k8s/infra/migrator-job.yaml
+	kubectl wait --for=condition=complete --timeout=180s job/share-bite-migrator -n $(K8S_NAMESPACE)
+
+k8s-down:
+	kubectl delete namespace $(K8S_NAMESPACE) --ignore-not-found=true

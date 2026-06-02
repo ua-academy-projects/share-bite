@@ -82,7 +82,7 @@ func TestGetByUserName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			repo := new(mockCustomerRepository)
-			svc := New(repo)
+			svc := New(repo, nil, nil)
 			tt.mockFn(repo)
 
 			customer, err := svc.GetByUserName(context.Background(), tt.userName)

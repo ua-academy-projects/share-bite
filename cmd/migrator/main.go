@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"os"
+
+	"github.com/ua-academy-projects/share-bite/migrations"
 
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -13,15 +16,9 @@ import (
 func main() {
 	ctx := context.Background()
 
-	if err := config.Load(".env"); err != nil {
-		logger.Fatal(ctx, "config load: ", err)
+	if err := config.Load(".env"); err != nil && !os.IsNotExist(err) {
+		logger.Fatal(ctx, "config load:", err)
 	}
-
-	// docker variant
-	// if err := config.Load(); err != nil {
-	// 	logger.Fatal(ctx, "config load: ", err)
-	// }
-
 	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
@@ -34,8 +31,11 @@ func main() {
 		logger.Fatal(ctx, "set migrations dialect: ", err)
 	}
 
+	goose.SetBaseFS(migrations.FS)
+
 	db := stdlib.OpenDBFromPool(client.DB().Pool())
-	if err := goose.UpContext(ctx, db, config.Config().Postgres.MigrationsDir()); err != nil {
+
+	if err := goose.UpContext(ctx, db, "."); err != nil {
 		logger.Fatal(ctx, "migrate up: ", err)
 	}
 

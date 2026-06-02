@@ -3,8 +3,6 @@ package env
 import (
 	"net"
 	"strings"
-
-	"github.com/caarlos0/env/v11"
 )
 
 type httpServerConfig struct {
@@ -17,11 +15,9 @@ type httpServerConfig struct {
 	ExposeHeadersRaw  string `env:"HTTP_SERVER_EXPOSE_HEADERS"`
 }
 
-func NewHttpServerConfig(prefix string) (*httpServerConfig, error) {
+func NewHttpServerConfig(prefix string, opts ...Options) (*httpServerConfig, error) {
 	config := new(httpServerConfig)
-	if err := env.ParseWithOptions(config, env.Options{
-		Prefix: prefix,
-	}); err != nil {
+	if err := Parse(config, append([]Options{{Prefix: prefix}}, opts...)...); err != nil {
 		return nil, err
 	}
 

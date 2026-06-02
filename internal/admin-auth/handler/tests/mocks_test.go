@@ -19,6 +19,8 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 type mockUserRepository struct {
@@ -164,6 +166,11 @@ func (m *mockUserRepository) GetUserIDByRefreshToken(ctx context.Context, tokenH
 	return args.String(0), args.Error(1)
 }
 
+func (m *mockUserRepository) RevokeTokenByUser(ctx context.Context, tokenHash string, userID string) error {
+	args := m.Called(ctx, tokenHash, userID)
+	return args.Error(0)
+}
+
 func (m *mockUserRepository) RevokeAllUserTokens(ctx context.Context, userID string) error {
 	args := m.Called(ctx, userID)
 	return args.Error(0)
@@ -280,9 +287,14 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 	return args.Error(0)
 }
 
+func (s *mockEmailSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]any) error {
+	args := s.Called(ctx, toEmail, subject, templateName, data)
+	return args.Error(0)
+}
+
 type stubTokenProvider struct{}
 
-func (s stubTokenProvider) GenerateToken(_ string, _ string) (string, string, error) {
+func (s stubTokenProvider) GenerateToken(_ string, _ string, _ jwt.UserStatus) (string, string, error) {
 	return "", "", errors.New("unexpected GenerateToken call")
 }
 
@@ -298,6 +310,12 @@ type noopTxManager struct{}
 
 func (noopTxManager) ReadCommitted(ctx context.Context, fn database.Handler) error {
 	return fn(ctx)
+}
+
+type noopOutboxWriter struct{}
+
+func (n noopOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error {
+	return nil
 }
 
 func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *auth.Handler {

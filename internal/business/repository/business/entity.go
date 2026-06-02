@@ -19,6 +19,7 @@ type OrgUnit struct {
 	Latitude     *float32  `db:"latitude"`
 	Longitude    *float32  `db:"longitude"`
 	Status       string    `db:"status"`
+	H3Hash       *string   `db:"h3_hash"`
 }
 
 func (e OrgUnit) ToEntity() entity.OrgUnit {

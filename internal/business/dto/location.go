@@ -8,6 +8,7 @@ type CreateLocationInput struct {
 	Latitude    *float32
 	Longitude   *float32
 	TagIDs      []int
+	H3Hash      *string
 }
 
 type UpdateLocationInput struct {

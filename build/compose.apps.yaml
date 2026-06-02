@@ -44,3 +44,32 @@ services:
       - pg
     networks:
       - share-bite-net
+
+  notifications:
+    container_name: notifications
+    restart: on-failure
+    build:
+      context: ../
+      dockerfile: build/Dockerfile.notifications
+    ports:
+      - ${NOTIFICATION_HTTP_SERVER_PORT}:${NOTIFICATION_HTTP_SERVER_PORT}
+    env_file:
+      - ../.env
+    depends_on:
+      - pg
+      - redis
+    networks:
+      - share-bite-net
+
+  outbox:
+    container_name: outbox
+    restart: on-failure
+    build:
+      context: ../
+      dockerfile: build/Dockerfile.outbox
+    env_file:
+      - ../.env
+    depends_on:
+      - pg
+    networks:
+      - share-bite-net

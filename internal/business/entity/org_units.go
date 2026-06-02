@@ -28,6 +28,7 @@ type OrgUnit struct {
 	Longitude    *float32
 	Tags         []string
 	Status       OrgStatus
+	H3Hash       *string
 }
 
 type UpdateOrgUnitInput struct {

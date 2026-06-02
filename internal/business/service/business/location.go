@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/ua-academy-projects/share-bite/pkg/database/pagination"
 
 	"github.com/ua-academy-projects/share-bite/internal/business/dto"
@@ -47,25 +48,29 @@ func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID s
 	var location *entity.OrgUnit
 
 	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
-		created, err := s.businessRepo.CreateLocation(ctxTx, brandID, ownerUserID, in)
-		if err != nil {
-			return fmt.Errorf("%s: create location: %w", op, err)
+		if in.Latitude != nil && in.Longitude != nil {
+			hash := s.h3Service.GetH3Index(float64(*in.Latitude), float64(*in.Longitude), s.h3Config.Resolution)
+			in.H3Hash = &hash
 		}
 
-		if err := s.businessRepo.SetOrgUnitTagsByIDs(ctxTx, created.Id, in.TagIDs); err != nil {
+		location, err = s.businessRepo.CreateLocation(ctxTx, brandID, ownerUserID, in)
+		if err != nil {
+			return fmt.Errorf("%s: create location: %w", "business.service.CreateLocation", err)
+		}
+
+		if err := s.businessRepo.SetOrgUnitTagsByIDs(ctxTx, location.Id, in.TagIDs); err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return apperror.BadRequest("one or more tags are invalid")
 			}
 			return fmt.Errorf("%s: set location tags: %w", op, err)
 		}
 
-		tags, err := s.businessRepo.GetOrgUnitTagSlugs(ctxTx, created.Id)
+		tags, err := s.businessRepo.GetOrgUnitTagSlugs(ctxTx, location.Id)
 		if err != nil {
 			return fmt.Errorf("%s: get location tags: %w", op, err)
 		}
-		created.Tags = tags
+		location.Tags = tags
 
-		location = created
 		return nil
 	})
 	if err != nil {
@@ -107,11 +112,16 @@ func (s *service) UpdateLocation(ctx context.Context, locationID int, ownerUserI
 	}
 
 	var updated *entity.OrgUnit
-
 	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
 		var err error
 
-		updated, err = s.businessRepo.UpdateLocation(ctxTx, locationID, ownerBrandID, in)
+		var h3Hash *string
+		if in.Latitude != nil && in.Longitude != nil {
+			hash := s.h3Service.GetH3Index(float64(*in.Latitude), float64(*in.Longitude), s.h3Config.Resolution)
+			h3Hash = &hash
+		}
+
+		updated, err = s.businessRepo.UpdateLocation(ctxTx, locationID, ownerBrandID, in, h3Hash)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return apperror.LocationNotFoundID(locationID)
