@@ -37,4 +37,4 @@ data:
   # Docker Desktop (macOS/Windows): http://host.docker.internal:4300
   # Linux: http://172.17.0.1:4300 (or your bridge IP)
   # In-cluster Garage: http://garage:4300
-  S3_ENDPOINT: http://host.docker.internal:4300
+  S3_ENDPOINT: REPLACE_WITH_YOUR_S3_ENDPOINT
