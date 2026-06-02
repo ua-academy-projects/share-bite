@@ -106,12 +106,16 @@ func TestStream_SuccessAndMessages(t *testing.T) {
 		t.Errorf("expected content type text/event-stream, got %s", contentType)
 	}
 
-	msg := notification.Message{
-		UserID:    testUserID,
-		Type:      notification.PostLiked,
-		Data:      "test-payload",
-		CreatedAt: time.Now(),
-	}
+	msg := notification.NewMessageWithMetadata(
+		notification.PostLiked,
+		testUserID,
+		"actor-uuid-5678",
+		"post",
+		"entity-uuid-9999",
+		map[string]any{"message": "test-payload"},
+		time.Now(),
+	)
+
 	sub.publish(testUserID, msg)
 	time.Sleep(50 * time.Millisecond)
 	cancel()
@@ -126,8 +130,8 @@ func TestStream_SuccessAndMessages(t *testing.T) {
 	if !strings.Contains(body, "event:post_liked") {
 		t.Errorf("expected body to contain SSE event type 'post_liked', got: %s", body)
 	}
-	if !strings.Contains(body, "data:test-payload") {
-		t.Errorf("expected body to contain SSE data 'test-payload', got: %s", body)
+	if !strings.Contains(body, `"message":"test-payload"`) {
+		t.Errorf("expected body to contain JSON encoded metadata 'test-payload', got: %s", body)
 	}
 }
 

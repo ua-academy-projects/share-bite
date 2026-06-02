@@ -6,19 +6,16 @@ import (
 )
 
 func ToPostResponse(post *entity.PostWithPhotos) dto.PostResponse {
-	return dto.PostResponse{
+	response := dto.PostResponse{
 		ID:        post.ID,
 		Content:   post.Content,
-		CreatedAt: post.CreatedAt, 
-		Org: struct {
-			ID          int    `json:"id"`
-			Name        string `json:"name"`
-			ProfileType string `json:"profileType"`
-		}{
-			ID:          post.OrgID,
-			Name:        post.OrgName,
-			ProfileType: post.ProfileType,
-		},
-		Images: post.Images,
+		CreatedAt: post.CreatedAt,
+		Images:    post.Images,
 	}
+	response.Org.ID = post.OrgID
+	response.Org.Name = post.OrgName
+	response.Org.ProfileType = post.ProfileType
+	response.Org.Status = string(post.OrgStatus)
+
+	return response
 }

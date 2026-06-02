@@ -142,8 +142,8 @@ type PaginatedPendingBusinessesResponse struct {
 }
 
 type ReviewBusinessParams struct {
-	OrgUnitID int
-	AdminID   string
-	NewStatus string
-	Comment   *string
+	OrgUnitID int     `json:"orgUnitId"`
+	AdminID   string  `json:"adminId" binding:"required,uuid"`
+	NewStatus string  `json:"newStatus"`
+	Comment   *string `json:"comment"`
 }

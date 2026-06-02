@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
 )
 
@@ -58,7 +60,6 @@ func (h *handler) stream(c *gin.Context) {
 		}()
 	}
 	h.runsMu.Unlock()
-
 	c.Header("Content-Type", "text/event-stream;charset=utf-8")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
@@ -73,7 +74,13 @@ func (h *handler) stream(c *gin.Context) {
 			if !ok {
 				return false
 			}
-			c.SSEvent(string(msg.Type), msg.Data)
+			payload, err := json.Marshal(msg)
+			if err != nil {
+				logger.ErrorKV(ctx, "failed to marshal notification message", "error", err.Error(), "event_type", msg.EventType)
+				return true
+			}
+
+			c.SSEvent(string(msg.EventType), string(payload))
 			return true
 		case <-ctx.Done():
 			return false

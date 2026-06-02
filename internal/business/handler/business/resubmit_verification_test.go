@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
@@ -19,10 +20,15 @@ const validHackerUUID = "987e4567-e89b-12d3-a456-426614174000"
 type testAccessTokenParser struct {
 	mockUserID string
 	mockRole   string
+	mockStatus jwt.UserStatus
 }
 
-func (p testAccessTokenParser) ParseAccessToken(string) (string, string, error) {
-	return p.mockUserID, p.mockRole, nil
+func (p testAccessTokenParser) ParseAccessToken(string) (jwt.AccessTokenPayload, error) {
+	return jwt.AccessTokenPayload{
+		UserID: p.mockUserID,
+		Role:   p.mockRole,
+		Status: p.mockStatus,
+	}, nil
 }
 
 type resubmitVerificationServiceMock struct {
@@ -49,12 +55,12 @@ func setupResubmitRouter(s businessService, mockUserID, mockRole string) *gin.En
 	parser := testAccessTokenParser{
 		mockUserID: mockUserID,
 		mockRole:   mockRole,
+		mockStatus: jwt.UserStatusActive,
 	}
-	RegisterHandlers(r.Group("/business"), s, parser)
+	RegisterHandlers(r.Group("/business"), s, parser, nil)
 
 	return r
 }
-
 func TestResubmitVerification_Success(t *testing.T) {
 	mock := &resubmitVerificationServiceMock{}
 

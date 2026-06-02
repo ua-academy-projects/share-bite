@@ -176,7 +176,6 @@ func (s *service) ChangeUserRole(ctx context.Context, targetUserID string, newRo
 }
 
 func (s *service) GetPendingBusinessesList(ctx context.Context, limit, offset int) (*dto.PaginatedPendingBusinessesResponse, error) {
-
 	items, totalCount, err := s.businessService.GetPendingBusinesses(ctx, limit, offset)
 	if err != nil {
 		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to get pending businesses list", err)
@@ -218,21 +217,25 @@ func (s *service) ReviewBusinessStatus(ctx context.Context, params dto.ReviewBus
 	}
 
 	var eventType notification.EventType
-	var messageData string
+	metadata := make(map[string]any)
 
 	if params.NewStatus == "verified" {
 		eventType = notification.BusinessVerified
-		messageData = "Congratulations! Your business verification request has been successfully approved."
+		metadata["message"] = "Congratulations! Your business verification request has been successfully approved."
 	} else {
 		eventType = notification.BusinessRejected
-		messageData = fmt.Sprintf("We regret to inform you that your business verification request has been rejected. Reason: %s", *params.Comment)
+		metadata["message"] = fmt.Sprintf("We regret to inform you that your business verification request has been rejected. Reason: %s", *params.Comment)
 	}
-	notificationMsg := notification.Message{
-		UserID:    ownerID,
-		Type:      eventType,
-		Data:      messageData,
-		CreatedAt: time.Now(),
-	}
+
+	notificationMsg := notification.NewMessageWithMetadata(
+		eventType,
+		ownerID,
+		params.AdminID,
+		"business",
+		fmt.Sprintf("%d", params.OrgUnitID),
+		metadata,
+		time.Now(),
+	)
 
 	if pubErr := s.broker.Publish(ctx, ownerID, notificationMsg); pubErr != nil {
 		logger.ErrorKV(ctx, "failed to publish review notification to redis", "org_unit_id", params.OrgUnitID, "error", pubErr.Error())
