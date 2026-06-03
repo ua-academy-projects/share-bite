@@ -13,8 +13,6 @@ func (s *service) RemoveVenue(
 	customerID string,
 	venueID int64,
 ) error {
-	// TODO: check whether this venue exists
-
 	if txErr := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
 		collection, err := s.collectionRepo.GetCollectionForUpdate(ctx, collectionID)
 		if err != nil {
