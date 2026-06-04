@@ -273,7 +273,13 @@ func main() {
 		commentsvc.WithStorage(storageClient),
 	)
 	collectionSvc := collectionsvc.New(collectionRepo, customerRepo, txManager, businessGateway, collectionsvc.WithPublisher(broker))
-	followSvc := followsvc.New(followRepo, customerRepo)
+	followSvc := followsvc.New(
+		followRepo,
+		customerRepo,
+		followsvc.WithOutboxWriter(outboxWriter),
+		followsvc.WithTxManager(txManager),
+		followsvc.WithStorage(storageClient),
+	)
 
 	// middlewares
 	authMiddleware := middleware.Auth(tokenManager)
