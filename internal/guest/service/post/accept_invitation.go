@@ -70,16 +70,6 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 				)
 			}
 
-			actorName := actor.UserName
-
-			if actor.FirstName != "" || actor.LastName != "" {
-				actorName = fmt.Sprintf(
-					"%s %s",
-					actor.FirstName,
-					actor.LastName,
-				)
-			}
-
 			var actorAvatar string
 
 			if actor.AvatarObjectKey != nil {
@@ -106,7 +96,7 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 					continue
 				}
 
-				eventType := "post_published"
+				eventType := outbox.EventTypePostPublished
 
 				eventID := outbox.NewEventID(
 					eventType,
@@ -124,7 +114,6 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 					EntityType:  "post",
 					EntityID:    postID,
 					Metadata: map[string]any{
-						"actor_name":     actorName,
 						"actor_avatar":   actorAvatar,
 						"actor_username": actor.UserName,
 					},

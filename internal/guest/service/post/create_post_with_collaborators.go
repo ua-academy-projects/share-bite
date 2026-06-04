@@ -107,16 +107,6 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 					)
 				}
 
-				actorName := actor.UserName
-
-				if actor.FirstName != "" || actor.LastName != "" {
-					actorName = fmt.Sprintf(
-						"%s %s",
-						actor.FirstName,
-						actor.LastName,
-					)
-				}
-
 				var actorAvatar string
 
 				if actor.AvatarObjectKey != nil && s.storage != nil {
@@ -135,7 +125,7 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 						continue
 					}
 
-					eventType := "post_invitation_received"
+					eventType := outbox.EventTypePostInvitationReceived
 
 					eventID := outbox.NewEventID(
 						eventType,
@@ -154,7 +144,6 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 						EntityID:    post.ID,
 						Metadata: map[string]any{
 							"inviter_customer_id": in.CustomerID,
-							"actor_name":          actorName,
 							"actor_avatar":        actorAvatar,
 							"actor_username":      actor.UserName,
 						},
