@@ -95,7 +95,7 @@ func TestResubmitVerification_InvalidURI_ReturnsBadRequest(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
+	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d, body: %s", w.Code, w.Body.String())
 	}
 	if mock.called {
