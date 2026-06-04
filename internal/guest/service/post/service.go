@@ -52,6 +52,7 @@ type VenueProvider interface {
 
 type followRepo interface {
 	GetAllowedMentions(ctx context.Context, customerID string, mentions []string) ([]string, error)
+	GetFollowers(ctx context.Context, customerID string) ([]entity.Customer, error)
 }
 
 type customerRepo interface {

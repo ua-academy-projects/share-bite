@@ -76,6 +76,81 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 
 				result = updatedPost
 
+				if s.outboxWriter != nil {
+					actor, err := s.customerRepo.GetByID(
+						txCtx,
+						in.CustomerID,
+					)
+					if err != nil {
+						return fmt.Errorf(
+							"get author customer: %w",
+							err,
+						)
+					}
+
+					var actorAvatar string
+					if actor.AvatarObjectKey != nil && s.storage != nil {
+						actorAvatar = s.storage.BuildURL(
+							*actor.AvatarObjectKey,
+						)
+					}
+
+					followers, err := s.followRepo.GetFollowers(
+						txCtx,
+						in.CustomerID,
+					)
+					if err != nil {
+						return fmt.Errorf(
+							"get author followers: %w",
+							err,
+						)
+					}
+
+					for _, follower := range followers {
+						if follower.UserID == "" {
+							continue
+						}
+
+						eventType := outbox.EventTypePostPublished
+
+						eventID := outbox.NewEventID(
+							eventType,
+							follower.UserID,
+							in.CustomerID,
+							"post",
+							post.ID,
+						)
+
+						evt := outbox.Message{
+							EventID:     eventID,
+							EventType:   eventType,
+							RecipientID: follower.UserID,
+							ActorID:     in.CustomerID,
+							EntityType:  "post",
+							EntityID:    post.ID,
+							Metadata: map[string]any{
+								"actor_avatar":   actorAvatar,
+								"actor_username": actor.UserName,
+							},
+							CreatedAt: time.Now().UTC(),
+						}
+
+						if err := s.outboxWriter.Enqueue(
+							txCtx,
+							outbox.Event{
+								EventType:     eventType,
+								Payload:       evt,
+								SourceService: outbox.DefaultSourceService,
+							},
+						); err != nil {
+							return fmt.Errorf(
+								"enqueue outbox event for follower: %w",
+								err,
+							)
+						}
+					}
+				}
+
 				return nil
 			}
 

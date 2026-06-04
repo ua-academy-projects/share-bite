@@ -2,6 +2,8 @@ package follow
 
 import (
 	"context"
+	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/guest/error"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 )
@@ -130,4 +132,35 @@ func (r *Repository) GetAllowedMentions(ctx context.Context, customerID string, 
 	}
 
 	return ids, nil
+}
+
+func (r *Repository) GetFollowers(ctx context.Context, customerID string) ([]entity.Customer, error) {
+	sql := `
+		SELECT c.id, c.user_id, c.username, c.first_name, c.last_name, c.avatar_object_key, c.bio, c.is_followers_public, c.is_following_public, c.created_at
+		FROM guest.customer_follows cf
+		JOIN guest.customers c ON cf.follower_customer_id = c.id
+		WHERE cf.followed_customer_id = $1
+	`
+	q := database.Query{
+		Name: "follow_repository.GetFollowers",
+		Sql:  sql,
+	}
+
+	rows, err := r.db.DB().QueryContext(ctx, q, customerID)
+	if err != nil {
+		return nil, executeSQLError(err)
+	}
+	defer rows.Close()
+
+	var resultRows []FollowerCustomer
+	if err := pgxscan.ScanAll(&resultRows, rows); err != nil {
+		return nil, scanRowsError(err)
+	}
+
+	result := make([]entity.Customer, 0, len(resultRows))
+	for _, row := range resultRows {
+		result = append(result, row.ToEntity())
+	}
+
+	return result, nil
 }

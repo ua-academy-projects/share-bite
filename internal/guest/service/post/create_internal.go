@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/dto"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
@@ -221,6 +223,55 @@ func (s *service) createPostTx(ctx context.Context, in dto.CreatePostInput, post
 				"create mentions: %w",
 				err,
 			)
+		}
+
+		if s.outboxWriter != nil && s.customerRepo != nil {
+			actor, err := s.customerRepo.GetByID(ctx, in.CustomerID)
+			if err != nil {
+				return entity.Post{}, fmt.Errorf("get actor customer: %w", err)
+			}
+
+			var actorAvatar string
+			if actor.AvatarObjectKey != nil {
+				actorAvatar = s.storage.BuildURL(*actor.AvatarObjectKey)
+			}
+
+			for _, mention := range in.Mentions {
+				mentionedCustomer, err := s.customerRepo.GetByID(ctx, mention)
+				if err != nil {
+					logger.ErrorKV(ctx, "failed to get mentioned customer, skipping mention notification", "customer_id", mention, "error", err)
+					continue
+				}
+
+				if mentionedCustomer.UserID == "" {
+					continue
+				}
+
+				eventType := outbox.EventTypePostMentioned
+				eventID := outbox.NewEventID(eventType, mentionedCustomer.UserID, in.CustomerID, "post", createdPost.ID)
+
+				evt := outbox.Message{
+					EventID:     eventID,
+					EventType:   eventType,
+					RecipientID: mentionedCustomer.UserID,
+					ActorID:     in.CustomerID,
+					EntityType:  "post",
+					EntityID:    createdPost.ID,
+					Metadata: map[string]any{
+						"actor_avatar":   actorAvatar,
+						"actor_username": actor.UserName,
+					},
+					CreatedAt: time.Now().UTC(),
+				}
+
+				if err := s.outboxWriter.Enqueue(ctx, outbox.Event{
+					EventType:     eventType,
+					Payload:       evt,
+					SourceService: outbox.DefaultSourceService,
+				}); err != nil {
+					return entity.Post{}, fmt.Errorf("enqueue mention outbox event: %w", err)
+				}
+			}
 		}
 	}
 
