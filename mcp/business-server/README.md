@@ -37,6 +37,7 @@ The server maintains a single, persistent `httpx.AsyncClient` connection pool to
 | Variable | Description | Default |
 |:---------|:------------|:--------|
 | `BUSINESS_API_REQUEST_TIMEOUT_SECONDS` | Timeout for requests to `business-api` | `10` |
+| `BUSINESS_API_AUTH_TOKEN` | Fallback token for local stdio mode | `None` |
 | `MCP_TRANSPORT` | MCP transport: `stdio` or `streamable-http` | `stdio` |
 | `MCP_HOST` | Host for Streamable HTTP mode | `127.0.0.1` |
 | `MCP_PORT` | Port for Streamable HTTP mode | `8000` |
@@ -46,7 +47,7 @@ The server maintains a single, persistent `httpx.AsyncClient` connection pool to
 
 ## Auth And Request Context
 
-Tools automatically extract the `Authorization` token from the MCP request context headers. If an `auth_token` argument is explicitly provided, it overrides the context headers and is forwarded to the `business-api`.
+Tools automatically extract the `Authorization` token from the MCP request context headers. If the server is running locally in `stdio` mode (where HTTP headers are unavailable), it will fall back to using the `BUSINESS_API_AUTH_TOKEN` environment variable.
 
 Tools propagate `X-Request-ID` when a `request_id` argument is provided. If no request ID is provided, the MCP server generates one.
 
@@ -64,10 +65,11 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 ```
 
-Set the required environment variable:
+Set the required environment variables:
 
 ```powershell
 $env:BUSINESS_API_BASE_URL="http://localhost:3900"
+$env:BUSINESS_API_AUTH_TOKEN="my-test-token"
 ```
 
 ### Run With Stdio
@@ -83,6 +85,7 @@ Stdio mode is intended to be started by an MCP client.
 
 ```powershell
 $env:BUSINESS_API_BASE_URL="http://localhost:3900"
+$env:BUSINESS_API_AUTH_TOKEN="my-test-token"
 $env:MCP_TRANSPORT="streamable-http"
 $env:MCP_HOST="127.0.0.1"
 $env:MCP_PORT="8000"
@@ -110,7 +113,11 @@ http://localhost:3900/swagger/doc.json
 
 Then verify that an MCP client can list tools and resources:
 
-```python
+```powershell
+$env:BUSINESS_API_BASE_URL="http://localhost:3900"
+$env:BUSINESS_API_AUTH_TOKEN="my-test-token"
+
+@'
 import asyncio
 import os
 
@@ -125,6 +132,7 @@ async def main():
         env={
             **os.environ,
             "BUSINESS_API_BASE_URL": "http://localhost:3900",
+            "BUSINESS_API_AUTH_TOKEN": "my-test-token",
             "MCP_TRANSPORT": "stdio",
         },
     )
@@ -145,6 +153,7 @@ async def main():
 
 
 asyncio.run(main())
+'@ | .\.venv\Scripts\python.exe -
 ```
 
 **Expected tools:**
@@ -165,7 +174,8 @@ sharebite://business/openapi-summary
 
 Verify that health and status calls reach `business-api`:
 
-```python
+```powershell
+@'
 import asyncio
 import os
 
@@ -180,6 +190,7 @@ async def main():
         env={
             **os.environ,
             "BUSINESS_API_BASE_URL": "http://localhost:3900",
+            "BUSINESS_API_AUTH_TOKEN": "my-test-token",
             "MCP_TRANSPORT": "stdio",
         },
     )
@@ -198,6 +209,7 @@ async def main():
 
 
 asyncio.run(main())
+'@ | .\.venv\Scripts\python.exe -
 ```
 
 A successful response includes:

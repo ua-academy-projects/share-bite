@@ -14,7 +14,6 @@ def register_tools(mcp: FastMCP, settings: Settings, client: BusinessApiClient) 
     @mcp.tool()
     async def business_health_check(
         ctx: Context,
-        auth_token: str | None = None,
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
@@ -24,8 +23,10 @@ def register_tools(mcp: FastMCP, settings: Settings, client: BusinessApiClient) 
         request_id is propagated as X-Request-ID when provided.
         """
         headers = _extract_headers(ctx)
+        final_token = resolve_auth_token(headers=headers)
 
-        final_token = resolve_auth_token(headers=headers, explicit_token=auth_token)
+        if not final_token:
+            raise RuntimeError("Unauthorized: Missing authentication token")
 
         try:
             data = await client.get(
@@ -50,7 +51,6 @@ def register_tools(mcp: FastMCP, settings: Settings, client: BusinessApiClient) 
     @mcp.tool()
     async def get_business_api_status(
         ctx: Context,
-        auth_token: str | None = None,
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
@@ -61,7 +61,10 @@ def register_tools(mcp: FastMCP, settings: Settings, client: BusinessApiClient) 
 
         headers = _extract_headers(ctx)
 
-        final_token = resolve_auth_token(headers=headers, explicit_token=auth_token)
+        final_token = resolve_auth_token(headers=headers)
+
+        if not final_token:
+            raise RuntimeError("Unauthorized: Missing authentication token")
 
         try:
             data = await client.get(
@@ -89,9 +92,9 @@ def register_tools(mcp: FastMCP, settings: Settings, client: BusinessApiClient) 
         }
 
 
-def _extract_headers(ctx:Context) -> dict[str, str]:
+def _extract_headers(ctx: Context) -> dict[str, str]:
     """
-    Extract headers from MCP context, regardless of type of object
+    Extract headers from MCP context, regardless of type of object.
     """
     if not ctx.request_context or not ctx.request_context.meta:
         return {}
@@ -105,7 +108,10 @@ def _extract_headers(ctx:Context) -> dict[str, str]:
     elif isinstance(meta, dict):
         meta_dict = meta 
     else:
-        meta_dict = vars(meta)
+        try:
+            meta_dict = vars(meta)
+        except TypeError:
+            return {}
 
     headers = meta_dict.get("headers", {})
     return headers if isinstance(headers, dict) else {}
