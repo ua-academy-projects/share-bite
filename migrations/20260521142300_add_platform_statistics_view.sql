@@ -3,12 +3,21 @@
 CREATE SCHEMA IF NOT EXISTS analytics;
 
 CREATE OR REPLACE VIEW analytics.platform_statistics AS
+WITH role_counts AS (
+    SELECT
+        COUNT(*) FILTER (WHERE r.slug = 'admin') AS total_admin_users,
+        COUNT(*) FILTER (WHERE r.slug = 'moderator') AS total_moderator_users,
+        COUNT(*) FILTER (WHERE r.slug = 'user') AS total_regular_users,
+        COUNT(*) FILTER (WHERE r.slug = 'business') AS total_business_role_users
+    FROM auth.user_roles ur
+    JOIN auth.roles r ON r.id = ur.role_id
+)
 SELECT
     (SELECT COUNT(*) FROM auth.users) AS total_users,
-    (SELECT COUNT(*) FROM auth.user_roles ur JOIN auth.roles r ON r.id = ur.role_id WHERE r.slug = 'admin') AS total_admin_users,
-    (SELECT COUNT(*) FROM auth.user_roles ur JOIN auth.roles r ON r.id = ur.role_id WHERE r.slug = 'moderator') AS total_moderator_users,
-    (SELECT COUNT(*) FROM auth.user_roles ur JOIN auth.roles r ON r.id = ur.role_id WHERE r.slug = 'user') AS total_regular_users,
-    (SELECT COUNT(*) FROM auth.user_roles ur JOIN auth.roles r ON r.id = ur.role_id WHERE r.slug = 'business') AS total_business_role_users,
+    (SELECT total_admin_users FROM role_counts) AS total_admin_users,
+    (SELECT total_moderator_users FROM role_counts) AS total_moderator_users,
+    (SELECT total_regular_users FROM role_counts) AS total_regular_users,
+    (SELECT total_business_role_users FROM role_counts) AS total_business_role_users,
     (SELECT COUNT(*) FROM auth.users WHERE status = 'active') AS total_active_users,
     (SELECT COUNT(*) FROM auth.users WHERE status = 'muted') AS total_muted_users,
     (SELECT COUNT(*) FROM auth.users WHERE status = 'suspended') AS total_suspended_users,
