@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -180,39 +181,17 @@ func (r *adminRepository) GetPlatformStatistics(ctx context.Context) (*dto.Platf
        `,
 	}
 
-	var stats dto.PlatformStatisticsResponse
-	err := r.client.DB().QueryRowContext(ctx, q).Scan(
-		&stats.TotalUsers,
-		&stats.TotalAdminUsers,
-		&stats.TotalModeratorUsers,
-		&stats.TotalRegularUsers,
-		&stats.TotalBusinessRoleUsers,
-		&stats.TotalActiveUsers,
-		&stats.TotalMutedUsers,
-		&stats.TotalSuspendedUsers,
-		&stats.TotalCustomers,
-		&stats.TotalGuestPosts,
-		&stats.TotalGuestComments,
-		&stats.TotalGuestPostLikes,
-		&stats.TotalCollections,
-		&stats.AvgPostsPerCustomer,
-		&stats.AvgCommentsPerCustomer,
-		&stats.AvgCommentsPerPost,
-		&stats.CollectionsWithCollaborators,
-		&stats.PostsWithCollaborators,
-		&stats.TotalBusinessOrgUnits,
-		&stats.TotalBusinessPosts,
-		&stats.TotalBusinessComments,
-		&stats.TotalBusinessLikes,
-		&stats.TotalBusinessBoxes,
-		&stats.TotalBusinessBoxItems,
-		&stats.AvgPostsPerBusiness,
-		&stats.AvgCommentsPerBusiness,
-		&stats.AvgBusinessCommentsPerPost,
-	)
+	row, err := r.client.DB().QueryContext(ctx, q)
 	if err != nil {
-		return nil, apperr.Wrap(http.StatusInternalServerError, "get platform statistics", fmt.Errorf("scan row: %w", err))
+		return nil, apperr.Wrap(http.StatusInternalServerError, "get platform statistics", executeSQLError(err))
+	}
+	defer row.Close()
+
+	var stats PlatformStatistics
+	if err := pgxscan.ScanOne(&stats, row); err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "get platform statistics", scanRowError(err))
 	}
 
-	return &stats, nil
+	resp := stats.ToDTO()
+	return &resp, nil
 }
