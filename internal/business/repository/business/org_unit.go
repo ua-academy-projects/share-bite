@@ -410,42 +410,43 @@ func (r *Repository) SearchVenues(ctx context.Context, query string, offset, lim
 
 func (r *Repository) ResubmitVerification(ctx context.Context, id int, userID string) error {
 	const op = "repository.business.ResubmitVerification"
-	var currentStatus string
-	checkQuery := `
-       SELECT status 
-       FROM business.org_units 
-       WHERE id = $1 AND org_account_id = $2::uuid
-    `
-	qCheck := database.Query{
-		Name: "business_repository.GetStatusForResubmit",
-		Sql:  checkQuery,
-	}
-
-	err := r.db.DB().QueryRowContext(ctx, qCheck, id, userID).Scan(&currentStatus)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("%s: %w", op, ErrNotFound)
-		}
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	if currentStatus != "rejected" {
-		return fmt.Errorf("%s: %w", op, ErrInvalidStatus)
-	}
-
 	sqlQuery := `
        UPDATE business.org_units
        SET status = 'pending'
-       WHERE id = $1 AND org_account_id = $2::uuid
+       WHERE id = $1 
+         AND org_account_id = $2::uuid 
+         AND status = 'rejected'
     `
 	qUpdate := database.Query{
 		Name: "business_repository.ResubmitVerification",
 		Sql:  sqlQuery,
 	}
 
-	_, err = r.db.DB().ExecContext(ctx, qUpdate, id, userID)
+	tag, err := r.db.DB().ExecContext(ctx, qUpdate, id, userID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		var currentStatus string
+		checkQuery := `
+          SELECT status 
+          FROM business.org_units 
+          WHERE id = $1 AND org_account_id = $2::uuid
+       `
+		qCheck := database.Query{
+			Name: "business_repository.GetStatusForResubmitDiagnosis",
+			Sql:  checkQuery,
+		}
+
+		err := r.db.DB().QueryRowContext(ctx, qCheck, id, userID).Scan(&currentStatus)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("%s: %w", op, ErrNotFound)
+			}
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		return fmt.Errorf("%s: %w", op, ErrInvalidStatus)
 	}
 
 	return nil

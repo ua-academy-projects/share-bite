@@ -64,6 +64,17 @@ func (h *Hub) Unregister(c *Client) {
 }
 
 func (h *Hub) Run(ctx context.Context, channelName string) error {
+	defer func() {
+		h.mu.Lock()
+		if ctx.Err() == nil {
+			if cancel, hasCancel := h.cancels[channelName]; hasCancel {
+				cancel()
+				delete(h.cancels, channelName)
+			}
+		}
+		h.mu.Unlock()
+	}()
+
 	msgChan, err := h.subscription.Subscribe(ctx, channelName)
 	if err != nil {
 		logger.ErrorKV(ctx, "failed to subscribe to notification channel", "channel", channelName, "error", err)
