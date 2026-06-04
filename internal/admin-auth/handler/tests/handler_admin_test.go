@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -130,17 +131,33 @@ func TestAdminHandler_GetPlatformStatistics(t *testing.T) {
 		h := admin.NewHandler(mockSvc)
 
 		expected := &dto.PlatformStatisticsResponse{
-			TotalUsers:                   100,
-			TotalCustomers:                 80,
-			TotalBusinessPosts:             15,
-			AvgPostsPerCustomer:            2.5,
-			AvgCommentsPerCustomer:         4.2,
-			AvgCommentsPerPost:             1.3,
-			CollectionsWithCollaborators:   12,
-			PostsWithCollaborators:         7,
-			AvgPostsPerBusiness:            3.1,
-			AvgCommentsPerBusiness:         5.0,
-			AvgBusinessCommentsPerPost:     0.8,
+			TotalUsers:                     100,
+			TotalAdminUsers:                2,
+			TotalModeratorUsers:            3,
+			TotalRegularUsers:              85,
+			TotalBusinessRoleUsers:         10,
+			TotalActiveUsers:               90,
+			TotalMutedUsers:                  5,
+			TotalSuspendedUsers:              5,
+			TotalCustomers:                   80,
+			TotalGuestPosts:                 200,
+			TotalGuestComments:              840,
+			TotalGuestPostLikes:            1500,
+			TotalCollections:                 45,
+			AvgPostsPerCustomer:              2.5,
+			AvgCommentsPerCustomer:           4.2,
+			AvgCommentsPerPost:               1.3,
+			CollectionsWithCollaborators:     12,
+			PostsWithCollaborators:            7,
+			TotalBusinessOrgUnits:            25,
+			TotalBusinessPosts:               15,
+			TotalBusinessComments:            75,
+			TotalBusinessLikes:              120,
+			TotalBusinessBoxes:                8,
+			TotalBusinessBoxItems:            32,
+			AvgPostsPerBusiness:              3.1,
+			AvgCommentsPerBusiness:           5.0,
+			AvgBusinessCommentsPerPost:       0.8,
 		}
 
 		mockSvc.On("GetPlatformStatistics", mock.Anything).Return(expected, nil)
@@ -153,8 +170,11 @@ func TestAdminHandler_GetPlatformStatistics(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Contains(t, w.Body.String(), "\"total_users\":100")
-		assert.Contains(t, w.Body.String(), "\"total_customers\":80")
+
+		expectedBody, err := json.Marshal(expected)
+		require.NoError(t, err)
+		require.JSONEq(t, string(expectedBody), w.Body.String())
+
 		mockSvc.AssertExpectations(t)
 	})
 
