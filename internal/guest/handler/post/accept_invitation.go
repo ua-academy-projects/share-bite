@@ -47,5 +47,5 @@ func (h *handler) acceptInvitation(c *gin.Context) {
 }
 
 type invitationParams struct {
-	InvitationID string `uri:"invitationId" binding:"required"`
+	InvitationID string `uri:"id" binding:"required"`
 }

@@ -94,7 +94,7 @@ func main() {
 		config.Config().JwtToken.AccessTokenTTL(),
 		config.Config().JwtToken.RefreshTokenTTL(),
 	)
-	authMiddleware := middleware.Auth(tokenManager)
+	authMiddleware := middleware.OptionalAuth(tokenManager)
 
 	router := gin.New()
 	router.Use(gin.Recovery(), ErrorMiddleware())
