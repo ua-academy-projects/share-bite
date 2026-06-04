@@ -211,7 +211,7 @@ func (r *adminRepository) GetPlatformStatistics(ctx context.Context) (*dto.Platf
 		&stats.AvgBusinessCommentsPerPost,
 	)
 	if err != nil {
-		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to get platform statistics", err)
+		return nil, apperr.Wrap(http.StatusInternalServerError, "get platform statistics", fmt.Errorf("scan row: %w", err))
 	}
 
 	return &stats, nil
