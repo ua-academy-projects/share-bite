@@ -6,6 +6,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/admin-auth"
 	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
@@ -40,9 +41,9 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler
 	}
 	adminGroup := r.Group("/admin").Use(authMiddleware)
 	{
-		adminGroup.GET("/statistics", middleware.RequireRoles("admin", "moderator"), adminHandler.GetPlatformStatistics)
-		adminGroup.GET("/users", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUsersList)
-		adminGroup.GET("/users/:id", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUserDetails)
-		adminGroup.PATCH("/users/:id/role", middleware.RequireRoles("admin"), adminHandler.ChangeUserRole)
+		adminGroup.GET("/statistics", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetPlatformStatistics)
+		adminGroup.GET("/users", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetUsersList)
+		adminGroup.GET("/users/:id", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetUserDetails)
+		adminGroup.PATCH("/users/:id/role", middleware.RequireRoles(models.RoleAdmin), adminHandler.ChangeUserRole)
 	}
 }
