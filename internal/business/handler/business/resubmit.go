@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
@@ -26,14 +27,14 @@ type resubmitResponse struct {
 //	@Failure      400   {object}  errorResponse
 //	@Failure      401   {object}  errorResponse
 //	@Failure      500   {object}  errorResponse
-//	@Router       /business/org-units/{id}/resubmit [post]
+//	@Router       /business/{id}/resubmit [post]
 func (h *handler) resubmitVerification(c *gin.Context) {
 	ctx := c.Request.Context()
 	log := logger.FromContext(ctx)
 
 	req := new(resubmitRequest)
 	if err := c.ShouldBindUri(req); err != nil {
-		_ = c.Error(err)
+		_ = c.Error(apperror.BadRequest("invalid uri parameters: organization ID must be an integer"))
 		return
 	}
 

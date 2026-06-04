@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -46,20 +45,15 @@ func (h *handler) stream(c *gin.Context) {
 		UserID: userID,
 		Send:   make(chan notification.Message, 16),
 	}
-	h.hub.Register(client)
+	userCtx := h.hub.Register(client)
 	defer h.hub.Unregister(client)
 
-	h.runsMu.Lock()
-	if !h.activeRuns[userID] {
-		h.activeRuns[userID] = true
+	if userCtx != nil {
 		go func() {
-			_ = h.hub.Run(context.Background(), userID)
-			h.runsMu.Lock()
-			delete(h.activeRuns, userID)
-			h.runsMu.Unlock()
+			_ = h.hub.Run(userCtx, userID)
 		}()
 	}
-	h.runsMu.Unlock()
+
 	c.Header("Content-Type", "text/event-stream;charset=utf-8")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")

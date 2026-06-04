@@ -23,6 +23,7 @@ var (
 	ErrNotFound         = errors.New("not found")
 	ErrForbidden        = errors.New("forbidden")
 	ErrNoAvailableItems = errors.New("no available box items")
+	ErrInvalidStatus    = errors.New("organization unit is not in a resubmittable state")
 )
 
 type Repository struct {

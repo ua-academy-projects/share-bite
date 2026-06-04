@@ -138,6 +138,10 @@ func (s *service) ResubmitVerification(ctx context.Context, id int, userID strin
 		if errors.Is(err, repository.ErrNotFound) {
 			return fmt.Errorf("%s: %w", op, apperror.OrgUnitNotFoundID(id))
 		}
+		if errors.Is(err, repository.ErrInvalidStatus) {
+			return fmt.Errorf("%s: %w", op, apperror.Conflict("organization unit is not in a resubmittable state (must be rejected)"))
+		}
+
 		return fmt.Errorf("%s: %w", op, err)
 	}
 

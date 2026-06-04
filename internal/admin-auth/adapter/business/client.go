@@ -31,7 +31,7 @@ func (c *Client) GetBusinessByUserID(ctx context.Context, userID string) (*dto.B
               COALESCE(description, ''), 
               latitude,
               longitude,
-              status,
+              status
           FROM business.org_units 
           WHERE org_account_id = $1
           ORDER BY CASE WHEN profile_type = 'BRAND' THEN 1 ELSE 2 END ASC
@@ -144,7 +144,7 @@ func (c *Client) ReviewBusiness(ctx context.Context, params dto.ReviewBusinessPa
 
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return errors.New("business org_unit not found")
+		return apperr.ErrBusinessNotFound
 	}
 
 	return nil

@@ -15,33 +15,49 @@ type Hub struct {
 	mu           sync.RWMutex
 	clients      map[string]map[*Client]bool
 	subscription Subscriber
+	cancels      map[string]context.CancelFunc
 }
 
 func NewHub(s Subscriber) *Hub {
 	return &Hub{
 		clients:      make(map[string]map[*Client]bool),
 		subscription: s,
+		cancels:      make(map[string]context.CancelFunc),
 	}
 }
 
-func (h *Hub) Register(c *Client) {
+func (h *Hub) Register(c *Client) context.Context {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
 	if h.clients[c.UserID] == nil {
 		h.clients[c.UserID] = make(map[*Client]bool)
 	}
 	h.clients[c.UserID][c] = true
+
+	if _, exists := h.cancels[c.UserID]; !exists {
+		ctx, cancel := context.WithCancel(context.Background())
+		h.cancels[c.UserID] = cancel
+		return ctx
+	}
+
+	return nil
 }
 
 func (h *Hub) Unregister(c *Client) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
 	if userClients, ok := h.clients[c.UserID]; ok {
 		if _, exists := userClients[c]; exists {
 			delete(userClients, c)
 			close(c.Send)
 			if len(userClients) == 0 {
 				delete(h.clients, c.UserID)
+				if cancel, hasCancel := h.cancels[c.UserID]; hasCancel {
+					cancel()
+					delete(h.cancels, c.UserID)
+				}
 			}
 		}
 	}

@@ -149,7 +149,7 @@ func (r *Repository) ListNearbyBoxes(ctx context.Context, offset, limit int, lat
 		"boxes.image, boxes.price_full, boxes.price_discount, "+
 		"boxes.created_at, boxes.expires_at, "+
 		"(SELECT COUNT(*) FROM business.box_items bi WHERE reserved_by_user_id IS NULL AND bi.box_id=boxes.id) AS availability_count, "+
-		"point(%f, %f) <@> point(org_units.longitude, org_units.latitude) AS distance"+
+		"point(%f, %f) <@> point(org_units.longitude, org_units.latitude) AS distance, "+
 		"org_units.status",
 		lon, lat)
 
