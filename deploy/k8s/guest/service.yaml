@@ -9,5 +9,5 @@ spec:
   ports:
     - name: http
       protocol: TCP
-      port: 3800
+      port: 80
       targetPort: 3800
