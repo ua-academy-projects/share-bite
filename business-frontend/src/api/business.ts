@@ -104,7 +104,7 @@ export type RecommendPostsRequest = {
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
-const BUSINESS_ACCOUNT_ID = Number(import.meta.env.VITE_BUSINESS_ACCOUNT_ID || "1");
+const BUSINESS_ACCOUNT_ID = Number(import.meta.env.VITE_BUSINESS_ACCOUNT_ID);
 
 export const businessApi = {
   // Тепер ми приймаємо categoryId і кидаємо його в запит

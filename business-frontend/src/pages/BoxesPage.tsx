@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { businessApi, Box } from "@/api/business";
 import { BoxCard } from "@/components/ui/BoxCard";
 import { AlertCircle, CheckCircle2, Loader2, Filter, Search, RotateCcw } from "lucide-react";
+import { useQRCodeModal } from "@/contexts/QRCodeModalContext";
 
 const CATEGORIES = [
   { id: "all", name: "All Categories" },
@@ -11,6 +12,7 @@ const CATEGORIES = [
 ];
 
 export function BoxesPage() {
+  const { openModal } = useQRCodeModal();
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [loading, setLoading] = useState(true);
   const [reserveError, setReserveError] = useState<string | null>(null);
@@ -73,7 +75,8 @@ export function BoxesPage() {
 
     try {
       setReservingBoxId(box.id);
-      await businessApi.reserveBox(box.id, token);
+      const result = await businessApi.reserveBox(box.id, token);
+      openModal(result.box_code);
       setReservedBoxIds((current) => new Set(current).add(box.id));
       setReserveSuccess(`Box #${box.id} reserved successfully.`);
     } catch (e) {

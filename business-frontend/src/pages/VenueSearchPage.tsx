@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Loader2, MapPin, Search, Tag } from "lucide-react";
 
 import { businessApi, type LocationTag, type VenueSearchItem } from "@/api/business";
@@ -24,11 +24,19 @@ const INTENT_PRESETS: IntentPreset[] = [
   { id: "family-lunch", label: "Family Lunch", query: "lunch", tags: ["lunch", "family-friendly", "kid-friendly"] },
 ];
 
+const normalizeIntent = (value: string) => value.trim().toLowerCase();
+
 export function VenueSearchPage() {
-  const [query, setQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialIntent = searchParams.get("intent") || "";
+  const initialPreset = INTENT_PRESETS.find(
+    (preset) => normalizeIntent(preset.label) === normalizeIntent(initialIntent),
+  );
+
+  const [query, setQuery] = useState(initialPreset?.query ?? initialIntent);
   const [allTags, setAllTags] = useState<LocationTag[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [activeIntentId, setActiveIntentId] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialPreset?.tags ?? []);
+  const [activeIntentId, setActiveIntentId] = useState<string | null>(initialPreset?.id ?? null);
 
   const [results, setResults] = useState<VenueSearchItem[]>([]);
   const [skip, setSkip] = useState(0);

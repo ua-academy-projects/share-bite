@@ -86,7 +86,7 @@ export function DiscoverPage() {
                 {intentLinks.map((intent) => (
                   <Link
                     key={intent}
-                    to="/venues/search"
+                    to={`/venues/search?intent=${encodeURIComponent(intent)}`}
                     className="rounded-full border border-gray-200 dark:border-[#2f5e50] bg-gray-50 dark:bg-[#0d241d] px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:border-[#FFD700] hover:text-[#1A3C34] dark:hover:text-white transition-colors"
                   >
                     {intent}
