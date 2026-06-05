@@ -177,6 +177,11 @@ func (m *mockBusinessClient) ListVenuesByIDs(ctx context.Context, venueIDs []int
 	return nil, args.Error(1)
 }
 
+func (m *mockBusinessClient) CheckExists(ctx context.Context, venueID int64) (bool, error) {
+	args := m.Called(ctx, venueID)
+	return args.Bool(0), args.Error(1)
+}
+
 type mockTxManager struct {
 	mock.Mock
 }

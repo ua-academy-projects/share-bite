@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -18,6 +19,7 @@ type AdminRepository interface {
 	GetAdminUsersList(ctx context.Context, filter dto.AdminUserFilter) ([]dto.AdminUserListItem, int, error)
 	UpdateUserRole(ctx context.Context, userID string, roleID int) error
 	GetAdminUserByID(ctx context.Context, userID string) (*dto.FullUserDetails, error)
+	GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error)
 }
 
 type adminRepository struct {
@@ -140,4 +142,56 @@ func (r *adminRepository) GetAdminUserByID(ctx context.Context, userID string) (
 	}
 
 	return &user, nil
+}
+
+func (r *adminRepository) GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error) {
+	q := database.Query{
+		Name: "admin.GetPlatformStatistics",
+		Sql: `
+          SELECT
+              total_users,
+              total_admin_users,
+              total_moderator_users,
+              total_regular_users,
+              total_business_role_users,
+              total_active_users,
+              total_muted_users,
+              total_suspended_users,
+              total_customers,
+              total_guest_posts,
+              total_guest_comments,
+              total_guest_post_likes,
+              total_collections,
+              avg_posts_per_customer,
+              avg_comments_per_customer,
+              avg_comments_per_post,
+              collections_with_collaborators,
+              posts_with_collaborators,
+              total_business_org_units,
+              total_business_posts,
+              total_business_comments,
+              total_business_likes,
+              total_business_boxes,
+              total_business_box_items,
+              avg_posts_per_business,
+              avg_comments_per_business,
+              avg_business_comments_per_post
+          FROM analytics.platform_statistics
+		  
+       `,
+	}
+
+	row, err := r.client.DB().QueryContext(ctx, q)
+	if err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "get platform statistics", executeSQLError(err))
+	}
+	defer row.Close()
+
+	var stats PlatformStatistics
+	if err := pgxscan.ScanOne(&stats, row); err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "get platform statistics", scanRowError(err))
+	}
+
+	resp := stats.ToDTO()
+	return &resp, nil
 }
