@@ -100,6 +100,32 @@ func TestRemoveVenue(t *testing.T) {
 			wantBody:     response.ErrorResponse{Message: internalErrMsg},
 		},
 		{
+			name:         "service returns venue not found (from business API)",
+			collectionID: collectionID,
+			venueIDPath:  venueIDStr,
+			customerID:   customerID,
+			mockFn: func(s *mockCollectionService) {
+				s.On("RemoveVenue", mock.Anything, collectionID, customerID, venueID).
+					Return(apperror.VenueNotFoundID(venueID)).
+					Once()
+			},
+			wantCode: http.StatusNotFound,
+			wantBody: response.ErrorResponse{Message: apperror.VenueNotFoundID(venueID).Error()},
+		},
+		{
+			name:         "service returns upstream bad gateway error",
+			collectionID: collectionID,
+			venueIDPath:  venueIDStr,
+			customerID:   customerID,
+			mockFn: func(s *mockCollectionService) {
+				s.On("RemoveVenue", mock.Anything, collectionID, customerID, venueID).
+					Return(apperror.ErrUpstreamError).
+					Once()
+			},
+			wantCode: http.StatusBadGateway,
+			wantBody: response.ErrorResponse{Message: apperror.ErrUpstreamError.Error()},
+		},
+		{
 			name:         "service venue not found in collection",
 			collectionID: collectionID,
 			venueIDPath:  venueIDStr,

@@ -13,6 +13,14 @@ func (s *service) RemoveVenue(
 	customerID string,
 	venueID int64,
 ) error {
+	exists, err := s.businessClient.CheckExists(ctx, venueID)
+	if err != nil {
+		return fmt.Errorf("check whether the venue exists: %w", err)
+	}
+	if !exists {
+		return apperror.VenueNotFoundID(venueID)
+	}
+
 	if txErr := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
 		collection, err := s.collectionRepo.GetCollectionForUpdate(ctx, collectionID)
 		if err != nil {
