@@ -18,10 +18,12 @@ type IntentPreset = {
 };
 
 const INTENT_PRESETS: IntentPreset[] = [
-  { id: "morning-coffee", label: "Morning Coffee", query: "coffee", tags: ["coffee", "breakfast"] },
-  { id: "work-session", label: "Work Session", query: "workspace", tags: ["wifi", "work-friendly", "power-outlets"] },
-  { id: "romantic-evening", label: "Romantic Evening", query: "dinner", tags: ["dinner", "romantic", "cozy"] },
-  { id: "family-lunch", label: "Family Lunch", query: "lunch", tags: ["lunch", "family-friendly", "kid-friendly"] },
+  { id: "morning-coffee", label: "Morning coffee", query: "coffee", tags: ["coffee", "breakfast"] },
+  { id: "work-friendly-spots", label: "Work-friendly spots", query: "workspace", tags: ["wifi", "work-friendly", "power-outlets"] },
+  { id: "family-lunch", label: "Family lunch", query: "lunch", tags: ["lunch", "family-friendly", "kid-friendly"] },
+  { id: "dinner-plans", label: "Dinner plans", query: "dinner", tags: ["dinner", "romantic", "cozy"] },
+  { id: "groceries-nearby", label: "Groceries nearby", query: "groceries", tags: ["groceries"] },
+  { id: "dessert-rescue", label: "Dessert rescue", query: "dessert", tags: ["dessert", "bakery"] },
 ];
 
 const normalizeIntent = (value: string) => value.trim().toLowerCase();
