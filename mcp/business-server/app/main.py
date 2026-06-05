@@ -20,6 +20,7 @@ SUPPORTED_TRANSPORTS = {"stdio", "streamable-http"}
 
 
 class JsonFormatter(logging.Formatter):
+    """ Class to formate data to json """
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -35,6 +36,7 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging() -> None:
+    """ Configuring logger setup """
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(JsonFormatter())
 
@@ -45,6 +47,7 @@ def configure_logging() -> None:
 
 
 def create_server(settings: Settings, client: BusinessApiClient) -> FastMCP:
+    """ Initializing MCP server """
     @asynccontextmanager
     async def server_lifespan(ctx: FastMCP):
         yield
@@ -73,6 +76,7 @@ def create_server(settings: Settings, client: BusinessApiClient) -> FastMCP:
 
 
 def main() -> None:
+    """Entry point for the ShareBite Business MCP server."""
     configure_logging()
 
     settings = load_settings()

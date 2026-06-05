@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.client import BusinessApiClient, BusinessApiError
 from app.config import Settings
-
+from app.constants import URI_PROFILE_SCHEMA, URI_VENUE_HOURS_FORMAT, URI_VENUE_SCHEMA
 
 class AuthInfo(BaseModel):
     authorization_forwarding: bool
@@ -37,9 +37,11 @@ class BusinessOpenApiSummaryResource(BaseModel):
 
 
 def register_resources(mcp: FastMCP, settings: Settings, client: BusinessApiClient) -> None:
-    
+    """ Resources registration """
+
     @mcp.resource("sharebite://business/api-info")
     def business_api_info() -> dict[str, Any]:
+        """ Returns information about business API """
         return BusinessApiInfoResource(
             service="business-api",
             base_url=settings.business_api_base_url,
@@ -73,3 +75,65 @@ def register_resources(mcp: FastMCP, settings: Settings, client: BusinessApiClie
             path_count=len(paths) if isinstance(paths, dict) else None,
             paths=sorted(paths.keys()) if isinstance(paths, dict) else [],
         ).model_dump()
+
+    @mcp.resource(URI_PROFILE_SCHEMA)
+    def business_profile_schema() -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "minLength": 3, "maxLength": 40},
+                "avatar": {"type": ["string", "null"]},
+                "banner": {"type": ["string", "null"]},
+                "description": {"type": ["string", "null"]},
+            },
+            "additionalProperties": False,
+        }
+
+
+    @mcp.resource(URI_VENUE_SCHEMA)
+    def business_venue_schema() -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "name": {"type": ["string", "null"]},
+                "avatar": {"type": ["string", "null"]},
+                "banner": {"type": ["string", "null"]},
+                "description": {"type": ["string", "null"]},
+                "latitude": {"type": ["number", "null"], "minimum": -90, "maximum": 90},
+                "longitude": {"type": ["number", "null"], "minimum": -180, "maximum": 180},
+                "tagIds": {"type": ["array", "null"], "items": {"type": "integer"}, "maxItems": 5},
+            },
+            "additionalProperties": False,
+        }
+
+
+    @mcp.resource(URI_VENUE_HOURS_FORMAT)
+    def business_venue_hours_format() -> dict[str, Any]:
+        return {
+            "type": "object",
+            "required": ["days"],
+            "properties": {
+                "days": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 7,
+                    "items": {
+                        "type": "object",
+                        "required": ["weekday", "openTime", "closeTime"],
+                        "properties": {
+                            "weekday": {"type": "integer", "minimum": 1, "maximum": 7},
+                            "openTime": {"type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$"},
+                            "closeTime": {"type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$"},
+                        },
+                        "additionalProperties": False,
+                    },
+                }
+            },
+            "additionalProperties": False,
+            "example": {
+                "days": [
+                    {"weekday": 1, "openTime": "09:00", "closeTime": "18:00"},
+                    {"weekday": 7, "openTime": None, "closeTime": None},
+                ]
+            },
+        }
