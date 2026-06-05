@@ -83,5 +83,9 @@ func (r *Repository) GetLocationHours(ctx context.Context, venueID int) ([]dto.V
 		})
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate location hours: %w", err)
+	}
+
 	return out, nil
 }

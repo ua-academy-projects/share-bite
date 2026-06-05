@@ -260,19 +260,23 @@ func (s *service) UpdateVenueHours(
 		return nil, apperror.Forbidden("you can manage only your own brand locations")
 	}
 
+	var days []dto.VenueHoursDayInput
+
 	err = s.txManager.ReadCommitted(ctx, func(ctxTx context.Context) error {
 		if err := s.businessRepo.ReplaceLocationHours(ctxTx, locationID, in.Days); err != nil {
 			return fmt.Errorf("%s: replace location hours: %w", op, err)
 		}
+
+		var err error
+		days, err = s.businessRepo.GetLocationHours(ctxTx, locationID)
+		if err != nil {
+			return fmt.Errorf("%s: get location hours: %w", op, err)
+		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	days, err := s.businessRepo.GetLocationHours(ctx, locationID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: get location hours: %w", op, err)
 	}
 
 	return &dto.UpdateVenueHoursOutput{

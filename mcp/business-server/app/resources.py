@@ -112,13 +112,30 @@ def register_resources(mcp: FastMCP, settings: Settings) -> None:
     @mcp.resource(URI_VENUE_HOURS_FORMAT)
     def business_venue_hours_format() -> dict[str, Any]:
         return {
-            "days": [
-                {"weekday": 1, "openTime": "09:00", "closeTime": "18:00"},
-                {"weekday": 2, "openTime": "09:00", "closeTime": "18:00"},
-                {"weekday": 3, "openTime": "09:00", "closeTime": "18:00"},
-                {"weekday": 4, "openTime": "09:00", "closeTime": "18:00"},
-                {"weekday": 5, "openTime": "09:00", "closeTime": "18:00"},
-                {"weekday": 6, "openTime": None, "closeTime": None},
-                {"weekday": 7, "openTime": None, "closeTime": None},
-            ]
+            "type": "object",
+            "required": ["days"],
+            "properties": {
+                "days": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 7,
+                    "items": {
+                        "type": "object",
+                        "required": ["weekday", "openTime", "closeTime"],
+                        "properties": {
+                            "weekday": {"type": "integer", "minimum": 1, "maximum": 7},
+                            "openTime": {"type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$"},
+                            "closeTime": {"type": ["string", "null"], "pattern": "^\\d{2}:\\d{2}$"},
+                        },
+                        "additionalProperties": False,
+                    },
+                }
+            },
+            "additionalProperties": False,
+            "example": {
+                "days": [
+                    {"weekday": 1, "openTime": "09:00", "closeTime": "18:00"},
+                    {"weekday": 7, "openTime": None, "closeTime": None},
+                ]
+            },
         }

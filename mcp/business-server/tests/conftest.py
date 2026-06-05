@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-
+from collections.abc import Callable
 import pytest
 
 
@@ -11,8 +11,8 @@ if str(SERVER_ROOT) not in sys.path:
 
 class FakeMCP:
     def __init__(self) -> None:
-        self.tools: dict[str, callable] = {}
-        self.resources: dict[str, callable] = {}
+        self.tools: dict[str, Callable] = {}
+        self.resources: dict[str, Callable] = {}
 
     def tool(self, name: str | None = None, description: str = "", exclude_args: list[str] | None = None):
         def decorator(func):
