@@ -48,6 +48,7 @@ terraform/terraform.tfstate.backup
 
 node_modules
 
+secret.yaml
 __pycache__/
 *.py[cod]
 .venv/
