@@ -229,7 +229,7 @@ func (s *service) GetPosts(ctx context.Context, skip, limit int) (pagination.Res
 		limit = maxLimit
 	}
 
-	posts, err := s.businessRepo.GetPosts(ctx, limit, skip)
+	posts, err := s.businessRepo.GetPosts(ctx, limit, skip, nil)
 	if err != nil {
 		return pagination.Result[entity.PostWithPhotos]{}, fmt.Errorf("%s: %w", op, err)
 	}

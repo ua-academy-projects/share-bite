@@ -232,7 +232,7 @@ func (r *Repository) InsertPostImages(ctx context.Context, postID int64, URLs []
 	return nil
 }
 
-func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (pagination.Result[entity.Post], error) {
+func (r *Repository) GetPosts(ctx context.Context, limit, offset int, orgIDs []int) (pagination.Result[entity.Post], error) {
 	const op = "repository.post.GetPosts"
 	params := pagination.Params{
 		Table:   "business.posts",

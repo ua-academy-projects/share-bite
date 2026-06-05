@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, AlertTriangle, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { Loader2, AlertTriangle, Image as ImageIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {

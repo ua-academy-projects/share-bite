@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { BrandProfilePage } from "./BrandProfilePage";
 import * as brandHooks from "@/features/brand/hooks";
@@ -52,22 +51,17 @@ describe("BrandProfilePage", () => {
       loading: false,
       error: null,
       refresh: vi.fn(),
-      setForceRefresh: vi.fn(),
-    } as any);
+    });
   });
 
   it("should display magic boxes if they exist", () => {
     // Mock locations with coordinates to satisfy useBrandBoxes dependency
     vi.mocked(brandHooks.useBrandLocations).mockReturnValue({
-      items: [{ id: 1, name: "Location 1", latitude: 10, longitude: 20 }],
+      items: [{ id: 1, name: "Location 1", latitude: 10, longitude: 20, tags: [] }],
       total: 1,
-      totalLoaded: 1,
       loading: false,
       error: null,
-      hasMore: false,
-      loadMore: vi.fn(),
-      refresh: vi.fn(),
-    } as any);
+    });
 
     // Mock boxes
     vi.mocked(brandHooks.useBrandBoxes).mockReturnValue({
@@ -84,14 +78,12 @@ describe("BrandProfilePage", () => {
         distance: 2.5
       }],
       total: 1,
-      totalLoaded: 1,
       loading: false,
       error: null,
       hasMore: false,
       loadMore: vi.fn(),
-      refresh: vi.fn(),
       missingCoordinates: false,
-    } as any);
+    });
 
     render(
       <MemoryRouter>
@@ -110,27 +102,21 @@ describe("BrandProfilePage", () => {
 
   it("should display locations if they exist when switching to locations tab", () => {
     vi.mocked(brandHooks.useBrandLocations).mockReturnValue({
-      items: [{ id: 1, name: "Test Location", address: "123 Main St", latitude: 10, longitude: 20, organizationId: 1 }],
+      items: [{ id: 1, name: "Test Location", latitude: 10, longitude: 20, tags: [] }],
       total: 1,
-      totalLoaded: 1,
       loading: false,
       error: null,
-      hasMore: false,
-      loadMore: vi.fn(),
-      refresh: vi.fn(),
-    } as any);
+    });
 
     vi.mocked(brandHooks.useBrandBoxes).mockReturnValue({
       items: [],
       total: 0,
-      totalLoaded: 0,
       loading: false,
       error: null,
       hasMore: false,
       loadMore: vi.fn(),
-      refresh: vi.fn(),
       missingCoordinates: false,
-    } as any);
+    });
 
 
 

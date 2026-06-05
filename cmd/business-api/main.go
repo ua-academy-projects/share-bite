@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -27,6 +26,15 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 )
 
+// @title                                         ShareBite Business API
+// @version                                     1.0
+// @description                         API for discovering brand locations (venues).
+//
+// @securityDefinitions.apikey  BearerAuth
+// @in                                            header
+// @name                                          Authorization
+//
+// @BasePath                                    /
 func main() {
 	ctx := context.Background()
 
@@ -60,7 +68,7 @@ func main() {
 	}
 	closer.SetShutdownTimeout(config.Config().App.GracefulShutdownTimeout())
 
-	client, err := pg.NewClient(ctx, config.Postgres.Dsn())
+	client, err := pg.NewClient(ctx, config.Config().Postgres.Dsn())
 	if err != nil {
 		logger.Fatal(ctx, "new database client: ", err)
 	}

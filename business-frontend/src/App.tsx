@@ -6,8 +6,8 @@ import CreatePostPage from "@/pages/CreatePostPage";
 import { CreateBoxPage } from "@/pages/CreateBoxPage";
 import { VenueSearchPage } from "@/pages/VenueSearchPage";
 import { VenueProfilePage } from "@/pages/VenueProfilePage";
-import { DiscoverPage } from "@/pages/DiscoverPage";
-import { HomePage } from "@/pages/HomePage";
+import DiscoverPage from "@/pages/DiscoverPage";
+import HomePage from "@/pages/HomePage";
 import { BrandProfilePage } from "@/pages/BrandProfilePage";
 
 function App() {

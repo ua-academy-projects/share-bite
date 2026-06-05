@@ -1,7 +1,6 @@
-import { useNavigate } from "react-router-dom";
 import type { BrandProfile } from "@/api/business";
 import { Button } from "@/components/ui/button";
-import { Settings2, PlusCircle } from "lucide-react";
+import { Settings2 } from "lucide-react";
 
 function getInitials(value: string) {
   const parts = value.trim().split(/\s+/);
@@ -19,8 +18,6 @@ type BrandHeaderProps = {
 };
 
 export function BrandHeader({ brand, loading, error, onEdit }: BrandHeaderProps) {
-  const navigate = useNavigate();
-
   if (error) {
     return (
       <div className="rounded-[40px] border border-red-500/30 bg-red-500/10 px-8 py-10 text-red-200 backdrop-blur-md">

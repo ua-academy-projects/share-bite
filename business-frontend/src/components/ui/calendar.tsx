@@ -7,7 +7,8 @@ import {
 } from "react-day-picker"
 
 import { cn } from "src/lib/utils"
-import { Button, buttonVariants } from "src/components/ui/button"
+import { Button } from "src/components/ui/button"
+import { buttonVariants } from "src/components/ui/button-variants"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from "lucide-react"
 
 function Calendar({

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ua-academy-projects/share-bite/internal/business/dto"
 	"github.com/ua-academy-projects/share-bite/internal/business/entity"
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 )
