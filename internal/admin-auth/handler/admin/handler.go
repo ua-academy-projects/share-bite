@@ -106,6 +106,28 @@ func (h *Handler) GetUserDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+// GetPlatformStatistics godoc
+// @Summary      Get platform statistics
+// @Description  Retrieves all-time aggregated platform metrics across auth, guest, and business domains.
+// @Tags         Admin
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200     {object}  dto.PlatformStatisticsResponse  "Success. Returns aggregated platform statistics."
+// @Failure      401     {object}  handler.ErrorResponse           "Unauthorized access."
+// @Failure      403     {object}  handler.ErrorResponse           "Forbidden. Admin or moderator role required."
+// @Failure      500     {object}  handler.ErrorResponse           "Internal server error."
+// @Router       /admin/statistics [get]
+func (h *Handler) GetPlatformStatistics(c *gin.Context) {
+	stats, err := h.service.GetPlatformStatistics(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
+
 // ChangeUserRole godoc
 // @Summary      Change user role
 // @Description  Changes the role of a user and invalidates all their active sessions.
