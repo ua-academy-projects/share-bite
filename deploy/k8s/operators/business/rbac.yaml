@@ -1,0 +1,40 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: businessapi-operator-role
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["watch", "update", "get", "list", "patch"]
+  - apiGroups: ["business.sharebite.dev"]
+    resources: ["businessappprofiles", "businessappprofiles/status"]
+    verbs: ["watch", "update", "get", "list", "patch", "create", "delete"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+    
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: businessapi-operator-sa
+  namespace: default
+  
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: businessapi-operators-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: businessapi-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: businessapi-operator-sa
+    namespace: default

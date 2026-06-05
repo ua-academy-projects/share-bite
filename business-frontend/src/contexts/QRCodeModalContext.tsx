@@ -12,7 +12,7 @@ const QRCodeModalContext = createContext<QRCodeModalContextType | undefined>(und
 export function QRCodeModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [boxCode, setBoxCode] = useState<string | null>(null);
-  const modalClearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const modalClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openModal = (code: string) => {
     // Clear any pending timeout when opening new modal

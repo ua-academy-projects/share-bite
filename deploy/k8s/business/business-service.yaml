@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: business-api
+  namespace: share-bite-local
+spec:
+  selector:
+    app: business-api
+  ports:
+    - name: http
+      port: 3900
+      targetPort: 3900

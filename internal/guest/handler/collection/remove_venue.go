@@ -12,6 +12,7 @@ import (
 
 // @Summary		Remove a venue from a collection
 // @Description	Removes a specific venue from an existing collection.
+// @Description	Validates if the venue exists via business API before removing.
 // @Description	Fails if the user does not own the collection or if the venue is not in the collection.
 //
 // @Tags			collections
@@ -26,8 +27,9 @@ import (
 // @Failure		400				{object}	response.ErrorResponse		"Invalid path parameters"
 // @Failure		401				{object}	response.AuthErrorResponse	"Unauthorized: Missing or invalid token"
 // @Failure		403				{object}	response.ErrorResponse		"Forbidden: Customer profile not found or user does not own this collection"
-// @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection not found or venue is not in the collection"
+// @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection not found, venue is not in the collection, or venue unknown in business API"
 // @Failure		500				{object}	response.ErrorResponse		"Internal server error"
+// @Failure		502				{object}	response.ErrorResponse		"Bad Gateway: Upstream business API error"
 //
 // @Router			/collections/{collectionId}/venues/{venueId} [delete]
 func (h *handler) removeVenue(c *gin.Context) {

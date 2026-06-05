@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"mime/multipart"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -80,6 +82,9 @@ func RegisterHandlers(
 		service: service,
 		storage: st,
 	}
+
+	r.GET("/healthz", h.healthz)
+	r.GET("/ready", h.ready)
 
 	auth := middleware.Auth(parser)
 	r.GET("/:id", h.getOrgUnit)
@@ -165,7 +170,19 @@ type errorResponse struct {
 	Error string `json:"error" example:"not found"`
 }
 
-type CreateBoxResponse struct {
-	ID      int64  `json:"id"`
-	Message string `json:"message"`
+func (h *handler) healthz(c *gin.Context) {
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *handler) ready(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	_, err := h.service.ListLocationTags(ctx)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service not ready"})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
 }
