@@ -16,6 +16,10 @@ class BusinessApiClient:
     def __init__(self, base_url: str, timeout_seconds: float) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout = httpx.Timeout(timeout_seconds)
+        self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
+
+    async def close(self):
+        await self._client.aclose()
 
     async def get(
         self,
@@ -27,8 +31,7 @@ class BusinessApiClient:
         headers = self._build_headers(auth_token=auth_token, request_id=request_id)
 
         try:
-            async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
-                response = await client.get(path, headers=headers)
+            response = await self._client.get(path, headers=headers)
         except httpx.TimeoutException as exc:
             raise BusinessApiError("business-api request timed out") from exc
         except httpx.HTTPError as exc:

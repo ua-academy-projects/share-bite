@@ -64,6 +64,14 @@ func (m *MockAdminService) ChangeUserRole(ctx context.Context, targetUserID stri
 	return args.Error(0)
 }
 
+func (m *MockAdminService) GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error) {
+	args := m.Called(ctx)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.PlatformStatisticsResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func (m *mockUserRepository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
 	args := m.Called(ctx, ghUser)
 	u := args.Get(0)

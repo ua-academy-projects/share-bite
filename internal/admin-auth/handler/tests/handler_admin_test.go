@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -158,6 +159,58 @@ func TestAdminHandler_GetPendingBusinesses(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
+func TestAdminHandler_GetPlatformStatistics(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("Success returns 200 and statistics payload", func(t *testing.T) {
+		mockSvc := new(MockAdminService)
+		h := admin.NewHandler(mockSvc)
+
+		expected := &dto.PlatformStatisticsResponse{
+			TotalUsers:                     100,
+			TotalAdminUsers:                2,
+			TotalModeratorUsers:            3,
+			TotalRegularUsers:              85,
+			TotalBusinessRoleUsers:         10,
+			TotalActiveUsers:               90,
+			TotalMutedUsers:                  5,
+			TotalSuspendedUsers:              5,
+			TotalCustomers:                   80,
+			TotalGuestPosts:                 200,
+			TotalGuestComments:              840,
+			TotalGuestPostLikes:            1500,
+			TotalCollections:                 45,
+			AvgPostsPerCustomer:              2.5,
+			AvgCommentsPerCustomer:           4.2,
+			AvgCommentsPerPost:               1.3,
+			CollectionsWithCollaborators:     12,
+			PostsWithCollaborators:            7,
+			TotalBusinessOrgUnits:            25,
+			TotalBusinessPosts:               15,
+			TotalBusinessComments:            75,
+			TotalBusinessLikes:              120,
+			TotalBusinessBoxes:                8,
+			TotalBusinessBoxItems:            32,
+			AvgPostsPerBusiness:              3.1,
+			AvgCommentsPerBusiness:           5.0,
+			AvgBusinessCommentsPerPost:       0.8,
+		}
+
+		mockSvc.On("GetPlatformStatistics", mock.Anything).Return(expected, nil)
+
+		r := gin.New()
+		r.GET("/admin/statistics", h.GetPlatformStatistics)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/statistics", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		expectedBody, err := json.Marshal(expected)
+		require.NoError(t, err)
+		require.JSONEq(t, string(expectedBody), w.Body.String())
+
 		mockSvc.AssertExpectations(t)
 	})
 
@@ -276,5 +329,20 @@ func TestAdminHandler_ReviewBusiness(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		assert.Contains(t, w.Body.String(), "admin identity could not be resolved")
+	})
+		mockSvc.On("GetPlatformStatistics", mock.Anything).
+			Return(nil, apperr.Wrap(http.StatusInternalServerError, "failed to get platform statistics", assert.AnError))
+
+		r := gin.New()
+		r.Use(testErrorMiddleware())
+		r.GET("/admin/statistics", h.GetPlatformStatistics)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/admin/statistics", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "failed to get platform statistics")
+		mockSvc.AssertExpectations(t)
 	})
 }

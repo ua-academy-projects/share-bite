@@ -8,11 +8,7 @@ from app.client import BusinessApiClient, BusinessApiError
 from app.config import Settings
 
 
-def register_tools(mcp: FastMCP, settings: Settings) -> None:
-    client = BusinessApiClient(
-        base_url=settings.business_api_base_url,
-        timeout_seconds=settings.request_timeout_seconds,
-    )
+def register_tools(mcp: FastMCP, settings: Settings, client: BusinessApiClient) -> None:
 
     @mcp.tool()
     async def business_health_check(
