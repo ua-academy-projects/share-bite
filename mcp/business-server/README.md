@@ -6,59 +6,73 @@ The server wraps safe `business-api` workflows and exposes them as MCP tools and
 
 ## Capabilities
 
-Tools:
+**Tools:**
 
 - `business_health_check`
 - `get_business_api_status`
 
-Resources:
+**Resources:**
 
 - `sharebite://business/api-info`
 - `sharebite://business/openapi-summary`
 
+---
+
+## Architecture & Connection Management
+
+The server maintains a single, persistent `httpx.AsyncClient` connection pool to the `business-api`. This client is initialized during the server's lifespan startup and injected into all tools, preventing resource leaks and improving request latency. All connections are safely closed upon server shutdown.
+
+---
+
 ## Configuration
 
-Required:
+### Required
 
 | Variable | Description | Example |
-| --- | --- | --- |
+|:---------|:------------|:--------|
 | `BUSINESS_API_BASE_URL` | Base URL for `business-api` | `http://localhost:3900` |
 
-Optional:
+### Optional
 
 | Variable | Description | Default |
-| --- | --- | --- |
+|:---------|:------------|:--------|
 | `BUSINESS_API_REQUEST_TIMEOUT_SECONDS` | Timeout for requests to `business-api` | `10` |
+| `BUSINESS_API_AUTH_TOKEN` | Fallback token for local stdio mode | `None` |
 | `MCP_TRANSPORT` | MCP transport: `stdio` or `streamable-http` | `stdio` |
 | `MCP_HOST` | Host for Streamable HTTP mode | `127.0.0.1` |
 | `MCP_PORT` | Port for Streamable HTTP mode | `8000` |
 | `MCP_PATH` | Streamable HTTP path | `/mcp` |
 
+---
+
 ## Auth And Request Context
 
-Tools forward `Authorization` to `business-api` when an `auth_token` argument is provided.
+Tools automatically extract the `Authorization` token from the MCP request context headers. If the server is running locally in `stdio` mode (where HTTP headers are unavailable), it will fall back to using the `BUSINESS_API_AUTH_TOKEN` environment variable.
 
 Tools propagate `X-Request-ID` when a `request_id` argument is provided. If no request ID is provided, the MCP server generates one.
 
-Business IDs must never be guessed. Any tool that requires a business ID must receive it from authenticated context or explicit input.
+**Business IDs must never be guessed.** Any tool that requires a business ID must receive it from authenticated context or explicit input.
+
+---
 
 ## Local Setup
 
 From this directory:
 
-```powershell
-cd mcp\business-server
+```bash
+cd mcp/business-server
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 ```
 
-Set the required environment variable:
+Set the required environment variables:
 
 ```powershell
 $env:BUSINESS_API_BASE_URL="http://localhost:3900"
+$env:BUSINESS_API_AUTH_TOKEN="my-test-token"
 ```
 
-## Run With Stdio
+### Run With Stdio
 
 ```powershell
 $env:MCP_TRANSPORT="stdio"
@@ -67,10 +81,11 @@ $env:MCP_TRANSPORT="stdio"
 
 Stdio mode is intended to be started by an MCP client.
 
-## Run With Streamable HTTP
+### Run With Streamable HTTP
 
 ```powershell
 $env:BUSINESS_API_BASE_URL="http://localhost:3900"
+$env:BUSINESS_API_AUTH_TOKEN="my-test-token"
 $env:MCP_TRANSPORT="streamable-http"
 $env:MCP_HOST="127.0.0.1"
 $env:MCP_PORT="8000"
@@ -80,22 +95,27 @@ $env:MCP_PATH="/mcp"
 
 The MCP endpoint is:
 
-```text
+```
 http://127.0.0.1:8000/mcp
 ```
+
+---
 
 ## Local Testing
 
 Start `business-api` first. It should expose OpenAPI JSON at:
 
-```text
+```
 http://localhost:3900/swagger/doc.json
 ```
+
+### Verify Tools and Resources
 
 Then verify that an MCP client can list tools and resources:
 
 ```powershell
 $env:BUSINESS_API_BASE_URL="http://localhost:3900"
+$env:BUSINESS_API_AUTH_TOKEN="my-test-token"
 
 @'
 import asyncio
@@ -112,6 +132,7 @@ async def main():
         env={
             **os.environ,
             "BUSINESS_API_BASE_URL": "http://localhost:3900",
+            "BUSINESS_API_AUTH_TOKEN": "my-test-token",
             "MCP_TRANSPORT": "stdio",
         },
     )
@@ -135,19 +156,21 @@ asyncio.run(main())
 '@ | .\.venv\Scripts\python.exe -
 ```
 
-Expected tools:
+**Expected tools:**
 
-```text
+```
 business_health_check
 get_business_api_status
 ```
 
-Expected resources:
+**Expected resources:**
 
-```text
+```
 sharebite://business/api-info
 sharebite://business/openapi-summary
 ```
+
+### Verify Health and Status Calls
 
 Verify that health and status calls reach `business-api`:
 
@@ -167,6 +190,7 @@ async def main():
         env={
             **os.environ,
             "BUSINESS_API_BASE_URL": "http://localhost:3900",
+            "BUSINESS_API_AUTH_TOKEN": "my-test-token",
             "MCP_TRANSPORT": "stdio",
         },
     )
@@ -190,19 +214,21 @@ asyncio.run(main())
 
 A successful response includes:
 
-```text
+```
 ShareBite Business API
 ```
+
+---
 
 ## Error Handling
 
 Errors returned by `business-api` are converted into clear MCP errors.
 
-Timeout and connection failures are reported as:
+**Timeout and connection failures** are reported as:
 
-```text
+```
 business-api request timed out
 business-api request failed
 ```
 
-HTTP error responses include the status code and the error message returned by `business-api` when available.
+**HTTP error responses** include the status code and the error message returned by `business-api` when available.

@@ -37,9 +37,11 @@ class BusinessOpenApiSummaryResource(BaseModel):
 
 
 def register_resources(mcp: FastMCP, settings: Settings, client: BusinessApiClient) -> None:
-    
+    """ Resources registration """
+
     @mcp.resource("sharebite://business/api-info")
     def business_api_info() -> dict[str, Any]:
+        """ Returns information about business API """
         return BusinessApiInfoResource(
             service="business-api",
             base_url=settings.business_api_base_url,
