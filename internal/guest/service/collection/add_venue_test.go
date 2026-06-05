@@ -31,7 +31,7 @@ func TestAddVenue(t *testing.T) {
 		customerID   string
 		venueID      int64
 
-		mockFn func(repo *mockCollectionRepository, tx *mockTxManager)
+		mockFn func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient)
 
 		wantErr error
 	}{
@@ -40,7 +40,8 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -62,7 +63,8 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -84,11 +86,37 @@ func TestAddVenue(t *testing.T) {
 			wantErr: nil,
 		},
 		{
+			name:         "error - business client check exists fails",
+			collectionID: collectionID,
+			customerID:   customerID,
+			venueID:      venueID,
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).
+					Return(false, apperror.ErrUpstreamError).
+					Once()
+			},
+			wantErr: apperror.ErrUpstreamError,
+		},
+		{
+			name:         "error - venue does not exist",
+			collectionID: collectionID,
+			customerID:   customerID,
+			venueID:      venueID,
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).
+					Return(false, nil).
+					Once()
+			},
+			wantErr: apperror.VenueNotFoundID(venueID),
+		},
+		{
 			name:         "error - collection not found (outsider)",
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -108,7 +136,9 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -126,7 +156,9 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).
@@ -139,7 +171,9 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -157,7 +191,9 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -177,7 +213,9 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -199,7 +237,9 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -218,7 +258,9 @@ func TestAddVenue(t *testing.T) {
 			collectionID: collectionID,
 			customerID:   customerID,
 			venueID:      venueID,
-			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager) {
+			mockFn: func(repo *mockCollectionRepository, tx *mockTxManager, bc *mockBusinessClient) {
+				bc.On("CheckExists", mock.Anything, venueID).Return(true, nil).Once()
+
 				tx.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil).Once()
 
 				repo.On("GetCollectionForUpdate", mock.Anything, collectionID).Return(
@@ -240,7 +282,7 @@ func TestAddVenue(t *testing.T) {
 			businessClient := new(mockBusinessClient)
 			svc := New(repo, nil, txManager, businessClient)
 
-			tt.mockFn(repo, txManager)
+			tt.mockFn(repo, txManager, businessClient)
 
 			err := svc.AddVenue(context.Background(), tt.collectionID, tt.customerID, tt.venueID)
 
