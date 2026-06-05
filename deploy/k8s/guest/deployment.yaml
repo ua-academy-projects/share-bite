@@ -17,6 +17,12 @@ spec:
         - name: guest-api
           image: guest-api:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 3800
           envFrom:

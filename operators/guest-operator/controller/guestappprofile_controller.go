@@ -36,7 +36,11 @@ func (r *GuestAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	var desiredReplicas int32 = 0
 	if profile.Spec.Enabled {
-		desiredReplicas = profile.Spec.Replicas
+		if profile.Spec.Replicas < 0 {
+			desiredReplicas = 0
+		} else {
+			desiredReplicas = profile.Spec.Replicas
+		}
 	}
 
 	var deploy appsv1.Deployment
@@ -44,7 +48,9 @@ func (r *GuestAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err := r.Get(ctx, deployReq, &deploy); err != nil {
 		if errors.IsNotFound(err) {
 			logger.Info("Deployment not found, waiting...", "Deployment", deployName)
-			r.updateStatus(&profile, metav1.ConditionFalse, "DeploymentNotFound", "Target deployment is missing")
+			if statusErr := r.updateStatus(ctx, &profile, metav1.ConditionFalse, "DeploymentNotFound", "Target deployment is missing"); statusErr != nil {
+				return ctrl.Result{}, statusErr
+			}
 			return ctrl.Result{RequeueAfter: 5000000000}, nil
 		}
 		return ctrl.Result{}, err
@@ -59,16 +65,20 @@ func (r *GuestAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if deploy.Status.ReadyReplicas == desiredReplicas {
-		r.updateStatus(&profile, metav1.ConditionTrue, "Scaled", "Deployment reached desired replicas")
+		if err := r.updateStatus(ctx, &profile, metav1.ConditionTrue, "Scaled", "Deployment reached desired replicas"); err != nil {
+			return ctrl.Result{}, err
+		}
 	} else {
-		r.updateStatus(&profile, metav1.ConditionFalse, "Scaling", "Waiting for pods to be ready")
+		if err := r.updateStatus(ctx, &profile, metav1.ConditionFalse, "Scaling", "Waiting for pods to be ready"); err != nil {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{RequeueAfter: 3000000000}, nil
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *GuestAppProfileReconciler) updateStatus(profile *guestv1alpha1.GuestAppProfile, status metav1.ConditionStatus, reason, message string) {
+func (r *GuestAppProfileReconciler) updateStatus(ctx context.Context, profile *guestv1alpha1.GuestAppProfile, status metav1.ConditionStatus, reason, message string) error {
 	condition := metav1.Condition{
 		Type:               "Ready",
 		Status:             status,
@@ -77,7 +87,7 @@ func (r *GuestAppProfileReconciler) updateStatus(profile *guestv1alpha1.GuestApp
 		LastTransitionTime: metav1.Now(),
 	}
 	meta.SetStatusCondition(&profile.Status.Conditions, condition)
-	_ = r.Status().Update(context.Background(), profile)
+	return r.Status().Update(ctx, profile)
 }
 
 func (r *GuestAppProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {

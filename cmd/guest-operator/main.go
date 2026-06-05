@@ -9,6 +9,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	guestv1alpha1 "github.com/ua-academy-projects/share-bite/operators/guest-operator/api/v1alpha1"
 	"github.com/ua-academy-projects/share-bite/operators/guest-operator/controller"
@@ -35,7 +36,10 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
 		HealthProbeBindAddress: ":8081",
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "guest-operator.sharebite.dev",
