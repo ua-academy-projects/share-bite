@@ -37,10 +37,12 @@ func (r *GuestAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	var desiredReplicas int32 = 0
 	if profile.Spec.Enabled {
 		if profile.Spec.Replicas < 0 {
-			desiredReplicas = 0
-		} else {
-			desiredReplicas = profile.Spec.Replicas
+			if err := r.updateStatus(ctx, &profile, metav1.ConditionFalse, "InvalidSpec", "spec.replicas cannot be negative"); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
 		}
+		desiredReplicas = profile.Spec.Replicas
 	}
 
 	var deploy appsv1.Deployment
