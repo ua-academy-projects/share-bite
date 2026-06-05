@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useForm, ControllerRenderProps } from "react-hook-form";
+import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -125,6 +126,14 @@ export default function CreatePostPage() {
   return (
     <div className="min-h-screen w-full flex justify-center p-4 md:p-8 bg-[#F9F7F2] dark:bg-[#0d241d] transition-colors duration-300">
       <div className="w-full max-w-xl mt-6 md:mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {id && (
+          <Button asChild variant="ghost" className="mb-4 text-[#1A3C34] dark:text-gray-200 hover:bg-white/70 dark:hover:bg-[#163d32] rounded-xl">
+            <Link to={`/venue/${id}`}>
+              <ArrowLeft size={18} />
+              Back to venue
+            </Link>
+          </Button>
+        )}
         
         {createdPost ? (
           <div className="space-y-8 flex flex-col items-center">
