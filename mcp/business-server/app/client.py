@@ -27,11 +27,33 @@ class BusinessApiClient:
         *,
         auth_token: str | None = None,
         request_id: str | None = None,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         headers = self._build_headers(auth_token=auth_token, request_id=request_id)
 
         try:
-            response = await self._client.get(path, headers=headers)
+            async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
+                response = await client.get(path, headers=headers, params=params)
+        except httpx.TimeoutException as exc:
+            raise BusinessApiError("business-api request timed out") from exc
+        except httpx.HTTPError as exc:
+            raise BusinessApiError(f"business-api request failed: {exc}") from exc
+
+        return self._parse_response(response)
+
+    async def patch(
+        self,
+        path: str,
+        *,
+        json_data: dict[str, Any],
+        auth_token: str | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        headers = self._build_headers(auth_token=auth_token, request_id=request_id)
+
+        try:
+            async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
+                response = await client.patch(path, headers=headers, json=json_data)
         except httpx.TimeoutException as exc:
             raise BusinessApiError("business-api request timed out") from exc
         except httpx.HTTPError as exc:
