@@ -28,7 +28,7 @@ kubectl get pods -n share-bite-local -l app=guest-api -w
 
 To access the `guest-api` from your local machine, use port-forwarding:
 ```bash
-kubectl port-forward svc/guest-api -n share-bite-local 3800:3800
+kubectl port-forward svc/guest-api -n share-bite-local 3800:80
 ```
 
 ## Verification / Sample Curl
