@@ -14,7 +14,10 @@ import (
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 )
 
-const maxLocationTags = 5
+const ( 
+	maxLocationTags = 5
+	hoursTimeLayout = "15:04"
+)
 
 func (s *service) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
 	const op = "business.service.CreateLocation"
@@ -222,12 +225,12 @@ func (s *service) UpdateVenueHours(
 			return nil, apperror.BadRequest("both openTime and closeTime must be provided together")
 		}
 
-		openT, err := time.Parse("15:04", *d.OpenTime)
+		openT, err := time.Parse(hoursTimeLayout, *d.OpenTime)
 		if err != nil {
 			return nil, apperror.BadRequest("openTime must be HH:MM")
 		}
 
-		closeT, err := time.Parse("15:04", *d.CloseTime)
+		closeT, err := time.Parse(hoursTimeLayout, *d.CloseTime)
 		if err != nil {
 			return nil, apperror.BadRequest("closeTime must be HH:MM")
 		}
