@@ -71,6 +71,7 @@ type businessService interface {
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	ResubmitVerification(ctx context.Context, id int, userID string) error
+	UpdateVenueHours(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateVenueHoursInput) (*dto.UpdateVenueHoursOutput, error)
 }
 
 func RegisterHandlers(
@@ -141,6 +142,7 @@ func RegisterHandlers(
 		businessLocations.POST("/:id/locations", h.createLocation)
 		businessLocations.PATCH("/locations/:id", h.updateLocation)
 		businessLocations.DELETE("/locations/:id", h.deleteLocation)
+		businessLocations.PATCH("/locations/:id/hours", h.updateVenueHours)
 	}
 
 	boxes := r.Group("/boxes").
