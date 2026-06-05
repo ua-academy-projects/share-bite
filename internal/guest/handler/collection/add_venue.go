@@ -11,6 +11,7 @@ import (
 
 // @Summary		Add a venue to a collection
 // @Description	Adds a specific venue to an existing collection.
+// @Description	Validates if the venue exists via business API before adding.
 // @Description	Fails if the collection is full (limit is 100 venues),
 // @Description	if the venue is already in the collection, or if the user does not own it.
 //
@@ -26,9 +27,10 @@ import (
 // @Failure		400				{object}	response.ErrorResponse		"Invalid path parameters, or collection is full (limit is 100 venues)"
 // @Failure		401				{object}	response.AuthErrorResponse	"Unauthorized: Missing or invalid token"
 // @Failure		403				{object}	response.ErrorResponse		"Forbidden: Customer profile not found or user does not own this collection"
-// @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection not found"
+// @Failure		404				{object}	response.ErrorResponse		"Not Found: Collection not found, or Venue not found in business API"
 // @Failure		409				{object}	response.ErrorResponse		"Conflict: Venue is already in the collection"
 // @Failure		500				{object}	response.ErrorResponse		"Internal server error"
+// @Failure		502				{object}	response.ErrorResponse		"Bad Gateway: Upstream business API error"
 //
 // @Router			/collections/{collectionId}/venues/{venueId} [post]
 func (h *handler) addVenue(c *gin.Context) {

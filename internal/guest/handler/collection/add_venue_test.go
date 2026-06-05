@@ -124,7 +124,7 @@ func TestAddVenue(t *testing.T) {
 			wantBody: response.ErrorResponse{Message: apperror.ErrVenueAlreadyInCollection.Error()},
 		},
 		{
-			name:         "service returns not found",
+			name:         "service returns collection not found",
 			collectionID: collectionID,
 			venueID:      venueIDStr,
 			customerID:   customerID,
@@ -136,6 +136,20 @@ func TestAddVenue(t *testing.T) {
 			},
 			wantCode: http.StatusNotFound,
 			wantBody: response.ErrorResponse{Message: apperror.CollectionNotFoundID(collectionID).Error()},
+		},
+		{
+			name:         "service returns venue not found",
+			collectionID: collectionID,
+			venueID:      venueIDStr,
+			customerID:   customerID,
+			mockFn: func(s *mockCollectionService) {
+				err := apperror.VenueNotFoundID(venueID)
+				s.On("AddVenue", mock.Anything, collectionID, customerID, venueID).
+					Return(err).
+					Once()
+			},
+			wantCode: http.StatusNotFound,
+			wantBody: response.ErrorResponse{Message: apperror.VenueNotFoundID(venueID).Error()},
 		},
 		{
 			name:         "service returns unknown error",

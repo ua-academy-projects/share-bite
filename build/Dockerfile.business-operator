@@ -1,0 +1,16 @@
+FROM golang:1.26.1-bookworm AS builder
+
+WORKDIR /app
+
+COPY go.sum go.mod ./
+RUN go mod download
+
+COPY . . 
+
+RUN CGO_ENABLED=0 go build -o app ./cmd/business-operator
+
+FROM alpine:3.20
+
+COPY --from=builder /app/app .
+
+CMD ["./app"]

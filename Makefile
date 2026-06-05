@@ -5,7 +5,12 @@
 .PHONY: generate generate-guest-business-client
 .PHONY: s3-up s3-ui docker-build
 .PHONY: goose-up goose-down goose-status goose-create
+.PHONY: docker-build docker-build-business-operator docker-push-business-operator
 .PHONY: k8s-secrets k8s-up k8s-down k8s-migrate
+
+REGISTRY ?= mykolashevchenko
+TAG ?= latest
+OPERATOR_IMAGE := $(REGISTRY)/business-operator:$(TAG)
 
 COUNT ?= 1
 MIGRATIONS_DIR := migrations
@@ -133,6 +138,24 @@ clean:
 	rm -rf internal/guest/gateway/business/client
 
 docker-build:
+	docker build -t guest-api -f build/Dockerfile.guest .
+	docker build -t business-api -f build/Dockerfile.business .
+	docker build -t admin-auth-api -f build/Dockerfile.admin .
+	docker build -t migrator -f build/Dockerfile.migrator .
+
+docker-build-business-operator:
+	docker build -t $(OPERATOR_IMAGE) -f build/Dockerfile.business-operator .
+
+docker-push-business-operator:
+	docker push $(OPERATOR_IMAGE)
+
+run-business-operator:
+	kubectl apply -f deploy/k8s/operators/business/crd.yaml
+	kubectl apply -f deploy/k8s/operators/business/rbac.yaml
+	go run ./cmd/business-operator
+
+deploy-operator:
+	kubectl apply -f deploy/k8s/operators/business/operator-deployment.yaml
 	docker build \
 	  --build-arg VERSION=$(VERSION) \
 	  --build-arg COMMIT=$(COMMIT) \
