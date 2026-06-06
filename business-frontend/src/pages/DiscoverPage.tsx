@@ -186,22 +186,29 @@ export function DiscoverPage() {
             </Button>
           </div>
 
-          {error && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-50 dark:bg-red-500/10 px-5 py-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-bold text-red-700 dark:text-red-300">Could not load venues</p>
-                <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
-              </div>
-            </div>
-          )}
-
           {loading && venues.length === 0 ? (
             <div className="flex h-64 items-center justify-center rounded-3xl border border-gray-200 dark:border-[#2f5e50] bg-white dark:bg-[#163d32]">
               <div className="flex flex-col items-center gap-3 text-gray-600 dark:text-gray-300">
                 <Loader2 className="w-10 h-10 animate-spin text-emerald-600 dark:text-[#98FF98]" />
                 <span className="font-medium">Loading venues...</span>
               </div>
+            </div>
+          ) : error ? (
+            <div className="rounded-3xl border border-red-500/30 bg-red-50 dark:bg-red-500/10 p-8 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-bold text-red-700 dark:text-red-300">Could not load venues</p>
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                onClick={() => void loadVenues(0)}
+                className="bg-red-600 text-white hover:bg-red-700 rounded-xl"
+              >
+                Try again
+              </Button>
             </div>
           ) : venues.length === 0 ? (
             <div className="rounded-3xl border border-gray-200 dark:border-[#2f5e50] bg-white dark:bg-[#163d32] p-12 text-center">
