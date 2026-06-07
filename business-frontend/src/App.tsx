@@ -6,7 +6,6 @@ import { RoleBasedHome } from "@/components/RoleBasedHome";
 import { HomeFeedPage } from "@/pages/HomeFeedPage";
 import { CreateHubPage } from "@/pages/CreateHubPage";
 import { BusinessAccountPage } from "@/pages/BusinessAccountPage";
-import { DiscoverPage } from "@/pages/DiscoverPage";
 import { MyVenuesPage } from "@/pages/MyVenuesPage";
 import { QRCodeModalProvider } from "@/contexts/QRCodeModalContext";
 import { QRCodeModalContainer } from "@/components/ui/QRCodeModal";
@@ -25,15 +24,26 @@ import { NotificationsPage } from "@/pages/guest/Notifications/NotificationsPage
 import { AccountSettingsPage } from "@/pages/guest/Settings/AccountSettingsPage";
 import { UserProfile } from "@/pages/guest/UserProfile/UserProfile";
 import { ProfileCreatePage } from "@/pages/guest/UserProfile/ProfileCreatePage";
-import { RestaurantProfile } from "@/pages/guest/RestaurantProfile/RestaurantProfile";
 import { CreatePost } from "@/pages/guest/CreatePost/CreatePost";
 import { AdminUsersPage } from "@/pages/guest/Admin/AdminUsersPage";
 import { AdminUserDetailPage } from "@/pages/guest/Admin/AdminUserDetailPage";
 import { ForbiddenPage } from "@/pages/guest/Forbidden/ForbiddenPage";
+import { isUserRole } from "@/utils/auth";
 
 function RestaurantRedirect() {
   const { id } = useParams();
   return <Navigate to={`/venue/${id}`} replace />;
+}
+
+function RequireGuestUser({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    return <Navigate to="/auth" replace />;
+  }
+  if (!isUserRole()) {
+    return <Navigate to="/forbidden" replace />;
+  }
+  return <>{children}</>;
 }
 
 function App() {
@@ -46,6 +56,9 @@ function App() {
           <Route path="/discover" element={<VenueSearchPage />} />
           <Route path="/venues/search" element={<Navigate to="/discover" replace />} />
           <Route path="/explore" element={<Navigate to="/discover" replace />} />
+          <Route path="/create" element={<CreateHubPage />} />
+          <Route path="/account" element={<BusinessAccountPage />} />
+          <Route path="/venues/mine" element={<MyVenuesPage />} />
           <Route path="/venue/:id/create-post" element={<CreatePostPage />} />
           <Route path="/venue/:id/create-box" element={<CreateBoxPage />} />
           <Route path="/venue/:id" element={<VenueProfilePage />} />
@@ -57,9 +70,9 @@ function App() {
           <Route
             path="/collections"
             element={
-              <RequireAuth>
+              <RequireGuestUser>
                 <CollectionsPage />
-              </RequireAuth>
+              </RequireGuestUser>
             }
           />
           <Route
@@ -152,23 +165,6 @@ function App() {
           />
         </Routes>
       </AppShell>
-      <div className="flex min-h-screen bg-background text-foreground">
-        <Sidebar />
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<HomeFeedPage />} />
-            <Route path="/boxes" element={<BoxesPage />} />
-            <Route path="/create" element={<CreateHubPage />} />
-            <Route path="/account" element={<BusinessAccountPage />} />
-            <Route path="/discover" element={<DiscoverPage />} />
-            <Route path="/venues/mine" element={<MyVenuesPage />} />
-            <Route path="/venues/search" element={<VenueSearchPage />} />
-            <Route path="/venue/:id/create-post" element={<CreatePostPage />} />
-            <Route path="/venue/:id/create-box" element={<CreateBoxPage />} />
-            <Route path="/venue/:id" element={<VenueProfilePage />} />
-          </Routes>
-        </main>
-      </div>
       <QRCodeModalContainer />
     </QRCodeModalProvider>
   );

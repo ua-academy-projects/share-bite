@@ -131,8 +131,6 @@ function authHeaders(token?: string): Record<string, string> {
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
-const BUSINESS_ACCOUNT_ID = Number(import.meta.env.VITE_BUSINESS_ACCOUNT_ID);
 
 export const businessApi = {
   getNearbyBoxes: async (
@@ -224,7 +222,7 @@ export const businessApi = {
     if (tags.length > 0) search.set("tags", tags.join(","));
 
     const response = await fetch(
-      `${API_BASE_URL}/business/org-units/${brandId}/locations?${search.toString()}`
+      `${BUSINESS_BASE}/org-units/${brandId}/locations?${search.toString()}`
     );
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -241,15 +239,21 @@ export const businessApi = {
   listCurrentBusinessVenues: async (
     params: Pick<SearchVenuesRequest, "tags" | "skip" | "limit"> = {},
   ): Promise<BrandVenuesResponse> => {
-    if (!Number.isFinite(BUSINESS_ACCOUNT_ID) || BUSINESS_ACCOUNT_ID <= 0) {
-      throw new Error("Business account is not configured.");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Unauthorized");
     }
 
-    return businessApi.listBrandVenues(BUSINESS_ACCOUNT_ID, params);
+    const context = await businessApi.getMyOnboardingContext(token);
+    if (!context.brandId || context.brandId <= 0) {
+      throw new Error("Business brand profile not found.");
+    }
+
+    return businessApi.listBrandVenues(context.brandId, params);
   },
 
   getVenueRating: async (id: number): Promise<VenueRating> => {
-    const response = await fetch(`${API_BASE_URL}/business/org-units/${id}/rating`);
+    const response = await fetch(`${BUSINESS_BASE}/org-units/${id}/rating`);
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || err.message || `Failed to load venue rating (${response.status})`);

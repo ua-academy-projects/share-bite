@@ -58,6 +58,8 @@ export interface CustomerResponse {
   lastName: string;
   avatarURL?: string | null;
   bio?: string;
+  followers?: number;
+  following?: number;
   createdAt: string;
 }
 
