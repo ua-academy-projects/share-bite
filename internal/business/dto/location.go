@@ -39,3 +39,18 @@ type ListNearbyVenuesOutput struct {
 	Items []NearbyVenueItem `json:"items"`
 	Total int               `json:"total"`
 }
+
+type VenueHoursDayInput struct {
+	Weekday   int     `json:"weekday" binding:"required,min=1,max=7"`
+	OpenTime  *string `json:"openTime"`
+	CloseTime *string `json:"closeTime"`
+}
+
+type UpdateVenueHoursInput struct {
+	Days []VenueHoursDayInput `json:"days" binding:"required,min=1,max=7"`
+}
+
+type UpdateVenueHoursOutput struct {
+	VenueID int                  `json:"venueId"`
+	Days    []VenueHoursDayInput `json:"days"`
+}

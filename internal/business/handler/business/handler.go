@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"mime/multipart"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -69,6 +71,7 @@ type businessService interface {
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	GetOnboardingContext(ctx context.Context, userID string) (brandID int, venueID int, err error)
+	UpdateVenueHours(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateVenueHoursInput) (*dto.UpdateVenueHoursOutput, error)
 }
 
 func RegisterHandlers(
@@ -81,6 +84,9 @@ func RegisterHandlers(
 		service: service,
 		storage: st,
 	}
+
+	r.GET("/healthz", h.healthz)
+	r.GET("/ready", h.ready)
 
 	auth := middleware.Auth(parser)
 	r.GET("/me", auth, middleware.RequireRoles(RoleBusiness), h.getMe)
@@ -136,6 +142,7 @@ func RegisterHandlers(
 		businessLocations.POST("/:id/locations", h.createLocation)
 		businessLocations.PATCH("/locations/:id", h.updateLocation)
 		businessLocations.DELETE("/locations/:id", h.deleteLocation)
+		businessLocations.PATCH("/locations/:id/hours", h.updateVenueHours)
 	}
 
 	boxes := r.Group("/boxes").
@@ -167,7 +174,19 @@ type errorResponse struct {
 	Error string `json:"error" example:"not found"`
 }
 
-type CreateBoxResponse struct {
-	ID      int64  `json:"id"`
-	Message string `json:"message"`
+func (h *handler) healthz(c *gin.Context) {
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *handler) ready(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	_, err := h.service.ListLocationTags(ctx)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service not ready"})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
 }

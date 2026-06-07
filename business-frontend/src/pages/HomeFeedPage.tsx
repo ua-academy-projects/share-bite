@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { businessApi, RecommendedPost } from "@/api/business";
 import { PostCard, PostData } from "@/components/ui/PostCard";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, Building2, Compass, Loader2, Package, PlusCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getBusinessOrgId } from "@/utils/auth";
 
@@ -10,6 +10,33 @@ const HARDCODED_LAT = 1;
 const HARDCODED_LON = 2;
 
 const PAGE_LIMIT = 10;
+
+const quickActions = [
+  {
+    title: "Create",
+    description: "Start a post or magic box from a venue profile.",
+    to: "/create",
+    icon: PlusCircle,
+  },
+  {
+    title: "My venues",
+    description: "Open owned venues before creating posts or boxes.",
+    to: "/venues/mine",
+    icon: Building2,
+  },
+  {
+    title: "Magic boxes",
+    description: "Browse available boxes and reservation flow.",
+    to: "/boxes",
+    icon: Package,
+  },
+  {
+    title: "Discover",
+    description: "Explore venue discovery and search experiences.",
+    to: "/discover",
+    icon: Compass,
+  },
+];
 
 const mapRecommendedPostToPostData = (post: RecommendedPost): PostData => {
   return {
@@ -124,6 +151,27 @@ export function HomeFeedPage() {
             <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
             Refresh
           </Button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.title}
+                to={action.to}
+                className="bg-white dark:bg-[#163d32] border border-gray-200 dark:border-[#2f5e50] rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#FFD700] text-[#1A3C34] flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-bold text-[#1A3C34] dark:text-white">{action.title}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 leading-relaxed">
+                  {action.description}
+                </p>
+              </Link>
+            );
+          })}
         </div>
 
         {/* Error State */}

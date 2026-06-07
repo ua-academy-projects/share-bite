@@ -23,6 +23,27 @@ function NavSection({ label }: { label: string }) {
     </span>
   );
 }
+import {
+  Building2,
+  Compass,
+  Home,
+  Moon,
+  Package,
+  PlusCircle,
+  Search,
+  Settings,
+  Sun,
+  UserRound,
+} from "lucide-react";
+
+const navItems = [
+  { to: "/", label: "Home Feed", icon: Home, end: true },
+  { to: "/venues/mine", label: "My Venues", icon: Building2 },
+  { to: "/discover", label: "Discover", icon: Compass },
+  { to: "/venues/search", label: "Venue Search", icon: Search },
+  { to: "/boxes", label: "Magic Boxes", icon: Package },
+  { to: "/account", label: "Account", icon: UserRound },
+];
 
 export function Sidebar() {
   const { theme, setTheme } = useTheme();
@@ -215,6 +236,30 @@ export function Sidebar() {
             </span>
             <span className="cursor-pointer transition-colors hover:text-white">
               Privacy
+        {/* Основна кнопка дії */}
+        <Button asChild className="w-full bg-[#FFD700] text-[#1A3C34] hover:bg-[#FFD700]/80 rounded-full mb-8 font-bold">
+          <NavLink to="/create">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create
+          </NavLink>
+        </Button>
+
+        {/* Навігація */}
+        <nav className="flex flex-col gap-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </NavLink>
+            );
+          })}
+
+          <div className="mt-4 flex flex-col gap-2">
+            <span className="text-gray-400 px-3 py-2 text-sm font-medium flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
             </span>
           </div>
         </div>

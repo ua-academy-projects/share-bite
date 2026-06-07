@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guest-api
+  namespace: share-bite-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guest-api
+  template:
+    metadata:
+      labels:
+        app: guest-api
+    spec:
+      containers:
+        - name: guest-api
+          image: guest-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3800
+          envFrom:
+            - configMapRef:
+                name: share-bite-infra-config
+            - configMapRef:
+                name: guest-api-config
+            - secretRef:
+                name: share-bite-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3800
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3800
+            initialDelaySeconds: 5
+            periodSeconds: 5

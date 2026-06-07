@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: guest-api
+  namespace: share-bite-local
+spec:
+  selector:
+    app: guest-api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3800

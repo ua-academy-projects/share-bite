@@ -24,6 +24,7 @@ type BusinessServiceClient interface {
 type Service interface {
 	GetUserDetails(ctx context.Context, userID string) (*dto.FullUserDetails, error)
 	GetUsersList(ctx context.Context, filter dto.AdminUserFilter) (*dto.PaginatedAdminUsersResponse, error)
+	GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error)
 	ChangeUserRole(ctx context.Context, targetUserID string, newRoleSlug string) error
 }
 
@@ -89,6 +90,15 @@ func (s *service) GetUsersList(ctx context.Context, filter dto.AdminUserFilter) 
 		Items:      items,
 		TotalCount: totalCount,
 	}, nil
+}
+
+func (s *service) GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error) {
+	stats, err := s.adminRepo.GetPlatformStatistics(ctx)
+	if err != nil {
+		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to get platform statistics", err)
+	}
+
+	return stats, nil
 }
 
 func (s *service) ChangeUserRole(ctx context.Context, targetUserID string, newRoleSlug string) error {

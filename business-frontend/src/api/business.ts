@@ -49,6 +49,11 @@ export type SearchVenuesResponse = {
   total: number;
 };
 
+export type BrandVenuesResponse = {
+  items: VenueSearchItem[];
+  total: number;
+};
+
 export type ReserveBoxResponse = {
   image: string;
   price_full: string | number;
@@ -72,6 +77,10 @@ export type VenueProfile = {
   longitude?: number | null;
   tags: string[];
   brand?: VenueBrand | null;
+};
+
+export type VenueRating = {
+  rating: number;
 };
 
 export type RecommendedPost = {
@@ -122,6 +131,8 @@ function authHeaders(token?: string): Record<string, string> {
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
+const BUSINESS_ACCOUNT_ID = Number(import.meta.env.VITE_BUSINESS_ACCOUNT_ID);
 
 export const businessApi = {
   getNearbyBoxes: async (
@@ -195,6 +206,53 @@ export const businessApi = {
       throw new Error(
         err.error || err.message || `Failed to load venue (${response.status})`
       );
+    }
+    return response.json();
+  },
+
+  listBrandVenues: async (
+    brandId: number,
+    params: Pick<SearchVenuesRequest, "tags" | "skip" | "limit"> = {},
+  ): Promise<BrandVenuesResponse> => {
+    const search = new URLSearchParams();
+    search.set("skip", String(params.skip ?? 0));
+    search.set("limit", String(params.limit ?? 24));
+
+    const tags = (params.tags || [])
+      .map((tag) => tag.trim().toLowerCase())
+      .filter(Boolean);
+    if (tags.length > 0) search.set("tags", tags.join(","));
+
+    const response = await fetch(
+      `${API_BASE_URL}/business/org-units/${brandId}/locations?${search.toString()}`
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load brand venues (${response.status})`);
+    }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
+  },
+
+  listCurrentBusinessVenues: async (
+    params: Pick<SearchVenuesRequest, "tags" | "skip" | "limit"> = {},
+  ): Promise<BrandVenuesResponse> => {
+    if (!Number.isFinite(BUSINESS_ACCOUNT_ID) || BUSINESS_ACCOUNT_ID <= 0) {
+      throw new Error("Business account is not configured.");
+    }
+
+    return businessApi.listBrandVenues(BUSINESS_ACCOUNT_ID, params);
+  },
+
+  getVenueRating: async (id: number): Promise<VenueRating> => {
+    const response = await fetch(`${API_BASE_URL}/business/org-units/${id}/rating`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load venue rating (${response.status})`);
     }
     return response.json();
   },
