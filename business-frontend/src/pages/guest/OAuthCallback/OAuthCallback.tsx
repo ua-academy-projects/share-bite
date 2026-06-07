@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { apiClient } from "@/api/client";
@@ -11,11 +11,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+function oauthExchangeStorageKey(code: string) {
+  return `oauth_exchange_${code}`;
+}
+
 export function OAuthCallback() {
   const [searchParams] = useSearchParams();
   const [error, setError] = useState("");
+  const exchangeStarted = useRef(false);
 
   useEffect(() => {
+    if (exchangeStarted.current) {
+      return;
+    }
+
     const code = searchParams.get("code");
     const oauthError = searchParams.get("error");
 
@@ -29,6 +38,17 @@ export function OAuthCallback() {
       return;
     }
 
+    const exchangeKey = oauthExchangeStorageKey(code);
+    if (sessionStorage.getItem(exchangeKey)) {
+      if (localStorage.getItem("token")) {
+        window.location.href = "/";
+      }
+      return;
+    }
+
+    exchangeStarted.current = true;
+    sessionStorage.setItem(exchangeKey, "pending");
+
     const slug =
       sessionStorage.getItem("oauth_role_slug") === "business"
         ? "business"
@@ -37,9 +57,12 @@ export function OAuthCallback() {
     const exchange = async () => {
       try {
         await apiClient.oauthCallback("google", code, slug);
+        sessionStorage.setItem(exchangeKey, "done");
         sessionStorage.removeItem("oauth_role_slug");
         window.location.href = "/";
       } catch (err: unknown) {
+        sessionStorage.removeItem(exchangeKey);
+        exchangeStarted.current = false;
         const e = err as { response?: { data?: { error?: string } }; message?: string };
         setError(
           e?.response?.data?.error ||

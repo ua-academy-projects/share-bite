@@ -408,6 +408,7 @@ export const apiClient = {
   },
 
   createCustomer: async (data: {
+    email: string;
     userName: string;
     firstName: string;
     lastName: string;

@@ -20,6 +20,7 @@ export function ProfileCreatePage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
+    email: "",
     userName: "",
     firstName: "",
     lastName: "",
@@ -76,6 +77,20 @@ export function ProfileCreatePage() {
       />
       <div className={cn(pagePanel, "mx-auto max-w-lg p-8")}>
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="email" className={pageLabel}>
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              className={pageInput}
+              placeholder="name@example.com"
+            />
+          </div>
           <div className="space-y-2">
             <label htmlFor="userName" className={pageLabel}>
               Username

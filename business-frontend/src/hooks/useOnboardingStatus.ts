@@ -47,13 +47,15 @@ async function fetchOnboardingStatus(): Promise<OnboardingStatus> {
     const context = await businessApi.getMyOnboardingContext(token);
     if (context.venueId) {
       setBusinessOrgId(context.venueId);
+    } else if (context.brandId) {
+      setBusinessOrgId(context.brandId);
     }
 
-    const hasVenue = context.venueId != null && context.venueId > 0;
+    const hasBrand = context.brandId != null && context.brandId > 0;
     return {
       needsCustomerSetup: false,
-      needsBusinessSetup: !hasVenue,
-      isComplete: hasVenue,
+      needsBusinessSetup: !hasBrand,
+      isComplete: hasBrand,
     };
   }
 

@@ -23,10 +23,6 @@ export function BusinessSetupPage() {
   const [form, setForm] = useState({
     brandName: "",
     brandDescription: "",
-    venueName: "",
-    venueDescription: "",
-    latitude: "1",
-    longitude: "2",
   });
 
   const { data: context, isLoading } = useQuery({
@@ -37,44 +33,28 @@ export function BusinessSetupPage() {
   });
 
   useEffect(() => {
-    if (context?.venueId) {
-      setBusinessOrgId(context.venueId);
+    if (context?.brandId) {
+      setBusinessOrgId(context.brandId);
       navigate(getDefaultHomePath(), { replace: true });
     }
-  }, [context?.venueId, navigate]);
+  }, [context?.brandId, navigate]);
 
   const setupMutation = useMutation({
     mutationFn: async () => {
-      let brandId = context?.brandId ?? null;
-      if (!brandId) {
-        const brand = await businessApi.createBrand(
-          {
-            name: form.brandName.trim(),
-            description: form.brandDescription.trim() || undefined,
-          },
-          token
-        );
-        brandId = brand.id;
-      }
-
-      const venue = await businessApi.createLocation(
-        brandId,
+      const brand = await businessApi.createBrand(
         {
-          name: form.venueName.trim(),
-          description: form.venueDescription.trim() || undefined,
-          latitude: Number(form.latitude),
-          longitude: Number(form.longitude),
+          name: form.brandName.trim(),
+          description: form.brandDescription.trim() || undefined,
         },
         token
       );
-
-      return venue.id;
+      return brand.id;
     },
-    onSuccess: (venueId) => {
-      setBusinessOrgId(venueId);
+    onSuccess: (brandId) => {
+      setBusinessOrgId(brandId);
       void queryClient.invalidateQueries({ queryKey: ["onboardingStatus"] });
       void queryClient.invalidateQueries({ queryKey: ["businessOnboarding"] });
-      toast.success("Venue profile created!");
+      toast.success("Business profile created!");
       navigate(getDefaultHomePath(), { replace: true });
     },
     onError: (error: unknown) => {
@@ -96,107 +76,45 @@ export function BusinessSetupPage() {
     );
   }
 
-  const needsBrand = !context?.brandId;
-
   return (
     <PageLayout>
       <div className="mx-auto max-w-lg space-y-8">
         <div>
           <h1 className="mb-3 text-4xl font-bold tracking-tight text-[#1A3C34] dark:text-white md:text-5xl">
-            Set Up Your Venue
+            Set Up Your Business
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400">
-            Create your business profile to list rescue boxes and post updates.
+            Create your brand profile to get started on Share Bite.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className={cn(pagePanel, "space-y-5 p-8")}>
-          {needsBrand ? (
-            <>
-              <div className="space-y-2">
-                <label htmlFor="brandName" className={pageLabel}>
-                  Brand name
-                </label>
-                <input
-                  id="brandName"
-                  required
-                  value={form.brandName}
-                  onChange={(e) => setForm((f) => ({ ...f, brandName: e.target.value }))}
-                  className={pageInput}
-                  placeholder="My Restaurant Group"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="brandDescription" className={pageLabel}>
-                  Brand description
-                </label>
-                <textarea
-                  id="brandDescription"
-                  value={form.brandDescription}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, brandDescription: e.target.value }))
-                  }
-                  className={cn(pageInput, "min-h-[80px] resize-y py-3")}
-                />
-              </div>
-            </>
-          ) : null}
-
           <div className="space-y-2">
-            <label htmlFor="venueName" className={pageLabel}>
-              Venue name
+            <label htmlFor="brandName" className={pageLabel}>
+              Brand name
             </label>
             <input
-              id="venueName"
+              id="brandName"
               required
-              value={form.venueName}
-              onChange={(e) => setForm((f) => ({ ...f, venueName: e.target.value }))}
+              value={form.brandName}
+              onChange={(e) => setForm((f) => ({ ...f, brandName: e.target.value }))}
               className={pageInput}
-              placeholder="Downtown location"
+              placeholder="Downtown Bakery"
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="venueDescription" className={pageLabel}>
-              Venue description
+            <label htmlFor="brandDescription" className={pageLabel}>
+              Brand description
             </label>
             <textarea
-              id="venueDescription"
-              value={form.venueDescription}
+              id="brandDescription"
+              value={form.brandDescription}
               onChange={(e) =>
-                setForm((f) => ({ ...f, venueDescription: e.target.value }))
+                setForm((f) => ({ ...f, brandDescription: e.target.value }))
               }
               className={cn(pageInput, "min-h-[80px] resize-y py-3")}
+              placeholder="Tell customers about your business"
             />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="latitude" className={pageLabel}>
-                Latitude
-              </label>
-              <input
-                id="latitude"
-                required
-                type="number"
-                step="any"
-                value={form.latitude}
-                onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))}
-                className={pageInput}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="longitude" className={pageLabel}>
-                Longitude
-              </label>
-              <input
-                id="longitude"
-                required
-                type="number"
-                step="any"
-                value={form.longitude}
-                onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))}
-                className={pageInput}
-              />
-            </div>
           </div>
 
           <Button
@@ -204,7 +122,7 @@ export function BusinessSetupPage() {
             className={cn(pageBtnPrimary, "w-full")}
             disabled={setupMutation.isPending}
           >
-            {setupMutation.isPending ? "Creating…" : "Create venue profile"}
+            {setupMutation.isPending ? "Creating…" : "Create business profile"}
           </Button>
         </form>
       </div>

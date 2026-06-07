@@ -52,24 +52,11 @@ export function Auth() {
       if (isLogin) {
         return apiClient.login({ email, password });
       }
-      const authData = await apiClient.register({
+      return apiClient.register({
         email,
         password,
         slug: roleSlug,
       });
-      if (roleSlug === "user") {
-        const prefix =
-          email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") || "user";
-        const userName = `${prefix}${Math.random().toString(36).slice(2, 7)}`;
-        const nameParts = name.trim().split(" ");
-        await apiClient.createCustomer({
-          userName,
-          firstName: nameParts[0] || "Unknown",
-          lastName: nameParts.slice(1).join(" ") || "User",
-          bio: "Food lover!",
-        });
-      }
-      return authData;
     },
     onSuccess: () => {
       const from = (location.state as { from?: { pathname?: string } } | null)?.from

@@ -147,6 +147,9 @@ export function Sidebar() {
                 <NavLink to="/settings/account" className={linkClass}>
                   Edit Profile
                 </NavLink>
+                <NavLink to="/collections" className={linkClass}>
+                  Collections
+                </NavLink>
               </>
             ) : null}
 
@@ -168,9 +171,6 @@ export function Sidebar() {
             {token ? (
               <>
                 <NavSection label="Settings" />
-                <NavLink to="/collections" className={linkClass}>
-                  Collections
-                </NavLink>
                 <NavLink to="/profile" className={linkClass}>
                   Profile
                 </NavLink>

@@ -326,7 +326,7 @@ export const businessApi = {
   },
 
   createBrand: async (payload: CreateBrandRequest, token: string): Promise<{ id: number }> => {
-    const response = await fetch(`${BUSINESS_BASE}/`, {
+    const response = await fetch(BUSINESS_BASE, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
