@@ -240,7 +240,7 @@ export function GuestPostCard({ post, restaurantName }: PostCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90"></div>
           
           <div className="absolute top-4 left-4 bg-primary/20 backdrop-blur-md text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-full border border-primary/30 shadow-sm flex items-center gap-1">
-            <Link to={`/restaurant/${post.venueId}`} className="hover:text-primary transition-colors">
+            <Link to={`/venue/${post.venueId}`} className="hover:text-primary transition-colors">
               📍 {restaurantName || `Venue #${post.venueId}`}
             </Link>
           </div>
@@ -324,7 +324,7 @@ export function GuestPostCard({ post, restaurantName }: PostCardProps) {
             
             {!(post.images && post.images.length > 0) && (
               <div className="flex flex-col items-end gap-1">
-                <Link to={`/restaurant/${post.venueId}`} className="text-xs font-semibold text-primary hover:underline bg-primary/10 px-2 py-1 rounded-full">
+                <Link to={`/venue/${post.venueId}`} className="text-xs font-semibold text-primary hover:underline bg-primary/10 px-2 py-1 rounded-full">
                   📍 {restaurantName || `Venue #${post.venueId}`}
                 </Link>
                 <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">★ {post.rating}</span>
