@@ -4,20 +4,18 @@ import httpx
 import pytest
 
 from app.tools.health import guest_health_check
-from tests.factories.guest_responses import build_error_response, build_success_response
+from tests.factories.guest_responses import build_health_response, build_error_response
 
 
 @pytest.mark.asyncio
 async def test_health_check_success(mock_guest_api):
     """Returns parsed JSON when Guest API responds with 200."""
-    mock_guest_api.get("/health").mock(
-        return_value=build_success_response({"status": "ok"})
-    )
+    mock_guest_api.get("/health").mock(return_value=build_health_response())
 
     result = await guest_health_check()
     data = json.loads(result)
 
-    assert data == {"status": "ok"}
+    assert data == {"status": "OK"}
 
 
 @pytest.mark.asyncio
