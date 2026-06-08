@@ -14,8 +14,10 @@ export function parseJwt(token: string): JwtPayload | null {
   }
 
   try {
-    const base64 = parts[1];
-    const json = atob(base64.replace(/-/g, "+").replace(/_/g, "/"));
+    let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const pad = (4 - (base64.length % 4)) % 4;
+    base64 += "=".repeat(pad);
+    const json = atob(base64);
     return JSON.parse(json) as JwtPayload;
   } catch {
     return null;
