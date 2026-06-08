@@ -1030,6 +1030,9 @@ func (r *Repository) UpdateProcessedMetadata(ctx context.Context, imageID string
 	}
 
 	result, err := r.db.DB().ExecContext(ctx, q, thumbnailKey, width, height, entity.ImageStatusCompleted, imageID)
+	if err != nil {
+		return executeSQLError(err)
+	}
 
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
@@ -1039,7 +1042,7 @@ func (r *Repository) UpdateProcessedMetadata(ctx context.Context, imageID string
 		)
 	}
 
-	return executeSQLError(err)
+	return nil
 }
 
 func (r *Repository) MarkProcessingFailed(ctx context.Context, imageID string, reason string) error {
@@ -1057,8 +1060,11 @@ func (r *Repository) MarkProcessingFailed(ctx context.Context, imageID string, r
 	}
 
 	_, err := r.db.DB().ExecContext(ctx, q, entity.ImageStatusFailed, reason, imageID)
+	if err != nil {
+		return executeSQLError(err)
+	}
 
-	return executeSQLError(err)
+	return nil
 }
 
 func (r *Repository) ClaimForProcessing(ctx context.Context, imageID string) (bool, error) {

@@ -4,9 +4,6 @@ import { RequireAuth } from "@/components/RequireAuth/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin/RequireAdmin";
 import { RoleBasedHome } from "@/components/RoleBasedHome";
 import { HomeFeedPage } from "@/pages/HomeFeedPage";
-import { CreateHubPage } from "@/pages/CreateHubPage";
-import { BusinessAccountPage } from "@/pages/BusinessAccountPage";
-import { MyVenuesPage } from "@/pages/MyVenuesPage";
 import { QRCodeModalProvider } from "@/contexts/QRCodeModalContext";
 import { QRCodeModalContainer } from "@/components/ui/QRCodeModal";
 import { BoxesPage } from "@/pages/BoxesPage";
@@ -56,10 +53,6 @@ function App() {
           <Route path="/discover" element={<VenueSearchPage />} />
           <Route path="/venues/search" element={<Navigate to="/discover" replace />} />
           <Route path="/explore" element={<Navigate to="/discover" replace />} />
-          <Route path="/create" element={<CreateHubPage />} />
-          <Route path="/account" element={<BusinessAccountPage />} />
-          <Route path="/venues/mine" element={<MyVenuesPage />} />
-          <Route path="/venue/:id/create-post" element={<CreatePostPage />} />
           <Route path="/venue/:id/create-box" element={<CreateBoxPage />} />
           <Route path="/venue/:id" element={<VenueProfilePage />} />
 
@@ -125,6 +118,14 @@ function App() {
           />
           <Route
             path="/post/create"
+            element={
+              <RequireAuth>
+                <CreatePost />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/venue/:id/post/create"
             element={
               <RequireAuth>
                 <CreatePost />

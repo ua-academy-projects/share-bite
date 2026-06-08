@@ -66,6 +66,16 @@ const mapCustomer = (c: RawCustomerResponse): CustomerResponse => ({
   avatarURL: c.avatarURL ?? c.avatarUrl ?? null,
 });
 
+type RawPostImage =
+  | string
+  | {
+      url?: string;
+      thumbnailURL?: string;
+      thumbnail_url?: string;
+      processingStatus?: string;
+      processing_status?: string;
+    };
+
 interface RawPost {
   id: string;
   customer_id?: string;
@@ -84,7 +94,7 @@ interface RawPost {
   likesCount?: number;
   is_liked_by_me?: boolean;
   isLikedByMe?: boolean;
-  images: string[];
+  images?: RawPostImage[];
   created_at?: string;
   createdAt?: string;
   updated_at?: string;
@@ -92,6 +102,17 @@ interface RawPost {
   published_at?: string;
   publishedAt?: string;
 }
+
+const mapPostImages = (images?: RawPostImage[]): string[] => {
+  if (!images?.length) return [];
+
+  return images
+    .map((image) => {
+      if (typeof image === "string") return image;
+      return image.url || image.thumbnailURL || image.thumbnail_url || "";
+    })
+    .filter((url) => url.length > 0);
+};
 
 const mapRawPostToPost = (p: RawPost): PostResponse => ({
   id: p.id,
@@ -105,7 +126,7 @@ const mapRawPostToPost = (p: RawPost): PostResponse => ({
   status: p.status,
   likesCount: p.likes_count ?? p.likesCount ?? 0,
   isLikedByMe: p.is_liked_by_me ?? p.isLikedByMe ?? false,
-  images: p.images || [],
+  images: mapPostImages(p.images),
   createdAt: p.created_at || p.createdAt || new Date().toISOString(),
   updatedAt: p.updated_at || p.updatedAt || new Date().toISOString(),
   publishedAt: p.published_at || p.publishedAt,

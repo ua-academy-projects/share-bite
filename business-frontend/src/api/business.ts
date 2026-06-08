@@ -108,6 +108,14 @@ export type BusinessOnboardingContext = {
   venueId: number | null;
 };
 
+export type BrandProfile = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  banner?: string | null;
+  description?: string | null;
+};
+
 export type CreateBrandRequest = {
   name: string;
   description?: string;
@@ -385,6 +393,20 @@ export const businessApi = {
       brandId: data.brandId ?? null,
       venueId: data.venueId ?? null,
     };
+  },
+
+  getBrand: async (brandId: number, token?: string): Promise<BrandProfile> => {
+    const response = await fetch(`${BUSINESS_BASE}/${brandId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(token),
+      },
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load brand (${response.status})`);
+    }
+    return response.json();
   },
 
   createBrand: async (payload: CreateBrandRequest, token: string): Promise<{ id: number }> => {

@@ -1,16 +1,23 @@
 import * as React from "react";
 import { useForm, ControllerRenderProps } from "react-hook-form";
-import { Link } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 import { businessApi } from "@/api/business";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -20,10 +27,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Імпортуємо наш новий уніфікований компонент та його тип
 import { PostCard, PostData } from "@/components/ui/PostCard";
 
 const createPostSchema = z.object({
+  venueId: z.string().min(1, "Please select a venue"),
   textData: z
     .string()
     .trim()
@@ -38,28 +45,54 @@ type CreatePostFormValues = z.infer<typeof createPostSchema>;
 export default function CreatePostPage() {
   const { id } = useParams<{ id: string }>();
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const token = localStorage.getItem("token");
 
   const [loading, setLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-  
   const [createdPost, setCreatedPost] = React.useState<PostData | null>(null);
+
+  const {
+    data: venuesData,
+    isLoading: venuesLoading,
+    error: venuesError,
+  } = useQuery({
+    queryKey: ["businessVenues", "post-create"],
+    queryFn: () => businessApi.listCurrentBusinessVenues({ limit: 100 }),
+    enabled: !!token,
+    retry: false,
+  });
+
+  const venues = venuesData?.items ?? [];
 
   const form = useForm<CreatePostFormValues>({
     resolver: zodResolver(createPostSchema),
-    defaultValues: { textData: "" },
+    defaultValues: {
+      venueId: id ?? "",
+      textData: "",
+    },
     mode: "onTouched",
   });
+
+  React.useEffect(() => {
+    if (id) {
+      form.setValue("venueId", id);
+    }
+  }, [id, form]);
+
+  React.useEffect(() => {
+    const currentVenueId = form.getValues("venueId");
+    if (!currentVenueId && venues.length === 1) {
+      form.setValue("venueId", String(venues[0].id));
+    }
+  }, [venues, form]);
+
+  const selectedVenueId = form.watch("venueId");
+  const selectedVenue = venues.find((venue) => String(venue.id) === selectedVenueId);
 
   async function onSubmit(values: CreatePostFormValues) {
     setErrorMessage(null);
     setCreatedPost(null);
 
-    if (!id) {
-      setErrorMessage("Error: Venue ID not found in URL.");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Token missing. Please log in again.");
       return;
@@ -73,7 +106,7 @@ export default function CreatePostPage() {
       Array.from(values.images).forEach((file) => fd.append("photos", file));
 
       const postData: PostData = await businessApi.createBusinessPost(
-        Number(id),
+        Number(values.venueId),
         fd,
         token
       );
@@ -85,7 +118,7 @@ export default function CreatePostPage() {
 
       setCreatedPost(postData);
 
-      form.reset({ textData: "" });
+      form.reset({ venueId: values.venueId, textData: "" });
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -96,17 +129,17 @@ export default function CreatePostPage() {
     }
   }
 
+  const backHref = selectedVenueId ? `/venue/${selectedVenueId}` : "/venues/mine";
+
   return (
     <div className="min-h-screen w-full flex justify-center p-4 md:p-8 bg-[#F9F7F2] dark:bg-[#0d241d] transition-colors duration-300">
       <div className="w-full max-w-xl mt-6 md:mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {id && (
-          <Button asChild variant="ghost" className="mb-4 text-[#1A3C34] dark:text-gray-200 hover:bg-white/70 dark:hover:bg-[#163d32] rounded-xl">
-            <Link to={`/venue/${id}`}>
-              <ArrowLeft size={18} />
-              Back to venue
-            </Link>
-          </Button>
-        )}
+        <Button asChild variant="ghost" className="mb-4 text-[#1A3C34] dark:text-gray-200 hover:bg-white/70 dark:hover:bg-[#163d32] rounded-xl">
+          <Link to={backHref}>
+            <ArrowLeft size={18} />
+            {selectedVenueId ? "Back to venue" : "Back to my venues"}
+          </Link>
+        </Button>
         
         {createdPost ? (
           <div className="space-y-8 flex flex-col items-center">
@@ -146,19 +179,86 @@ export default function CreatePostPage() {
                 Create Post
               </CardTitle>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
-                  SB
-                </div>
+                <img
+                  src={
+                    selectedVenue?.avatar ||
+                    "https://placehold.co/40x40/163d32/FFF?text=SB"
+                  }
+                  alt={selectedVenue?.name || "Venue"}
+                  className="h-10 w-10 rounded-full border border-gray-200 object-cover dark:border-[#2f5e50]"
+                />
                 <div>
-                  <h2 className="text-[#1A3C34] dark:text-white font-semibold">Share Bite</h2>
-                  <p className="text-gray-500 dark:text-gray-300 text-xs">Venue ID: {id ?? "—"}</p>
+                  <h2 className="text-[#1A3C34] dark:text-white font-semibold">
+                    {selectedVenue?.name || "Select a venue"}
+                  </h2>
+                  <p className="text-gray-500 dark:text-gray-300 text-xs">
+                    {selectedVenue
+                      ? "Publishing from this location"
+                      : "Choose where this post should appear"}
+                  </p>
                 </div>
               </div>
             </CardHeader>
 
             <CardContent className="pt-6">
+              {venuesLoading ? (
+                <div className="flex h-40 items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-emerald-500 dark:text-[#98FF98]" />
+                </div>
+              ) : venuesError ? (
+                <div className="space-y-4 rounded-xl border border-red-500/30 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                  <p>
+                    {venuesError instanceof Error
+                      ? venuesError.message
+                      : "Failed to load your venues."}
+                  </p>
+                  <Button asChild variant="outline" className="rounded-xl">
+                    <Link to="/venues/new">Add a venue</Link>
+                  </Button>
+                </div>
+              ) : venues.length === 0 ? (
+                <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-6 text-center dark:border-[#2f5e50] dark:bg-[#163d32]/40">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    You need at least one venue before creating a post.
+                  </p>
+                  <Button asChild className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200] rounded-xl">
+                    <Link to="/venues/new">Add your first venue</Link>
+                  </Button>
+                </div>
+              ) : (
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="venueId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700 dark:text-gray-200 font-medium">
+                          Venue
+                        </FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={loading}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full rounded-xl border border-gray-200 bg-gray-50 text-[#1A3C34] dark:border-[#2f5e50] dark:bg-[#163d32] dark:text-white">
+                              <SelectValue placeholder="Select a venue" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {venues.map((venue) => (
+                              <SelectItem key={venue.id} value={String(venue.id)}>
+                                {venue.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage className="text-red-500 dark:text-red-400" />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="textData"
@@ -248,6 +348,7 @@ export default function CreatePostPage() {
                   </Button>
                 </form>
               </Form>
+              )}
             </CardContent>
           </Card>
         )}

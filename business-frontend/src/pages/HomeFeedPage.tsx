@@ -311,13 +311,9 @@ export function HomeFeedPage() {
               <Button asChild variant="outline">
                 <Link to="/discover">Find venues</Link>
               </Button>
-              {getBusinessOrgId() ? (
-                <Button asChild className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200]">
-                  <Link to={`/venue/${getBusinessOrgId()}/create-post`}>
-                    Create a post
-                  </Link>
-                </Button>
-              ) : null}
+              <Button asChild className="bg-[#FFD700] text-[#1A3C34] hover:bg-[#e6c200]">
+                <Link to="/create-post">Create a post</Link>
+              </Button>
             </div>
           </div>
         )}
