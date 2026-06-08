@@ -1,6 +1,7 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
-import { businessApi } from "@/api/business";
+import { businessApi, type BusinessOnboardingContext } from "@/api/business";
 import {
   getTokenRole,
   isAdminOrModerator,
@@ -13,6 +14,7 @@ export type OnboardingStatus = {
   needsCustomerSetup: boolean;
   needsBusinessSetup: boolean;
   isComplete: boolean;
+  context?: BusinessOnboardingContext | null;
 };
 
 async function fetchOnboardingStatus(): Promise<OnboardingStatus> {
@@ -45,17 +47,12 @@ async function fetchOnboardingStatus(): Promise<OnboardingStatus> {
     }
 
     const context = await businessApi.getMyOnboardingContext(token);
-    if (context.venueId) {
-      setBusinessOrgId(context.venueId);
-    } else if (context.brandId) {
-      setBusinessOrgId(context.brandId);
-    }
-
     const hasBrand = context.brandId != null && context.brandId > 0;
     return {
       needsCustomerSetup: false,
       needsBusinessSetup: !hasBrand,
       isComplete: hasBrand,
+      context,
     };
   }
 
@@ -68,11 +65,23 @@ async function fetchOnboardingStatus(): Promise<OnboardingStatus> {
 
 export function useOnboardingStatus(enabled = true) {
   const token = localStorage.getItem("token");
-  return useQuery({
+  const query = useQuery({
     queryKey: ["onboardingStatus"],
     queryFn: fetchOnboardingStatus,
     enabled: enabled && !!token,
     staleTime: 60_000,
     retry: false,
   });
+
+  useEffect(() => {
+    const context = query.data?.context;
+    if (!context) return;
+    if (context.venueId) {
+      setBusinessOrgId(context.venueId);
+    } else if (context.brandId) {
+      setBusinessOrgId(context.brandId);
+    }
+  }, [query.data]);
+
+  return query;
 }

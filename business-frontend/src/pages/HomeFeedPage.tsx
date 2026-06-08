@@ -6,10 +6,18 @@ import { AlertCircle, Building2, Compass, Loader2, Package, PlusCircle, RefreshC
 import { Button } from "@/components/ui/button";
 import { getBusinessOrgId } from "@/utils/auth";
 
-const HARDCODED_LAT = 1;
-const HARDCODED_LON = 2;
-
 const PAGE_LIMIT = 10;
+
+type UserLocation = {
+  lat: number;
+  lon: number;
+};
+
+function formatCoordinates(lat: number, lon: number): string {
+  const latHemisphere = lat >= 0 ? "N" : "S";
+  const lonHemisphere = lon >= 0 ? "E" : "W";
+  return `${Math.abs(lat).toFixed(2)}°${latHemisphere}, ${Math.abs(lon).toFixed(2)}°${lonHemisphere}`;
+}
 
 const quickActions = [
   {
@@ -54,7 +62,10 @@ const mapRecommendedPostToPostData = (post: RecommendedPost): PostData => {
 
 export function HomeFeedPage() {
   const [posts, setPosts] = useState<PostData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(true);
+  const [locationUnavailable, setLocationUnavailable] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skip, setSkip] = useState(0);
   const [total, setTotal] = useState(0);
@@ -64,6 +75,8 @@ export function HomeFeedPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
 
   const loadPosts = async (skipValue = 0) => {
+    if (!userLocation) return;
+
     setLoading(true);
     setError(null);
     // Increment request ID to guard against stale responses
@@ -73,8 +86,8 @@ export function HomeFeedPage() {
       const token = localStorage.getItem("token") || undefined;
       const data = await businessApi.recommendPosts(
         {
-          lat: HARDCODED_LAT,
-          lon: HARDCODED_LON,
+          lat: userLocation.lat,
+          lon: userLocation.lon,
           skip: skipValue,
           limit: PAGE_LIMIT,
         },
@@ -105,8 +118,33 @@ export function HomeFeedPage() {
   };
 
   useEffect(() => {
-    void loadPosts(0);
+    if (!navigator.geolocation) {
+      setLocating(false);
+      setLocationUnavailable(true);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        setLocationUnavailable(true);
+      },
+      { enableHighAccuracy: false, timeout: 10_000 },
+    );
   }, []);
+
+  useEffect(() => {
+    if (userLocation) {
+      void loadPosts(0);
+    }
+  }, [userLocation]);
 
   const handleNextPage = () => {
     const nextSkip = skip + PAGE_LIMIT;
@@ -139,9 +177,19 @@ export function HomeFeedPage() {
             <p className="text-gray-600 dark:text-gray-400 text-lg">
               Recommended posts from nearby venues based on your location
             </p>
-            <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-              📍 Location: 1°N, 2°E
-            </p>
+            {userLocation ? (
+              <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
+                📍 Location: {formatCoordinates(userLocation.lat, userLocation.lon)}
+              </p>
+            ) : locating ? (
+              <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
+                📍 Detecting location...
+              </p>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
+                📍 Location unavailable
+              </p>
+            )}
           </div>
           <Button
             onClick={handleRefresh}
@@ -193,14 +241,23 @@ export function HomeFeedPage() {
         )}
 
         {/* Loading State */}
-        {loading && posts.length === 0 ? (
+        {locating || (loading && posts.length === 0) ? (
           <div className="flex justify-center items-center h-96 w-full">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-16 h-16 text-emerald-500 dark:text-[#98FF98] animate-spin" />
               <p className="text-gray-600 dark:text-gray-400 font-medium">
-                Loading recommendations...
+                {locating ? "Detecting your location..." : "Loading recommendations..."}
               </p>
             </div>
+          </div>
+        ) : locationUnavailable ? (
+          <div className="text-center bg-white dark:bg-[#163d32] border border-gray-200 dark:border-[#2f5e50] rounded-3xl p-20 shadow-sm dark:shadow-none transition-colors duration-300">
+            <p className="text-[#1A3C34] dark:text-gray-300 text-2xl font-bold">
+              Location unavailable
+            </p>
+            <p className="text-gray-500 dark:text-gray-400 mt-3">
+              Enable location access to see recommendations based on your area.
+            </p>
           </div>
         ) : posts.length > 0 ? (
           <>

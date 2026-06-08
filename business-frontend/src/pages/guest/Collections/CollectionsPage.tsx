@@ -35,14 +35,14 @@ export function CollectionsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
 
   const { data: collections, isLoading } = useQuery({
-    queryKey: ["collections"],
+    queryKey: ["collections", "mine"],
     queryFn: () => apiClient.getCollections(),
   });
 
   const createMutation = useMutation({
     mutationFn: (name: string) => apiClient.createCollection({ name, isPublic: false }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["collections"] });
+      queryClient.invalidateQueries({ queryKey: ["collections", "mine"] });
       setIsCreateOpen(false);
       setNewCollectionName("");
       toast.success("Collection created successfully");

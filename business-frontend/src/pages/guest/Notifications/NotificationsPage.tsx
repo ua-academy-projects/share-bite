@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Navigate } from "react-router-dom";
 import { Bell, Loader2 } from "lucide-react";
 import { fetchNotifications } from "@/api/notifications";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -7,13 +8,20 @@ import { pageEmpty, pageLoader, pagePanel } from "@/components/layout/pageStyles
 import { cn } from "@/lib/utils";
 
 export function NotificationsPage() {
-  const token = localStorage.getItem("token")!;
+  const token = localStorage.getItem("token");
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications"],
-    queryFn: () => fetchNotifications(token, 50),
+    queryFn: () => {
+      if (!token) return Promise.resolve([]);
+      return fetchNotifications(token, 50);
+    },
     enabled: !!token,
   });
+
+  if (!token) {
+    return <Navigate to="/auth" replace />;
+  }
 
   return (
     <PageLayout>
