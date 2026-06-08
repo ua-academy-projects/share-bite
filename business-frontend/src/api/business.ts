@@ -155,6 +155,7 @@ export type CreateLocationRequest = {
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "";
 const BUSINESS_BASE = `${API_BASE}/api/business`;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
 const BUSINESS_ACCOUNT_ID = Number(import.meta.env.VITE_BUSINESS_ACCOUNT_ID);
 
 function authHeaders(token?: string): Record<string, string> {
