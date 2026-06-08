@@ -111,6 +111,20 @@ Optional authentication can be provided via:
 GUEST_API_AUTH_TOKEN=
 ```
 
+### Unit Tests
+
+Run all tests:
+
+```bash
+uv run pytest tests/ -v
+```
+
+Run a specific test file:
+
+```bash
+uv run pytest tests/unit/tools/test_health.py -v
+```
+
 ## Claude Desktop Integration
 
 Open:

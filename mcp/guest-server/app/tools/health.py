@@ -11,6 +11,7 @@ def _unwrap_guest_result(action: str, result: APIResponse | APIErrorResponse) ->
         err_msg = result.get("error_message", "Unknown error")
         status_code = result.get("status", "N/A")
 
+        # TODO: map to structured MCP errors
         raise RuntimeError(f"{action} failed (HTTP {status_code}): {err_msg}")
 
     return json.dumps(result.get("data", {}))
