@@ -103,6 +103,27 @@ export type RecommendPostsRequest = {
   limit?: number;
 };
 
+export type RecommendedVenue = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  description?: string | null;
+  distance?: number | null;
+  tags?: string[];
+};
+
+export type RecommendVenuesRequest = {
+  lat: number;
+  lon: number;
+  skip?: number;
+  limit?: number;
+};
+
+export type RecommendVenuesResponse = {
+  items: RecommendedVenue[];
+  total: number;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3999";
 const BUSINESS_ACCOUNT_ID = Number(import.meta.env.VITE_BUSINESS_ACCOUNT_ID);
 
@@ -289,6 +310,26 @@ export const businessApi = {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || err.message || `Failed to load recommendations (${response.status})`);
+    }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
+  },
+
+  recommendVenues: async (params: RecommendVenuesRequest): Promise<RecommendVenuesResponse> => {
+    const search = new URLSearchParams();
+    search.set("lat", String(params.lat));
+    search.set("lon", String(params.lon));
+    search.set("skip", String(params.skip ?? 0));
+    search.set("limit", String(params.limit ?? 12));
+
+    const response = await fetch(`${API_BASE_URL}/business/locations/nearby?${search.toString()}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `Failed to load recommended venues (${response.status})`);
     }
 
     const data = await response.json();
