@@ -131,8 +131,10 @@ export type CreateLocationRequest = {
   tagIds?: number[];
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "";
 const BUSINESS_BASE = `${API_BASE}/api/business`;
+const BUSINESS_ACCOUNT_ID = Number(import.meta.env.VITE_BUSINESS_ACCOUNT_ID);
 
 function authHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -247,6 +249,10 @@ export const businessApi = {
   listCurrentBusinessVenues: async (
     params: Pick<SearchVenuesRequest, "tags" | "skip" | "limit"> = {},
   ): Promise<BrandVenuesResponse> => {
+    if (Number.isFinite(BUSINESS_ACCOUNT_ID) && BUSINESS_ACCOUNT_ID > 0) {
+      return businessApi.listBrandVenues(BUSINESS_ACCOUNT_ID, params);
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       throw new Error("Unauthorized");
