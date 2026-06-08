@@ -103,6 +103,27 @@ export type RecommendPostsRequest = {
   limit?: number;
 };
 
+export type RecommendedVenue = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  description?: string | null;
+  distance?: number | null;
+  tags?: string[];
+};
+
+export type RecommendVenuesRequest = {
+  lat: number;
+  lon: number;
+  skip?: number;
+  limit?: number;
+};
+
+export type RecommendVenuesResponse = {
+  items: RecommendedVenue[];
+  total: number;
+};
+
 export type BusinessOnboardingContext = {
   brandId: number | null;
   venueId: number | null;
@@ -450,5 +471,33 @@ export const businessApi = {
     }
     const data = await response.json();
     return { id: data.id };
+  },
+
+  recommendVenues: async (
+    params: RecommendVenuesRequest
+  ): Promise<RecommendVenuesResponse> => {
+    const search = new URLSearchParams();
+    search.set("lat", String(params.lat));
+    search.set("lon", String(params.lon));
+    search.set("skip", String(params.skip ?? 0));
+    search.set("limit", String(params.limit ?? 12));
+
+    const response = await fetch(
+      `${BUSINESS_BASE}/locations/nearby?${search.toString()}`
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(
+        err.error ||
+          err.message ||
+          `Failed to load recommended venues (${response.status})`
+      );
+    }
+
+    const data = await response.json();
+    return {
+      items: data.items || [],
+      total: data.total || 0,
+    };
   },
 };
