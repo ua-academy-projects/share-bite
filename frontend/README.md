@@ -1,42 +1,47 @@
-# ShareBite Frontend
+# Share Bite — Unified SPA
 
-This is the React frontend for ShareBite, a food discovery and sharing application.
+Single deployable React app for guest/community and business features. Legacy `frontend/` is reference-only.
 
-## Prerequisites
-- Node.js (v18+)
-- npm or yarn
+## Stack
 
-## Setup and Development
+React 19, Vite, TypeScript, React Router 7, TanStack Query, Axios, RHF + Zod, Tailwind v4, shadcn/ui, sonner, lucide.
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+## Local development
 
-2. Start the development server:
-   ```bash
-   npm run dev
-   ```
+Start backend services from repo root:
 
-## Environment Variables
+```bash
+docker compose -f build/compose.infra.yaml --env-file .env up -d
+make migrate-up
+make run-guest && make run-business && make run-auth
+go run ./cmd/notifications-service
+```
 
-Currently, the application uses Vite proxy configuration (see `vite.config.ts`) to route API calls to the local Go backend microservices:
-- `/api/auth` -> `http://localhost:3850`
-- `/api/guest` -> `http://localhost:3800`
-- `/api/business` -> `http://localhost:3900`
+Run the SPA:
 
-## Authentication Flow
+```bash
+cd business-frontend
+npm install
+npm run dev
+```
 
-ShareBite uses JWT for authentication.
-- **Login/Register**: Handled via `/api/auth/login` and `/api/auth/register`. The JWT token is saved in `localStorage`.
-- **Protected Routes**: The `/profile`, `/user/:id`, and `/post/create` routes require authentication and will redirect unauthenticated users to the `/auth` page.
-- **API Requests**: The Axios client in `src/api/client.ts` automatically attaches the JWT from `localStorage` as a Bearer token in the `Authorization` header for all requests to backend endpoints.
+Leave `VITE_API_BASE_URL` empty so Vite proxies API calls:
 
-## Project Structure
-- `src/components/`: Reusable UI components
-- `src/pages/`: Application pages (Home, Auth, Create Post, Profile, etc.)
-- `src/api/`: Axios client and API integration logic
-- `src/types/`: TypeScript interfaces and DTOs
+| Proxy path | Service | Port |
+|------------|---------|------|
+| `/api/guest` | Guest API | 3800 |
+| `/api/business` | Business API | 3900 |
+| `/api/auth`, `/api/admin`, `/api/users`, `/api/user` | Auth / admin | 3850 |
+| `/api/notifications` | Notifications | 4005 |
 
-## Testing & Linting
-Run `npm run tsc` to verify TypeScript typings.
+OAuth (optional): set `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_REDIRECT_URI` (default `…/oauth/google/callback`).
+
+## Layout
+
+Sidebar-first chrome (no top Navbar): brand, user row with notifications, theme toggle, gold **+ Share a Bite** CTA, nav sections, logout dialog. Minimal header only on `/auth` and `/oauth/*`.
+
+## Build
+
+```bash
+npm run build
+```

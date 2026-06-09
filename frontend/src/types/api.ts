@@ -15,22 +15,6 @@ export interface AuthResponse {
   refresh_token: string;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  handle?: string;
-  avatar?: string | null;
-}
-
-export interface NotificationItem {
-  id: number;
-  type: string;
-  read: boolean;
-  message: string;
-  createdAt: string;
-  link?: string;
-}
-
 export interface CollectionItem {
   id: string;
   name: string;
@@ -40,7 +24,6 @@ export interface CollectionItem {
   updatedAt: string;
 }
 
-// Guest DTOs
 export interface PostResponse {
   id: string;
   customerId: string;
@@ -61,40 +44,12 @@ export interface PostResponse {
 
 export type Post = PostResponse;
 
-export interface PostItem {
-  id: string;
-  content: string;
-  createdAt: string;
-  images: string[];
-}
-
-export interface ExploreVenueItem {
-  venue_id: number;
-  name?: string;
-  id?: number;
-  avatar?: string;
-  posts: PostItem[];
-}
-
 export interface CreatePostInput {
   venueId: number;
   text: string;
   rating: number;
   images?: File[];
 }
-
-export interface ReviewResponse {
-  id: string;
-  customerId: string;
-  userName: string;
-  avatarURL?: string | null;
-  venueId: number;
-  rating: number;
-  text: string;
-  createdAt: string;
-}
-
-export type Review = ReviewResponse;
 
 export interface CustomerResponse {
   id: string;
@@ -103,6 +58,8 @@ export interface CustomerResponse {
   lastName: string;
   avatarURL?: string | null;
   bio?: string;
+  followers?: number;
+  following?: number;
   createdAt: string;
 }
 
@@ -128,7 +85,6 @@ export interface PaginatedComments {
   entities: CommentResponse[];
 }
 
-// Admin DTOs
 export interface AdminUserListItem {
   id: string;
   email: string;
@@ -178,16 +134,3 @@ export interface AdminUsersParams {
   status?: string;
   sort_order?: string;
 }
-
-// Business DTOs (if needed)
-export interface RestaurantResponse {
-  id: number;
-  name: string;
-  category: string;
-  rating: number;
-  image: string;
-  description: string;
-  location: string;
-}
-
-export type Restaurant = RestaurantResponse;

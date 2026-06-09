@@ -40,7 +40,7 @@ import (
 func main() {
 	ctx := context.Background()
 
-	if err := config.Load("./../../.env"); err != nil {
+	if err := config.Load(".env"); err != nil {
 		logger.Fatal(ctx, err)
 	}
 
@@ -96,7 +96,7 @@ func main() {
 	h3Service := h3.NewH3Service()
 	h3Settings := businesssvc.H3Settings{
 		Resolution:      config.Config().H3.Resolution(),
-		RecommendRadius:          config.Config().H3.RecommendRadius(),
+		RecommendRadius: config.Config().H3.RecommendRadius(),
 	}
 	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service, h3Settings)
 
