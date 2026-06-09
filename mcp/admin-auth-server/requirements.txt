@@ -1,0 +1,8 @@
+mcp
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+httpx
+pytest
+httpx-sse

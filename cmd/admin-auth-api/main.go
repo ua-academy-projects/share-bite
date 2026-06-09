@@ -13,6 +13,7 @@ import (
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
+	mcphttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/mcp"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
 	"github.com/ua-academy-projects/share-bite/pkg/email"
@@ -131,6 +132,7 @@ func main() {
 
 	adminSvc := adminsvc.NewService(adminRepo, userRepo, customerClient, businessClient, txManager)
 	adminHandler := adminhttp.NewHandler(adminSvc)
+	mcpHandler := mcphttp.NewHandler()
 
 	limiter := adminmw.NewAuthRecoveryLimiter(
 		cfg.RateLimit.AuthRecoverRequests(),
@@ -147,7 +149,7 @@ func main() {
 	sessionStore := gh.NewJWTSessionStore(tokenManager)
 	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore, txManager)
 
-	routers.SetupRouter(router.Group("/"), authHandler, adminHandler, *ghHandler, authMw, limiter)
+	routers.SetupRouter(router.Group("/"), authHandler, adminHandler, mcpHandler, *ghHandler, authMw, limiter)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
@@ -172,8 +174,7 @@ func ErrorMiddleware() gin.HandlerFunc {
 		respCode := http.StatusInternalServerError
 		resp := handler.ErrorResponse{Error: "internal server error"}
 
-		var appErr *apperr.AppError
-		if errors.As(err.Err, &appErr) {
+		if appErr, ok := errors.AsType[*apperr.AppError](err.Err); ok {
 			respCode = appErr.HTTPStatus()
 
 			resp = handler.ErrorResponse{Error: appErr.Message}

@@ -66,3 +66,17 @@ type UsersFilterQuery struct {
 type ChangeRoleRequest struct {
 	RoleSlug string `json:"role_slug" binding:"required,oneof=admin moderator user business"`
 }
+
+type ValidatePermissionRequest struct {
+	Permission string `json:"permission" binding:"required,max=100"`
+}
+
+type MCPContextResponse struct {
+	ID     string   `json:"id"`
+	Roles  []string `json:"roles"`
+	Status string   `json:"status"`
+}
+
+type MCPHealthResponse struct {
+	Status string `json:"status"`
+}
