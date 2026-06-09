@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -9,10 +10,15 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
-type Handler struct{}
+type PermissionChecker interface {
+	HasPermission(ctx context.Context, userID string, permission string) (bool, error)
+}
+type Handler struct {
+	permissionChecker PermissionChecker
+}
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(checker PermissionChecker) *Handler {
+	return &Handler{permissionChecker: checker}
 }
 
 // GetContext godoc
@@ -53,6 +59,8 @@ func (h *Handler) GetContext(c *gin.Context) {
 // @Param        request  body      handler.ValidatePermissionRequest  true  "Permission payload"
 // @Success      200      {object}  handler.MCPAuthorizedResponse
 // @Failure      400      {object}  handler.ErrorResponse
+// @Failure      401      {object}  handler.ErrorResponse
+// @Failure      500      {object}  handler.ErrorResponse
 // @Router       /mcp/validate-permission [post]
 func (h *Handler) ValidateAdminPermissions(c *gin.Context) {
 	var req handler.ValidatePermissionRequest
@@ -62,8 +70,22 @@ func (h *Handler) ValidateAdminPermissions(c *gin.Context) {
 		})
 		return
 	}
+
+	userIDVal, _ := c.Get(middleware.CtxUserID)
+	userID, ok := userIDVal.(string)
+	if !ok || userID == "" {
+		c.JSON(http.StatusUnauthorized, handler.ErrorResponse{Error: "unauthorized"})
+		return
+	}
+
+	allowed, err := h.permissionChecker.HasPermission(c.Request.Context(), userID, req.Permission)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, handler.ErrorResponse{Error: "permission check failed"})
+		return
+	}
+
 	c.JSON(http.StatusOK, handler.MCPAuthorizedResponse{
-		Authorized: true,
+		Authorized: allowed,
 		Permission: req.Permission,
 	})
 }

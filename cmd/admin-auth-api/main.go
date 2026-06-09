@@ -27,6 +27,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/routers"
 	adminsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/admin"
 	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
+	mcpsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/mcp"
 	"github.com/ua-academy-projects/share-bite/internal/config"
 
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
@@ -132,7 +133,9 @@ func main() {
 
 	adminSvc := adminsvc.NewService(adminRepo, userRepo, customerClient, businessClient, txManager)
 	adminHandler := adminhttp.NewHandler(adminSvc)
-	mcpHandler := mcphttp.NewHandler()
+
+	mcpSvc := mcpsvc.NewMCPPermissionService(adminRepo)
+	mcpHandler := mcphttp.NewHandler(mcpSvc)
 
 	limiter := adminmw.NewAuthRecoveryLimiter(
 		cfg.RateLimit.AuthRecoverRequests(),

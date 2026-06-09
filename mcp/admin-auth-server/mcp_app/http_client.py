@@ -45,6 +45,9 @@ class AdminHttpClient:
             self._access_token = data.get("access_token")
             new_refresh = data.get("refresh_token")
 
+            if not self._access_token:
+                raise ValueError("Refresh response missing access_token.")
+
             if new_refresh:
                 settings.local_refresh_token = new_refresh
                 write_new_refresh_to_env(new_refresh)
@@ -59,6 +62,8 @@ class AdminHttpClient:
         return await self._refresh_access_token()
 
     async def request(self, method: str, path: str, auth_token: str | None = None, **kwargs) -> Dict[str, Any]:
+        explicit_token_used = auth_token is not None
+
         try:
             token = await self.get_token(auth_token)
         except Exception as e:
@@ -72,7 +77,7 @@ class AdminHttpClient:
             url = f"{self.base_url}{path}"
             try:
                 response = await client.request(method, url, headers=headers, **kwargs)
-                if response.status_code == 401:
+                if response.status_code == 401 and not explicit_token_used:
                     logger.warning("Access token expired dynamically. Retrying with fresh refresh token...")
                     try:
                         new_token = await self._refresh_access_token()
@@ -80,6 +85,9 @@ class AdminHttpClient:
                         response = await client.request(method, url, headers=headers, **kwargs)
                     except Exception as e:
                         return {"is_error": True, "error_message": f"Session completely expired: {str(e)}"}
+
+                elif response.status_code == 401 and explicit_token_used:
+                    return {"is_error": True, "error_message": "Unauthorized token"}
 
                 if response.status_code >= 400:
                     return {"is_error": True, "error_message": f"Go API Error {response.status_code}"}

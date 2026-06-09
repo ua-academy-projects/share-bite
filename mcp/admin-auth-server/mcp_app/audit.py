@@ -1,17 +1,19 @@
 import logging
 import re
+from pathlib import Path
 from typing import Any
 from mcp_app.config import settings
 
 class RedactingFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        msg = str(record.msg)
+        msg = str(record.getMessage())
         msg = re.sub(r'(Bearer\s+)[A-Za-z0-9\-._~+/]+=*', r'\1[REDACTED]', msg, flags=re.IGNORECASE)
         msg = re.sub(r'("auth_token"\s*:\s*")[^"]+(")', r'\1[REDACTED]\2', msg, flags=re.IGNORECASE)
         msg = re.sub(r'(token=)[A-Za-z0-9\-._~+/]+=*', r'\1[REDACTED]', msg, flags=re.IGNORECASE)
         msg = re.sub(r'("password"\s*:\s*")[^"]+(")', r'\1[REDACTED]\2', msg, flags=re.IGNORECASE)
 
         record.msg = msg
+        record.args = ()
         return True
 
 def redact_sensitive_payload(data: Any) -> Any:
@@ -43,7 +45,10 @@ console_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s
 console_handler.setFormatter(console_formatter)
 logger.addHandler(console_handler)
 
-file_handler = logging.FileHandler(settings.audit_log_destination, encoding="utf-8")
+audit_path = Path(settings.audit_log_destination).expanduser()
+audit_path.parent.mkdir(parents=True, exist_ok=True)
+
+file_handler = logging.FileHandler(audit_path, encoding="utf-8")
 file_handler.addFilter(security_filter)
 file_formatter = logging.Formatter('%(asctime)s - [AUDIT_TRACK] - %(message)s')
 file_handler.setFormatter(file_formatter)

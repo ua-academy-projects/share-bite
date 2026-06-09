@@ -14,7 +14,7 @@ def main() -> None:
         "--transport",
         choices=[TRANSPORT_PROTOCOL_STDIO, TRANSPORT_PROTOCOL_HTTP],
         default=TRANSPORT_PROTOCOL_STDIO,
-        help="Transport subsystem selection protocol execution matrix context profiling tool mapping configuration option loop."
+        help="Transport mode for MCP server communication: 'stdio' (local clients) or 'http' (network mode)."
     )
     args = parser.parse_args()
 

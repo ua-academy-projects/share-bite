@@ -20,11 +20,13 @@ def extracted_tools():
     register_tools(interceptor)
     return interceptor.funcs
 
-
 @pytest.fixture(autouse=True)
-def mock_dependencies():
-    admin_client.get = AsyncMock()
-    admin_client.post = AsyncMock()
+def mock_dependencies(monkeypatch: pytest.MonkeyPatch):
+    mock_get = AsyncMock()
+    mock_post = AsyncMock()
+    monkeypatch.setattr(admin_client, "get", mock_get)
+    monkeypatch.setattr(admin_client, "post", mock_post)
+
     mock_audit = MagicMock()
     with patch("mcp_app.auth.log_audit_event", mock_audit), \
             patch("mcp_app.tools.log_audit_event", mock_audit):

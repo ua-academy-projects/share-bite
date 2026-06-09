@@ -68,7 +68,7 @@ REQUEST_TIMEOUT=10
 | Variable                       | Required | Description                                              |
 |--------------------------------|----------|----------------------------------------------------------|
 | `ADMIN_AUTH_API_BASE_URL`      | Yes      | Base URL of the Admin Auth GO API                        |
-| `TIMEOUT_SECONDS`              | No       | HTTP timeout in seconds (default: 10)                    |
+| `REQUEST_TIMEOUT`              | No       | HTTP timeout in seconds (default: 10)                    |
 | `ADMIN_API_AUTH_REFRESH_TOKEN` | No       | Long-lived token used to silently refresh session tokens |
 
 ## Installation
