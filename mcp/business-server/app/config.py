@@ -11,6 +11,7 @@ class Settings:
     host: str
     port: int
     path: str
+    business_api_token: str
 
 
 def load_settings() -> Settings:
@@ -22,6 +23,7 @@ def load_settings() -> Settings:
         host=os.getenv("MCP_HOST", "127.0.0.1"),
         port=int(os.getenv("MCP_PORT", "8000")),
         path=os.getenv("MCP_PATH", "/mcp"),
+        business_api_token=_required_env("BUSINESS_API_AUTH_TOKEN"),
     )
 
 

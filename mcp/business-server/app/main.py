@@ -97,6 +97,7 @@ def main() -> None:
     client = BusinessApiClient(
         base_url=settings.business_api_base_url,
         timeout_seconds=settings.request_timeout_seconds,
+        api_token=settings.business_api_token,
     )
 
     mcp = create_server(settings, client)

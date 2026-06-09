@@ -13,6 +13,12 @@ from app.constants import (
     API_PATH_UPDATE_VENUE_DETAILS,
     API_PATH_UPDATE_VENUE_HOURS,
     API_PATH_VENUE_DETAILS,
+
+    API_PATH_DAILY_SUMMARY,
+    API_PATH_RESERVATION_SUMMARY,
+    API_PATH_FOOD_BOX_PERFORMANCE,
+    API_PATH_ENGAGEMENT_SUMMARY,
+    API_PATH_VENUE_ACTIVITY,
 )
 from app.utils import (
     ForbiddenError,
@@ -21,8 +27,32 @@ from app.utils import (
     validate_profile_update,
     validate_venue_hours,
     validate_venue_update,
+    validate_date_range,
 )
 
+def _extract_headers(ctx: Context) -> dict[str, str]:
+    """
+    Extract headers from MCP context, regardless of type of object.
+    """
+    if not ctx.request_context or not ctx.request_context.meta:
+        return {}
+
+    meta = ctx.request_context.meta
+
+    if hasattr(meta, "model_dump"):
+        meta_dict = meta.model_dump()
+    elif hasattr(meta, "dict"):
+        meta_dict = meta.dict()
+    elif isinstance(meta, dict):
+        meta_dict = meta 
+    else:
+        try:
+            meta_dict = vars(meta)
+        except TypeError:
+            return {}
+
+    headers = meta_dict.get("headers", {})
+    return headers if isinstance(headers, dict) else {}
 
 def register_tools(
     mcp: FastMCP,
@@ -114,30 +144,7 @@ def register_tools(
             },
         }
 
-
-def _extract_headers(ctx: Context) -> dict[str, str]:
-    """
-    Extract headers from MCP context, regardless of type of object.
-    """
-    if not ctx.request_context or not ctx.request_context.meta:
-        return {}
-
-    meta = ctx.request_context.meta
-
-    if hasattr(meta, "model_dump"):
-        meta_dict = meta.model_dump()
-    elif hasattr(meta, "dict"):
-        meta_dict = meta.dict()
-    elif isinstance(meta, dict):
-        meta_dict = meta 
-    else:
-        try:
-            meta_dict = vars(meta)
-        except TypeError:
-            return {}
-
-    headers = meta_dict.get("headers", {})
-    return headers if isinstance(headers, dict) else {}
+    #BUSINESS-ORG TOOLS
     @mcp.tool()
     async def get_business_profile(
         business_id: int,
@@ -354,6 +361,252 @@ def _extract_headers(ctx: Context) -> dict[str, str]:
         except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
+
+    #BUSINESS ANALITYCS TOOL
+    @mcp.tool()
+    async def get_business_daily_summary(
+        ctx: Context,
+        start_date: str,
+        end_date: str,
+        request_id: str | None = None, 
+    ) -> dict[str, Any]:
+        """
+        Retrieve daily summary analytics for the brand.
+        Returns the number of created boxes, posts, and total venues.
+        
+        Args:
+            start_date: Start date for the filter in YYYY-MM-DD format.
+            end_date: End date for the filter in YYYY-MM-DD format.
+        """
+        
+        date_error = validate_date_range(start_date, end_date)
+        if date_error:
+            return _tool_error(f"Validation failed: {date_error}")
+
+        headers = _extract_headers(ctx)
+        auth_token=resolve_auth_token(headers=headers)
+
+        if not auth_token:
+            return _tool_error("Unauthorized: Missing authentication token")
+        
+        try:
+            data = await client.get(
+                API_PATH_DAILY_SUMMARY,
+                auth_token=auth_token,
+                request_id=request_id,
+                params={
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+            )
+
+            return _tool_success(
+                result=_unwrap(data),
+            )
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def get_reservation_summary(
+        ctx: Context,
+        start_date: str,
+        end_date: str,
+        venue_id: int | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Retrieve reservation summary analytics (items sold, reserved, available, and potential revenue).
+        
+        Args:
+            start_date: Start date for the filter in YYYY-MM-DD format.
+            end_date: End date for the filter in YYYY-MM-DD format.
+            venue_id: Optional ID of a specific venue. If omitted, returns stats for the entire brand.
+        """
+
+        date_error = validate_date_range(start_date, end_date)
+        if date_error:
+            return _tool_error(f"Validation failed: {date_error}")
+
+        headers = _extract_headers(ctx)
+        auth_token = resolve_auth_token(headers=headers)
+        
+        if not auth_token:
+            return _tool_error("Unauthorized: Missing authentication token")
+
+        params={
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+
+        if venue_id is not None:
+            params["venue_id"] = venue_id
+
+        try:
+            data = await client.get(
+                API_PATH_RESERVATION_SUMMARY,
+                auth_token=auth_token,
+                request_id=request_id,
+                params=params,
+            )
+
+            return _tool_success(
+                result=_unwrap(data),
+                venue_id=venue_id
+            )
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def get_food_box_performance(
+        ctx: Context,
+        start_date: str, 
+        end_date: str,
+        venue_id: int | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Retrieve food box performance metrics for the business.
+        Returns data on created boxes, expired boxes, average discount, sell-through rate, waste rate, and a composite performance score.
+        
+        Args:
+            start_date: Start date for the filter in YYYY-MM-DD format.
+            end_date: End date for the filter in YYYY-MM-DD format.
+            venue_id: Optional ID of a specific venue. If omitted, returns stats for the entire brand.
+        """
+
+        date_error = validate_date_range(start_date, end_date)
+        if date_error:
+            return _tool_error(f"Validation failed: {date_error}")
+        
+        headers = _extract_headers(ctx)
+        auth_token = resolve_auth_token(headers=headers)
+
+        if not auth_token:
+            return _tool_error("Unauthorized: Missing authentication token")
+        
+        params={
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        if venue_id is not None:
+            params["venue_id"] = venue_id
+        
+        try:
+            data = await client.get(
+                API_PATH_FOOD_BOX_PERFORMANCE,
+                auth_token=auth_token,
+                request_id=request_id, 
+                params=params,
+            )
+
+            return _tool_success(
+                result=_unwrap(data),
+                venue_id=venue_id
+            )
+        
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    
+    @mcp.tool()
+    async def get_engagement_summary(
+        ctx: Context,
+        start_date: str,
+        end_date: str,
+        venue_id: int | None = None, 
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Retrieve social engagement metrics for business posts.
+        Returns total posts created, total comments, total likes, and average engagement rates.
+        
+        Args:
+            start_date: Start date for the filter in YYYY-MM-DD format.
+            end_date: End date for the filter in YYYY-MM-DD format.
+            venue_id: Optional ID of a specific venue. If omitted, returns stats for the entire brand.
+        """
+
+        date_error = validate_date_range(start_date, end_date)
+        if date_error:
+            return _tool_error(f"Validation failed: {date_error}")
+
+        headers = _extract_headers(ctx)
+        auth_token = resolve_auth_token(headers=headers)
+
+        if not auth_token:
+            return _tool_error("Unauthorized: Missing authentication token")
+
+        params={
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+
+        if venue_id is not None:
+            params["venue_id"] = venue_id
+
+        try:
+            data = await client.get(
+                API_PATH_ENGAGEMENT_SUMMARY,
+                auth_token=auth_token,
+                request_id=request_id,
+                params=params,
+            )
+
+            return _tool_success(
+                result=_unwrap(data),
+                venue_id=venue_id
+            )
+        
+        except(BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def get_venue_activity_summary(
+        ctx: Context,
+        start_date: str,
+        end_date: str,
+        venue_id: int,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Retrieve operational activity summary for a specific venue.
+        Returns the number of created boxes, posts, and the venue's name.
+
+        Args:
+            start_date: Start date for the filter in YYYY-MM-DD format.
+            end_date: End date for the filter in YYYY-MM-DD format.
+            venue_id: Required ID of the specific venue to query.
+        """
+
+        date_error = validate_date_range(start_date, end_date)
+        if date_error:
+            return _tool_error(f"Validation failed: {date_error}")
+
+        headers = _extract_headers(ctx)
+        auth_token = resolve_auth_token(headers=headers)
+
+        if not auth_token:
+            return _tool_error("Unauthorized: Missing authentication token")
+        
+        try:
+            data = await client.get(
+                API_PATH_VENUE_ACTIVITY.format(venue_id=venue_id),
+                auth_token=auth_token,
+                request_id=request_id,
+                params={
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+            )
+
+            return _tool_success(
+                result=_unwrap(data),
+                venue_id=venue_id
+            )
+        
+        except(BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+ 
 
 def _unwrap(result: dict[str, Any]) -> dict[str, Any]:
     if result.get("is_error") is True:

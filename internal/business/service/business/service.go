@@ -78,6 +78,12 @@ type businessRepository interface {
 	GetRandomPosts(ctx context.Context, deficit int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)
 	CountPostsByTag(ctx context.Context, tag string, h3Hashes []string) (int, error)
 	CountRandomPosts(ctx context.Context, h3Hashes []string) (int, error)
+
+	GetDailySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID) (entity.DailySummary, error)
+	GetReservationSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.ReservationSummary, error) 
+	GetVenueActivitySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID int) (entity.VenueActivitySummary, error)
+	GetFoodBoxPerformance(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.BoxPerformanceRaw, error)
+	GetEngagementSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.EngagementSummaryRaw, error)
 }
 
 type H3Settings struct {

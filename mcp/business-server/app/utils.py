@@ -130,3 +130,23 @@ def _validate_update_payload(payload: dict[str, Any], allowed: set[str]) -> Vali
         errors.append({"field": "payload", "message": "at least one updatable field is required"})
 
     return errors
+
+def validate_date_range(start_date: str, end_date: str, max_days: int = 90) -> str | None:
+    """
+    Validates that the start and end dates are in correct format,
+    chronological order, and within the maximum allowed days.
+    """
+    try:
+        start_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        end_obj = datetime.strptime(end_date, "%Y-%m-%d")
+    except ValueError:
+        return "Dates must be in YYYY-MM-DD format."
+
+    if start_obj > end_obj:
+        return "start_date cannot be after end_date."
+
+    delta_days = (end_obj - start_obj).days
+    if delta_days > max_days:
+        return f"Date range exceeds maximum allowed period of {max_days} days."
+
+    return None

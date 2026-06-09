@@ -4,6 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 import httpx
+import sys
 
 
 class BusinessApiError(Exception):
@@ -14,11 +15,11 @@ class BusinessApiError(Exception):
 
 class BusinessApiClient:
     """Asynchronous HTTP client for interacting with the Business API."""
-    def __init__(self, base_url: str, timeout_seconds: float) -> None:
+    def __init__(self, base_url: str, timeout_seconds: float, api_token: str) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout = httpx.Timeout(timeout_seconds)
+        self._api_token = api_token
         self._client = httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout)
-
     async def close(self):
         await self._client.aclose()
 
@@ -77,6 +78,10 @@ class BusinessApiClient:
 
         if auth_token:
             headers["Authorization"] = _normalize_bearer_token(auth_token)
+
+        token_to_use = auth_token or self._api_token
+        if token_to_use:
+            headers["Authorization"] = _normalize_bearer_token(token_to_use)
 
         return headers
 

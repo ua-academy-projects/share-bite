@@ -1,11 +1,9 @@
-FROM golang:1.26.1-alpine AS builder
+FROM golang:1.26.1-bookworm AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR /app
-
-RUN apk add --no-cache gcc musl-dev git
 
 COPY go.mod go.sum ./
 RUN go mod download

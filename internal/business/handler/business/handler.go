@@ -71,6 +71,12 @@ type businessService interface {
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
 	UpdateVenueHours(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateVenueHoursInput) (*dto.UpdateVenueHoursOutput, error)
+
+	GetDailySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID) (entity.DailySummary, error)
+	GetReservationSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.ReservationSummary, error)
+	GetVenueActivitySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID int) (entity.VenueActivitySummary, error)
+	GetFoodBoxPerformance(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.BoxPerformance, error)
+	GetEngagementSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.EngagementSummary, error)
 }
 
 func RegisterHandlers(
@@ -165,6 +171,16 @@ func RegisterHandlers(
 		Use(auth)
 	{
 		reservations.PATCH("/:boxID/reserve", h.reserveBox)
+	}
+
+	analytics := r.Group("/analytics")
+	analytics.Use(auth)
+	{
+		analytics.GET("/daily-summary", h.GetDailySummary)
+		analytics.GET("/reservation-summary", h.GetReservationSummary)
+		analytics.GET("/food-box-performance", h.GetFoodBoxPerformance)
+		analytics.GET("/engagement-summary", h.GetEngagementSummary)
+		analytics.GET("/venues/:venue_id/activity", h.GetVenueActivitySummary)
 	}
 }
 

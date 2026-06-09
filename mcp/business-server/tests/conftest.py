@@ -90,5 +90,5 @@ def registered_tools(fake_mcp, settings, api_client):
 def registered_resources(fake_mcp, settings):
     from app.resources import register_resources
 
-    register_resources(fake_mcp, settings)
+    register_resources(fake_mcp, settings, api_client)
     return fake_mcp.resources
