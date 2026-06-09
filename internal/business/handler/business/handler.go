@@ -173,8 +173,10 @@ func RegisterHandlers(
 		reservations.PATCH("/:boxID/reserve", h.reserveBox)
 	}
 
-	analytics := r.Group("/analytics")
-	analytics.Use(auth)
+	analytics := r.Group("/analytics").
+	Use(auth).
+	Use(middleware.RequireRoles(RoleBusiness)).
+	Use(common_middleware.RequireWritableAccountStatus())
 	{
 		analytics.GET("/daily-summary", h.GetDailySummary)
 		analytics.GET("/reservation-summary", h.GetReservationSummary)

@@ -4,8 +4,6 @@ from typing import Any
 from uuid import uuid4
 
 import httpx
-import sys
-
 
 class BusinessApiError(Exception):
     def __init__(self, message: str, status_code: int | None = None) -> None:
@@ -75,9 +73,6 @@ class BusinessApiClient:
             "Accept": "application/json",
             "X-Request-ID": request_id or str(uuid4()),
         }
-
-        if auth_token:
-            headers["Authorization"] = _normalize_bearer_token(auth_token)
 
         token_to_use = auth_token or self._api_token
         if token_to_use:
