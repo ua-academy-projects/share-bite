@@ -51,7 +51,7 @@ func (h *Handler) GetContext(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        request  body      handler.ValidatePermissionRequest  true  "Permission payload"
-// @Success      200      {object}  handler.AuthorizedResponse
+// @Success      200      {object}  handler.MCPAuthorizedResponse
 // @Failure      400      {object}  handler.ErrorResponse
 // @Router       /mcp/validate-permission [post]
 func (h *Handler) ValidateAdminPermissions(c *gin.Context) {
@@ -62,9 +62,9 @@ func (h *Handler) ValidateAdminPermissions(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"authorized": true,
-		"permission": req.Permission,
+	c.JSON(http.StatusOK, handler.MCPAuthorizedResponse{
+		Authorized: true,
+		Permission: req.Permission,
 	})
 }
 

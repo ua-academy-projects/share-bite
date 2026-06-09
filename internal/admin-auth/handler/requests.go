@@ -80,3 +80,8 @@ type MCPContextResponse struct {
 type MCPHealthResponse struct {
 	Status string `json:"status"`
 }
+
+type MCPAuthorizedResponse struct {
+	Authorized bool   `json:"authorized"`
+	Permission string `json:"permission"`
+}
