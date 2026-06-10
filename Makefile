@@ -197,3 +197,6 @@ k8s-migrate:
 
 k8s-down:
 	kubectl delete namespace $(K8S_NAMESPACE) --ignore-not-found=true
+
+run-guest-operator:
+	go run cmd/guest-operator/main.go

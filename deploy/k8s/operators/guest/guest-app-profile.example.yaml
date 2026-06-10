@@ -1,0 +1,9 @@
+apiVersion: guest.sharebite.dev/v1alpha1
+kind: GuestAppProfile
+metadata:
+  name: guest-api-profile
+  namespace: share-bite-local
+spec:
+  replicas: 1
+  enabled: true
+  # deploymentName: guest-api # optional
