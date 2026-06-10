@@ -1,19 +1,19 @@
 import pytest
 import respx
 
-from app.config import settings
+from unittest.mock import patch
+
+from app.http_client import guest_client
 
 
 @pytest.fixture
-def base_url() -> str:
-    return str(settings.guest_api_base_url).rstrip("/")
+def mock_guest_api():
+    with respx.mock(base_url=guest_client.base_url) as respx_mock:
+        yield respx_mock
 
 
 @pytest.fixture
-def mock_guest_api(base_url: str):
-    """
-    Activates respx mock router scoped to the Guest API base URL.
-    assert_all_mocked=True prevents accidental real HTTP calls during tests.
-    """
-    with respx.mock(base_url=base_url, assert_all_mocked=True) as router:
-        yield router
+def fake_auth_token():
+    """Patch resolve_auth_token without hardcoding its signature."""
+    with patch("app.auth.resolve_auth_token", return_value="fake-jwt"):
+        yield "fake-jwt"
