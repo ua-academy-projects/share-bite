@@ -1,6 +1,6 @@
 import json
 
-from ..auth import resolve_auth_token
+from .. import auth
 
 from ..http_client import guest_client, APIResponse, APIErrorResponse
 from ..server import mcp
@@ -11,7 +11,6 @@ def _unwrap_guest_result(action: str, result: APIResponse | APIErrorResponse) ->
         err_msg = result.get("error_message", "Unknown error")
         status_code = result.get("status", "N/A")
 
-        # TODO: map to structured MCP errors
         raise RuntimeError(f"{action} failed (HTTP {status_code}): {err_msg}")
 
     return json.dumps(result.get("data", {}))
@@ -33,5 +32,5 @@ async def get_guest_api_status() -> str:
     Fetches the deep operational status of the Guest API.
     Returns the connection status for internal components like PostgreSQL and Redis.
     """
-    result = await guest_client.get("/status", auth_token=resolve_auth_token())
+    result = await guest_client.get("/status", auth_token=auth.resolve_auth_token())
     return _unwrap_guest_result("Status check", result)
