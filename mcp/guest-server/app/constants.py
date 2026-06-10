@@ -9,6 +9,8 @@ CONTENT_TYPE_JSON = "application/json"
 # Resource URIs
 URI_API_INFO = "sharebite://guest/api-info"
 URI_OPENAPI_SUMMARY = "sharebite://guest/openapi-summary"
+URI_SEARCH_FILTERS = "sharebite://guest/search-filters"
+URI_RECOMMENDATION_SIGNALS = "sharebite://guest/recommendation-signals"
 
 # MCP Server
 MCP_SERVER_NAME = "guest-server"
