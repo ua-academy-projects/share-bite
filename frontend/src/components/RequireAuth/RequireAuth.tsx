@@ -1,8 +1,7 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from "react-router-dom";
 
-export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const token = localStorage.getItem('token');
+export function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem("token");
   const location = useLocation();
 
   if (!token) {
@@ -10,4 +9,4 @@ export const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   return <>{children}</>;
-};
+}

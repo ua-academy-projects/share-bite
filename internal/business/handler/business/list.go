@@ -24,6 +24,7 @@ type listItem struct {
 	Latitude    *float32 `json:"latitude" example:"50.4501"`
 	Longitude   *float32 `json:"longitude" example:"30.5234"`
 	Tags        []string `json:"tags"`
+	Status      string   `json:"status" example:"pending"`
 }
 
 type listResponse struct {
@@ -103,6 +104,7 @@ func (h *handler) list(c *gin.Context) {
 			Latitude:    u.Latitude,
 			Longitude:   u.Longitude,
 			Tags:        normalizeTags(u.Tags),
+			Status:      string(u.Status),
 		})
 	}
 

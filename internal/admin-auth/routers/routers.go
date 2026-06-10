@@ -42,6 +42,11 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler
 	}
 	adminGroup := r.Group("/admin").Use(authMiddleware)
 	{
+		adminGroup.GET("/users", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUsersList)
+		adminGroup.GET("/users/:id", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUserDetails)
+		adminGroup.GET("/businesses/pending", middleware.RequireRoles("admin", "moderator"), adminHandler.GetPendingBusinesses)
+		adminGroup.PATCH("/users/:id/role", middleware.RequireRoles("admin"), adminHandler.ChangeUserRole)
+		adminGroup.PATCH("/businesses/:id/review", middleware.RequireRoles("admin", "moderator"), adminHandler.ReviewBusiness)
 		adminGroup.GET("/statistics", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetPlatformStatistics)
 		adminGroup.GET("/users", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetUsersList)
 		adminGroup.GET("/users/:id", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetUserDetails)

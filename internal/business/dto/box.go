@@ -28,6 +28,7 @@ type GetNearbyBoxesReq struct {
 type NearbyBoxesResp struct {
 	ID                 int64           `json:"id" example:"123"`
 	VenueID            int             `json:"venue_id" example:"1"`
+	VenueStatus        string          `json:"venue_status" example:"verified"`
 	CategoryID         *int            `json:"category_id" example:"2"`
 	Image              string          `json:"image" example:"https://example.com/box.jpg"`
 	FullPrice          decimal.Decimal `json:"full_price" example:"300.00"`

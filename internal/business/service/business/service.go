@@ -52,6 +52,7 @@ type businessRepository interface {
 	CreateBox(ctx context.Context, box *entity.Box) (int64, time.Time, error)
 	CreateBoxItem(ctx context.Context, boxID int64, code string) error
 	GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error)
+	GetFirstVenueIDByOwnerUserID(ctx context.Context, userID string) (int, error)
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput, h3Hash *string) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error
@@ -72,6 +73,7 @@ type businessRepository interface {
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+	ResubmitVerification(ctx context.Context, id int, userID string) error
 
 	GetTopTagsByUserLikes(ctx context.Context, userID string, tagsToFetch int) ([]string, error)
 	GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)

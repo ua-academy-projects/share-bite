@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sony/gobreaker"
 	businessclient "github.com/ua-academy-projects/share-bite/internal/admin-auth/adapter/business"
 	guestclient "github.com/ua-academy-projects/share-bite/internal/admin-auth/adapter/guest"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -16,6 +18,9 @@ import (
 	mcphttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/mcp"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
+	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/redis"
+	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"go.uber.org/zap"
 
@@ -58,6 +63,11 @@ func main() {
 		logger.Fatal(ctx, "load google oauth config: ", err)
 	}
 
+	redisCfg, err := env.NewRedisConfig()
+	if err != nil {
+		logger.Fatal(ctx, "load redis config: ", err)
+	}
+
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(pkgmw.RequestID())
@@ -85,6 +95,56 @@ func main() {
 		client.Close()
 		return nil
 	})
+
+	rdb, err := redis.NewClient(
+		redisCfg.Addr(),
+		redisCfg.Password(),
+		redisCfg.DB(),
+		redisCfg.TLS(),
+	)
+	if err != nil {
+		logger.Fatal(ctx, "new redis client: ", err)
+	}
+	closer.Add(func(ctx context.Context) error {
+		return rdb.Close()
+	})
+
+	notificationResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     10 * time.Millisecond,
+			RandomizationFactor: 0.2,
+			Multiplier:          2.0,
+			MaxInterval:         200 * time.Millisecond,
+			MaxElapsedTime:      1500 * time.Millisecond,
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "admin-redis-pub",
+			MaxRequests: 1,
+			Interval:    10 * time.Second,
+			Timeout:     5 * time.Second,
+			ReadyToTrip: func(counts gobreaker.Counts) bool {
+				return counts.ConsecutiveFailures >= 20
+			},
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "redis circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil || errors.Is(err, context.Canceled) {
+					return true
+				}
+				return redis.IsPermanentRedisError(err)
+			},
+		}),
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.Debugf(ctx, "redis publish retry scheduled in %v: %v", nextRetryIn, err)
+		},
+	}
+
+	broker := notification.NewBroker(rdb, notification.WithPublishPolicy(notificationResiliencePolicy))
 
 	tokenManager := jwt.NewTokenManager(
 		cfg.JwtToken.AccessTokenSecretKey(),
@@ -131,7 +191,7 @@ func main() {
 	customerClient := guestclient.NewClient(client)
 	businessClient := businessclient.NewClient(client)
 
-	adminSvc := adminsvc.NewService(adminRepo, userRepo, customerClient, businessClient, txManager)
+	adminSvc := adminsvc.NewService(adminRepo, userRepo, customerClient, businessClient, broker, txManager)
 	adminHandler := adminhttp.NewHandler(adminSvc)
 
 	mcpSvc := mcpsvc.NewMCPPermissionService(adminRepo)
