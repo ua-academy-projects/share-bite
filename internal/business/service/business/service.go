@@ -52,6 +52,7 @@ type businessRepository interface {
 	CreateBox(ctx context.Context, box *entity.Box) (int64, time.Time, error)
 	CreateBoxItem(ctx context.Context, boxID int64, code string) error
 	GetBrandIDByOwnerUserID(ctx context.Context, userID string) (int, error)
+	GetFirstVenueIDByOwnerUserID(ctx context.Context, userID string) (int, error)
 	CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error)
 	UpdateLocation(ctx context.Context, locationID int, brandID int, in dto.UpdateLocationInput, h3Hash *string) (*entity.OrgUnit, error)
 	DeleteLocation(ctx context.Context, locationID int, brandID int) error

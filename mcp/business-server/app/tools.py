@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP, Context
+from app.auth import resolve_auth_token
 
 from app.client import BusinessApiClient, BusinessApiError
 from app.config import Settings
@@ -35,7 +36,7 @@ def register_tools(
 
     @mcp.tool()
     async def business_health_check(
-        auth_token: str | None = None,
+        ctx: Context,
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
@@ -44,10 +45,16 @@ def register_tools(
         auth_token is forwarded to business-api when provided.
         request_id is propagated as X-Request-ID when provided.
         """
+        headers = _extract_headers(ctx)
+        final_token = resolve_auth_token(headers=headers)
+
+        if not final_token:
+            raise RuntimeError("Unauthorized: Missing authentication token")
+
         try:
             data = await client.get(
                 "/swagger/doc.json",
-                auth_token=auth_token,
+                auth_token=final_token,
                 request_id=request_id,
             )
         except BusinessApiError as exc:
@@ -66,7 +73,7 @@ def register_tools(
 
     @mcp.tool()
     async def get_business_api_status(
-        auth_token: str | None = None,
+        ctx: Context,
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
@@ -74,10 +81,18 @@ def register_tools(
 
         This tool does not infer or guess a business ID.
         """
+
+        headers = _extract_headers(ctx)
+
+        final_token = resolve_auth_token(headers=headers)
+
+        if not final_token:
+            raise RuntimeError("Unauthorized: Missing authentication token")
+
         try:
             data = await client.get(
                 "/swagger/doc.json",
-                auth_token=auth_token,
+                auth_token=final_token,
                 request_id=request_id,
             )
         except BusinessApiError as exc:
@@ -99,6 +114,30 @@ def register_tools(
             },
         }
 
+
+def _extract_headers(ctx: Context) -> dict[str, str]:
+    """
+    Extract headers from MCP context, regardless of type of object.
+    """
+    if not ctx.request_context or not ctx.request_context.meta:
+        return {}
+
+    meta = ctx.request_context.meta
+
+    if hasattr(meta, "model_dump"):
+        meta_dict = meta.model_dump()
+    elif hasattr(meta, "dict"):
+        meta_dict = meta.dict()
+    elif isinstance(meta, dict):
+        meta_dict = meta 
+    else:
+        try:
+            meta_dict = vars(meta)
+        except TypeError:
+            return {}
+
+    headers = meta_dict.get("headers", {})
+    return headers if isinstance(headers, dict) else {}
     @mcp.tool()
     async def get_business_profile(
         business_id: int,

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guest-api-config
+  namespace: share-bite-local
+data:
+  BUSINESS_API_URL: "http://business-api.share-bite-local.svc.cluster.local:3900"
+  BUSINESS_HTTP_CLIENT_BASE_URL: "http://business-api.share-bite-local.svc.cluster.local:3900"

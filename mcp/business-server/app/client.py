@@ -13,6 +13,7 @@ class BusinessApiError(Exception):
 
 
 class BusinessApiClient:
+    """Asynchronous HTTP client for interacting with the Business API."""
     def __init__(self, base_url: str, timeout_seconds: float) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout = httpx.Timeout(timeout_seconds)
@@ -29,6 +30,7 @@ class BusinessApiClient:
         request_id: str | None = None,
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Performs a GET request to the specified API path."""
         headers = self._build_headers(auth_token=auth_token, request_id=request_id)
 
         try:
@@ -67,6 +69,7 @@ class BusinessApiClient:
         auth_token: str | None,
         request_id: str | None,
     ) -> dict[str, str]:
+        """Header builder"""
         headers = {
             "Accept": "application/json",
             "X-Request-ID": request_id or str(uuid4()),
@@ -78,6 +81,7 @@ class BusinessApiClient:
         return headers
 
     def _parse_response(self, response: httpx.Response) -> dict[str, Any]:
+        """Function to parse server response"""
         if response.status_code >= 400:
             raise BusinessApiError(
                 _extract_error_message(response),
@@ -105,6 +109,7 @@ def _normalize_bearer_token(auth_token: str) -> str:
 
 
 def _extract_error_message(response: httpx.Response) -> str:
+    """Extract error message to insert it into response"""
     try:
         body = response.json()
     except ValueError:
