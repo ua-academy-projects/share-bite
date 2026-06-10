@@ -70,6 +70,7 @@ type businessService interface {
 	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+	GetOnboardingContext(ctx context.Context, userID string) (brandID int, venueID int, err error)
 	UpdateVenueHours(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateVenueHoursInput) (*dto.UpdateVenueHoursOutput, error)
 }
 
@@ -88,6 +89,7 @@ func RegisterHandlers(
 	r.GET("/ready", h.ready)
 
 	auth := middleware.Auth(parser)
+	r.GET("/me", auth, middleware.RequireRoles(RoleBusiness), h.getMe)
 	r.GET("/:id", h.getOrgUnit)
 
 	orgUnits := r.Group("/org-units")

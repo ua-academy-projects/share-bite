@@ -1,13 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../api/client';
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/api/client";
 
-export const useCurrentCustomer = () => {
-  const token = localStorage.getItem('token');
+export function useCurrentCustomer() {
+  const token = localStorage.getItem("token");
   return useQuery({
-    queryKey: ['currentCustomer'],
+    queryKey: ["currentCustomer"],
     queryFn: apiClient.getCurrentCustomer,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: false, // Don't retry on 401s
+    staleTime: 5 * 60 * 1000,
+    retry: false,
     enabled: !!token,
   });
-};
+}
