@@ -67,6 +67,25 @@ type ChangeRoleRequest struct {
 	RoleSlug string `json:"role_slug" binding:"required,oneof=admin moderator user business"`
 }
 
+type ValidatePermissionRequest struct {
+	Permission string `json:"permission" binding:"required,max=100"`
+}
+
+type MCPContextResponse struct {
+	ID     string   `json:"id"`
+	Roles  []string `json:"roles"`
+	Status string   `json:"status"`
+}
+
+type MCPHealthResponse struct {
+	Status string `json:"status"`
+}
+
+type MCPAuthorizedResponse struct {
+	Authorized bool   `json:"authorized"`
+	Permission string `json:"permission"`
+}
+
 type PendingBusinessesQuery struct {
 	Limit  *int `form:"limit" binding:"omitempty,min=1"`
 	Offset *int `form:"offset" binding:"omitempty,min=0"`
