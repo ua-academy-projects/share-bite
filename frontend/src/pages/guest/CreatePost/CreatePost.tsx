@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { ImagePlus, ChevronLeft, ChevronRight, MapPin, X } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ImagePlus,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  MapPin,
+  Search,
+  X,
+} from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
+import { businessApi, type VenueSearchItem } from "@/api/business";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageLayout } from "@/components/layout/PageLayout";
 import {
@@ -10,6 +19,7 @@ import {
   pageBtnSecondary,
   pageInput,
   pageLabel,
+  pageLinkAccent,
   pagePanel,
 } from "@/components/layout/pageStyles";
 import { Button } from "@/components/ui/button";
@@ -19,11 +29,36 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 
 const isValidImageType = (file: File) => ALLOWED_IMAGE_TYPES.includes(file.type);
 
+function venueFromProfile(profile: {
+  id: number;
+  name: string;
+  avatar?: string | null;
+  description?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  tags: string[];
+}): VenueSearchItem {
+  return {
+    id: profile.id,
+    name: profile.name,
+    avatar: profile.avatar,
+    description: profile.description,
+    latitude: profile.latitude,
+    longitude: profile.longitude,
+    tags: profile.tags,
+  };
+}
+
 export const CreatePost: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { id: venueIdParam } = useParams<{ id?: string }>();
+  const presetVenueId = venueIdParam ? Number(venueIdParam) : null;
+
   const [images, setImages] = useState<{ file: File; previewUrl: string }[]>([]);
-  const [venueId, setVenueId] = useState("");
+  const [selectedVenue, setSelectedVenue] = useState<VenueSearchItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [text, setText] = useState("");
   const [rating, setRating] = useState(5);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -38,6 +73,36 @@ export const CreatePost: React.FC = () => {
       imagesRef.current.forEach((img) => URL.revokeObjectURL(img.previewUrl));
     };
   }, []);
+
+  const { data: presetVenue, isLoading: presetVenueLoading } = useQuery({
+    queryKey: ["venueProfile", presetVenueId],
+    queryFn: () => businessApi.getVenueProfile(presetVenueId!),
+    enabled: !!presetVenueId && presetVenueId > 0,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (presetVenue) {
+      setSelectedVenue(venueFromProfile(presetVenue));
+    }
+  }, [presetVenue]);
+
+  const {
+    data: searchData,
+    isFetching: searching,
+    error: searchError,
+  } = useQuery({
+    queryKey: ["venueSearch", "post-create", activeSearchQuery],
+    queryFn: () =>
+      businessApi.searchVenues({
+        query: activeSearchQuery,
+        limit: 20,
+      }),
+    enabled: activeSearchQuery.trim().length > 0,
+    retry: false,
+  });
+
+  const searchResults = searchData?.items ?? [];
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -82,6 +147,16 @@ export const CreatePost: React.FC = () => {
     });
   };
 
+  const handleVenueSearch = () => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setValidationError("Enter a venue name to search.");
+      return;
+    }
+    setValidationError(null);
+    setActiveSearchQuery(query);
+  };
+
   const createMutation = useMutation({
     mutationFn: async ({
       finalVenueId,
@@ -110,9 +185,8 @@ export const CreatePost: React.FC = () => {
     e.preventDefault();
     setValidationError(null);
 
-    const finalVenueId = parseInt(venueId.trim(), 10);
-    if (isNaN(finalVenueId) || finalVenueId <= 0) {
-      setValidationError("Please enter a valid numeric venue ID.");
+    if (!selectedVenue) {
+      setValidationError("Please select a venue for your review.");
       return;
     }
 
@@ -130,7 +204,7 @@ export const CreatePost: React.FC = () => {
       return;
     }
 
-    createMutation.mutate({ finalVenueId, parsedRating });
+    createMutation.mutate({ finalVenueId: selectedVenue.id, parsedRating });
   };
 
   return (
@@ -211,37 +285,152 @@ export const CreatePost: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="venueId" className={cn(pageLabel, "flex items-center gap-1")}>
-                <MapPin size={14} /> Venue Selection
-              </label>
-              <input
-                id="venueId"
-                type="text"
-                className={cn(pageInput, "h-12")}
-                placeholder="Enter venue ID"
-                value={venueId}
-                onChange={(e) => setVenueId(e.target.value)}
-              />
-              <p className="pl-1 text-xs text-gray-500">Use a numeric venue ID.</p>
-            </div>
+          <div className="space-y-4">
+            <label className={cn(pageLabel, "flex items-center gap-1")}>
+              <MapPin size={14} /> Venue
+            </label>
 
-            <div className="space-y-2">
-              <label htmlFor="rating" className={pageLabel}>
-                Rating (1-5)
-              </label>
-              <input
-                id="rating"
-                type="number"
-                min="1"
-                max="5"
-                className={cn(pageInput, "h-12")}
-                required
-                value={rating}
-                onChange={(e) => setRating(parseInt(e.target.value, 10))}
-              />
-            </div>
+            {presetVenueLoading ? (
+              <div className="flex h-20 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-500 dark:text-[#98FF98]" />
+              </div>
+            ) : selectedVenue ? (
+              <div className="flex items-center gap-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 dark:border-[#98FF98]/30 dark:bg-[#98FF98]/5">
+                <img
+                  src={
+                    selectedVenue.avatar ||
+                    "https://placehold.co/56x56/163d32/FFF?text=SB"
+                  }
+                  alt={selectedVenue.name}
+                  className="h-14 w-14 rounded-xl border border-gray-200 object-cover dark:border-[#2f5e50]"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-[#1A3C34] dark:text-white">
+                    {selectedVenue.name}
+                  </p>
+                  <p className="truncate text-sm text-gray-500 dark:text-gray-400">
+                    {selectedVenue.description || "Selected venue"}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setSelectedVenue(null)}
+                >
+                  Change
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="text"
+                    className={cn(pageInput, "h-12 flex-1")}
+                    placeholder="Search by venue name"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleVenueSearch();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    className={cn(pageBtnPrimary, "h-12 px-6")}
+                    onClick={handleVenueSearch}
+                    disabled={searching}
+                  >
+                    {searching ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        Search
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {searchError ? (
+                  <p className="text-sm text-destructive">
+                    {searchError instanceof Error
+                      ? searchError.message
+                      : "Venue search failed."}
+                  </p>
+                ) : null}
+
+                {activeSearchQuery && !searching && searchResults.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No venues found for &quot;{activeSearchQuery}&quot;. Try another name or{" "}
+                    <Link to="/venues/search" className={pageLinkAccent}>
+                      browse venues
+                    </Link>
+                    .
+                  </p>
+                ) : null}
+
+                {searchResults.length > 0 ? (
+                  <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-gray-200 p-2 dark:border-[#2f5e50]">
+                    {searchResults.map((venue) => (
+                      <button
+                        key={venue.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedVenue(venue);
+                          setValidationError(null);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left transition-colors hover:border-emerald-500/30 hover:bg-emerald-500/5 dark:hover:border-[#98FF98]/30 dark:hover:bg-[#98FF98]/5"
+                      >
+                        <img
+                          src={
+                            venue.avatar ||
+                            "https://placehold.co/40x40/163d32/FFF?text=SB"
+                          }
+                          alt={venue.name}
+                          className="h-10 w-10 rounded-lg border border-gray-200 object-cover dark:border-[#2f5e50]"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-medium text-[#1A3C34] dark:text-white">
+                            {venue.name}
+                          </p>
+                          {venue.description ? (
+                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                              {venue.description}
+                            </p>
+                          ) : null}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Can&apos;t find it?{" "}
+                  <Link to="/venues/search" className={pageLinkAccent}>
+                    Browse all venues
+                  </Link>
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="rating" className={pageLabel}>
+              Rating (1-5)
+            </label>
+            <input
+              id="rating"
+              type="number"
+              min="1"
+              max="5"
+              className={cn(pageInput, "h-12 max-w-xs")}
+              required
+              value={rating}
+              onChange={(e) => setRating(parseInt(e.target.value, 10))}
+            />
           </div>
 
           <div className="space-y-2">
