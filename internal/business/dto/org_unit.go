@@ -20,6 +20,7 @@ type UpdateOrgResponse struct {
 	Avatar      *string `json:"avatar" example:"https://cdn.example.com/avatar.png"`
 	Banner      *string `json:"banner" example:"https://cdn.example.com/banner.png"`
 	Description *string `json:"description" example:"A cozy place in the city center."`
+	Status      string  `json:"status" example:"verified"`
 }
 
 type UpdatePostRequest struct {

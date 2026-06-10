@@ -73,6 +73,7 @@ type businessRepository interface {
 	GetVenueRating(ctx context.Context, venueID int) (float32, error)
 	ListNearbyVenues(ctx context.Context, lat, lon float64, offset, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+	ResubmitVerification(ctx context.Context, id int, userID string) error
 
 	GetTopTagsByUserLikes(ctx context.Context, userID string, tagsToFetch int) ([]string, error)
 	GetPostsByTag(ctx context.Context, tag string, quota int, seenCompositeIDs []string, h3Hashes []string) ([]entity.RecommendedPost, error)

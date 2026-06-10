@@ -23,6 +23,7 @@ var (
 	ErrNotFound         = errors.New("not found")
 	ErrForbidden        = errors.New("forbidden")
 	ErrNoAvailableItems = errors.New("no available box items")
+	ErrInvalidStatus    = errors.New("organization unit is not in a resubmittable state")
 )
 
 type Repository struct {
@@ -88,9 +89,10 @@ func (r *Repository) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UU
 			name = COALESCE($1, name),
 			avatar = COALESCE($2, avatar),
 			banner = COALESCE($3, banner),
-			description = COALESCE($4, description)
+			description = COALESCE($4, description),
+		    status = 'pending'
 		WHERE id = $5 AND org_account_id = $6 AND profile_type = 'BRAND'
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, status
 	`
 	q := database.Query{
 		Name: "business_repository.UpdateOrg",
@@ -117,6 +119,7 @@ func (r *Repository) UpdateOrg(ctx context.Context, id int, orgAccountID uuid.UU
 		&ou.Avatar,
 		&ou.Banner,
 		&ou.Description,
+		&ou.Status,
 	)
 	if err != nil {
 		if errors.Is(err, stdsql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {

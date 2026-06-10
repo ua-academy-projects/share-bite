@@ -70,6 +70,7 @@ type businessService interface {
 	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+	ResubmitVerification(ctx context.Context, id int, userID string) error
 	GetOnboardingContext(ctx context.Context, userID string) (brandID int, venueID int, err error)
 	UpdateVenueHours(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateVenueHoursInput) (*dto.UpdateVenueHoursOutput, error)
 }
@@ -132,6 +133,7 @@ func RegisterHandlers(
 		orgMutations.PUT("/:id", h.updateOrgUnit)
 		orgMutations.PATCH("/:id", h.updateOrgUnit)
 		orgMutations.DELETE("/:id", h.deleteOrgUnit)
+		orgMutations.POST("/:id/resubmit", h.resubmitVerification)
 	}
 
 	businessLocations := r.Group("").

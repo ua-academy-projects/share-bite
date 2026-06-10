@@ -2,6 +2,7 @@ package business
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,7 +19,7 @@ import (
 func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, error) {
 	const op = "repository.business.GetById"
 	sql := `
-		SELECT id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude
+		SELECT id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude,status
 		FROM business.org_units
 		WHERE id = $1
 	`
@@ -41,6 +42,7 @@ func (r *Repository) GetById(ctx context.Context, id int) (*entity.OrgUnit, erro
 		&ou.ParentId,
 		&ou.Latitude,
 		&ou.Longitude,
+		&ou.Status,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -76,7 +78,7 @@ func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit
 	units, err := pagination.List(ctx, r.db.DB(), "business_repository.ListByParentID",
 		pagination.Params{
 			Table:   "business.org_units",
-			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
+			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, status",
 			Where:   where,
 			OrderBy: "id",
 			Args:    args,
@@ -96,6 +98,7 @@ func (r *Repository) ListByParentID(ctx context.Context, parentID, offset, limit
 				&ou.ParentId,
 				&ou.Latitude,
 				&ou.Longitude,
+				&ou.Status,
 			)
 			if err != nil {
 				return entity.OrgUnit{}, fmt.Errorf("%s: %w", op, err)
@@ -115,7 +118,7 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 	q := database.Query{
 		Name: "business_repository.GetVenuesByIDs",
 		Sql: `
-			SELECT id, name, description, avatar, banner
+			SELECT id, name, description, avatar, banner, status
 			FROM business.org_units
 			WHERE id = ANY($1) AND parent_id IS NOT NULL
 		`,
@@ -136,6 +139,7 @@ func (r *Repository) GetVenuesByIDs(ctx context.Context, ids []int) ([]entity.Or
 			&ou.Description,
 			&ou.Avatar,
 			&ou.Banner,
+			&ou.Status,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
@@ -228,11 +232,10 @@ func (r *Repository) GetFirstVenueIDByOwnerUserID(ctx context.Context, userID st
 func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserID string, in dto.CreateLocationInput) (*entity.OrgUnit, error) {
 	sql := `
 		INSERT INTO business.org_units 
-			(org_account_id, profile_type, parent_id, name, avatar, banner, description, latitude, longitude, h3_hash)
+			(org_account_id, profile_type, parent_id, name, avatar, banner, description, latitude, longitude, status, h3_hash)
 		VALUES 
-			($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, h3_hash`
-
+			($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10)
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, status, h3_hash`
 	q := database.Query{
 		Name: "business_repository.CreateLocation",
 		Sql:  sql,
@@ -243,7 +246,7 @@ func (r *Repository) CreateLocation(ctx context.Context, brandID int, ownerUserI
 		ctx, q,
 		ownerUserID, entity.ProfileTypeVenue, brandID, in.Name, in.Avatar, in.Banner, in.Description, in.Latitude, in.Longitude, in.H3Hash,
 	).Scan(
-		&ou.Id, &ou.OrgAccountId, &ou.ProfileType, &ou.Name, &ou.Avatar, &ou.Banner, &ou.Description, &ou.ParentId, &ou.Latitude, &ou.Longitude, &ou.H3Hash,
+		&ou.Id, &ou.OrgAccountId, &ou.ProfileType, &ou.Name, &ou.Avatar, &ou.Banner, &ou.Description, &ou.ParentId, &ou.Latitude, &ou.Longitude, &ou.Status, &ou.H3Hash,
 	)
 
 	if err != nil {
@@ -263,12 +266,12 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 		    description = COALESCE($4, description),
 		    latitude = COALESCE($5, latitude),
 		    longitude = COALESCE($6, longitude),
+        status = 'pending',
 		    h3_hash = COALESCE($10, h3_hash)
 		WHERE id = $7
 		  AND parent_id = $8
 		  AND profile_type = $9
-		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, h3_hash
-	`
+		RETURNING id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, status, h3_hash`
 	q := database.Query{
 		Name: "business_repository.UpdateLocation",
 		Sql:  sql,
@@ -282,7 +285,7 @@ func (r *Repository) UpdateLocation(ctx context.Context, locationID int, brandID
 	).Scan(
 		&ou.Id, &ou.OrgAccountId, &ou.ProfileType, &ou.Name,
 		&ou.Avatar, &ou.Banner, &ou.Description, &ou.ParentId,
-		&ou.Latitude, &ou.Longitude, &ou.H3Hash,
+		&ou.Latitude, &ou.Longitude, &ou.Status, &ou.H3Hash,
 	)
 
 	if err != nil {
@@ -323,7 +326,7 @@ func (r *Repository) ListNearbyVenues(ctx context.Context, lat, lon float64, off
 	const op = "repository.business.ListNearbyVenues"
 
 	dynamicColumns := fmt.Sprintf(
-		"id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude, "+
+		"id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude,status, "+
 			"point(%f, %f) <@> point(longitude, latitude) AS distance",
 		lon, lat,
 	)
@@ -353,6 +356,7 @@ func (r *Repository) ListNearbyVenues(ctx context.Context, lat, lon float64, off
 			&ou.ParentId,
 			&ou.Latitude,
 			&ou.Longitude,
+			&ou.Status,
 			&item.Distance,
 		)
 		if err != nil {
@@ -395,7 +399,7 @@ func (r *Repository) SearchVenues(ctx context.Context, query string, offset, lim
 	units, err := pagination.List(ctx, r.db.DB(), "business_repository.SearchVenues",
 		pagination.Params{
 			Table:   "business.org_units",
-			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude",
+			Columns: "id, org_account_id, profile_type, name, avatar, banner, description, parent_id, latitude, longitude,status",
 			Where:   where,
 			OrderBy: "id",
 			Args:    args,
@@ -415,6 +419,7 @@ func (r *Repository) SearchVenues(ctx context.Context, query string, offset, lim
 				&ou.ParentId,
 				&ou.Latitude,
 				&ou.Longitude,
+				&ou.Status,
 			)
 			if err != nil {
 				return entity.OrgUnit{}, fmt.Errorf("%s: %w", op, err)
@@ -427,4 +432,48 @@ func (r *Repository) SearchVenues(ctx context.Context, query string, offset, lim
 	}
 
 	return units, nil
+}
+
+func (r *Repository) ResubmitVerification(ctx context.Context, id int, userID string) error {
+	const op = "repository.business.ResubmitVerification"
+	sqlQuery := `
+       UPDATE business.org_units
+       SET status = 'pending'
+       WHERE id = $1 
+         AND org_account_id = $2::uuid 
+         AND status = 'rejected'
+    `
+	qUpdate := database.Query{
+		Name: "business_repository.ResubmitVerification",
+		Sql:  sqlQuery,
+	}
+
+	tag, err := r.db.DB().ExecContext(ctx, qUpdate, id, userID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		var currentStatus string
+		checkQuery := `
+          SELECT status 
+          FROM business.org_units 
+          WHERE id = $1 AND org_account_id = $2::uuid
+       `
+		qCheck := database.Query{
+			Name: "business_repository.GetStatusForResubmitDiagnosis",
+			Sql:  checkQuery,
+		}
+
+		err := r.db.DB().QueryRowContext(ctx, qCheck, id, userID).Scan(&currentStatus)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("%s: %w", op, ErrNotFound)
+			}
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		return fmt.Errorf("%s: %w", op, ErrInvalidStatus)
+	}
+
+	return nil
 }

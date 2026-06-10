@@ -66,3 +66,13 @@ type UsersFilterQuery struct {
 type ChangeRoleRequest struct {
 	RoleSlug string `json:"role_slug" binding:"required,oneof=admin moderator user business"`
 }
+
+type PendingBusinessesQuery struct {
+	Limit  *int `form:"limit" binding:"omitempty,min=1"`
+	Offset *int `form:"offset" binding:"omitempty,min=0"`
+}
+
+type ReviewBusinessRequest struct {
+	Status  string  `json:"status"  binding:"required,oneof=verified rejected"`
+	Comment *string `json:"comment" binding:"omitempty,max=1000"`
+}

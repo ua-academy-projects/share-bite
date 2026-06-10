@@ -12,6 +12,8 @@ const (
 	PostLiked             EventType = "post_liked"
 	RegistrationConfirmed EventType = "registration_confirmed"
 	InvitationReceived    EventType = "invitation_received"
+	BusinessVerified      EventType = "business_verified"
+	BusinessRejected      EventType = "business_rejected"
 
 	PostPublished          EventType = "post_published"
 	PostInvitationAccepted EventType = "post_invitation_accepted"

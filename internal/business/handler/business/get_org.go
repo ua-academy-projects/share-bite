@@ -47,5 +47,6 @@ func (h *handler) getOrgUnit(c *gin.Context) {
 		Avatar:      org.Avatar,
 		Banner:      org.Banner,
 		Description: org.Description,
+		Status:      string(org.Status),
 	})
 }

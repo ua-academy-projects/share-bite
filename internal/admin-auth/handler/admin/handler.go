@@ -2,12 +2,14 @@ package admin
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/dto"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 	adminsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/admin"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 )
 
@@ -56,6 +58,16 @@ func (h *Handler) GetUsersList(c *gin.Context) {
 
 	if query.Offset != nil {
 		offset = *query.Offset
+	}
+
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
 	}
 
 	filter := dto.AdminUserFilter{
@@ -168,4 +180,109 @@ func (h *Handler) ChangeUserRole(c *gin.Context) {
 	logger.InfoKV(ctx, "user role successfully changed", "target_user_id", userID, "new_role", req.RoleSlug)
 
 	c.JSON(http.StatusOK, handler.MessageResponse{Message: "User role has been successfully updated."})
+}
+
+// GetPendingBusinesses godoc
+// @Summary      Get pending businesses
+// @Description  Retrieves a paginated list of business establishments awaiting admin verification.
+// @Tags         Admin
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        limit   query     int     false  "Number of items to return (default 10)"
+// @Param        offset  query     int     false  "Number of items to skip (default 0)"
+// @Success      200     {object}  dto.PaginatedPendingBusinessesResponse  "Success. Returns list of pending businesses."
+// @Failure      400     {object}  handler.ErrorResponse                   "Invalid query parameters."
+// @Failure      401     {object}  handler.ErrorResponse                   "Unauthorized access."
+// @Failure      403     {object}  handler.ErrorResponse                   "Forbidden. Admin or moderator role required."
+// @Failure      500     {object}  handler.ErrorResponse                   "Internal server error."
+// @Router       /admin/businesses/pending [get]
+func (h *Handler) GetPendingBusinesses(c *gin.Context) {
+	var query handler.PendingBusinessesQuery
+
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, handler.ErrorResponse{Error: "Invalid pagination parameters."})
+		return
+	}
+
+	limit := 10
+	offset := 0
+
+	if query.Limit != nil {
+		limit = *query.Limit
+	}
+	if query.Offset != nil {
+		offset = *query.Offset
+	}
+
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	resp, err := h.service.GetPendingBusinessesList(c.Request.Context(), limit, offset)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// ReviewBusiness godoc
+// @Summary      Review business establishment status
+// @Description  Approves (verifies) or rejects a business unit registration. Rejection requires a comment.
+// @Tags         Admin
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        id       path      string                        true  "Business Establishment Org Unit ID"
+// @Param        request  body      handler.ReviewBusinessRequest true  "Review action payload"
+// @Success      200      {object}  handler.MessageResponse       "Success message."
+// @Failure      400      {object}  handler.ErrorResponse         "Validation error or missing comment for rejection."
+// @Failure      401      {object}  handler.ErrorResponse         "Unauthorized access."
+// @Failure      403      {object}  handler.ErrorResponse         "Forbidden. Admin or moderator role required."
+// @Failure      404      {object}  handler.ErrorResponse         "Business establishment not found."
+// @Failure      500      {object}  handler.ErrorResponse         "Internal server error."
+// @Router       /admin/businesses/{id}/review [patch]
+func (h *Handler) ReviewBusiness(c *gin.Context) {
+	ctx := c.Request.Context()
+	orgUnitIDStr := c.Param("id")
+
+	orgUnitID, err := strconv.Atoi(orgUnitIDStr)
+	if err != nil || orgUnitID <= 0 {
+		c.JSON(http.StatusBadRequest, handler.ErrorResponse{Error: "invalid business id format, must be a positive integer"})
+		return
+	}
+
+	var req handler.ReviewBusinessRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, handler.ErrorResponse{Error: "Invalid request payload. 'status' is required and must be exactly 'verified' or 'rejected'."})
+		return
+	}
+
+	adminID, exists := middleware.GetUserID(c)
+	if !exists || adminID == "" {
+		c.JSON(http.StatusUnauthorized, handler.ErrorResponse{Error: "admin identity could not be resolved"})
+		return
+	}
+
+	params := dto.ReviewBusinessParams{
+		OrgUnitID: orgUnitID,
+		NewStatus: req.Status,
+		AdminID:   adminID,
+		Comment:   req.Comment,
+	}
+
+	if err := h.service.ReviewBusinessStatus(ctx, params); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, handler.MessageResponse{Message: "Business verification status updated successfully."})
 }

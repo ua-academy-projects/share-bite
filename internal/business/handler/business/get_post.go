@@ -36,10 +36,6 @@ func (h *handler) GetPosts(c *gin.Context) {
 	if req.Skip < 0 {
 		req.Skip = 0
 	}
-
-	if req.Skip < 0 {
-		req.Skip = 0
-	}
 	if req.Limit == 0 {
 		req.Limit = 10
 	}
@@ -70,10 +66,12 @@ func (h *handler) GetPosts(c *gin.Context) {
 				ID          int    `json:"id"`
 				Name        string `json:"name"`
 				ProfileType string `json:"profileType"`
+				Status      string `json:"status"`
 			}{
 				ID:          post.OrgID,
 				Name:        post.OrgName,
 				ProfileType: post.ProfileType,
+				Status:      string(post.OrgStatus),
 			},
 		})
 	}

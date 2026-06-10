@@ -33,6 +33,7 @@ type NearbyVenueItem struct {
 	Name     string  `json:"name"`
 	Avatar   *string `json:"avatar"`
 	Distance float64 `json:"distance"`
+	Status   string  `json:"status"`
 }
 
 type ListNearbyVenuesOutput struct {
