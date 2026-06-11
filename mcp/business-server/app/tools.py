@@ -13,14 +13,15 @@ from app.constants import (
     API_PATH_UPDATE_VENUE_DETAILS,
     API_PATH_UPDATE_VENUE_HOURS,
     API_PATH_VENUE_DETAILS,
-
     API_PATH_DAILY_SUMMARY,
     API_PATH_RESERVATION_SUMMARY,
     API_PATH_FOOD_BOX_PERFORMANCE,
     API_PATH_ENGAGEMENT_SUMMARY,
     API_PATH_VENUE_ACTIVITY,
 )
-from app.context_recommender import recommend_venues_by_context as rank_venues_by_context
+from app.context_recommender import (
+    recommend_venues_by_context as rank_venues_by_context,
+)
 from app.utils import (
     ForbiddenError,
     changed_fields,
@@ -30,6 +31,7 @@ from app.utils import (
     validate_venue_update,
     validate_date_range,
 )
+
 
 def _extract_headers(ctx: Context) -> dict[str, str]:
     """
@@ -45,7 +47,7 @@ def _extract_headers(ctx: Context) -> dict[str, str]:
     elif hasattr(meta, "dict"):
         meta_dict = meta.dict()
     elif isinstance(meta, dict):
-        meta_dict = meta 
+        meta_dict = meta
     else:
         try:
             meta_dict = vars(meta)
@@ -54,6 +56,7 @@ def _extract_headers(ctx: Context) -> dict[str, str]:
 
     headers = meta_dict.get("headers", {})
     return headers if isinstance(headers, dict) else {}
+
 
 def register_tools(
     mcp: FastMCP,
@@ -67,7 +70,7 @@ def register_tools(
 
     @mcp.tool()
     async def business_health_check(
-        ctx: Context,
+        ctx: Context[Any, Any],
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
@@ -99,7 +102,7 @@ def register_tools(
 
     @mcp.tool()
     async def get_business_api_status(
-        ctx: Context,
+        ctx: Context[Any, Any],
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
@@ -138,7 +141,7 @@ def register_tools(
             },
         }
 
-    #BUSINESS-ORG TOOLS
+    # BUSINESS-ORG TOOLS
     @mcp.tool()
     async def recommend_venues_by_context(
         context: dict[str, Any],
@@ -147,7 +150,6 @@ def register_tools(
     ) -> dict[str, Any]:
         """
         Rank venue candidates for context such as a date, meetup, or budget plan.
-
         This deterministic AI-style ranker extracts user intent and returns
         explainable scores without calling external AI APIs.
         """
@@ -314,7 +316,15 @@ def register_tools(
                 changed_fields=changed_fields(
                     before,
                     after,
-                    ("name", "avatar", "banner", "description", "latitude", "longitude", "tagIds"),
+                    (
+                        "name",
+                        "avatar",
+                        "banner",
+                        "description",
+                        "latitude",
+                        "longitude",
+                        "tagIds",
+                    ),
                 ),
                 result=after,
             )
@@ -362,50 +372,26 @@ def register_tools(
         except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
-
-    #BUSINESS ANALITYCS TOOL
+    # BUSINESS ANALITYCS TOOL
     @mcp.tool()
     async def get_business_daily_summary(
         ctx: Context,
         start_date: str,
         end_date: str,
-        request_id: str | None = None, 
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         """
         Retrieve daily summary analytics for the brand.
         Returns the number of created boxes, posts, and total venues.
-        
+
         Args:
             start_date: Start date for the filter in YYYY-MM-DD format.
             end_date: End date for the filter in YYYY-MM-DD format.
         """
-        
+
         date_error = validate_date_range(start_date, end_date)
         if date_error:
             return _tool_error(f"Validation failed: {date_error}")
-
-        headers = _extract_headers(ctx)
-        auth_token=resolve_auth_token(headers=headers)
-
-        if not auth_token:
-            return _tool_error("Unauthorized: Missing authentication token")
-        
-        try:
-            data = await client.get(
-                API_PATH_DAILY_SUMMARY,
-                auth_token=auth_token,
-                request_id=request_id,
-                params={
-                    "start_date": start_date,
-                    "end_date": end_date,
-                },
-            )
-
-            return _tool_success(
-                result=_unwrap(data),
-            )
-        except (BusinessApiError, RuntimeError) as exc:
-            return _tool_error(str(exc))
 
     @mcp.tool()
     async def get_reservation_summary(
@@ -417,7 +403,7 @@ def register_tools(
     ) -> dict[str, Any]:
         """
         Retrieve reservation summary analytics (items sold, reserved, available, and potential revenue).
-        
+
         Args:
             start_date: Start date for the filter in YYYY-MM-DD format.
             end_date: End date for the filter in YYYY-MM-DD format.
@@ -430,11 +416,11 @@ def register_tools(
 
         headers = _extract_headers(ctx)
         auth_token = resolve_auth_token(headers=headers)
-        
+
         if not auth_token:
             return _tool_error("Unauthorized: Missing authentication token")
 
-        params={
+        params = {
             "start_date": start_date,
             "end_date": end_date,
         }
@@ -450,17 +436,14 @@ def register_tools(
                 params=params,
             )
 
-            return _tool_success(
-                result=_unwrap(data),
-                venue_id=venue_id
-            )
+            return _tool_success(result=_unwrap(data), venue_id=venue_id)
         except (BusinessApiError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
     @mcp.tool()
     async def get_food_box_performance(
         ctx: Context,
-        start_date: str, 
+        start_date: str,
         end_date: str,
         venue_id: int | None = None,
         request_id: str | None = None,
@@ -468,7 +451,7 @@ def register_tools(
         """
         Retrieve food box performance metrics for the business.
         Returns data on created boxes, expired boxes, average discount, sell-through rate, waste rate, and a composite performance score.
-        
+
         Args:
             start_date: Start date for the filter in YYYY-MM-DD format.
             end_date: End date for the filter in YYYY-MM-DD format.
@@ -478,49 +461,45 @@ def register_tools(
         date_error = validate_date_range(start_date, end_date)
         if date_error:
             return _tool_error(f"Validation failed: {date_error}")
-        
+
         headers = _extract_headers(ctx)
         auth_token = resolve_auth_token(headers=headers)
 
         if not auth_token:
             return _tool_error("Unauthorized: Missing authentication token")
-        
-        params={
+
+        params = {
             "start_date": start_date,
             "end_date": end_date,
         }
         if venue_id is not None:
             params["venue_id"] = venue_id
-        
+
         try:
             data = await client.get(
                 API_PATH_FOOD_BOX_PERFORMANCE,
                 auth_token=auth_token,
-                request_id=request_id, 
+                request_id=request_id,
                 params=params,
             )
 
-            return _tool_success(
-                result=_unwrap(data),
-                venue_id=venue_id
-            )
-        
+            return _tool_success(result=_unwrap(data), venue_id=venue_id)
+
         except (BusinessApiError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
-    
     @mcp.tool()
     async def get_engagement_summary(
         ctx: Context,
         start_date: str,
         end_date: str,
-        venue_id: int | None = None, 
+        venue_id: int | None = None,
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
         Retrieve social engagement metrics for business posts.
         Returns total posts created, total comments, total likes, and average engagement rates.
-        
+
         Args:
             start_date: Start date for the filter in YYYY-MM-DD format.
             end_date: End date for the filter in YYYY-MM-DD format.
@@ -537,7 +516,7 @@ def register_tools(
         if not auth_token:
             return _tool_error("Unauthorized: Missing authentication token")
 
-        params={
+        params = {
             "start_date": start_date,
             "end_date": end_date,
         }
@@ -553,12 +532,9 @@ def register_tools(
                 params=params,
             )
 
-            return _tool_success(
-                result=_unwrap(data),
-                venue_id=venue_id
-            )
-        
-        except(BusinessApiError, RuntimeError) as exc:
+            return _tool_success(result=_unwrap(data), venue_id=venue_id)
+
+        except (BusinessApiError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
     @mcp.tool()
@@ -588,7 +564,7 @@ def register_tools(
 
         if not auth_token:
             return _tool_error("Unauthorized: Missing authentication token")
-        
+
         try:
             data = await client.get(
                 API_PATH_VENUE_ACTIVITY.format(venue_id=venue_id),
@@ -600,14 +576,11 @@ def register_tools(
                 },
             )
 
-            return _tool_success(
-                result=_unwrap(data),
-                venue_id=venue_id
-            )
-        
-        except(BusinessApiError, RuntimeError) as exc:
+            return _tool_success(result=_unwrap(data), venue_id=venue_id)
+
+        except (BusinessApiError, RuntimeError) as exc:
             return _tool_error(str(exc))
- 
+
 
 def _unwrap(result: dict[str, Any]) -> dict[str, Any]:
     if result.get("is_error") is True:
