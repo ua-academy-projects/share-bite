@@ -21,7 +21,7 @@ def unwrap_api_result(result: APIResponse) -> str:
             return json.dumps({"error": "forbidden", "message": msg})
         if status == 404:
             return json.dumps({"error": "not_found", "message": msg})
-        if status in (408, 500, 502, 503) or status is None:
+        if status is None or (isinstance(status, int) and status >= 500):
             return json.dumps(
                 {
                     "error": "downstream_failure",

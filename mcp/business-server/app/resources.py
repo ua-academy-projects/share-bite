@@ -16,7 +16,6 @@ from app.constants import (
 )
 
 
-
 class AuthInfo(BaseModel):
     authorization_forwarding: bool
     business_id_policy: str

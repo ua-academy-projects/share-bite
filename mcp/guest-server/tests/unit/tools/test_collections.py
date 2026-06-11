@@ -19,7 +19,7 @@ from tests.factories.guest_responses import (
 @pytest.mark.asyncio
 class TestListMyCollections:
     async def test_success(self, mock_guest_api, fake_auth_token):
-        mock_guest_api.get("/collections/me").mock(
+        route = mock_guest_api.get("/collections/me").mock(
             return_value=build_collections_list_response(
                 collections=[{"id": "col-1", "name": "Favorites"}],
                 next_page_token="tok",
@@ -28,6 +28,9 @@ class TestListMyCollections:
         result = await list_my_collections(page_size=10)
         data = json.loads(result)
         assert data["collections"][0]["name"] == "Favorites"
+        assert route.called
+        sent_auth = route.calls.last.request.headers.get("Authorization", "")
+        assert "fake-jwt" in sent_auth
 
     async def test_unauthorized_no_token(self):
         with patch("app.auth.resolve_auth_token", return_value=None):

@@ -70,6 +70,7 @@ def register_tools(
     client = client or BusinessApiClient(
         base_url=settings.business_api_base_url,
         timeout_seconds=settings.request_timeout_seconds,
+        api_token=settings.business_api_token,
     )
 
     @mcp.tool()
@@ -181,6 +182,7 @@ def register_tools(
             return _tool_error("validation failed", validation_errors=validation_errors)
 
         query = (q or "").strip()
+        tags = (tags or "").strip()
         if not query and not tags:
             return _tool_error("at least one search filter is required: q or tags")
 
@@ -614,7 +616,7 @@ def register_tools(
         if not auth_token:
             return _tool_error("Unauthorized: Missing authentication token")
 
-        params = {
+        params: dict[str, Any] = {
             "start_date": start_date,
             "end_date": end_date,
         }
@@ -662,7 +664,7 @@ def register_tools(
         if not auth_token:
             return _tool_error("Unauthorized: Missing authentication token")
 
-        params = {
+        params: dict[str, Any] = {
             "start_date": start_date,
             "end_date": end_date,
         }
@@ -710,7 +712,7 @@ def register_tools(
         if not auth_token:
             return _tool_error("Unauthorized: Missing authentication token")
 
-        params = {
+        params: dict[str, Any] = {
             "start_date": start_date,
             "end_date": end_date,
         }

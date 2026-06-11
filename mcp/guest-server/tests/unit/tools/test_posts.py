@@ -15,7 +15,7 @@ from tests.factories.guest_responses import (
 @pytest.mark.asyncio
 class TestSearchPosts:
     async def test_success(self, mock_guest_api):
-        mock_guest_api.get("/posts/").mock(
+        route = mock_guest_api.get("/posts/").mock(
             return_value=build_posts_list_response(
                 posts=[{"id": "1", "text": "hello"}],
                 total=1,
@@ -25,6 +25,9 @@ class TestSearchPosts:
         data = json.loads(result)
         assert data["posts"][0]["id"] == "1"
         assert data["total"] == 1
+        params = route.calls.last.request.url.params
+        assert params["limit"] == "10"
+        assert params["offset"] == "0"
 
     async def test_empty_result(self, mock_guest_api):
         mock_guest_api.get("/posts/").mock(

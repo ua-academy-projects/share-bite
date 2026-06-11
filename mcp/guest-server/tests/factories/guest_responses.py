@@ -55,11 +55,12 @@ def build_openapi_response() -> httpx.Response:
 
 def build_posts_list_response(
     posts: list[dict[str, Any]] | None = None,
-    total: int = 0,
+    total: int | None = None,
     status: int = 200,
 ) -> httpx.Response:
+    posts = posts or []
     return build_success_response(
-        {"posts": posts or [], "total": total},
+        {"posts": posts, "total": len(posts) if total is None else total},
         status=status,
     )
 
@@ -76,11 +77,12 @@ def build_post_detail_response(
 
 def build_post_authors_response(
     authors: list[str] | None = None,
-    count: int = 0,
+    count: int | None = None,
     status: int = 200,
 ) -> httpx.Response:
+    authors = authors or []
     return build_success_response(
-        {"authors": authors or [], "count": count},
+        {"authors": authors, "count": len(authors) if count is None else count},
         status=status,
     )
 

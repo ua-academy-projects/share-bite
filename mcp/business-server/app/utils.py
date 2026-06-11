@@ -219,11 +219,23 @@ def validate_date_range(
 
 def validate_discovery_coords(lat: Any, lon: Any) -> ValidationErrors:
     errors: ValidationErrors = []
-    if lat is None or not isinstance(lat, (int, float)) or lat < -90 or lat > 90:
+    if (
+        lat is None
+        or isinstance(lat, bool)
+        or not isinstance(lat, (int, float))
+        or lat < -90
+        or lat > 90
+    ):
         errors.append(
             {"field": "lat", "message": "latitude must be a number between -90 and 90"}
         )
-    if lon is None or not isinstance(lon, (int, float)) or lon < -180 or lon > 180:
+    if (
+        lon is None
+        or isinstance(lon, bool)
+        or not isinstance(lon, (int, float))
+        or lon < -180
+        or lon > 180
+    ):
         errors.append(
             {
                 "field": "lon",
@@ -235,11 +247,16 @@ def validate_discovery_coords(lat: Any, lon: Any) -> ValidationErrors:
 
 def validate_pagination(skip: Any, limit: Any) -> ValidationErrors:
     errors: ValidationErrors = []
-    if not isinstance(skip, int) or skip < 0:
+    if isinstance(skip, bool) or not isinstance(skip, int) or skip < 0:
         errors.append(
             {"field": "skip", "message": "skip must be a non-negative integer"}
         )
-    if not isinstance(limit, int) or limit < 1 or limit > 100:
+    if (
+        isinstance(limit, bool)
+        or not isinstance(limit, int)
+        or limit < 1
+        or limit > 100
+    ):
         errors.append(
             {"field": "limit", "message": "limit must be an integer between 1 and 100"}
         )

@@ -547,7 +547,7 @@ Resources are read-only contextual data. They help the AI understand API structu
 
 When building integrations or debugging the Business MCP, watch out for these recurring issues:
 
-- **Schema drift in mutations.** `update_business_profile` silently ignores unknown fields. If you pass `logo` instead of `avatar`, nothing breaks — but nothing updates either. Always check `sharebite://business/profile-schema` before building a payload.
+- **Schema drift in mutations.** `update_business_profile` rejects unknown fields with `validation_errors`. If you pass `logo` instead of `avatar`, the tool returns `{"ok": false, "validation_errors": [{"field": "logo", "message": "unknown field"}]}`.
 - **tagIds type confusion.** The API expects `tagIds: [1, 2, 3]` (list of integers). Passing `"1,2,3"` or `["1", "2", "3"]` will fail validation.
 - **Partial time pairs in hours.** `update_venue_hours` rejects partial `openTime` / `closeTime` pairs. Both must be `HH:MM` strings, or both must be `null`. A single `null` in a pair returns a validation error.
 - **Guessing IDs.** `business_id` and `venue_id` must come from authenticated context or previous tool results. Hardcoding IDs leads to `404` or ownership violations.

@@ -35,9 +35,9 @@ async def search_posts(
         "Returns the post with authors, images, likes, mentions, and venue linkage."
     )
 )
-async def get_post(id: int) -> str:
+async def get_post(post_id: int) -> str:
     result = await guest_client.get(
-        f"/posts/{id}",
+        f"/posts/{post_id}",
         auth_token=auth.resolve_auth_token(),
     )
     return unwrap_api_result(result)
@@ -49,9 +49,9 @@ async def get_post(id: int) -> str:
         "Useful to explain who contributed to a review."
     )
 )
-async def get_post_authors(id: int) -> str:
+async def get_post_authors(post_id: int) -> str:
     result = await guest_client.get(
-        f"/posts/{id}/authors",
+        f"/posts/{post_id}/authors",
         auth_token=auth.resolve_auth_token(),
     )
     return unwrap_api_result(result)
