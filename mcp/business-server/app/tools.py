@@ -44,8 +44,6 @@ def _extract_headers(ctx: Context) -> dict[str, str]:
 
     if hasattr(meta, "model_dump"):
         meta_dict = meta.model_dump()
-    elif hasattr(meta, "dict"):
-        meta_dict = meta.dict()
     elif isinstance(meta, dict):
         meta_dict = meta
     else:

@@ -3,6 +3,7 @@ from datetime import datetime
 
 ValidationErrors = list[dict[str, str]]
 
+
 class ForbiddenError(RuntimeError):
     pass
 
@@ -13,23 +14,41 @@ def validate_profile_update(payload: dict[str, Any]) -> ValidationErrors:
 
 
 def validate_venue_update(payload: dict[str, Any]) -> ValidationErrors:
-    allowed = {"name", "avatar", "banner", "description", "latitude", "longitude", "tagIds"}
+    allowed = {
+        "name",
+        "avatar",
+        "banner",
+        "description",
+        "latitude",
+        "longitude",
+        "tagIds",
+    }
     errors = _validate_update_payload(payload, allowed)
 
     lat = payload.get("latitude")
     if lat is not None and (not isinstance(lat, (int, float)) or lat < -90 or lat > 90):
-        errors.append({"field": "latitude", "message": "latitude must be between -90 and 90"})
+        errors.append(
+            {"field": "latitude", "message": "latitude must be between -90 and 90"}
+        )
 
     lon = payload.get("longitude")
-    if lon is not None and (not isinstance(lon, (int, float)) or lon < -180 or lon > 180):
-        errors.append({"field": "longitude", "message": "longitude must be between -180 and 180"})
+    if lon is not None and (
+        not isinstance(lon, (int, float)) or lon < -180 or lon > 180
+    ):
+        errors.append(
+            {"field": "longitude", "message": "longitude must be between -180 and 180"}
+        )
 
     tag_ids = payload.get("tagIds")
     if tag_ids is not None:
-        if not isinstance(tag_ids, list) or any(not isinstance(x, int) for x in tag_ids):
+        if not isinstance(tag_ids, list) or any(
+            not isinstance(x, int) for x in tag_ids
+        ):
             errors.append({"field": "tagIds", "message": "tagIds must be list[int]"})
         elif len(tag_ids) > 5:
-            errors.append({"field": "tagIds", "message": "location can have at most 5 tags"})
+            errors.append(
+                {"field": "tagIds", "message": "location can have at most 5 tags"}
+            )
 
     return errors
 
@@ -49,11 +68,18 @@ def validate_venue_hours(payload: dict[str, Any]) -> ValidationErrors:
 
         weekday = day.get("weekday")
         if not isinstance(weekday, int) or weekday < 1 or weekday > 7:
-            errors.append({"field": f"days[{idx}].weekday", "message": "weekday must be integer 1..7"})
+            errors.append(
+                {
+                    "field": f"days[{idx}].weekday",
+                    "message": "weekday must be integer 1..7",
+                }
+            )
             continue
 
         if weekday in seen:
-            errors.append({"field": f"days[{idx}].weekday", "message": "duplicate weekday"})
+            errors.append(
+                {"field": f"days[{idx}].weekday", "message": "duplicate weekday"}
+            )
         seen.add(weekday)
 
         open_time = day.get("openTime")
@@ -65,33 +91,57 @@ def validate_venue_hours(payload: dict[str, Any]) -> ValidationErrors:
 
         # partial pair
         if open_time is None or close_time is None:
-            errors.append({"field": f"days[{idx}]", "message": "both openTime and closeTime must be provided together"})
+            errors.append(
+                {
+                    "field": f"days[{idx}]",
+                    "message": "both openTime and closeTime must be provided together",
+                }
+            )
             continue
 
         # format checks
         if not isinstance(open_time, str) or not isinstance(close_time, str):
-            errors.append({"field": f"days[{idx}]", "message": "openTime and closeTime must be strings in HH:MM format"})
+            errors.append(
+                {
+                    "field": f"days[{idx}]",
+                    "message": "openTime and closeTime must be strings in HH:MM format",
+                }
+            )
             continue
 
         try:
             open_dt = datetime.strptime(open_time, "%H:%M")
         except ValueError:
-            errors.append({"field": f"days[{idx}].openTime", "message": "openTime must be HH:MM"})
+            errors.append(
+                {"field": f"days[{idx}].openTime", "message": "openTime must be HH:MM"}
+            )
             continue
 
         try:
             close_dt = datetime.strptime(close_time, "%H:%M")
         except ValueError:
-            errors.append({"field": f"days[{idx}].closeTime", "message": "closeTime must be HH:MM"})
+            errors.append(
+                {
+                    "field": f"days[{idx}].closeTime",
+                    "message": "closeTime must be HH:MM",
+                }
+            )
             continue
 
         if not open_dt < close_dt:
-            errors.append({"field": f"days[{idx}]", "message": "openTime must be before closeTime"})
+            errors.append(
+                {
+                    "field": f"days[{idx}]",
+                    "message": "openTime must be before closeTime",
+                }
+            )
 
     return errors
 
 
-def changed_fields(before: dict[str, Any], after: dict[str, Any], fields: tuple[str, ...]) -> list[str]:
+def changed_fields(
+    before: dict[str, Any], after: dict[str, Any], fields: tuple[str, ...]
+) -> list[str]:
     out: list[str] = []
     for field in fields:
         if before.get(field) != after.get(field):
@@ -99,14 +149,22 @@ def changed_fields(before: dict[str, Any], after: dict[str, Any], fields: tuple[
     return out
 
 
-def ensure_venue_owned_by_business(venue_data: dict[str, Any], business_id: int) -> None:
+def ensure_venue_owned_by_business(
+    venue_data: dict[str, Any], business_id: int
+) -> None:
     brand_id = None
 
     brand = venue_data.get("brand")
     if isinstance(brand, dict):
         brand_id = brand.get("id")
 
-    brand_id = brand_id or venue_data.get("brandId") or venue_data.get("brand_id") or venue_data.get("parentId") or venue_data.get("parent_id")
+    brand_id = (
+        brand_id
+        or venue_data.get("brandId")
+        or venue_data.get("brand_id")
+        or venue_data.get("parentId")
+        or venue_data.get("parent_id")
+    )
 
     if brand_id is None:
         raise ForbiddenError("cannot verify venue ownership")
@@ -115,7 +173,9 @@ def ensure_venue_owned_by_business(venue_data: dict[str, Any], business_id: int)
         raise ForbiddenError("unauthorized access to another business venue")
 
 
-def _validate_update_payload(payload: dict[str, Any], allowed: set[str]) -> ValidationErrors:
+def _validate_update_payload(
+    payload: dict[str, Any], allowed: set[str]
+) -> ValidationErrors:
     errors: ValidationErrors = []
 
     if not isinstance(payload, dict) or len(payload) == 0:
@@ -127,11 +187,16 @@ def _validate_update_payload(payload: dict[str, Any], allowed: set[str]) -> Vali
 
     has_any = any(payload.get(k) is not None for k in allowed)
     if not has_any:
-        errors.append({"field": "payload", "message": "at least one updatable field is required"})
+        errors.append(
+            {"field": "payload", "message": "at least one updatable field is required"}
+        )
 
     return errors
 
-def validate_date_range(start_date: str, end_date: str, max_days: int = 90) -> str | None:
+
+def validate_date_range(
+    start_date: str, end_date: str, max_days: int = 90
+) -> str | None:
     """
     Validates that the start and end dates are in correct format,
     chronological order, and within the maximum allowed days.
@@ -150,3 +215,32 @@ def validate_date_range(start_date: str, end_date: str, max_days: int = 90) -> s
         return f"Date range exceeds maximum allowed period of {max_days} days."
 
     return None
+
+
+def validate_discovery_coords(lat: Any, lon: Any) -> ValidationErrors:
+    errors: ValidationErrors = []
+    if lat is None or not isinstance(lat, (int, float)) or lat < -90 or lat > 90:
+        errors.append(
+            {"field": "lat", "message": "latitude must be a number between -90 and 90"}
+        )
+    if lon is None or not isinstance(lon, (int, float)) or lon < -180 or lon > 180:
+        errors.append(
+            {
+                "field": "lon",
+                "message": "longitude must be a number between -180 and 180",
+            }
+        )
+    return errors
+
+
+def validate_pagination(skip: Any, limit: Any) -> ValidationErrors:
+    errors: ValidationErrors = []
+    if not isinstance(skip, int) or skip < 0:
+        errors.append(
+            {"field": "skip", "message": "skip must be a non-negative integer"}
+        )
+    if not isinstance(limit, int) or limit < 1 or limit > 100:
+        errors.append(
+            {"field": "limit", "message": "limit must be an integer between 1 and 100"}
+        )
+    return errors
