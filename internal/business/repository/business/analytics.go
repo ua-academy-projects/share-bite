@@ -59,24 +59,24 @@ func (r *Repository) GetReservationSummary(ctx context.Context, startDate, endDa
 	q := database.Query{
 		Name: "GetReservationSummary",
 		Sql: `WITH target_venues AS (
-    			SELECT id
-    			FROM business.org_units
-    			WHERE ($4::int IS NOT NULL AND id = $4)
-       				OR ($4::int IS NULL AND parent_id = (
-           			SELECT id FROM business.org_units 
-           			WHERE org_account_id = $3 AND profile_type = 'BRAND'
-       			))
-			)
+				SELECT id 
+				FROM business.org_units
+					WHERE ($4::int IS NOT NULL AND id = $4)
+					OR ($4::int IS NULL AND parent_id = (
+						SELECT id FROM business.org_units
+						WHERE org_account_id = $3 AND profile_type = 'BRAND'
+					))
+				)
 				SELECT 
-    			COUNT(bi.box_code) AS total_items,
-    			COUNT(bi.box_code) FILTER (WHERE bi.reserved_by_user_id IS NOT NULL) AS reserved_items,
-    			COUNT(bi.box_code) FILTER (WHERE bi.reserved_by_user_id IS NULL) AS available_items,
-    			COALESCE(SUM(b.price_discount) FILTER (WHERE bi.reserved_by_user_id IS NOT NULL), 0) AS potential_revenue
+					COUNT(bi.box_code) FILTER (WHERE bi.status = 'SOLD') AS sold_items,
+					COUNT(bi.box_code) FILTER (WHERE bi.reserved_by_user_id IS NOT NULL AND bi.status != 'SOLD') AS reserved_items,
+					COUNT(bi.box_code) FILTER (WHERE bi.reserved_by_user_id IS NULL) AS available_items,
+					COALESCE(SUM(b.price_discount) FILTER (WHERE bi.reserved_by_user_id IS NOT NULL), 0) AS potential_revenue
 				FROM business.boxes b
 				JOIN business.box_items bi ON b.id = bi.box_id
 				WHERE b.venue_id IN (SELECT id FROM target_venues)
-  				AND b.created_at >= $1 
-  				AND b.created_at <= $2;`,
+				AND b.created_at >= $1 
+				AND b.created_at <= $2;`,
 	}
 
 	var res entity.ReservationSummary

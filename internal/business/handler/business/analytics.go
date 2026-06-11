@@ -26,8 +26,14 @@ func parseDates(startDate, endDate string) (*time.Time, *time.Time, error) {
 	return &parsedStartDate, &parsedEndDate, nil
 }
 
-func isStartDateValid(startDate time.Time) bool {
+func isStartDateValid(startDate, endDate time.Time) bool {
 	if startDate.After(time.Now()) {
+		return false
+	}
+	if startDate.After(endDate) {
+		return false
+	}
+	if endDate.Sub(startDate) > 90*time.Hour*24 {
 		return false
 	}
 	return true
@@ -47,7 +53,7 @@ func (h *handler) GetDailySummary(c *gin.Context) {
 		return
 	}
 
-	if !isStartDateValid(*startDate) {
+	if !isStartDateValid(*startDate, *endDate) {
 		c.Error(apperror.BadRequest("Invalid start date"))
 		return
 	}
@@ -91,7 +97,7 @@ func (h *handler) GetReservationSummary(c *gin.Context) {
 		return
 	}
 
-	if !isStartDateValid(*startDate) {
+	if !isStartDateValid(*startDate, *endDate) {
 		c.Error(apperror.BadRequest("Invalid start date"))
 		return
 	}
@@ -136,7 +142,7 @@ func (h *handler) GetVenueActivitySummary(c *gin.Context) {
 		return
 	}
 
-	if !isStartDateValid(*startDate) {
+	if !isStartDateValid(*startDate, *endDate) {
 		c.Error(apperror.BadRequest("Invalid start date"))
 		return
 	}
@@ -187,7 +193,7 @@ func (h *handler) GetFoodBoxPerformance(c *gin.Context) {
 		return
 	}
 
-	if !isStartDateValid(*startDate) {
+	if !isStartDateValid(*startDate, *endDate) {
 		c.Error(apperror.BadRequest("Invalid start date"))
 		return
 	}
@@ -234,7 +240,7 @@ func (h *handler) GetEngagementSummary (c *gin.Context) {
 		return 
 	}
 
-	if !isStartDateValid(*startDate) {
+	if !isStartDateValid(*startDate, *endDate) {
 		c.Error(apperror.BadRequest("Invalid start date"))
 		return
 	}
