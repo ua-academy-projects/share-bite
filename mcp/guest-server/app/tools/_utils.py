@@ -4,8 +4,7 @@ from app.http_client import APIResponse
 
 
 def unwrap_api_result(result: APIResponse) -> str:
-    """
-    Convert a Guest API response into a JSON string for the MCP client.
+    """Convert a Guest API response into a JSON string for the MCP client.
 
     For 4xx errors the original API message is preserved so the AI assistant
     can surface actionable context to the user. 5xx and transport errors are
@@ -21,7 +20,11 @@ def unwrap_api_result(result: APIResponse) -> str:
             return json.dumps({"error": "forbidden", "message": msg})
         if status == 404:
             return json.dumps({"error": "not_found", "message": msg})
-        if status is None or (isinstance(status, int) and status >= 500):
+        if (
+            status is None
+            or status == 408
+            or (isinstance(status, int) and status >= 500)
+        ):
             return json.dumps(
                 {
                     "error": "downstream_failure",

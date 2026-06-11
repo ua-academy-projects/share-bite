@@ -62,7 +62,7 @@ class TestGetPost:
                 post={"id": "42", "text": "great venue"}
             )
         )
-        result = await get_post(id=42)
+        result = await get_post(post_id=42)
         data = json.loads(result)
         assert data["post"]["id"] == "42"
 
@@ -70,14 +70,14 @@ class TestGetPost:
         mock_guest_api.get("/posts/99").mock(
             return_value=build_error_response(404, "Post not found")
         )
-        result = await get_post(id=99)
+        result = await get_post(post_id=99)
         data = json.loads(result)
         assert data["error"] == "not_found"
         assert data["message"] == "Post not found"
 
     async def test_downstream_timeout(self, mock_guest_api):
         mock_guest_api.get("/posts/1").mock(side_effect=httpx.ConnectTimeout("mocked"))
-        result = await get_post(id=1)
+        result = await get_post(post_id=1)
         data = json.loads(result)
         assert data["error"] == "downstream_failure"
 
@@ -88,7 +88,7 @@ class TestGetPostAuthors:
         mock_guest_api.get("/posts/1/authors").mock(
             return_value=build_post_authors_response(authors=["uuid-1"], count=1)
         )
-        result = await get_post_authors(id=1)
+        result = await get_post_authors(post_id=1)
         data = json.loads(result)
         assert data["count"] == 1
 
@@ -96,6 +96,6 @@ class TestGetPostAuthors:
         mock_guest_api.get("/posts/1/authors").mock(
             return_value=build_error_response(404, "Post not found")
         )
-        result = await get_post_authors(id=1)
+        result = await get_post_authors(post_id=1)
         data = json.loads(result)
         assert data["error"] == "not_found"
