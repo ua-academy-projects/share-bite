@@ -543,13 +543,15 @@ Resources are read-only contextual data. They help the AI understand API structu
 - **Validation first.** All mutation payloads are validated before reaching the Business API. Invalid fields return `validation_errors` without making upstream calls.
 - **Changed fields tracking.** Successful mutations return `changed_fields` so the user knows exactly what was modified.
 
-### 5.3 What NOT to do
+### 5.3 Common Integration Pitfalls
 
-- **Do not** call `update_business_profile` with unknown fields. Use `sharebite://business/profile-schema` to verify allowed fields.
-- **Do not** pass `tagIds` as strings. They must be a list of integers (`[1, 2, 3]`).
-- **Do not** provide partial `openTime` / `closeTime` pairs in `update_venue_hours`. Both must be `HH:MM` strings or both `null`.
-- **Do not** guess `business_id` or `venue_id`. Always use IDs from previous tool results or authenticated context.
-- **Do not** call `get_feed_items` without a Bearer token. It will always fail with 401.
+When building integrations or debugging the Business MCP, watch out for these recurring issues:
+
+- **Schema drift in mutations.** `update_business_profile` silently ignores unknown fields. If you pass `logo` instead of `avatar`, nothing breaks — but nothing updates either. Always check `sharebite://business/profile-schema` before building a payload.
+- **tagIds type confusion.** The API expects `tagIds: [1, 2, 3]` (list of integers). Passing `"1,2,3"` or `["1", "2", "3"]` will fail validation.
+- **Partial time pairs in hours.** `update_venue_hours` rejects partial `openTime` / `closeTime` pairs. Both must be `HH:MM` strings, or both must be `null`. A single `null` in a pair returns a validation error.
+- **Guessing IDs.** `business_id` and `venue_id` must come from authenticated context or previous tool results. Hardcoding IDs leads to `404` or ownership violations.
+- **Anonymous feed calls.** `get_feed_items` requires a Bearer token. Calling it without auth always returns `401`. Ensure your integration forwards the token from MCP context or sets `BUSINESS_API_AUTH_TOKEN`.
 
 ### 5.4 Error handling cheat sheet
 

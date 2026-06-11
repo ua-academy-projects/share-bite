@@ -376,12 +376,15 @@ Present combined result: content + authors + venue linkage.
 | `get_collection` | Optional | Public collections accessible. |
 | `get_collection_venues` | Optional | Public collections accessible. |
 
-### 5.2 What NOT to do
 
-- **Do not** pass a raw username to `search_posts(author_id=...)`. Resolve via `get_customer_by_username` first.
-- **Do not** assume `get_customer_followers` / `get_customer_following` always succeed. Handle `403` (private) and `404` (not found).
-- **Do not** call `list_my_collections` without confirming auth context. If the user says "my collections" but no token is present, ask for authentication instead of failing silently.
-- **Do not** confuse Guest posts with Business posts. Guest posts are UGC reviews (`/posts/`). Business posts are brand-owned content (`/business/posts/`). They live in different MCP servers.
+### 5.2 Common Integration Pitfalls
+
+When building integrations or debugging the Guest MCP, watch out for these recurring issues:
+
+- **Username vs UUID mismatch.** `search_posts` expects `author_id` as a UUID, not a raw username. Always resolve via `get_customer_by_username` first, or the filter will silently fail.
+- **Private profile assumptions.** `get_customer_followers` and `get_customer_following` return `403` for private profiles. Don't assume every user has a public follower list.
+- **Missing auth on collections.** `list_my_collections` requires a Bearer token. If your integration calls it without auth, you'll get a clear `401` — but it's better to check for the token upfront.
+- **Post source confusion.** Guest posts (`/posts/`) are UGC reviews written by customers. Business posts (`/business/posts/`) are brand-owned content. They are different APIs, different schemas, and different MCP servers.
 
 ### 5.3 Error handling cheat sheet
 
