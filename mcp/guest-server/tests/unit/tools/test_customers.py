@@ -23,7 +23,7 @@ class TestGetCustomerByUsername:
                 customer={"id": "uuid-1", "userName": "alice"}
             )
         )
-        result = await get_customer_by_username("alice")
+        result = await get_customer_by_username(None, "alice")
         data = json.loads(result)
         assert data["customer"]["userName"] == "alice"
 
@@ -33,7 +33,7 @@ class TestGetCustomerByUsername:
                 404, "Customer with this username does not exist"
             )
         )
-        result = await get_customer_by_username("fake")
+        result = await get_customer_by_username(None, "fake")
         data = json.loads(result)
         assert data["error"] == "not_found"
         assert "does not exist" in data["message"]
@@ -42,7 +42,7 @@ class TestGetCustomerByUsername:
         mock_guest_api.get("/customers/x").mock(
             side_effect=httpx.ConnectError("mocked")
         )
-        result = await get_customer_by_username("x")
+        result = await get_customer_by_username(None, "x")
         data = json.loads(result)
         assert data["error"] == "downstream_failure"
 
@@ -56,7 +56,7 @@ class TestGetCustomerFollowers:
                 next_page_token="token123",
             )
         )
-        result = await get_customer_followers("uuid-1", page_size=10)
+        result = await get_customer_followers(None, "uuid-1", page_size=10)
         data = json.loads(result)
         assert len(data["customers"]) == 1
 
@@ -64,7 +64,7 @@ class TestGetCustomerFollowers:
         mock_guest_api.get("/customers/uuid-1/followers").mock(
             return_value=build_error_response(403, "Followers list is private")
         )
-        result = await get_customer_followers("uuid-1")
+        result = await get_customer_followers(None, "uuid-1")
         data = json.loads(result)
         assert data["error"] == "forbidden"
         assert "private" in data["message"]
@@ -79,6 +79,6 @@ class TestGetCustomerFollowing:
                 next_page_token="",
             )
         )
-        result = await get_customer_following("uuid-1")
+        result = await get_customer_following(None, "uuid-1")
         data = json.loads(result)
         assert data["customers"][0]["userName"] == "charlie"

@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from fastmcp import Context
+
 from .. import auth
 from ..http_client import guest_client
 from ..server import mcp
@@ -11,10 +13,11 @@ from ._utils import unwrap_api_result
     description="List current user's collections. Requires authentication (Bearer token)."
 )
 async def list_my_collections(
+    ctx: Context,
     page_size: int = 20,
     page_token: str | None = None,
 ) -> str:
-    token = auth.resolve_auth_token()
+    token = auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx))
     if not token:
         return json.dumps(
             {
@@ -41,10 +44,10 @@ async def list_my_collections(
         "private collections require ownership."
     )
 )
-async def get_collection(collection_id: str) -> str:
+async def get_collection(ctx: Context, collection_id: str) -> str:
     result = await guest_client.get(
         f"/collections/{collection_id}",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
     )
     return unwrap_api_result(result)
 
@@ -55,9 +58,9 @@ async def get_collection(collection_id: str) -> str:
         "Public collections accessible without auth."
     )
 )
-async def get_collection_venues(collection_id: str) -> str:
+async def get_collection_venues(ctx: Context, collection_id: str) -> str:
     result = await guest_client.get(
         f"/collections/{collection_id}/venues",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
     )
     return unwrap_api_result(result)

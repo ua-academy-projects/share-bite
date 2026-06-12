@@ -25,7 +25,7 @@ class TestListMyCollections:
                 next_page_token="tok",
             )
         )
-        result = await list_my_collections(page_size=10)
+        result = await list_my_collections(None, page_size=10)
         data = json.loads(result)
         assert data["collections"][0]["name"] == "Favorites"
         assert route.called
@@ -34,7 +34,7 @@ class TestListMyCollections:
 
     async def test_unauthorized_no_token(self):
         with patch("app.auth.resolve_auth_token", return_value=None):
-            result = await list_my_collections()
+            result = await list_my_collections(None, )
         data = json.loads(result)
         assert data["error"] == "unauthorized"
         assert "Authentication required" in data["message"]
@@ -43,7 +43,7 @@ class TestListMyCollections:
         mock_guest_api.get("/collections/me").mock(
             return_value=build_error_response(500, "Internal server error")
         )
-        result = await list_my_collections()
+        result = await list_my_collections(None, )
         data = json.loads(result)
         assert data["error"] == "downstream_failure"
 
@@ -56,7 +56,7 @@ class TestGetCollection:
                 collection={"id": "col-1", "name": "Public", "isPublic": True}
             )
         )
-        result = await get_collection("col-1")
+        result = await get_collection(None, "col-1")
         data = json.loads(result)
         assert data["collection"]["isPublic"] is True
 
@@ -64,7 +64,7 @@ class TestGetCollection:
         mock_guest_api.get("/collections/col-1").mock(
             return_value=build_error_response(404, "Collection does not exist")
         )
-        result = await get_collection("col-1")
+        result = await get_collection(None, "col-1")
         data = json.loads(result)
         assert data["error"] == "not_found"
 
@@ -77,7 +77,7 @@ class TestGetCollectionVenues:
                 venues=[{"id": 1, "name": "Venue A", "sortOrder": 1.0}]
             )
         )
-        result = await get_collection_venues("col-1")
+        result = await get_collection_venues(None, "col-1")
         data = json.loads(result)
         assert data["venues"][0]["name"] == "Venue A"
 
@@ -85,6 +85,6 @@ class TestGetCollectionVenues:
         mock_guest_api.get("/collections/col-1/venues").mock(
             return_value=build_collection_venues_response()
         )
-        result = await get_collection_venues("col-1")
+        result = await get_collection_venues(None, "col-1")
         data = json.loads(result)
         assert data["venues"] == []

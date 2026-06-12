@@ -10,9 +10,6 @@ from app.config import Settings
 from app.constants import (
     API_PATH_BUSINESS_PROFILE,
     API_PATH_BUSINESS_VENUES,
-    API_PATH_UPDATE_VENUE_DETAILS,
-    API_PATH_UPDATE_VENUE_HOURS,
-    API_PATH_VENUE_DETAILS,
     API_PATH_DAILY_SUMMARY,
     API_PATH_RESERVATION_SUMMARY,
     API_PATH_FOOD_BOX_PERFORMANCE,
@@ -22,6 +19,9 @@ from app.constants import (
     API_PATH_NEARBY_VENUES,
     API_PATH_RECOMMEND_POSTS,
     API_PATH_SEARCH_VENUES,
+    API_PATH_UPDATE_VENUE_DETAILS,
+    API_PATH_UPDATE_VENUE_HOURS,
+    API_PATH_VENUE_DETAILS,
 )
 from app.context_recommender import (
     recommend_venues_by_context as rank_venues_by_context,
@@ -30,12 +30,12 @@ from app.utils import (
     ForbiddenError,
     changed_fields,
     ensure_venue_owned_by_business,
-    validate_profile_update,
-    validate_venue_hours,
-    validate_venue_update,
     validate_date_range,
     validate_discovery_coords,
     validate_pagination,
+    validate_profile_update,
+    validate_venue_hours,
+    validate_venue_update,
 )
 
 
@@ -155,186 +155,12 @@ def register_tools(
     ) -> dict[str, Any]:
         """
         Rank venue candidates for context such as a date, meetup, or budget plan.
+
         This deterministic AI-style ranker extracts user intent and returns
         explainable scores without calling external AI APIs.
         """
         ranked = rank_venues_by_context(context=context, venues=venues, limit=limit)
         return _tool_success(result={"items": ranked, "total": len(ranked)})
-
-    @mcp.tool()
-    async def search_venues(
-        ctx: Context[Any, Any],
-        q: str | None = None,
-        tags: str | None = None,
-        skip: int = 0,
-        limit: int = 10,
-        request_id: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        Search venues by keyword and/or location tags.
-        Anonymous access allowed; Bearer token forwarded if present.
-        """
-        headers = _extract_headers(ctx)
-        final_token = resolve_auth_token(headers=headers)
-
-        validation_errors = validate_pagination(skip, limit)
-        if validation_errors:
-            return _tool_error("validation failed", validation_errors=validation_errors)
-
-        query = (q or "").strip()
-        tags = (tags or "").strip()
-        if not query and not tags:
-            return _tool_error("at least one search filter is required: q or tags")
-
-        params: dict[str, Any] = {
-            "skip": max(skip, 0),
-            "limit": max(1, min(limit, 100)),
-        }
-        if query:
-            params["q"] = query
-        if tags:
-            params["tags"] = tags
-
-        try:
-            data = await client.get(
-                API_PATH_SEARCH_VENUES,
-                auth_token=final_token,
-                request_id=request_id,
-                params=params,
-            )
-            return _tool_success(result=_unwrap(data))
-        except (BusinessApiError, RuntimeError) as exc:
-            return _tool_error(str(exc))
-
-    @mcp.tool()
-    async def get_recommended_venues(
-        ctx: Context[Any, Any],
-        lat: float,
-        lon: float,
-        skip: int = 0,
-        limit: int = 10,
-        request_id: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        List nearby venues sorted by distance from user coordinates.
-        Anonymous access allowed; Bearer token forwarded if present.
-        """
-        headers = _extract_headers(ctx)
-        final_token = resolve_auth_token(headers=headers)
-
-        validation_errors = validate_discovery_coords(lat, lon) + validate_pagination(
-            skip, limit
-        )
-        if validation_errors:
-            return _tool_error("validation failed", validation_errors=validation_errors)
-
-        params: dict[str, Any] = {
-            "lat": lat,
-            "lon": lon,
-            "skip": max(skip, 0),
-            "limit": max(1, min(limit, 100)),
-        }
-
-        try:
-            data = await client.get(
-                API_PATH_NEARBY_VENUES,
-                auth_token=final_token,
-                request_id=request_id,
-                params=params,
-            )
-            return _tool_success(result=_unwrap(data))
-        except (BusinessApiError, RuntimeError) as exc:
-            return _tool_error(str(exc))
-
-    @mcp.tool()
-    async def get_feed_items(
-        ctx: Context[Any, Any],
-        lat: float,
-        lon: float,
-        skip: int = 0,
-        limit: int = 10,
-        request_id: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        Get personalized post recommendations based on user behavior and location.
-        Requires Bearer authentication.
-        """
-        headers = _extract_headers(ctx)
-        final_token = resolve_auth_token(headers=headers)
-
-        if not final_token:
-            return _tool_error("Unauthorized: Missing authentication token")
-
-        validation_errors = validate_discovery_coords(lat, lon) + validate_pagination(
-            skip, limit
-        )
-        if validation_errors:
-            return _tool_error("validation failed", validation_errors=validation_errors)
-
-        params: dict[str, Any] = {
-            "lat": lat,
-            "lon": lon,
-            "skip": max(skip, 0),
-            "limit": max(1, min(limit, 100)),
-        }
-
-        try:
-            data = await client.get(
-                API_PATH_RECOMMEND_POSTS,
-                auth_token=final_token,
-                request_id=request_id,
-                params=params,
-            )
-            return _tool_success(result=_unwrap(data))
-        except (BusinessApiError, RuntimeError) as exc:
-            return _tool_error(str(exc))
-
-    @mcp.tool()
-    async def search_boxes(
-        ctx: Context[Any, Any],
-        lat: float,
-        lon: float,
-        skip: int = 0,
-        limit: int = 10,
-        org_id: int | None = None,
-        category_id: int | None = None,
-        request_id: str | None = None,
-    ) -> dict[str, Any]:
-        """
-        List available food boxes sorted by distance from user coordinates.
-        Anonymous access allowed; Bearer token forwarded if present.
-        Optional filters: org_id, category_id.
-        """
-        headers = _extract_headers(ctx)
-        final_token = resolve_auth_token(headers=headers)
-
-        validation_errors = validate_discovery_coords(lat, lon) + validate_pagination(
-            skip, limit
-        )
-        if validation_errors:
-            return _tool_error("validation failed", validation_errors=validation_errors)
-
-        params: dict[str, Any] = {
-            "lat": lat,
-            "lon": lon,
-            "skip": max(skip, 0),
-            "limit": max(1, min(limit, 100)),
-        }
-        if org_id is not None:
-            params["org_id"] = org_id
-        if category_id is not None:
-            params["category_id"] = category_id
-
-        try:
-            data = await client.get(
-                API_PATH_NEARBY_BOXES,
-                auth_token=final_token,
-                request_id=request_id,
-                params=params,
-            )
-            return _tool_success(result=_unwrap(data))
-        except (BusinessApiError, RuntimeError) as exc:
-            return _tool_error(str(exc))
 
     @mcp.tool()
     async def get_business_profile(
@@ -552,7 +378,183 @@ def register_tools(
         except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
-    # BUSINESS ANALITYCS TOOL
+    # DISCOVERY TOOLS
+    @mcp.tool()
+    async def search_venues(
+        ctx: Context[Any, Any],
+        q: str | None = None,
+        tags: str | None = None,
+        skip: int = 0,
+        limit: int = 10,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Search venues by keyword and/or location tags.
+        Anonymous access allowed; Bearer token forwarded if present.
+        """
+        headers = _extract_headers(ctx)
+        final_token = resolve_auth_token(headers=headers)
+
+        validation_errors = validate_pagination(skip, limit)
+        if validation_errors:
+            return _tool_error("validation failed", validation_errors=validation_errors)
+
+        query = (q or "").strip()
+        tags = (tags or "").strip()
+        if not query and not tags:
+            return _tool_error("at least one search filter is required: q or tags")
+
+        params: dict[str, Any] = {
+            "skip": max(skip, 0),
+            "limit": max(1, min(limit, 100)),
+        }
+        if query:
+            params["q"] = query
+        if tags:
+            params["tags"] = tags
+
+        try:
+            data = await client.get(
+                API_PATH_SEARCH_VENUES,
+                auth_token=final_token,
+                request_id=request_id,
+                params=params,
+            )
+            return _tool_success(result=_unwrap(data))
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def get_recommended_venues(
+        ctx: Context[Any, Any],
+        lat: float,
+        lon: float,
+        skip: int = 0,
+        limit: int = 10,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        List nearby venues sorted by distance from user coordinates.
+        Anonymous access allowed; Bearer token forwarded if present.
+        """
+        headers = _extract_headers(ctx)
+        final_token = resolve_auth_token(headers=headers)
+
+        validation_errors = validate_discovery_coords(lat, lon) + validate_pagination(
+            skip, limit
+        )
+        if validation_errors:
+            return _tool_error("validation failed", validation_errors=validation_errors)
+
+        params: dict[str, Any] = {
+            "lat": lat,
+            "lon": lon,
+            "skip": max(skip, 0),
+            "limit": max(1, min(limit, 100)),
+        }
+
+        try:
+            data = await client.get(
+                API_PATH_NEARBY_VENUES,
+                auth_token=final_token,
+                request_id=request_id,
+                params=params,
+            )
+            return _tool_success(result=_unwrap(data))
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def get_feed_items(
+        ctx: Context[Any, Any],
+        lat: float,
+        lon: float,
+        skip: int = 0,
+        limit: int = 10,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Get personalized post recommendations based on user behavior and location.
+        Requires Bearer authentication.
+        """
+        headers = _extract_headers(ctx)
+        final_token = resolve_auth_token(headers=headers)
+
+        if not final_token:
+            return _tool_error("Unauthorized: Missing authentication token")
+
+        validation_errors = validate_discovery_coords(lat, lon) + validate_pagination(
+            skip, limit
+        )
+        if validation_errors:
+            return _tool_error("validation failed", validation_errors=validation_errors)
+
+        params: dict[str, Any] = {
+            "lat": lat,
+            "lon": lon,
+            "skip": max(skip, 0),
+            "limit": max(1, min(limit, 100)),
+        }
+
+        try:
+            data = await client.get(
+                API_PATH_RECOMMEND_POSTS,
+                auth_token=final_token,
+                request_id=request_id,
+                params=params,
+            )
+            return _tool_success(result=_unwrap(data))
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def search_boxes(
+        ctx: Context[Any, Any],
+        lat: float,
+        lon: float,
+        skip: int = 0,
+        limit: int = 10,
+        org_id: int | None = None,
+        category_id: int | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        List available food boxes sorted by distance from user coordinates.
+        Anonymous access allowed; Bearer token forwarded if present.
+        Optional filters: org_id, category_id.
+        """
+        headers = _extract_headers(ctx)
+        final_token = resolve_auth_token(headers=headers)
+
+        validation_errors = validate_discovery_coords(lat, lon) + validate_pagination(
+            skip, limit
+        )
+        if validation_errors:
+            return _tool_error("validation failed", validation_errors=validation_errors)
+
+        params: dict[str, Any] = {
+            "lat": lat,
+            "lon": lon,
+            "skip": max(skip, 0),
+            "limit": max(1, min(limit, 100)),
+        }
+        if org_id is not None:
+            params["org_id"] = org_id
+        if category_id is not None:
+            params["category_id"] = category_id
+
+        try:
+            data = await client.get(
+                API_PATH_NEARBY_BOXES,
+                auth_token=final_token,
+                request_id=request_id,
+                params=params,
+            )
+            return _tool_success(result=_unwrap(data))
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    # BUSINESS ANALYTICS TOOLS
     @mcp.tool()
     async def get_business_daily_summary(
         ctx: Context[Any, Any],
@@ -562,7 +564,11 @@ def register_tools(
     ) -> dict[str, Any]:
         """
         Retrieve daily summary analytics for the brand.
-        ...
+        Returns the number of created boxes, posts, and total venues.
+
+        Args:
+            start_date: Start date for the filter in YYYY-MM-DD format.
+            end_date: End date for the filter in YYYY-MM-DD format.
         """
 
         date_error = validate_date_range(start_date, end_date)

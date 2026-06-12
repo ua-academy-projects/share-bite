@@ -1,5 +1,7 @@
 from typing import Any
 
+from fastmcp import Context
+
 from .. import auth
 from ..http_client import guest_client
 from ..server import mcp
@@ -13,6 +15,7 @@ from ._utils import unwrap_api_result
     )
 )
 async def search_posts(
+    ctx: Context,
     limit: int = 20,
     offset: int = 0,
     author_id: str | None = None,
@@ -23,7 +26,7 @@ async def search_posts(
 
     result = await guest_client.get(
         "/posts/",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
         params=params,
     )
     return unwrap_api_result(result)
@@ -35,10 +38,10 @@ async def search_posts(
         "Returns the post with authors, images, likes, mentions, and venue linkage."
     )
 )
-async def get_post(post_id: int) -> str:
+async def get_post(ctx: Context, post_id: int) -> str:
     result = await guest_client.get(
         f"/posts/{post_id}",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
     )
     return unwrap_api_result(result)
 
@@ -49,9 +52,9 @@ async def get_post(post_id: int) -> str:
         "Useful to explain who contributed to a review."
     )
 )
-async def get_post_authors(post_id: int) -> str:
+async def get_post_authors(ctx: Context, post_id: int) -> str:
     result = await guest_client.get(
         f"/posts/{post_id}/authors",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
     )
     return unwrap_api_result(result)

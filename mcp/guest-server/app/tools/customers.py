@@ -1,5 +1,7 @@
 from typing import Any
 
+from fastmcp import Context
+
 from .. import auth
 from ..http_client import guest_client
 from ..server import mcp
@@ -9,10 +11,10 @@ from ._utils import unwrap_api_result
 @mcp.tool(
     description="Get a public customer profile by their unique username. No auth required."
 )
-async def get_customer_by_username(username: str) -> str:
+async def get_customer_by_username(ctx: Context, username: str) -> str:
     result = await guest_client.get(
         f"/customers/{username}",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
     )
     return unwrap_api_result(result)
 
@@ -24,6 +26,7 @@ async def get_customer_by_username(username: str) -> str:
     )
 )
 async def get_customer_followers(
+    ctx: Context,
     id: str,
     page_size: int = 20,
     page_token: str | None = None,
@@ -34,7 +37,7 @@ async def get_customer_followers(
 
     result = await guest_client.get(
         f"/customers/{id}/followers",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
         params=params,
     )
     return unwrap_api_result(result)
@@ -47,6 +50,7 @@ async def get_customer_followers(
     )
 )
 async def get_customer_following(
+    ctx: Context,
     id: str,
     page_size: int = 20,
     page_token: str | None = None,
@@ -57,7 +61,7 @@ async def get_customer_following(
 
     result = await guest_client.get(
         f"/customers/{id}/following",
-        auth_token=auth.resolve_auth_token(),
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
         params=params,
     )
     return unwrap_api_result(result)
