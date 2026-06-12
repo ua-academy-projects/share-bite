@@ -4,6 +4,7 @@ from app.constants import (
     TOOL_GET_BUSINESS_PROFILE,
     TOOL_GET_VENUE_DETAILS,
     TOOL_LIST_BUSINESS_VENUES,
+    TOOL_RECOMMEND_VENUES_BY_CONTEXT,
     TOOL_UPDATE_BUSINESS_PROFILE,
     TOOL_UPDATE_VENUE_DETAILS,
     TOOL_UPDATE_VENUE_HOURS,
@@ -47,6 +48,22 @@ def test_list_business_venues_success(registered_tools, api_client):
     assert res["ok"] is True
     assert len(res["result"]["items"]) == 2
     assert api_client.get_calls[0]["params"] == {"skip": 0, "limit": 10}
+
+
+def test_recommend_venues_by_context_tool(registered_tools):
+    res = asyncio.run(
+        registered_tools[TOOL_RECOMMEND_VENUES_BY_CONTEXT](
+            context={"query": "budget lunch", "budget": "low"},
+            venues=[
+                {"id": 1, "name": "Fine Dining", "tags": ["romantic"], "price_level": "$$$"},
+                {"id": 2, "name": "Student Lunch", "tags": ["budget", "lunch"], "price_level": "$"},
+            ],
+            limit=1,
+        )
+    )
+
+    assert res["ok"] is True
+    assert res["result"]["items"][0]["venue"]["id"] == 2
 
 
 def test_get_venue_details_forbidden_for_foreign_venue(registered_tools, api_client):

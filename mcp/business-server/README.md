@@ -4,12 +4,15 @@ Python-based MCP server for ShareBite business-owner operations.
 
 The server wraps safe `business-api` workflows and exposes them as MCP tools and resources.
 
+The contextual venue recommender is implemented in Python as an explainable ML-style ranker. It does not require external AI API keys, so it can run in local tests and later be swapped for embeddings or an LLM-backed scorer.
+
 ## Capabilities
 
 **Tools:**
 
 - `business_health_check`
 - `get_business_api_status`
+- `recommend_venues_by_context` - ranks venue candidates for contexts like date, meetup, or budget plans using a deterministic AI-style scorer
 
 **Resources:**
 
