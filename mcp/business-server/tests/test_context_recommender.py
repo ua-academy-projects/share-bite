@@ -69,6 +69,29 @@ def test_recommend_venues_detects_budget_context():
     assert "fits the requested budget" in result[0]["reasons"]
 
 
+def test_recommend_venues_budget_mismatch_does_not_penalize_or_add_reason():
+    venue = {
+        "id": 10,
+        "name": "Fine Dining Room",
+        "description": "Elegant restaurant",
+        "tags": [],
+        "price_level": "$$$$",
+        "rating": 5,
+    }
+
+    baseline = recommend_venues_by_context({"query": "restaurant"}, [venue])
+    result = recommend_venues_by_context(
+        {
+            "query": "restaurant",
+            "budget": "low",
+        },
+        [venue],
+    )
+
+    assert result[0]["score"] == baseline[0]["score"]
+    assert "fits the requested budget" not in result[0]["reasons"]
+
+
 def test_recommend_venues_detects_meetup_context():
     result = recommend_venues_by_context(
         {

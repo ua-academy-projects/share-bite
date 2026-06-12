@@ -50,7 +50,7 @@ def recommend_venues_by_context(
     parsed_context = parse_context(context)
     ranked = [_score_venue(parsed_context, venue) for venue in venues if isinstance(venue, dict)]
     ranked.sort(key=lambda item: item["score"], reverse=True)
-    return ranked[: max(1, min(limit, 50))]
+    return ranked[: min(max(limit, 0), 50)]
 
 
 def parse_context(context: dict[str, Any]) -> RecommendationContext:
@@ -120,7 +120,7 @@ def _score_venue(context: RecommendationContext, venue: dict[str, Any]) -> dict[
         score += 8
 
     budget_score = _budget_score(context.budget_level, venue.get("price_level"))
-    if budget_score:
+    if budget_score > 0:
         score += budget_score
         reasons.append("fits the requested budget")
 
@@ -169,7 +169,7 @@ def _budget_score(requested: str | None, venue_price: Any) -> float:
         return 18.0
     if diff == 1:
         return 8.0
-    return -8.0
+    return 0.0
 
 
 def _party_score(party_size: int | None, tags: set[str]) -> float:
