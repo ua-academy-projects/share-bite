@@ -970,7 +970,12 @@ func (r *Repository) DeleteExpiredDraftPosts(ctx context.Context) error {
 	}
 
 	_, err := r.db.DB().ExecContext(ctx, q)
-	return executeSQLError(err)
+
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	return nil
 }
 
 func (r *Repository) IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error) {
