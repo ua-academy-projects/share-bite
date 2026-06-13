@@ -13,7 +13,7 @@ from ._utils import unwrap_api_result
     description="List current user's collections. Requires authentication (Bearer token)."
 )
 async def list_my_collections(
-    ctx: Context,
+    ctx: Context | None,
     page_size: int = 20,
     page_token: str | None = None,
 ) -> str:
@@ -44,7 +44,7 @@ async def list_my_collections(
         "private collections require ownership."
     )
 )
-async def get_collection(ctx: Context, collection_id: str) -> str:
+async def get_collection(ctx: Context | None, collection_id: str) -> str:
     result = await guest_client.get(
         f"/collections/{collection_id}",
         auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
@@ -58,7 +58,7 @@ async def get_collection(ctx: Context, collection_id: str) -> str:
         "Public collections accessible without auth."
     )
 )
-async def get_collection_venues(ctx: Context, collection_id: str) -> str:
+async def get_collection_venues(ctx: Context | None, collection_id: str) -> str:
     result = await guest_client.get(
         f"/collections/{collection_id}/venues",
         auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),

@@ -34,7 +34,7 @@ class TestListMyCollections:
 
     async def test_unauthorized_no_token(self):
         with patch("app.auth.resolve_auth_token", return_value=None):
-            result = await list_my_collections(None, )
+            result = await list_my_collections(None)
         data = json.loads(result)
         assert data["error"] == "unauthorized"
         assert "Authentication required" in data["message"]
@@ -43,7 +43,7 @@ class TestListMyCollections:
         mock_guest_api.get("/collections/me").mock(
             return_value=build_error_response(500, "Internal server error")
         )
-        result = await list_my_collections(None, )
+        result = await list_my_collections(None)
         data = json.loads(result)
         assert data["error"] == "downstream_failure"
 

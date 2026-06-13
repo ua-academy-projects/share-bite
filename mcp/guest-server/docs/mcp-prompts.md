@@ -20,6 +20,8 @@ The Guest MCP server exposes the **Guest API** (`localhost:3800`) as MCP tools a
 ```
 Common codes: `unauthorized`, `forbidden`, `not_found`, `downstream_failure`.
 
+**Note:** `guest_health_check` and `get_guest_api_status` raise `RuntimeError` on downstream failures (5xx, timeouts) rather than returning a JSON error payload. This is intentional for health-check semantics — a failed health check is an exceptional condition.
+
 ---
 
 ## 2. Tool Prompts by Category

@@ -15,7 +15,7 @@ from ._utils import unwrap_api_result
     )
 )
 async def search_posts(
-    ctx: Context,
+    ctx: Context | None,
     limit: int = 20,
     offset: int = 0,
     author_id: str | None = None,
@@ -38,7 +38,7 @@ async def search_posts(
         "Returns the post with authors, images, likes, mentions, and venue linkage."
     )
 )
-async def get_post(ctx: Context, post_id: int) -> str:
+async def get_post(ctx: Context | None, post_id: int) -> str:
     result = await guest_client.get(
         f"/posts/{post_id}",
         auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
@@ -52,7 +52,7 @@ async def get_post(ctx: Context, post_id: int) -> str:
         "Useful to explain who contributed to a review."
     )
 )
-async def get_post_authors(ctx: Context, post_id: int) -> str:
+async def get_post_authors(ctx: Context | None, post_id: int) -> str:
     result = await guest_client.get(
         f"/posts/{post_id}/authors",
         auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),

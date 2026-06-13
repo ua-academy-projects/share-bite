@@ -21,10 +21,11 @@ from ..server import mcp
     description="General information about Guest API, version and configuration.",
     mime_type=CONTENT_TYPE_JSON,
 )
-async def get_api_info(ctx: Context) -> str:
+async def get_api_info(ctx: Context | None) -> str:
     """Fetch and return general API information."""
     result = await guest_client.get(
-        "/info", auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx))
+        "/info",
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
     )
     if result["is_error"] is True:
         raise RuntimeError(f"Failed to fetch API info: {result['error_message']}")
@@ -38,7 +39,7 @@ async def get_api_info(ctx: Context) -> str:
     description="Swagger/OpenAPI documentation for understanding Guest API structure.",
     mime_type=CONTENT_TYPE_JSON,
 )
-async def get_openapi_summary(ctx: Context) -> str:
+async def get_openapi_summary(ctx: Context | None) -> str:
     """Fetch and return the OpenAPI JSON specification."""
     result = await guest_client.get(
         OPENAPI_SPECIFICATION_PATH,

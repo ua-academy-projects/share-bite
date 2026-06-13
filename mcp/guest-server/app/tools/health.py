@@ -19,7 +19,7 @@ def _unwrap_guest_result(action: str, result: APIResponse | APIErrorResponse) ->
 
 
 @mcp.tool(description="Checks the basic health status of the Guest API")
-async def guest_health_check(ctx: Context) -> str:
+async def guest_health_check(ctx: Context | None = None) -> str:
     """
     Checks the basic health status of the Guest API.
     Use this to verify if the service container is up and running.
@@ -32,7 +32,7 @@ async def guest_health_check(ctx: Context) -> str:
 
 
 @mcp.tool(description="Fetches the deep operational status of the Guest API")
-async def get_guest_api_status(ctx: Context) -> str:
+async def get_guest_api_status(ctx: Context | None = None) -> str:
     """
     Fetches the deep operational status of the Guest API.
     Returns the connection status for internal components like PostgreSQL and Redis.
