@@ -96,13 +96,13 @@ func (s *service) Login(ctx context.Context, email, password string) (*Tokens, e
 }
 
 func (s *service) Register(ctx context.Context, email, password, slug string) (*Tokens, error) {
-	existingUser, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil {
-		return nil, apperr.Wrap(http.StatusInternalServerError, "failed to query user by email", err)
-	}
-	if existingUser != nil {
-		return nil, apperr.ErrUserAlreadyExists
-	}
+	// existingUser, err := s.userRepo.FindByEmail(ctx, email)
+	// if err != nil {
+	// 	return nil, apperr.Wrap(http.StatusInternalServerError, "failed to query user by email", err)
+	// }
+	// if existingUser != nil {
+	// 	return nil, apperr.ErrUserAlreadyExists
+	// }
 
 	role, err := s.userRepo.FindRoleBySlug(ctx, slug)
 	if err != nil {

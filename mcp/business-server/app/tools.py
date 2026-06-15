@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Any
+import base64
+import io
 
 from mcp.server.fastmcp import Context, FastMCP
 
@@ -24,6 +26,9 @@ from app.constants import (
     API_PATH_UPDATE_VENUE_DETAILS,
     API_PATH_UPDATE_VENUE_HOURS,
     API_PATH_VENUE_DETAILS,
+    API_PATH_BUSINESS_FOOD_BOXES,
+    API_PATH_FOOD_BOX,
+    API_PATH_FOOD_BOX_RESERVATIONS,
 )
 from app.context_recommender import (
     recommend_venues_by_context as rank_venues_by_context,
@@ -41,6 +46,12 @@ from app.utils import (
     validate_date_range,
     build_venue_hours_preview,
     extract_venue_hours_days,
+    ensure_food_box_owned_by_business,
+    validate_profile_update,
+    validate_venue_hours,
+    validate_venue_update,
+    validate_food_box_creation,
+    validate_food_box_update,
 )
 
 
@@ -151,6 +162,30 @@ def register_tools(
             },
         }
 
+    def _extract_headers(ctx: Context) -> dict[str, str]:
+        """
+        Extract headers from MCP context, regardless of type of object.
+        """
+        if not ctx.request_context or not ctx.request_context.meta:
+            return {}
+
+        meta = ctx.request_context.meta
+
+        if hasattr(meta, "model_dump"):
+            meta_dict = meta.model_dump()
+        elif hasattr(meta, "dict"):
+            meta_dict = meta.dict()
+        elif isinstance(meta, dict):
+            meta_dict = meta 
+        else:
+            try:
+                meta_dict = vars(meta)
+            except TypeError:
+                return {}
+
+        headers = meta_dict.get("headers", {})
+        return headers if isinstance(headers, dict) else {}
+        
     # BUSINESS-ORG TOOLS
     @mcp.tool()
     async def recommend_venues_by_context(
@@ -160,7 +195,6 @@ def register_tools(
     ) -> dict[str, Any]:
         """
         Rank venue candidates for context such as a date, meetup, or budget plan.
-
         This deterministic AI-style ranker extracts user intent and returns
         explainable scores without calling external AI APIs.
         """
@@ -400,8 +434,7 @@ def register_tools(
             )
         except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
             return _tool_error(str(exc))
-
-    # DISCOVERY TOOLS
+    
     @mcp.tool()
     async def search_venues(
         ctx: Context[Any, Any],
@@ -855,7 +888,207 @@ def register_tools(
         except (BusinessApiError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
+    @mcp.tool()
+    async def list_business_food_boxes(
+        business_id: int,
+        skip: int = 0,
+        limit: int = 10,
+        auth_token: str | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        List food boxes for a business.
+        business_id must be provided explicitly by the caller.
+        """
+        try:
+            data = await client.get(
+                API_PATH_BUSINESS_FOOD_BOXES.format(business_id=business_id),
+                auth_token=auth_token,
+                request_id=request_id,
+                params={
+                    "skip": max(skip, 0),
+                    "limit": max(1, min(limit, 100)),
+                },
+            )
+            return _tool_success(
+                business_id=business_id,
+                result=_unwrap(data),
+            )
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+        
+    @mcp.tool()
+    async def get_food_box(
+        business_id: int,
+        food_box_id: int,
+        auth_token: str,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Get food box details after verifying that the food box belongs to business_id.
+        """
+        try:
+            food_box = _unwrap(
+                await client.get(
+                    API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
+                    auth_token=auth_token,
+                    request_id=request_id,
+                )
+            )
+            ensure_food_box_owned_by_business(food_box, business_id)
 
+            return _tool_success(
+                business_id=business_id,
+                food_box_id=food_box_id,
+                result=food_box,
+            )
+        except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def create_food_box(
+        business_id: int,
+        payload: dict[str, Any],
+        auth_token: str,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a new food box with image upload.
+        
+        Required fields: venue_id, price_full, expires_at, quantity, image_base64
+        Optional fields: category_id, price_discount
+        
+        image_base64 should be a base64-encoded image file (PNG, JPG, etc).
+        """
+        validation_errors = validate_food_box_creation(payload)
+        if validation_errors:
+            return _tool_error("validation failed", validation_errors=validation_errors)
+
+        try:
+            image_base64 = payload.pop("image_base64")
+            
+            if "," in image_base64:
+                image_base64 = image_base64.split(",", 1)[1]
+                
+            try:
+                image_bytes = base64.b64decode(image_base64, validate=True)
+            except Exception as e:
+                return _tool_error(f"invalid base64 encoding for image: {str(e)}")
+
+            form_data = {}
+            for key in ["venue_id", "price_full", "expires_at", "quantity", "category_id", "price_discount"]:
+                if key in payload and payload[key] is not None:
+                    form_data[key] = str(payload[key])
+
+            form_data["image"] = ("image.jpg", image_bytes, "image/jpeg")
+
+            result = _unwrap(
+                await client.post_form(
+                    API_PATH_BUSINESS_FOOD_BOXES.format(business_id=business_id),
+                    form_data=form_data,
+                    auth_token=auth_token,
+                    request_id=request_id,
+                )
+            )
+
+            return _tool_success(
+                business_id=business_id,
+                result=result,
+            )
+        except (BusinessApiError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def update_food_box(
+        business_id: int,
+        food_box_id: int,
+        payload: dict[str, Any],
+        auth_token: str,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Update food box details with validation.
+        
+        Supported fields: category_id, price_full, price_discount, expires_at
+        """
+        validation_errors = validate_food_box_update(payload)
+        if validation_errors:
+            return _tool_error("validation failed", validation_errors=validation_errors)
+
+        try:
+            before = _unwrap(
+                await client.get(
+                    API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
+                    auth_token=auth_token,
+                    request_id=request_id,
+                )
+            )
+            ensure_food_box_owned_by_business(before, business_id)
+
+            after = _unwrap(
+                await client.patch(
+                    API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
+                    json_data=payload,
+                    auth_token=auth_token,
+                    request_id=request_id,
+                )
+            )
+
+            return _tool_success(
+                business_id=business_id,
+                food_box_id=food_box_id,
+                changed_fields=changed_fields(
+                    before,
+                    after,
+                    ("categoryId", "fullPrice", "discountPrice", "expiresAt"),
+                ),
+                result=after,
+            )
+        except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+    @mcp.tool()
+    async def get_food_box_reservations(
+        business_id: int,
+        food_box_id: int,
+        skip: int = 0,
+        limit: int = 10,
+        auth_token: str | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Get reservations for a food box after verifying that the food box belongs to business_id.
+        """
+        try:
+            food_box = _unwrap(
+                await client.get(
+                    API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
+                    auth_token=auth_token,
+                    request_id=request_id,
+                )
+            )
+            ensure_food_box_owned_by_business(food_box, business_id)
+
+            reservations = _unwrap(
+                await client.get(
+                    API_PATH_FOOD_BOX_RESERVATIONS.format(food_box_id=food_box_id),
+                    auth_token=auth_token,
+                    request_id=request_id,
+                    params={
+                        "skip": max(skip, 0),
+                        "limit": max(1, min(limit, 100)),
+                    },
+                )
+            )
+
+            return _tool_success(
+                business_id=business_id,
+                food_box_id=food_box_id,
+                result=reservations,
+            )
+        except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+    
 def _unwrap(result: dict[str, Any]) -> dict[str, Any]:
     if result.get("is_error") is True:
         message = result.get("error_message", "unknown business api error")
@@ -876,6 +1109,7 @@ def _tool_success(
     result: dict[str, Any],
     business_id: int | None = None,
     venue_id: int | None = None,
+    food_box_id: int | None = None,
     changed_fields: list[str] | None = None,
 ) -> dict[str, Any]:
     response: dict[str, Any] = {
@@ -891,6 +1125,9 @@ def _tool_success(
 
     if venue_id is not None:
         response["venue_id"] = venue_id
+
+    if food_box_id is not None:
+        response["food_box_id"] = food_box_id
 
     return response
 

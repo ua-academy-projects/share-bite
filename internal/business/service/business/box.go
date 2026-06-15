@@ -186,3 +186,112 @@ func (s *service) ReserveBox(ctx context.Context, userID string, boxID int64) (*
 		BoxCode:       boxCode,
 	}, nil
 }
+
+func (s *service) ListBoxesByBusiness(ctx context.Context, userID string, offset, limit int) (pagination.Result[entity.Box], error) {
+	const op = "service.box.ListBoxesByBusiness"
+
+	brandID, err := s.businessRepo.GetBrandIDByOwnerUserID(ctx, userID)
+	if err != nil {
+		return pagination.Result[entity.Box]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	orgs, err := s.businessRepo.ListByParentID(ctx, brandID, 0, 1000, nil)
+	if err != nil {
+		return pagination.Result[entity.Box]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if len(orgs.Items) == 0 {
+		return pagination.Result[entity.Box]{Items: []entity.Box{}, Total: 0}, nil
+	}
+
+	venueID := orgs.Items[0].Id
+	result, err := s.businessRepo.ListBoxesByVenueID(ctx, venueID, offset, limit)
+	if err != nil {
+		return pagination.Result[entity.Box]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	for i := range result.Items {
+		if result.Items[i].Image != "" {
+			if !strings.HasPrefix(result.Items[i].Image, "http://") && !strings.HasPrefix(result.Items[i].Image, "https://") {
+				result.Items[i].Image = s.storage.BuildURL(result.Items[i].Image)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (s *service) UpdateBox(ctx context.Context, boxID int64, userID string, input entity.BoxUpdateInput) (*entity.Box, error) {
+	const op = "service.box.UpdateBox"
+
+	box, err := s.businessRepo.GetBox(ctx, boxID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = s.businessRepo.CheckOwnership(ctx, userID, box.VenueID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if input.FullPrice != nil && input.FullPrice.LessThanOrEqual(decimal.Zero) {
+		return nil, fmt.Errorf("%s: full price must be greater than 0", op)
+	}
+
+	if input.DiscountPrice != nil && input.DiscountPrice.LessThan(decimal.Zero) {
+		return nil, fmt.Errorf("%s: discount price cannot be negative", op)
+	}
+
+	fullPrice := box.FullPrice
+	discountPrice := box.DiscountPrice
+
+	if input.FullPrice != nil {
+		fullPrice = *input.FullPrice
+	}
+
+	if input.DiscountPrice != nil {
+		discountPrice = *input.DiscountPrice
+	}
+
+	if discountPrice.GreaterThan(fullPrice) {
+		return nil, fmt.Errorf("%s: discount price cannot be greater than full price", op)
+	}
+
+	if input.ExpiresAt != nil && !input.ExpiresAt.After(time.Now()) {
+		return nil, fmt.Errorf("%s: expires_at must be in the future", op)
+	}
+
+	updatedBox, err := s.businessRepo.UpdateBox(ctx, boxID, input)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if updatedBox.Image != "" {
+		if !strings.HasPrefix(updatedBox.Image, "http://") && !strings.HasPrefix(updatedBox.Image, "https://") {
+			updatedBox.Image = s.storage.BuildURL(updatedBox.Image)
+		}
+	}
+
+	return updatedBox, nil
+}
+
+func (s *service) GetBoxReservations(ctx context.Context, boxID int64, userID string, offset, limit int) (pagination.Result[entity.BoxItem], error) {
+	const op = "service.box.GetBoxReservations"
+
+	box, err := s.businessRepo.GetBox(ctx, boxID)
+	if err != nil {
+		return pagination.Result[entity.BoxItem]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = s.businessRepo.CheckOwnership(ctx, userID, box.VenueID)
+	if err != nil {
+		return pagination.Result[entity.BoxItem]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	result, err := s.businessRepo.GetBoxItems(ctx, boxID, offset, limit)
+	if err != nil {
+		return pagination.Result[entity.BoxItem]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return result, nil
+}

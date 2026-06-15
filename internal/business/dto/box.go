@@ -43,3 +43,37 @@ type ListResponse struct {
 	Items []NearbyBoxesResp `json:"items"`
 	Total int               `json:"total"`
 }
+
+type UpdateBoxRequest struct {
+	CategoryID    *int             `json:"category_id"`
+	FullPrice     *decimal.Decimal `json:"price_full"`
+	DiscountPrice *decimal.Decimal `json:"price_discount"`
+	ExpiresAt     *time.Time       `json:"expires_at"`
+}
+
+type BoxResponse struct {
+	ID                int64           `json:"id" example:"123"`
+	VenueID           int             `json:"venue_id" example:"1"`
+	CategoryID        *int            `json:"category_id" example:"2"`
+	Image             string          `json:"image" example:"https://example.com/box.jpg"`
+	FullPrice         decimal.Decimal `json:"full_price" example:"300.00"`
+	DiscountPrice     decimal.Decimal `json:"discount_price" example:"150.00"`
+	CreatedAt         time.Time       `json:"created_at" example:"2026-04-16T12:00:00Z"`
+	ExpiresAt         time.Time       `json:"expires_at" example:"2026-05-01T18:00:00Z"`
+	AvailabilityCount int             `json:"availability_count" example:"5"`
+}
+
+type BusinessBoxesListResponse struct {
+	Items []BoxResponse `json:"items"`
+	Total int           `json:"total"`
+}
+
+type BoxReservationItem struct {
+	BoxCode          string  `json:"box_code" example:"BOX123ABC45"`
+	ReservedByUserID *string `json:"reserved_by_user_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+}
+
+type BoxReservationsResponse struct {
+	Items []BoxReservationItem `json:"items"`
+	Total int                  `json:"total"`
+}
