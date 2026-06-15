@@ -7,7 +7,13 @@ from pydantic import BaseModel
 
 from app.client import BusinessApiClient, BusinessApiError
 from app.config import Settings
-from app.constants import URI_PROFILE_SCHEMA, URI_VENUE_HOURS_FORMAT, URI_VENUE_SCHEMA
+from app.constants import (
+    URI_PROFILE_SCHEMA, 
+    URI_VENUE_HOURS_FORMAT, 
+    URI_VENUE_SCHEMA,
+    URI_ANALYTICS_METRICS,
+    URI_REPORTING_PERIODS,
+)
 
 class AuthInfo(BaseModel):
     authorization_forwarding: bool
@@ -34,6 +40,16 @@ class BusinessOpenApiSummaryResource(BaseModel):
     base_url: str
     path_count: int | None
     paths: list[str]
+
+class AnalyticsMetricResource(BaseModel):
+    name: str
+    description: str
+    guidelines: dict[str, str]
+
+class AnalyticsGlossaryResource(BaseModel):
+    title: str
+    description: str
+    metrics: list[AnalyticsMetricResource]
 
 
 def register_resources(mcp: FastMCP, settings: Settings, client: BusinessApiClient) -> None:
@@ -136,4 +152,68 @@ def register_resources(mcp: FastMCP, settings: Settings, client: BusinessApiClie
                     {"weekday": 7, "openTime": None, "closeTime": None},
                 ]
             },
+        }
+
+    @mcp.resource(URI_ANALYTICS_METRICS)
+    def business_analytics_metrics() -> dict[str, Any]:
+        """ Returns the business analytics metrics and interpretation guidelines. """
+        return AnalyticsGlossaryResource(
+            title="Share-Bite Analytics Metrics",
+            description="Guidelines for interpreting business performance metrics and engagement rates.",
+            metrics=[
+                AnalyticsMetricResource(
+                    name="Sell-Through Rate",
+                    description="Ratio of reserved items to total created items in boxes.",
+                    guidelines={
+                        "> 0.8 (80%)": "Excellent performance.",
+                        "< 0.5 (50%)": "Requires review of box contents or pricing."
+                    }
+                ),
+                AnalyticsMetricResource(
+                    name="Waste Rate",
+                    description="Ratio of expired boxes to total created boxes.",
+                    guidelines={
+                        "< 0.1 (10%)": "Normal operational waste.",
+                        "> 0.2 (20%)": "Critical level, business is losing revenue."
+                    }
+                ),
+                AnalyticsMetricResource(
+                    name="Composite Score",
+                    description="Score from 0 to 100 balancing sales and waste. Formula: (SellThroughRate * 100 * 0.7) + ((1 - WasteRate) * 100 * 0.3)",
+                    guidelines={
+                        "90-100": "Ideal",
+                        "70-89": "Good",
+                        "50-69": "Satisfactory",
+                        "< 50": "Requires immediate intervention."
+                    }
+                ),
+                AnalyticsMetricResource(
+                    name="Average Comments / Likes",
+                    description="Average number of interactions per post (total interactions / total posts).",
+                    guidelines={
+                        "Context": "Used to assess audience loyalty. High engagement usually correlates with a better Sell-Through Rate."
+                    }
+                ),
+                AnalyticsMetricResource(
+                    name="Total Boxes / Posts Created",
+                    description="Metrics representing the operational activity of the venue.",
+                    guidelines={
+                        "Context": "Zero values during an active business week may indicate staff negligence or technical issues with their application."
+                    }
+                )
+            ]
+        ).model_dump()
+
+    @mcp.resource(URI_REPORTING_PERIODS)
+    def business_reporting_periods() -> dict[str, Any]:
+        """ Returns information about allowed reporting periods and date constraints. """
+        return {
+            "title": "Reporting Periods & Constraints",
+            "description": "Rules and constraints for querying analytical data.",
+            "constraints": {
+                "max_days": 90,
+                "format": "YYYY-MM-DD",
+                "timezone": "UTC",
+                "notes": "Queries exceeding 90 days will be rejected to prevent database overload."
+            }
         }

@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 
-from app.constants import URI_PROFILE_SCHEMA, URI_VENUE_HOURS_FORMAT, URI_VENUE_SCHEMA
+from app.constants import URI_PROFILE_SCHEMA, URI_VENUE_HOURS_FORMAT, URI_VENUE_SCHEMA, URI_ANALYTICS_METRICS, URI_REPORTING_PERIODS
 
 
 def test_profile_schema_resource(registered_resources):
@@ -22,9 +22,12 @@ def test_venue_schema_resource(registered_resources):
 def test_venue_hours_format_resource(registered_resources):
     fn = registered_resources[URI_VENUE_HOURS_FORMAT]
     data = _run_resource(fn)
-    assert "days" in data
-    assert isinstance(data["days"], list)
-    assert len(data["days"]) >= 1
+    assert data["type"] == "object"
+    assert "days" in data["required"]
+    
+    assert "properties" in data
+    assert "days" in data["properties"]
+    assert data["properties"]["days"]["type"] == "array"
 
 
 def _run_resource(fn):
@@ -32,3 +35,20 @@ def _run_resource(fn):
     if inspect.isawaitable(result):
         return asyncio.run(result)
     return result
+
+def test_business_analytics_metrics_resource(registered_resources):
+    fn = registered_resources[URI_ANALYTICS_METRICS]
+    data = _run_resource(fn)
+    
+    assert data["title"] == "Share-Bite Analytics Metrics"
+    assert "metrics" in data
+    assert len(data["metrics"]) == 5
+    assert data["metrics"][0]["name"] == "Sell-Through Rate"
+
+def test_business_reporting_periods_resource(registered_resources):
+    fn = registered_resources[URI_REPORTING_PERIODS]
+    data = _run_resource(fn)
+    
+    assert data["title"] == "Reporting Periods & Constraints"
+    assert data["constraints"]["max_days"] == 90
+    assert data["constraints"]["format"] == "YYYY-MM-DD"

@@ -87,8 +87,8 @@ def registered_tools(fake_mcp, settings, api_client):
 
 
 @pytest.fixture
-def registered_resources(fake_mcp, settings):
+def registered_resources(fake_mcp, settings, api_client):
     from app.resources import register_resources
 
-    register_resources(fake_mcp, settings)
+    register_resources(fake_mcp, settings, api_client)
     return fake_mcp.resources

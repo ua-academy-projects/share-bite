@@ -23,7 +23,7 @@ TOOL_UPDATE_VENUE_DETAILS = "update_venue_details"
 TOOL_UPDATE_VENUE_HOURS = "update_venue_hours"
 TOOL_RECOMMEND_VENUES_BY_CONTEXT = "recommend_venues_by_context"
 
-# API paths
+# Business-orgs API paths
 API_PATH_BUSINESS_PROFILE = "/business/{business_id}"
 API_PATH_BUSINESS_VENUES = "/business/org-units/{business_id}/locations"
 API_PATH_VENUE_DETAILS = "/business/org-units/{venue_id}"
@@ -32,3 +32,14 @@ API_PATH_UPDATE_VENUE_HOURS = "/business/locations/{venue_id}/hours"
 
 # Roles
 ROLE_BUSINESS = "business"
+
+# Analytics tools API Paths
+API_PATH_DAILY_SUMMARY = "/business/analytics/daily-summary"
+API_PATH_RESERVATION_SUMMARY = "/business/analytics/reservation-summary"
+API_PATH_FOOD_BOX_PERFORMANCE = "/business/analytics/food-box-performance"
+API_PATH_ENGAGEMENT_SUMMARY = "/business/analytics/engagement-summary"
+API_PATH_VENUE_ACTIVITY = "/business/analytics/venues/{venue_id}/activity"
+
+# Analytics Resources
+URI_ANALYTICS_METRICS = "sharebite://business/analytics-metrics"
+URI_REPORTING_PERIODS = "sharebite://business/reporting-periods"

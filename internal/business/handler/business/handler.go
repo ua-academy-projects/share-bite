@@ -73,6 +73,12 @@ type businessService interface {
 	ResubmitVerification(ctx context.Context, id int, userID string) error
 	GetOnboardingContext(ctx context.Context, userID string) (brandID int, venueID int, err error)
 	UpdateVenueHours(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateVenueHoursInput) (*dto.UpdateVenueHoursOutput, error)
+
+	GetDailySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID) (entity.DailySummary, error)
+	GetReservationSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.ReservationSummary, error)
+	GetVenueActivitySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID int) (entity.VenueActivitySummary, error)
+	GetFoodBoxPerformance(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.BoxPerformance, error)
+	GetEngagementSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.EngagementSummary, error)
 }
 
 func RegisterHandlers(
@@ -169,6 +175,18 @@ func RegisterHandlers(
 		Use(auth)
 	{
 		reservations.PATCH("/:boxID/reserve", h.reserveBox)
+	}
+
+	analytics := r.Group("/analytics").
+	Use(auth).
+	Use(middleware.RequireRoles(RoleBusiness)).
+	Use(common_middleware.RequireWritableAccountStatus())
+	{
+		analytics.GET("/daily-summary", h.GetDailySummary)
+		analytics.GET("/reservation-summary", h.GetReservationSummary)
+		analytics.GET("/food-box-performance", h.GetFoodBoxPerformance)
+		analytics.GET("/engagement-summary", h.GetEngagementSummary)
+		analytics.GET("/venues/:venue_id/activity", h.GetVenueActivitySummary)
 	}
 }
 
