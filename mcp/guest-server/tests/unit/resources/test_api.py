@@ -17,7 +17,7 @@ async def test_get_api_info_success(mock_guest_api):
     """Returns parsed JSON with API info when Guest API responds with 200."""
     mock_guest_api.get("/info").mock(return_value=build_info_response())
 
-    result = await get_api_info()
+    result = await get_api_info(None)
     data = json.loads(result)
 
     assert data["version"] == "1.0.0"
@@ -34,7 +34,7 @@ async def test_get_api_info_unauthorized(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="Failed to fetch API info"):
-        await get_api_info()
+        await get_api_info(None)
 
 
 @pytest.mark.asyncio
@@ -45,7 +45,7 @@ async def test_get_api_info_connection_error(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="Failed to fetch API info"):
-        await get_api_info()
+        await get_api_info(None)
 
 
 @pytest.mark.asyncio
@@ -55,7 +55,7 @@ async def test_get_openapi_summary_success(mock_guest_api):
         return_value=build_openapi_response()
     )
 
-    result = await get_openapi_summary()
+    result = await get_openapi_summary(None)
     data = json.loads(result)
 
     assert data["swagger"] == "2.0"
@@ -71,7 +71,7 @@ async def test_get_openapi_summary_unauthorized(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="Failed to fetch OpenAPI spec"):
-        await get_openapi_summary()
+        await get_openapi_summary(None)
 
 
 @pytest.mark.asyncio
@@ -82,4 +82,4 @@ async def test_get_openapi_summary_connection_error(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="Failed to fetch OpenAPI spec"):
-        await get_openapi_summary()
+        await get_openapi_summary(None)

@@ -1,8 +1,8 @@
 import sys
 from pathlib import Path
 from collections.abc import Callable
+from typing import Any
 import pytest
-
 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVER_ROOT) not in sys.path:
@@ -11,13 +11,19 @@ if str(SERVER_ROOT) not in sys.path:
 
 class FakeMCP:
     def __init__(self) -> None:
-        self.tools: dict[str, Callable] = {}
-        self.resources: dict[str, Callable] = {}
+        self.tools: dict[str, Callable[..., Any]] = {}
+        self.resources: dict[str, Callable[..., Any]] = {}
 
-    def tool(self, name: str | None = None, description: str = "", exclude_args: list[str] | None = None):
-        def decorator(func):
+    def tool(
+        self,
+        name: str | None = None,
+        description: str = "",
+        exclude_args: list[str] | None = None,
+    ):
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self.tools[name or func.__name__] = func
             return func
+
         return decorator
 
     def resource(
@@ -28,30 +34,53 @@ class FakeMCP:
         description: str = "",
         mime_type: str = "",
     ):
-        def decorator(func):
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self.resources[uri] = func
             return func
+
         return decorator
 
 
 class FakeAPIClient:
     def __init__(self) -> None:
-        self.get_responses: list[dict] = []
-        self.patch_responses: list[dict] = []
-        self.get_calls: list[dict] = []
-        self.patch_calls: list[dict] = []
+        self.get_responses: list[dict[str, Any]] = []
+        self.patch_responses: list[dict[str, Any]] = []
+        self.get_calls: list[dict[str, Any]] = []
+        self.patch_calls: list[dict[str, Any]] = []
 
-    async def get(self, path, auth_token=None, request_id=None, params=None):
+    async def get(
+        self,
+        path: str,
+        auth_token: str | None = None,
+        request_id: str | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         self.get_calls.append(
-            {"path": path, "auth_token": auth_token, "request_id": request_id, "params": params}
+            {
+                "path": path,
+                "auth_token": auth_token,
+                "request_id": request_id,
+                "params": params,
+            }
         )
         if not self.get_responses:
             raise AssertionError("Unexpected GET call: no fake response queued")
         return self.get_responses.pop(0)
 
-    async def patch(self, path, json_data, auth_token=None, request_id=None):
+    async def patch(
+        self,
+        path: str,
+        json_data: dict[str, Any],
+        auth_token: str | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
         self.patch_calls.append(
-            {"path": path, "json_data": json_data, "auth_token": auth_token, "request_id": request_id}
+            {
+                "path": path,
+                "json_data": json_data,
+                "auth_token": auth_token,
+                "request_id": request_id,
+            }
         )
         if not self.patch_responses:
             raise AssertionError("Unexpected PATCH call: no fake response queued")
