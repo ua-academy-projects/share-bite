@@ -115,6 +115,142 @@ def ensure_venue_owned_by_business(venue_data: dict[str, Any], business_id: int)
         raise ForbiddenError("unauthorized access to another business venue")
 
 
+def extract_venue_hours_days(venue_data: dict[str, Any]) -> list[dict[str, Any]] | None:
+    for key in ("days", "hours", "venueHours", "venue_hours"):
+        if key in venue_data:
+            value = venue_data.get(key)
+            return value if isinstance(value, list) else []
+
+    return None
+
+
+def normalize_venue_hours_days(days: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if not isinstance(days, list):
+        return []
+
+    normalized: list[dict[str, Any]] = []
+    for day in days:
+        if not isinstance(day, dict):
+            continue
+
+        weekday = day.get("weekday")
+        if not isinstance(weekday, int):
+            continue
+
+        normalized.append(
+            {
+                "weekday": weekday,
+                "openTime": day.get("openTime"),
+                "closeTime": day.get("closeTime"),
+            }
+        )
+
+    return sorted(normalized, key=lambda item: item["weekday"])
+
+
+def build_venue_hours_preview(
+    current_days: list[dict[str, Any]] | None,
+    proposed_days: list[dict[str, Any]] | None,
+) -> dict[str, Any]:
+    current_norm = normalize_venue_hours_days(current_days)
+    proposed_norm = normalize_venue_hours_days(proposed_days)
+
+    current_map = {
+        day["weekday"]: (day.get("openTime"), day.get("closeTime"))
+        for day in current_norm
+    }
+    proposed_map = {
+        day["weekday"]: (day.get("openTime"), day.get("closeTime"))
+        for day in proposed_norm
+    }
+
+    counts = {
+        "added": 0,
+        "removed": 0,
+        "updated": 0,
+        "opened": 0,
+        "closed": 0,
+    }
+    day_changes: list[dict[str, Any]] = []
+
+    for weekday in sorted(set(current_map) | set(proposed_map)):
+        before = current_map.get(weekday)
+        after = proposed_map.get(weekday)
+
+        if before == after:
+            status = "unchanged"
+        elif before is None:
+            status = "added"
+            counts["added"] += 1
+        elif after is None:
+            status = "removed"
+            counts["removed"] += 1
+        elif _is_closed_pair(before) and not _is_closed_pair(after):
+            status = "opened"
+            counts["opened"] += 1
+        elif not _is_closed_pair(before) and _is_closed_pair(after):
+            status = "closed"
+            counts["closed"] += 1
+        else:
+            status = "updated"
+            counts["updated"] += 1
+
+        day_changes.append(
+            {
+                "weekday": weekday,
+                "status": status,
+                "before": _pair_to_dict(before),
+                "after": _pair_to_dict(after),
+            }
+        )
+
+    changed_fields = ["days"] if any(counts.values()) else []
+
+    return {
+        "current_days": current_norm,
+        "preview_days": proposed_norm,
+        "day_changes": day_changes,
+        "summary": _build_venue_hours_summary(counts),
+        "changed_fields": changed_fields,
+    }
+
+
+def _is_closed_pair(value: tuple[Any, Any] | None) -> bool:
+    if value is None:
+        return False
+    return value[0] is None and value[1] is None
+
+
+def _pair_to_dict(value: tuple[Any, Any] | None) -> dict[str, Any] | None:
+    if value is None:
+        return None
+
+    return {
+        "openTime": value[0],
+        "closeTime": value[1],
+    }
+
+
+def _build_venue_hours_summary(counts: dict[str, int]) -> str:
+    parts: list[str] = []
+
+    if counts["added"]:
+        parts.append(f'{counts["added"]} day(s) added')
+    if counts["removed"]:
+        parts.append(f'{counts["removed"]} day(s) removed')
+    if counts["updated"]:
+        parts.append(f'{counts["updated"]} day(s) updated')
+    if counts["opened"]:
+        parts.append(f'{counts["opened"]} day(s) opened')
+    if counts["closed"]:
+        parts.append(f'{counts["closed"]} day(s) closed')
+
+    if not parts:
+        return "No venue-hours changes detected."
+
+    return ", ".join(parts)
+
+
 def _validate_update_payload(payload: dict[str, Any], allowed: set[str]) -> ValidationErrors:
     errors: ValidationErrors = []
 

@@ -19,6 +19,8 @@ from app.constants import (
     API_PATH_FOOD_BOX_PERFORMANCE,
     API_PATH_ENGAGEMENT_SUMMARY,
     API_PATH_VENUE_ACTIVITY,
+    
+    TOOL_PREVIEW_VENUE_HOURS_UPDATE,
 )
 from app.context_recommender import recommend_venues_by_context as rank_venues_by_context
 from app.utils import (
@@ -29,6 +31,8 @@ from app.utils import (
     validate_venue_hours,
     validate_venue_update,
     validate_date_range,
+    build_venue_hours_preview,
+    extract_venue_hours_days,
 )
 
 def _extract_headers(ctx: Context) -> dict[str, str]:
@@ -363,6 +367,55 @@ def register_tools(
                 venue_id=venue_id,
                 changed_fields=["days"],
                 result=after,
+            )
+        except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
+            return _tool_error(str(exc))
+
+
+    @mcp.tool(name=TOOL_PREVIEW_VENUE_HOURS_UPDATE)
+    async def preview_venue_hours_update(
+        business_id: int,
+        venue_id: int,
+        payload: dict[str, Any],
+        auth_token: str,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Preview venue-hours changes without performing a write."""
+        validation_errors = validate_venue_hours(payload)
+        if validation_errors:
+            return _tool_error("validation failed", validation_errors=validation_errors)
+
+        try:
+            venue = _unwrap(
+                await client.get(
+                    API_PATH_VENUE_DETAILS.format(venue_id=venue_id),
+                    auth_token=auth_token,
+                    request_id=request_id,
+                )
+            )
+            ensure_venue_owned_by_business(venue, business_id)
+
+            current_days = extract_venue_hours_days(venue)
+            if current_days is None:
+                return _tool_error(
+                    "current venue hours are unavailable for preview"
+                )
+
+            preview = build_venue_hours_preview(
+                current_days=current_days,
+                proposed_days=payload.get("days"),
+            )
+
+            return _tool_success(
+                business_id=business_id,
+                venue_id=venue_id,
+                changed_fields=preview["changed_fields"],
+                result={
+                    "current_days": preview["current_days"],
+                    "preview_days": preview["preview_days"],
+                    "day_changes": preview["day_changes"],
+                    "summary": preview["summary"],
+                },
             )
         except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
             return _tool_error(str(exc))
