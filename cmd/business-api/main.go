@@ -19,7 +19,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
-	notifhandler "github.com/ua-academy-projects/share-bite/internal/business/handler/notification" // 💡 Чіткий імпорт пакета сповіщень
+	notifhandler "github.com/ua-academy-projects/share-bite/internal/business/handler/notification"
 	businessrepo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	businesssvc "github.com/ua-academy-projects/share-bite/internal/business/service/business"
 	"github.com/ua-academy-projects/share-bite/internal/config"

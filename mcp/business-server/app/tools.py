@@ -84,22 +84,17 @@ def register_tools(
 
         try:
             data = await client.get(
-                "/swagger/doc.json",
+                "/business/healthz",
                 auth_token=final_token,
                 request_id=request_id,
             )
         except BusinessApiError as exc:
             raise RuntimeError(str(exc)) from exc
 
-        info_raw = data.get("info")
-        info = info_raw if isinstance(info_raw, dict) else {}
-
         return {
             "ok": True,
             "service": "business-api",
             "base_url": settings.business_api_base_url,
-            "title": info.get("title"),
-            "version": info.get("version"),
         }
 
     @mcp.tool()
