@@ -21,6 +21,7 @@ TOOL_LIST_BUSINESS_VENUES = "list_business_venues"
 TOOL_GET_VENUE_DETAILS = "get_venue_details"
 TOOL_UPDATE_VENUE_DETAILS = "update_venue_details"
 TOOL_UPDATE_VENUE_HOURS = "update_venue_hours"
+TOOL_RECOMMEND_VENUES_BY_CONTEXT = "recommend_venues_by_context"
 
 # Business-orgs API paths
 API_PATH_BUSINESS_PROFILE = "/business/{business_id}"

@@ -662,7 +662,6 @@ func (r *Repository) GetPostsByVenueIDs(ctx context.Context, venueIDs []int64, l
               p.updated_at,
               p.published_at,
               (SELECT COUNT(*) FROM guest.post_likes pl WHERE pl.post_id = p.id) AS likes_count,
-			  // TODO: add a join or subquery to determine if the post is liked by the current user
               false AS is_liked_by_me
           FROM guest.posts p
           WHERE p.venue_id = ANY($1) AND p.status = 'published'
@@ -971,7 +970,12 @@ func (r *Repository) DeleteExpiredDraftPosts(ctx context.Context) error {
 	}
 
 	_, err := r.db.DB().ExecContext(ctx, q)
-	return executeSQLError(err)
+
+	if err != nil {
+		return executeSQLError(err)
+	}
+
+	return nil
 }
 
 func (r *Repository) IsAcceptedCollaborator(ctx context.Context, postID string, customerID string) (bool, error) {
@@ -1031,6 +1035,9 @@ func (r *Repository) UpdateProcessedMetadata(ctx context.Context, imageID string
 	}
 
 	result, err := r.db.DB().ExecContext(ctx, q, thumbnailKey, width, height, entity.ImageStatusCompleted, imageID)
+	if err != nil {
+		return executeSQLError(err)
+	}
 
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
@@ -1040,7 +1047,7 @@ func (r *Repository) UpdateProcessedMetadata(ctx context.Context, imageID string
 		)
 	}
 
-	return executeSQLError(err)
+	return nil
 }
 
 func (r *Repository) MarkProcessingFailed(ctx context.Context, imageID string, reason string) error {
@@ -1058,8 +1065,11 @@ func (r *Repository) MarkProcessingFailed(ctx context.Context, imageID string, r
 	}
 
 	_, err := r.db.DB().ExecContext(ctx, q, entity.ImageStatusFailed, reason, imageID)
+	if err != nil {
+		return executeSQLError(err)
+	}
 
-	return executeSQLError(err)
+	return nil
 }
 
 func (r *Repository) ClaimForProcessing(ctx context.Context, imageID string) (bool, error) {

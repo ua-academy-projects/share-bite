@@ -233,12 +233,13 @@ func (r *Repository) InsertPostImages(ctx context.Context, postID int64, URLs []
 }
 
 func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (pagination.Result[entity.Post], error) {
+	dynamicColumns := "p.id, p.org_id, p.content, p.created_at, ou.status, ou.name, ou.profile_type"
 	const op = "repository.post.GetPosts"
 	params := pagination.Params{
-		Table:   "business.posts",
-		Columns: "id, org_id, content, created_at",
+		Table:   "business.posts p JOIN business.org_units ou ON p.org_id = ou.id",
+		Columns: dynamicColumns,
 		Where:   "TRUE",
-		OrderBy: "created_at DESC, id DESC",
+		OrderBy: "p.created_at DESC, p.id DESC",
 		Args:    []any{},
 		Offset:  offset,
 		Limit:   limit,
@@ -251,10 +252,20 @@ func (r *Repository) GetPosts(ctx context.Context, limit, offset int) (paginatio
 		params,
 		func(rows pgx.Rows) (entity.Post, error) {
 			var p entity.Post
-			err := rows.Scan(&p.ID, &p.OrgID, &p.Content, &p.CreatedAt)
+			var orgStatus string
+			err := rows.Scan(
+				&p.ID,
+				&p.OrgID,
+				&p.Content,
+				&p.CreatedAt,
+				&orgStatus,
+				&p.OrgName,
+				&p.ProfileType,
+			)
 			if err != nil {
 				return p, fmt.Errorf("%s: %w", op, err)
 			}
+			p.OrgStatus = entity.OrgStatus(orgStatus)
 			return p, nil
 		},
 	)

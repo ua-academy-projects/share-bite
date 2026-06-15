@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP, Context
-from app.auth import resolve_auth_token
+from mcp.server.fastmcp import Context, FastMCP
 
+from app.auth import resolve_auth_token
 from app.client import BusinessApiClient, BusinessApiError
 from app.config import Settings
 from app.constants import (
@@ -20,6 +20,7 @@ from app.constants import (
     API_PATH_ENGAGEMENT_SUMMARY,
     API_PATH_VENUE_ACTIVITY,
 )
+from app.context_recommender import recommend_venues_by_context as rank_venues_by_context
 from app.utils import (
     ForbiddenError,
     changed_fields,
@@ -111,9 +112,7 @@ def register_tools(
 
         This tool does not infer or guess a business ID.
         """
-
         headers = _extract_headers(ctx)
-
         final_token = resolve_auth_token(headers=headers)
 
         if not final_token:
@@ -146,6 +145,21 @@ def register_tools(
 
     #BUSINESS-ORG TOOLS
     @mcp.tool()
+    async def recommend_venues_by_context(
+        context: dict[str, Any],
+        venues: list[dict[str, Any]],
+        limit: int = 10,
+    ) -> dict[str, Any]:
+        """
+        Rank venue candidates for context such as a date, meetup, or budget plan.
+
+        This deterministic AI-style ranker extracts user intent and returns
+        explainable scores without calling external AI APIs.
+        """
+        ranked = rank_venues_by_context(context=context, venues=venues, limit=limit)
+        return _tool_success(result={"items": ranked, "total": len(ranked)})
+
+    @mcp.tool()
     async def get_business_profile(
         business_id: int,
         auth_token: str,
@@ -177,9 +191,7 @@ def register_tools(
         auth_token: str,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Update a business profile after validating allowed fields.
-        """
+        """Update a business profile after validating allowed fields."""
         validation_errors = validate_profile_update(payload)
         if validation_errors:
             return _tool_error("validation failed", validation_errors=validation_errors)
@@ -250,9 +262,7 @@ def register_tools(
         auth_token: str,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Get venue details after verifying that the venue belongs to business_id.
-        """
+        """Get venue details after verifying that the venue belongs to business_id."""
         try:
             venue = _unwrap(
                 await client.get(
@@ -279,9 +289,7 @@ def register_tools(
         auth_token: str,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Update venue details after validation and ownership check.
-        """
+        """Update venue details after validation and ownership check."""
         validation_errors = validate_venue_update(payload)
         if validation_errors:
             return _tool_error("validation failed", validation_errors=validation_errors)
@@ -326,9 +334,7 @@ def register_tools(
         auth_token: str,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        """
-        Update venue hours after validation and ownership check.
-        """
+        """Update venue hours after validation and ownership check."""
         validation_errors = validate_venue_hours(payload)
         if validation_errors:
             return _tool_error("validation failed", validation_errors=validation_errors)

@@ -6,6 +6,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	_ "github.com/ua-academy-projects/share-bite/docs/api/admin-auth"
 	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
+	mcphttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/mcp"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/provider/github"
 )
 
-func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler *adminhttp.Handler, gh github.Handler, authMiddleware gin.HandlerFunc, limiter gin.HandlerFunc) {
+func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler *adminhttp.Handler, mcpHandler *mcphttp.Handler, gh github.Handler, authMiddleware gin.HandlerFunc, limiter gin.HandlerFunc) {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	authGroup := r.Group("/auth")
 	{
@@ -41,9 +42,18 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler
 	}
 	adminGroup := r.Group("/admin").Use(authMiddleware)
 	{
+		adminGroup.GET("/users", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUsersList)
+		adminGroup.GET("/users/:id", middleware.RequireRoles("admin", "moderator"), adminHandler.GetUserDetails)
+		adminGroup.GET("/businesses/pending", middleware.RequireRoles("admin", "moderator"), adminHandler.GetPendingBusinesses)
+		adminGroup.PATCH("/users/:id/role", middleware.RequireRoles("admin"), adminHandler.ChangeUserRole)
+		adminGroup.PATCH("/businesses/:id/review", middleware.RequireRoles("admin", "moderator"), adminHandler.ReviewBusiness)
 		adminGroup.GET("/statistics", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetPlatformStatistics)
-		adminGroup.GET("/users", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetUsersList)
-		adminGroup.GET("/users/:id", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), adminHandler.GetUserDetails)
-		adminGroup.PATCH("/users/:id/role", middleware.RequireRoles(models.RoleAdmin), adminHandler.ChangeUserRole)
+	}
+
+	mcpGroup := r.Group("/mcp").Use(authMiddleware)
+	{
+		mcpGroup.GET("/context", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), mcpHandler.GetContext)
+		mcpGroup.GET("/health", middleware.RequireRoles(models.RoleAdmin, models.RoleModerator), mcpHandler.GetHealth)
+		mcpGroup.POST("/validate-permission", middleware.RequireRoles(models.RoleAdmin), mcpHandler.ValidateAdminPermissions)
 	}
 }
