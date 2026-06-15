@@ -117,9 +117,16 @@ def ensure_venue_owned_by_business(venue_data: dict[str, Any], business_id: int)
 
 def extract_venue_hours_days(venue_data: dict[str, Any]) -> list[dict[str, Any]] | None:
     for key in ("days", "hours", "venueHours", "venue_hours"):
-        if key in venue_data:
-            value = venue_data.get(key)
-            return value if isinstance(value, list) else []
+        if key not in venue_data:
+            continue
+        value = venue_data.get(key)
+        if isinstance(value, list):
+            return value
+
+        if isinstance(value, dict):
+            nested_days = value.get("days")
+            if isinstance(nested_days, list):
+                return nested_days
 
     return None
 
