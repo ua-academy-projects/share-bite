@@ -115,11 +115,14 @@ class GuestAPIClient:
         except httpx.HTTPStatusError as e:
             try:
                 error_payload = e.response.json()
-                parsed_error = (
-                    error_payload.get("message")
-                    or error_payload.get("error")
-                    or "Unknown API Error"
-                )
+                if isinstance(error_payload, dict):
+                    parsed_error = (
+                        error_payload.get("message")
+                        or error_payload.get("error")
+                        or "Unknown API Error"
+                    )
+                else:
+                    parsed_error = f"Unexpected JSON response: {error_payload!r}"
             except ValueError:
                 parsed_error = "Non-JSON response received (possible server fault)"
 

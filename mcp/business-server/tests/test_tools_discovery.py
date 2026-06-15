@@ -128,6 +128,7 @@ def test_get_recommended_venues_success(registered_tools, api_client):
         "skip": 0,
         "limit": 10,
     }
+    assert api_client.get_calls[0]["request_id"] == REQUEST_ID
 
 
 def test_get_recommended_venues_invalid_coords(registered_tools, api_client):
@@ -169,6 +170,7 @@ def test_get_feed_items_success(registered_tools, api_client):
         "skip": 0,
         "limit": 24,
     }
+    assert api_client.get_calls[0]["request_id"] == REQUEST_ID
 
 
 def test_get_feed_items_unauthorized(registered_tools, api_client):
@@ -214,6 +216,7 @@ def test_search_boxes_success(registered_tools, api_client):
         "org_id": 5,
         "category_id": 2,
     }
+    assert api_client.get_calls[0]["request_id"] == REQUEST_ID
 
 
 def test_search_boxes_anonymous(registered_tools, api_client):

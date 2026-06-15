@@ -53,10 +53,10 @@ On failure:
 
 **Parameters:** None.
 
-**Auth:** Bearer token forwarded if present (used for `/swagger/doc.json` which may require auth in some environments).
+**Auth:** Bearer token forwarded if present.
 
 **Edge cases:**
-- Raises `RuntimeError` on 5xx or connection failure — surface as "Business API is currently unavailable."
+- Raises `RuntimeError` on any API error (4xx, 5xx, connection failure) — surface as "Business API is currently unavailable."
 
 ---
 

@@ -20,7 +20,8 @@ The Guest MCP server exposes the **Guest API** (`localhost:3800`) as MCP tools a
 ```
 Common codes: `unauthorized`, `forbidden`, `not_found`, `downstream_failure`.
 
-**Note:** `guest_health_check` and `get_guest_api_status` raise `RuntimeError` on downstream failures (5xx, timeouts) rather than returning a JSON error payload. This is intentional for health-check semantics — a failed health check is an exceptional condition.
+**Edge cases:**
+- Raises `RuntimeError` on any API error (4xx, 5xx, connection failure) — surface as "Guest API is currently unavailable."
 
 ---
 
@@ -313,8 +314,9 @@ Resources are read-only contextual data exposed to the LLM client. They are **no
 **When to surface:** User asks "Why am I seeing this?" or "How do recommendations work?"
 
 **Key facts to relay:**
+- This resource returns **static metadata** about the recommendation algorithm.
 - Algorithm: weighted tag quotas (5-3-2-1-1) with H3 spatial indexing.
-- Requires: `lat`, `lon`, and Bearer token for personalization.
+- The algorithm itself requires `lat`, `lon`, and Bearer token for personalization — but that applies to the **Business MCP** `get_feed_items` tool, not this static resource.
 - Fallback: random nearby posts when no like history exists.
 
 **Note:** This resource is **static**. For personalized recommendations, the user must use the **Business MCP** `get_feed_items` tool (requires `lat`, `lon`, and Bearer token).
