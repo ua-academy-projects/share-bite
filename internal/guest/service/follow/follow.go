@@ -86,5 +86,8 @@ func (s *service) Follow(ctx context.Context, userID, targetCustomerID string) e
 	if s.txManager != nil {
 		return s.txManager.ReadCommitted(ctx, runFollow)
 	}
+	if s.outboxWriter != nil {
+		return fmt.Errorf("follow service misconfigured: txManager is required when outbox publishing is enabled")
+	}
 	return runFollow(ctx)
 }

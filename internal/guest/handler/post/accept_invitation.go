@@ -15,14 +15,14 @@ import (
 //	@Tags			guest-posts
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			invitationId	path		string	true	"Invitation ID"
+//	@Param			id	path		string	true	"Invitation ID"
 //	@Success		204				"No Content"
 //	@Failure		400	{object}	response.ErrorResponse
 //	@Failure		401	{object}	response.ErrorResponse
 //	@Failure		403	{object}	response.ErrorResponse
 //	@Failure		404	{object}	response.ErrorResponse
 //	@Failure		500	{object}	response.ErrorResponse
-//	@Router			/posts/invitations/{invitationId}/accept [post]
+//	@Router			/posts/invitations/{id}/accept [post]
 func (h *handler) acceptInvitation(c *gin.Context) {
 	customer, err := h.getAuthenticatedCustomer(c)
 	if err != nil {
