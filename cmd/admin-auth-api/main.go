@@ -15,13 +15,14 @@ import (
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
+	healthhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/health"
 	mcphttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/mcp"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
+	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
 	"github.com/ua-academy-projects/share-bite/pkg/redis"
 	"github.com/ua-academy-projects/share-bite/pkg/resilience"
-	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"go.uber.org/zap"
 
 	authhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
@@ -197,6 +198,8 @@ func main() {
 	mcpSvc := mcpsvc.NewMCPPermissionService(adminRepo)
 	mcpHandler := mcphttp.NewHandler(mcpSvc)
 
+	healtHandler := healthhttp.NewHandler()
+
 	limiter := adminmw.NewAuthRecoveryLimiter(
 		cfg.RateLimit.AuthRecoverRequests(),
 		cfg.RateLimit.AuthRecoverDuration(),
@@ -212,7 +215,7 @@ func main() {
 	sessionStore := gh.NewJWTSessionStore(tokenManager)
 	ghHandler := gh.NewHandler(ghConfig, userRepo, sessionStore, txManager)
 
-	routers.SetupRouter(router.Group("/"), authHandler, adminHandler, mcpHandler, *ghHandler, authMw, limiter)
+	routers.SetupRouter(router.Group("/"), authHandler, adminHandler, mcpHandler, healtHandler, *ghHandler, authMw, limiter)
 
 	go func() {
 		addr := cfg.AdminHttpServer.Address()
