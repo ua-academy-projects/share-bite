@@ -242,7 +242,7 @@ To remove the business-api deployment:
 ```bash
 kubectl delete deployment admin-auth-api -n share-bite-local
 kubectl delete service admin-auth-api -n share-bite-local
-kubectl delete configmap share-bite-business-config -n share-bite-local
+kubectl delete configmap admin-auth-config -n share-bite-local
 ```
 
 To remove the entire namespace (careful—this removes all services):
