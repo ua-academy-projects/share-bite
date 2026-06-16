@@ -21,7 +21,7 @@ spec:
       containers:
         - name: admin-auth-api
           image: admin-auth-api:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

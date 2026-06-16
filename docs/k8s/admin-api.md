@@ -29,11 +29,11 @@ Refer to [local-kubernetes.md](./local-kubernetes.md) for initial cluster setup 
 
 The `deploy/k8s/admin-auth/` directory contains:
 
-```
+```text
 deploy/k8s/admin-auth/
-├── auth-deployment.yaml      # Deployment specification (with Always pull policy)
-├── auth-service.yaml         # Service definition (port 3850)
-├── auth-configmap.yaml       # Admin Auth local configuration overrides
+├── admin-auth-deployment.yaml      # Deployment specification (with Always pull policy)
+├── admin-auth-service.yaml         # Service definition (port 3850)
+├── admin-auth-configmap.yaml       # Admin Auth local configuration overrides
 └── kustomization.yaml        # Kustomize configuration file
 ```
 
@@ -86,7 +86,7 @@ kubectl create secret generic share-bite-secrets \
 ## Deployment Order
 
 > [!IMPORTANT]
-> The **shared migrator Job must be applied and completed successfully** before deploying the business-api Deployment.
+> The **shared migrator Job must be applied and completed successfully** before deploying the admin-auth-api Deployment.
 > Database migrations must run first to ensure the schema is ready.
 
 ### Step 1: Deploy admin-auth-api
@@ -118,7 +118,7 @@ kubectl rollout restart deployment admin-auth-api -n share-bite-local
 
 ### Step 3: Wait for Stability
 
-Monitor the rolling update cycle to ensure zero downtime transitions:
+Monitor the rolling update cycle to ensure zero-downtime transitions:
 
 ```bash
 kubectl rollout status deployment/admin-auth-api -n share-bite-local --timeout=90s
@@ -136,7 +136,7 @@ kubectl get pods -n share-bite-local -l app=admin-auth-api
 
 Expected output:
 
-```
+```text
 NAME                              READY   STATUS    RESTARTS   AGE
 admin-auth-api-6799986fd9-mdxwn   1/1     Running   0          45s
 ```
@@ -157,7 +157,7 @@ kubectl port-forward deployment/admin-auth-api -n share-bite-local 3850:3850
 
 You should see:
 
-```
+```text
 Forwarding from 127.0.0.1:3850 -> 3850
 ```
 
@@ -177,14 +177,14 @@ Content-Type: application/json; charset=utf-8
 Date: Tue, 16 Jun 2026 12:00:00 GMT
 Content-Length: 15
 
-{"status":"ok"}
+{"status":"healthy"}
 
 **B. Authenticated Login/Registration Flow Discovery**
 Verify that routing groups (/auth) are working properly by making a sample payload request to registration:
 ``` bash
 curl -i -X POST http://localhost:3850/auth/register \
 -H "Content-Type: application/json" \
--d '{"email":"test-user@sharebite.com", "slug":"user", password":"securepassword123"}'
+-d '{"email":"test-user@sharebite.com", "slug":"user","password":"securepassword123"}'
 ```
 ## Troubleshooting
 
@@ -218,7 +218,7 @@ PGPASSWORD=bite psql -h 127.0.0.1 -U share -d share-bite -c "SELECT 1"
 
 ### Migrations Not Run Before Deployment
 
-If you accidentally deployed business-api before migrations:
+If you accidentally deployed admin-auth-api before migrations:
 
 1. Delete the failed deployment:
    ```bash
@@ -237,7 +237,7 @@ If you accidentally deployed business-api before migrations:
 
 ## Teardown
 
-To remove the business-api deployment:
+To remove the admin-auth-api deployment:
 
 ```bash
 kubectl delete deployment admin-auth-api -n share-bite-local
