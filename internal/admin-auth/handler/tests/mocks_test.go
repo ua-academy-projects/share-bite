@@ -31,6 +31,19 @@ type MockAdminService struct {
 	mock.Mock
 }
 
+func (m *MockAdminService) GetPendingBusinessesList(ctx context.Context, limit, offset int) (*dto.PaginatedPendingBusinessesResponse, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.PaginatedPendingBusinessesResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockAdminService) ReviewBusinessStatus(ctx context.Context, params dto.ReviewBusinessParams) error {
+	args := m.Called(ctx, params)
+	return args.Error(0)
+}
+
 func (m *MockAdminService) GetUserDetails(ctx context.Context, userID string) (*dto.FullUserDetails, error) {
 	args := m.Called(ctx, userID)
 	if args.Get(0) != nil {
@@ -50,6 +63,14 @@ func (m *MockAdminService) GetUsersList(ctx context.Context, filter dto.AdminUse
 func (m *MockAdminService) ChangeUserRole(ctx context.Context, targetUserID string, newRoleSlug string) error {
 	args := m.Called(ctx, targetUserID, newRoleSlug)
 	return args.Error(0)
+}
+
+func (m *MockAdminService) GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error) {
+	args := m.Called(ctx)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.PlatformStatisticsResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *mockUserRepository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {

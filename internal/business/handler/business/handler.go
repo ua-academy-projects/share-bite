@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"mime/multipart"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -68,6 +70,15 @@ type businessService interface {
 	DeleteOrg(ctx context.Context, id int, orgAccountID uuid.UUID) error
 	ListNearbyVenues(ctx context.Context, lat, lon float64, skip, limit int) (pagination.Result[entity.OrgUnitWithDistance], error)
 	SearchVenues(ctx context.Context, query string, skip, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
+	ResubmitVerification(ctx context.Context, id int, userID string) error
+	GetOnboardingContext(ctx context.Context, userID string) (brandID int, venueID int, err error)
+	UpdateVenueHours(ctx context.Context, locationID int, ownerUserID string, in dto.UpdateVenueHoursInput) (*dto.UpdateVenueHoursOutput, error)
+
+	GetDailySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID) (entity.DailySummary, error)
+	GetReservationSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.ReservationSummary, error)
+	GetVenueActivitySummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID int) (entity.VenueActivitySummary, error)
+	GetFoodBoxPerformance(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.BoxPerformance, error)
+	GetEngagementSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.EngagementSummary, error)
 }
 
 func RegisterHandlers(
@@ -81,7 +92,11 @@ func RegisterHandlers(
 		storage: st,
 	}
 
+	r.GET("/healthz", h.healthz)
+	r.GET("/ready", h.ready)
+
 	auth := middleware.Auth(parser)
+	r.GET("/me", auth, middleware.RequireRoles(RoleBusiness), h.getMe)
 	r.GET("/:id", h.getOrgUnit)
 
 	orgUnits := r.Group("/org-units")
@@ -124,6 +139,7 @@ func RegisterHandlers(
 		orgMutations.PUT("/:id", h.updateOrgUnit)
 		orgMutations.PATCH("/:id", h.updateOrgUnit)
 		orgMutations.DELETE("/:id", h.deleteOrgUnit)
+		orgMutations.POST("/:id/resubmit", h.resubmitVerification)
 	}
 
 	businessLocations := r.Group("").
@@ -134,6 +150,7 @@ func RegisterHandlers(
 		businessLocations.POST("/:id/locations", h.createLocation)
 		businessLocations.PATCH("/locations/:id", h.updateLocation)
 		businessLocations.DELETE("/locations/:id", h.deleteLocation)
+		businessLocations.PATCH("/locations/:id/hours", h.updateVenueHours)
 	}
 
 	boxes := r.Group("/boxes").
@@ -159,13 +176,37 @@ func RegisterHandlers(
 	{
 		reservations.PATCH("/:boxID/reserve", h.reserveBox)
 	}
+
+	analytics := r.Group("/analytics").
+		Use(auth).
+		Use(middleware.RequireRoles(RoleBusiness)).
+		Use(common_middleware.RequireWritableAccountStatus())
+	{
+		analytics.GET("/daily-summary", h.GetDailySummary)
+		analytics.GET("/reservation-summary", h.GetReservationSummary)
+		analytics.GET("/food-box-performance", h.GetFoodBoxPerformance)
+		analytics.GET("/engagement-summary", h.GetEngagementSummary)
+		analytics.GET("/venues/:venue_id/activity", h.GetVenueActivitySummary)
+	}
 }
 
 type errorResponse struct {
 	Error string `json:"error" example:"not found"`
 }
 
-type CreateBoxResponse struct {
-	ID      int64  `json:"id"`
-	Message string `json:"message"`
+func (h *handler) healthz(c *gin.Context) {
+	c.JSON(http.StatusOK, nil)
+}
+
+func (h *handler) ready(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	_, err := h.service.ListLocationTags(ctx)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service not ready"})
+		return
+	}
+
+	c.JSON(http.StatusOK, nil)
 }

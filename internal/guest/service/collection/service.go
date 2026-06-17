@@ -68,6 +68,7 @@ type customerRepository interface {
 
 type businessClient interface {
 	ListVenuesByIDs(ctx context.Context, venueIDs []int64) (map[int64]entity.Venue, error)
+	CheckExists(ctx context.Context, venueID int64) (bool, error)
 }
 
 type service struct {

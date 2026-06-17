@@ -39,6 +39,7 @@ type BoxWithDistance struct {
 	Box               Box
 	AvailabilityCount int
 	Distance          float64
+	VenueStatus       OrgStatus
 }
 
 func (b BoxWithDistance) AvailabilityStatus() Status {

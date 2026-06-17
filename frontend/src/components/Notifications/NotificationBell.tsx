@@ -1,90 +1,130 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../../api/client';
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Bell } from "lucide-react";
+import { fetchNotifications } from "@/api/notifications";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { pageLinkAccent } from "@/components/layout/pageStyles";
+import { cn } from "@/lib/utils";
 
-export const NotificationBell: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+type NotificationBellProps = {
+  variant?: "default" | "compact";
+};
 
-  const { data: notifications } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: () => apiClient.getNotifications(),
+export function NotificationBell({ variant = "default" }: NotificationBellProps) {
+  const token = localStorage.getItem("token");
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => fetchNotifications(token!, 20),
     refetchInterval: 30000,
     refetchIntervalInBackground: false,
-    enabled: !!localStorage.getItem('token'),
+    enabled: !!token,
   });
 
-  const unreadCount = notifications?.items?.filter((n: any) => !n.read).length || 0;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const formatMessage = (n: (typeof notifications)[0]) =>
+    n.message ||
+    (n.metadata && typeof n.metadata === "object"
+      ? String((n.metadata as Record<string, unknown>).message || "")
+      : "") ||
+    "You have a new notification";
+
+  const formatDate = (n: (typeof notifications)[0]) => {
+    const raw = n.createdAt;
+    return raw ? new Date(raw).toLocaleDateString() : "";
+  };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center gap-2 bg-accent text-accent-foreground hover:bg-[#e6c200] dark:hover:bg-accent/90 font-bold px-4 py-2 rounded-full shadow-md dark:shadow-lg dark:shadow-accent/20 transition-all hover:scale-105"
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size={variant === "compact" ? "icon-sm" : "sm"}
+          className={cn(
+            "relative shrink-0",
+            variant === "compact"
+              ? "h-8 w-8 rounded-full text-gray-400 hover:bg-[#2f5e50]/40 hover:text-[#98FF98]"
+              : "rounded-full bg-[#FFD700]/15 text-[#FFD700] hover:bg-[#FFD700]/25"
+          )}
+          aria-label="Notifications"
+        >
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="right"
+        align="start"
+        sideOffset={12}
+        collisionPadding={16}
+        className="w-80 gap-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-0 shadow-lg dark:border-[#2f5e50] dark:bg-[#163d32]"
       >
-        <Bell size={18} />
-        <span className="text-sm">Notifications</span>
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-background">
-            {unreadCount > 99 ? '99+' : unreadCount}
+        <PopoverHeader className="flex flex-row items-center justify-between gap-2 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Bell size={18} className="text-emerald-500 dark:text-[#98FF98]" />
+            <PopoverTitle className="text-sm font-semibold text-[#1A3C34] dark:text-white">
+              Notifications
+            </PopoverTitle>
+          </div>
+          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-300">
+            {unreadCount} new
           </span>
-        )}
-      </button>
+        </PopoverHeader>
 
-      {/* Dropdown Content */}
-      {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 bg-popover border border-border rounded-3xl shadow-2xl overflow-hidden z-50 transform origin-top-right transition-all animate-in fade-in slide-in-from-top-4">
-          <div className="p-5 border-b border-border bg-muted/30 backdrop-blur-md flex justify-between items-center">
-            <h3 className="text-2xl font-serif font-bold text-accent">Latest Stories</h3>
-            <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">{unreadCount} New</span>
-          </div>
-          <div className="max-h-80 overflow-y-auto">
-            {(!notifications?.items?.length) ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <Bell className="mx-auto mb-3 opacity-20" size={32} />
-                <p className="font-semibold text-sm">No new notifications</p>
-                <p className="text-xs mt-1 opacity-70">You're all caught up!</p>
-              </div>
-            ) : (
-              notifications.items.map((notification: any) => (
-                <Link key={notification.id} to="/notifications" className="block p-4 border-b border-border hover:bg-muted/40 transition-colors group">
-                  <div className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-accent font-bold text-xs">
-                        {notification.type === 'like' ? '♥' : notification.type === 'comment' ? '💬' : '🔔'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-foreground font-medium leading-tight group-hover:text-primary transition-colors">
-                        {notification.content || "You have a new notification"}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1 font-semibold">
-                        {new Date(notification.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-          <Link to="/notifications" className="block w-full text-center p-3 text-sm font-bold text-accent hover:bg-accent hover:text-accent-foreground transition-colors bg-muted/80">
-            View All Notifications
-          </Link>
+        <div className="max-h-80 overflow-y-auto border-t border-gray-200 dark:border-[#2f5e50]">
+          {notifications.length === 0 ? (
+            <div className="px-5 py-10 text-center">
+              <Bell className="mx-auto mb-3 h-10 w-10 text-gray-400 opacity-30 dark:text-gray-500" />
+              <p className="text-sm font-semibold text-[#1A3C34] dark:text-gray-200">
+                No notifications yet
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                When you get notifications, they&apos;ll show up here.
+              </p>
+            </div>
+          ) : (
+            notifications.map((notification) => (
+              <Link
+                key={String(notification.id)}
+                to="/notifications"
+                className={cn(
+                  "block border-b border-gray-200 px-5 py-3 transition-colors last:border-b-0 hover:bg-gray-50 dark:border-[#2f5e50] dark:hover:bg-[#0d241d]/60",
+                  !notification.read && "bg-emerald-500/5 dark:bg-[#98FF98]/5"
+                )}
+              >
+                <p className="text-sm leading-snug text-[#1A3C34] dark:text-white">
+                  {formatMessage(notification)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {formatDate(notification)}
+                </p>
+              </Link>
+            ))
+          )}
         </div>
-      )}
-    </div>
+
+        <Link
+          to="/notifications"
+          className={cn(
+            pageLinkAccent,
+            "block border-t border-gray-200 px-5 py-3 text-center text-sm dark:border-[#2f5e50]"
+          )}
+        >
+          View all notifications
+        </Link>
+      </PopoverContent>
+    </Popover>
   );
-};
+}

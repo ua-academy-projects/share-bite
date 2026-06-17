@@ -18,6 +18,7 @@ type venueResponse struct {
 	Description *string `json:"description" example:"A cozy place in the city center."`
 	Avatar      *string `json:"avatar" example:"https://cdn.example.com/avatar.png"`
 	Banner      *string `json:"banner" example:"https://cdn.example.com/banner.png"`
+	Status      string  `json:"status" example:"verified"`
 }
 
 // getVenuesByIDs returns venues by their IDs.
@@ -57,6 +58,7 @@ func (h *handler) getVenuesByIDs(c *gin.Context) {
 			Description: v.Description,
 			Avatar:      v.Avatar,
 			Banner:      v.Banner,
+			Status:      string(v.Status),
 		})
 	}
 

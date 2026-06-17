@@ -58,6 +58,7 @@ var (
 	ErrStatusNotAllowedRole  = New(http.StatusForbidden, "status change is not allowed for this role")
 	ErrForbiddenStatusRead   = New(http.StatusForbidden, "forbidden to read user status")
 	ErrForbiddenEmailRead    = New(http.StatusForbidden, "forbidden to read user email")
+	ErrBusinessNotFound      = New(http.StatusNotFound, "business not found")
 )
 
 func UserNotFoundEmail(email string) *AppError {

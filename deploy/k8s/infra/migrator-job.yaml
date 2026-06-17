@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: share-bite-migrator
+  namespace: share-bite-local
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 1000
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:18
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          command:
+            - sh
+            - -c
+            - |
+              i=0
+              until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
+                i=$((i+1))
+                if [ "$i" -ge 90 ]; then
+                  echo "postgres not ready after 180s"
+                  exit 1
+                fi
+                echo "waiting for postgres..."
+                sleep 2
+              done
+          envFrom:
+            - configMapRef:
+                name: share-bite-infra-config
+            - secretRef:
+                name: share-bite-secrets
+      containers:
+        - name: migrator
+          image: migrator:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          envFrom:
+            - configMapRef:
+                name: share-bite-infra-config
+            - secretRef:
+                name: share-bite-secrets

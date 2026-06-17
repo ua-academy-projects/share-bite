@@ -1,5 +1,11 @@
 # Share Bite
 
+## Kubernetes (local)
+
+For local cluster setup (k3s, Podman Desktop, Docker Desktop), infrastructure manifests, migration flow, and troubleshooting, see:
+
+- [docs/k8s/local-kubernetes.md](docs/k8s/local-kubernetes.md)
+
 ## How to Run Locally
 
 ### 1. Configuration
@@ -138,6 +144,23 @@ NOTIFICATION_SQS_ENDPOINT_URL=http://localhost:4566
 If you are using localstack, create the queue in the `notifications-service` consumer path and keep the SSE/UI queue separated as in Terraform.
 
 If you deploy infrastructure with Terraform, export the queue URL from the outputs and point the service at the SSE queue.
+
+### Web UI (optional)
+
+```bash
+make s3-ui
+```
+
+Open http://localhost:4309
+
+### Notifications test page
+
+The frontend includes a notifications lab at `/notifications-lab`.
+Use it in two browsers with two different bearer tokens to:
+
+1. Open an SSE stream for the author account.
+2. Like a post from another account.
+3. Watch the author receive the notification with enriched `actor_name` and `actor_avatar`.
 
 ### 8. Code Generation & API Clients
 

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: share-bite-business-config
+  namespace: share-bite-local
+data:
+  H3_RESOLUTION: "7"
+  H3_RECOMMEND_RADIUS: "2"
+  BUSINESS_HTTP_SERVER_ALLOWED_ORIGINS: "*"
+  BUSINESS_HTTP_SERVER_ALLOWED_METHODS: "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"
+  BUSINESS_HTTP_SERVER_ALLOWED_HEADERS: "Origin,Content-Type,Accept,Authorization"
+  BUSINESS_HTTP_SERVER_EXPOSE_HEADERS: "Content-Length"

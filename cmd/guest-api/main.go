@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
+	"github.com/ua-academy-projects/share-bite/internal/guest/handler/observability"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -328,6 +329,7 @@ func main() {
 		storageClient,
 	)
 	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
+	observability.RegisterHandlers(router.Group("/"), authMiddleware, client, rdb)
 
 	go func() {
 		logger.Info(ctx, "guest http server is running")

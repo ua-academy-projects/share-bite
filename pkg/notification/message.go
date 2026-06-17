@@ -11,8 +11,10 @@ type EventType string
 const (
 	PostLiked              EventType = "post_liked"
 	RegistrationConfirmed  EventType = "registration_confirmed"
-	PasswordResetRequested EventType = "password_reset_requested"
 	InvitationReceived     EventType = "invitation_received"
+	BusinessVerified       EventType = "business_verified"
+	BusinessRejected       EventType = "business_rejected"
+	PasswordResetRequested EventType = "password_reset_requested"
 
 	PostPublished          EventType = "post_published"
 	PostInvitationAccepted EventType = "post_invitation_accepted"
