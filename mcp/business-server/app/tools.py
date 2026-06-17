@@ -191,7 +191,13 @@ def register_tools(
         auth_token: str,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        """Update a business profile after validating allowed fields."""
+        """
+        Update a business profile after validating allowed fields.
+
+        Side effects: updates business profile fields in Business API.
+        Required permission: business:profile:update.
+        Auth: forwards caller bearer token to Business API.
+        """
         validation_errors = validate_profile_update(payload)
         if validation_errors:
             return _tool_error("validation failed", validation_errors=validation_errors)
@@ -289,7 +295,13 @@ def register_tools(
         auth_token: str,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        """Update venue details after validation and ownership check."""
+        """
+        Update venue details after validation and ownership check.
+
+        Side effects: updates venue fields in Business API.
+        Required permission: business:venue:update.
+        Auth: forwards caller bearer token to Business API.
+        """
         validation_errors = validate_venue_update(payload)
         if validation_errors:
             return _tool_error("validation failed", validation_errors=validation_errors)
@@ -334,7 +346,13 @@ def register_tools(
         auth_token: str,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        """Update venue hours after validation and ownership check."""
+        """
+        Update venue hours after validation and ownership check.
+
+        Side effects: replaces venue weekly opening hours in Business API.
+        Required permission: business:venue-hours:update.
+        Auth: forwards caller bearer token to Business API.
+        """
         validation_errors = validate_venue_hours(payload)
         if validation_errors:
             return _tool_error("validation failed", validation_errors=validation_errors)
