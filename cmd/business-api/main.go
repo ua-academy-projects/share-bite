@@ -19,7 +19,7 @@ import (
 	apperror "github.com/ua-academy-projects/share-bite/internal/business/error"
 	"github.com/ua-academy-projects/share-bite/internal/business/error/code"
 	"github.com/ua-academy-projects/share-bite/internal/business/handler/business"
-	notifhandler "github.com/ua-academy-projects/share-bite/internal/business/handler/notification" // 💡 Чіткий імпорт пакета сповіщень
+	notifhandler "github.com/ua-academy-projects/share-bite/internal/business/handler/notification"
 	businessrepo "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 	businesssvc "github.com/ua-academy-projects/share-bite/internal/business/service/business"
 	"github.com/ua-academy-projects/share-bite/internal/config"
@@ -28,6 +28,8 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
+	admingateway "github.com/ua-academy-projects/share-bite/pkg/gateway/admin"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
 	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
 	h3 "github.com/ua-academy-projects/share-bite/pkg/aws"
@@ -165,7 +167,26 @@ func main() {
 		Resolution:      config.Config().H3.Resolution(),
 		RecommendRadius: config.Config().H3.RecommendRadius(),
 	}
-	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service, h3Settings)
+	outboxWriter := outbox.NewWriter(client.DB())
+
+	adminResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     200 * time.Millisecond,
+			RandomizationFactor: 0.25,
+			Multiplier:          2,
+			MaxInterval:         2 * time.Second,
+			MaxElapsedTime:      8 * time.Second,
+		},
+	}
+
+	adminGateway := admingateway.New(
+		config.Config().AdminHttpServer.Address(),
+		"/",
+		"http",
+		&adminResiliencePolicy,
+	)
+
+	businessSvc := businesssvc.New(businessRepo, txManager, storageClient, h3Service, h3Settings, outboxWriter, adminGateway)
 
 	tokenManager := jwt.NewTokenManager(
 		config.Config().JwtToken.AccessTokenSecretKey(),
@@ -177,7 +198,7 @@ func main() {
 	authMw := middleware.Auth(tokenManager)
 
 	// handlers
-  business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient)
+	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient)
 	notifhandler.RegisterHandlers(router.Group("/business"), notifHub, authMw)
 
 	go func() {

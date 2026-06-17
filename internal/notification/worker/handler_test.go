@@ -119,7 +119,8 @@ func TestHandler_HandleBatch_PartialFailure(t *testing.T) {
 		EntityID:    "post-123",
 		CreatedAt:   time.Now(),
 		Metadata: map[string]any{
-			"email": "test@example.com",
+			"email":    "test@example.com",
+			"username": "test-user",
 		},
 	}
 
@@ -267,4 +268,50 @@ func TestHandler_HandleBatch_FromFixtures(t *testing.T) {
 	assert.True(t, processed)
 	assert.Len(t, response.BatchItemFailures, 1)
 	assert.Equal(t, "msg-002", response.BatchItemFailures[0].ItemIdentifier)
+}
+
+func TestHandler_HandleBatch_PasswordResetEvent(t *testing.T) {
+	t.Parallel()
+
+	event := notification.Message{
+		EventID:     "reset-event-123",
+		EventType:   notification.PasswordResetRequested,
+		RecipientID: "user-42",
+		ActorID:     "user-42",
+		EntityType:  "user",
+		EntityID:    "user-42",
+		CreatedAt:   time.Now(),
+		Metadata: map[string]any{
+			"email":       "test@example.com",
+			"reset_token": "token-123",
+		},
+	}
+
+	body, err := json.Marshal(event)
+	require.NoError(t, err)
+
+	sqsEvent := events.SQSEvent{
+		Records: []events.SQSMessage{{
+			MessageId:     "msg-reset",
+			ReceiptHandle: "handle-reset",
+			Body:          string(body),
+		}},
+	}
+
+	processed := false
+	validator := worker.NewDefaultValidator(notification.RegistrationConfirmed, notification.PasswordResetRequested)
+	processor := &mockProcessor{
+		processFn: func(ctx context.Context, e notification.Message) error {
+			processed = true
+			assert.Equal(t, notification.PasswordResetRequested, e.EventType)
+			return nil
+		},
+	}
+
+	h := worker.New(validator, processor)
+	response, err := h.HandleBatch(context.Background(), sqsEvent)
+
+	require.NoError(t, err)
+	assert.True(t, processed)
+	assert.Empty(t, response.BatchItemFailures)
 }

@@ -12,7 +12,7 @@ async def test_get_guest_api_status_all_connected(mock_guest_api):
     """Returns parsed JSON with all components connected when Guest API responds with 200."""
     mock_guest_api.get("/status").mock(return_value=build_status_response())
 
-    result = await get_guest_api_status()
+    result = await get_guest_api_status(None)
     data = json.loads(result)
 
     assert data == {"app": "share-bite", "database": "connected", "redis": "connected"}
@@ -26,7 +26,7 @@ async def test_get_guest_api_status_db_disconnected(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="503"):
-        await get_guest_api_status()
+        await get_guest_api_status(None)
 
 
 @pytest.mark.asyncio
@@ -37,7 +37,7 @@ async def test_get_guest_api_status_redis_disconnected(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="503"):
-        await get_guest_api_status()
+        await get_guest_api_status(None)
 
 
 @pytest.mark.asyncio
@@ -48,7 +48,7 @@ async def test_get_guest_api_status_unauthorized(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="401"):
-        await get_guest_api_status()
+        await get_guest_api_status(None)
 
 
 @pytest.mark.asyncio
@@ -59,7 +59,7 @@ async def test_get_guest_api_status_connection_error(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="Failed to connect"):
-        await get_guest_api_status()
+        await get_guest_api_status(None)
 
 
 @pytest.mark.asyncio
@@ -68,4 +68,4 @@ async def test_get_guest_api_status_timeout(mock_guest_api):
     mock_guest_api.get("/status").mock(side_effect=httpx.TimeoutException("Timed out"))
 
     with pytest.raises(RuntimeError, match="timed out"):
-        await get_guest_api_status()
+        await get_guest_api_status(None)

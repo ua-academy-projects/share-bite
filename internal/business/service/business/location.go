@@ -14,7 +14,7 @@ import (
 	repository "github.com/ua-academy-projects/share-bite/internal/business/repository/business"
 )
 
-const ( 
+const (
 	maxLocationTags = 5
 	hoursTimeLayout = "15:04"
 )

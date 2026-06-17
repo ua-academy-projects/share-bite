@@ -10,8 +10,76 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
+
+func TestCreate_EmailResolutionFailures(t *testing.T) {
+	t.Parallel()
+
+	var (
+		userID    = gofakeit.UUID()
+		email     = gofakeit.Email()
+		userName  = gofakeit.Username()
+		firstName = gofakeit.Person().FirstName
+		lastName  = gofakeit.Person().LastName
+	)
+
+	tests := []struct {
+		name       string
+		ctx        context.Context
+		setupAdmin func(adminClient *mockEmailClient, input entity.CreateCustomer)
+		wantErrMsg string
+	}{
+		{
+			name:       "missing access token",
+			ctx:        context.Background(),
+			wantErrMsg: "missing access token to resolve customer email",
+		},
+		{
+			name: "admin email lookup fails",
+			ctx:  context.WithValue(context.Background(), middleware.CtxAccessToken, "access-token"),
+			setupAdmin: func(adminClient *mockEmailClient, input entity.CreateCustomer) {
+				emailErr := errors.New("admin email lookup failed")
+				adminClient.On("GetUserEmail", mock.Anything, input.UserID, "access-token").Return("", emailErr).Once()
+			},
+			wantErrMsg: "admin email lookup failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			repo := new(mockCustomerRepository)
+			outboxWriter := new(mockOutboxWriter)
+			txManager := new(mockTxManager)
+			adminClient := new(mockEmailClient)
+			svc := New(repo, outboxWriter, txManager, adminClient)
+
+			input := entity.CreateCustomer{
+				UserID:    userID,
+				Email:     email,
+				UserName:  userName,
+				FirstName: firstName,
+				LastName:  lastName,
+			}
+
+			if tt.setupAdmin != nil {
+				tt.setupAdmin(adminClient, input)
+			}
+
+			_, err := svc.Create(tt.ctx, input)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErrMsg)
+
+			repo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+			outboxWriter.AssertNotCalled(t, "Enqueue", mock.Anything, mock.Anything)
+			txManager.AssertNotCalled(t, "ReadCommitted", mock.Anything, mock.Anything)
+			adminClient.AssertExpectations(t)
+		})
+	}
+}
 
 func TestCreate(t *testing.T) {
 	t.Parallel()
@@ -20,10 +88,11 @@ func TestCreate(t *testing.T) {
 		customerID = gofakeit.UUID()
 		userID     = gofakeit.UUID()
 
-		email     = gofakeit.Email()
-		userName  = gofakeit.Username()
-		firstName = gofakeit.Person().FirstName
-		lastName  = gofakeit.Person().LastName
+		email      = gofakeit.Email()
+		adminEmail = gofakeit.Email()
+		userName   = gofakeit.Username()
+		firstName  = gofakeit.Person().FirstName
+		lastName   = gofakeit.Person().LastName
 
 		bio = gofakeit.Person().Hobby
 
@@ -93,9 +162,14 @@ func TestCreate(t *testing.T) {
 			repo := new(mockCustomerRepository)
 			outboxWriter := new(mockOutboxWriter)
 			txManager := new(mockTxManager)
-			svc := New(repo, outboxWriter, txManager)
+			adminClient := new(mockEmailClient)
+			svc := New(repo, outboxWriter, txManager, adminClient)
+
+			ctx := context.WithValue(context.Background(), middleware.CtxAccessToken, "access-token")
 
 			txManager.On("ReadCommitted", mock.Anything, mock.Anything).Return(nil)
+
+			adminClient.On("GetUserEmail", mock.Anything, tt.input.UserID, "access-token").Return(adminEmail, nil).Once()
 
 			if tt.wantErr == nil {
 				outboxWriter.On("Enqueue", mock.Anything, mock.MatchedBy(func(event outbox.Event) bool {
@@ -104,13 +178,13 @@ func TestCreate(t *testing.T) {
 						event.EventType == outbox.EventTypeRegistrationConfirmed &&
 						message.EventType == outbox.EventTypeRegistrationConfirmed &&
 						message.RecipientID == tt.input.UserID &&
-						message.Metadata["email"] == tt.input.Email &&
+						message.Metadata["email"] == adminEmail &&
 						message.Metadata["username"] == tt.input.UserName
 				})).Return(nil).Once()
 			}
 			tt.mockFn(repo)
 
-			createdID, err := svc.Create(context.Background(), tt.input)
+			createdID, err := svc.Create(ctx, tt.input)
 
 			if tt.wantErr != nil {
 				require.Error(t, err)
@@ -121,6 +195,7 @@ func TestCreate(t *testing.T) {
 
 			assert.Equal(t, tt.wantID, createdID)
 			repo.AssertExpectations(t)
+			adminClient.AssertExpectations(t)
 			outboxWriter.AssertExpectations(t)
 			txManager.AssertExpectations(t)
 		})

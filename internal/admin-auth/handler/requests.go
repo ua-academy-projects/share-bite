@@ -46,6 +46,9 @@ type UserStatusResponse struct {
 	Status string `json:"status"`
 }
 
+type EmailResponse struct {
+	Email string `json:"email"`
+}
 type MessageResponse struct {
 	Message string `json:"message"`
 }

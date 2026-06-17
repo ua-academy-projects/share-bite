@@ -59,6 +59,7 @@ func RegisterHandlers(
 
 	r.GET("/", middleware.CustomerID(h.customerService), h.list)
 	r.GET("/:id", middleware.CustomerID(h.customerService), h.get)
+	r.GET("/:id/authors", middleware.CustomerID(h.customerService), h.getAuthors)
 
 	protected := r.Group("/").Use(authMiddleware)
 	protected.POST("/", h.create)

@@ -6,46 +6,57 @@ import (
 	"time"
 
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
+	"github.com/ua-academy-projects/share-bite/internal/middleware"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 func (s *service) Create(ctx context.Context, in entity.CreateCustomer) (string, error) {
+	authToken, ok := ctx.Value(middleware.CtxAccessToken).(string)
+	if !ok || authToken == "" {
+		return "", fmt.Errorf("missing access token to resolve customer email")
+	}
+
+	email, err := s.adminClient.GetUserEmail(ctx, in.UserID, authToken)
+	if err != nil {
+		return "", fmt.Errorf("get customer email: %w", err)
+	}
+
 	var customerID string
-	err := s.txManager.ReadCommitted(ctx, func(ctx context.Context) error {
+	err = s.txManager.ReadCommitted(ctx, func(txCtx context.Context) error {
 		var err error
-		customerID, err = s.customerRepo.Create(ctx, in)
+		customerID, err = s.customerRepo.Create(txCtx, in)
 		if err != nil {
 			return fmt.Errorf("create customer in repo: %w", err)
 		}
 
-		if s.outboxWriter != nil {
-			event := outbox.Event{
-				EventType: outbox.EventTypeRegistrationConfirmed,
-				Payload: outbox.Message{
-					EventID:     outbox.NewEventID(customerID, in.Email),
-					EventType:   outbox.EventTypeRegistrationConfirmed,
-					RecipientID: in.UserID,
-					// TODO: Enrich email from admin-auth endpoint instead of passing it here.
-					// This avoids leaking email in the customer struct and keeps auth data centralized.
-					Metadata: map[string]any{
-						"email":    in.Email,
-						"username": in.UserName,
-					},
-					CreatedAt: time.Now().UTC(),
-				},
-				SourceService: outbox.DefaultSourceService,
-			}
+		metadata := map[string]any{
+			"username": in.UserName,
+			"email":    email,
+		}
 
-			if err := s.outboxWriter.Enqueue(ctx, event); err != nil {
-				return fmt.Errorf("failed to enqueue registration_confirmed outbox event: %w", err)
-			}
+		event := outbox.Event{
+			EventType: outbox.EventTypeRegistrationConfirmed,
+			Payload: outbox.Message{
+				EventID:     outbox.NewEventID(customerID, email),
+				EventType:   outbox.EventTypeRegistrationConfirmed,
+				RecipientID: in.UserID,
+				ActorID:     in.UserID,
+				EntityType:  "customer",
+				EntityID:    customerID,
+				Metadata:    metadata,
+				CreatedAt:   time.Now().UTC(),
+			},
+			SourceService: outbox.DefaultSourceService,
+		}
+
+		if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
+			return fmt.Errorf("failed to enqueue registration_confirmed outbox event: %w", err)
 		}
 
 		return nil
 	})
-
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("create customer in repo: %w", err)
 	}
 
 	return customerID, nil

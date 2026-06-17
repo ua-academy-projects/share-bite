@@ -12,7 +12,7 @@ async def test_health_check_success(mock_guest_api):
     """Returns parsed JSON when Guest API responds with 200."""
     mock_guest_api.get("/health").mock(return_value=build_health_response())
 
-    result = await guest_health_check()
+    result = await guest_health_check(None)
     data = json.loads(result)
 
     assert data == {"status": "OK"}
@@ -26,7 +26,7 @@ async def test_health_check_service_unavailable(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="503"):
-        await guest_health_check()
+        await guest_health_check(None)
 
 
 @pytest.mark.asyncio
@@ -37,7 +37,7 @@ async def test_health_check_unauthorized(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="401"):
-        await guest_health_check()
+        await guest_health_check(None)
 
 
 @pytest.mark.asyncio
@@ -48,7 +48,7 @@ async def test_health_check_connection_error(mock_guest_api):
     )
 
     with pytest.raises(RuntimeError, match="Failed to connect"):
-        await guest_health_check()
+        await guest_health_check(None)
 
 
 @pytest.mark.asyncio
@@ -57,4 +57,4 @@ async def test_health_check_timeout(mock_guest_api):
     mock_guest_api.get("/health").mock(side_effect=httpx.TimeoutException("Timed out"))
 
     with pytest.raises(RuntimeError, match="timed out"):
-        await guest_health_check()
+        await guest_health_check(None)

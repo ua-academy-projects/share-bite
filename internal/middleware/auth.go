@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"slices"
 	"strings"
@@ -18,6 +19,7 @@ const (
 	CtxUserID           = "userId"
 	CtxUserRole         = "userRole"
 	CtxUserStatus       = "userStatus"
+	CtxAccessToken      = "accessToken"
 )
 
 func Auth(parser AccessTokenParser) gin.HandlerFunc {
@@ -41,6 +43,9 @@ func Auth(parser AccessTokenParser) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
+
+		ctx := context.WithValue(c.Request.Context(), CtxAccessToken, headerParts[1])
+		c.Request = c.Request.WithContext(ctx)
 
 		c.Set(CtxUserID, payload.UserID)
 		c.Set(CtxUserRole, payload.Role)
@@ -115,6 +120,9 @@ func OptionalAuth(parser AccessTokenParser) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return
 		}
+
+		ctx := context.WithValue(c.Request.Context(), CtxAccessToken, token)
+		c.Request = c.Request.WithContext(ctx)
 
 		c.Set(CtxUserID, payload.UserID)
 		c.Set(CtxUserRole, payload.Role)

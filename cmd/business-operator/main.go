@@ -4,9 +4,9 @@ import (
 	"log"
 
 	bo "github.com/ua-academy-projects/share-bite/operators/business-operator"
+	appsv1 "k8s.io/api/apps/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	appsv1 "k8s.io/api/apps/v1"
 )
 
 func main() {
