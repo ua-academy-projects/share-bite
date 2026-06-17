@@ -79,28 +79,28 @@ type PaginatedAdminUsersResponse struct {
 }
 
 type PlatformStatisticsResponse struct {
-	TotalUsers                   int64 `json:"total_users"`
-	TotalAdminUsers              int64 `json:"total_admin_users"`
-	TotalModeratorUsers          int64 `json:"total_moderator_users"`
-	TotalRegularUsers            int64 `json:"total_regular_users"`
-	TotalBusinessRoleUsers       int64 `json:"total_business_role_users"`
-	TotalActiveUsers             int64 `json:"total_active_users"`
-	TotalMutedUsers              int64 `json:"total_muted_users"`
-	TotalSuspendedUsers          int64 `json:"total_suspended_users"`
-	TotalCustomers               int64 `json:"total_customers"`
-	TotalGuestPosts              int64 `json:"total_guest_posts"`
-	TotalGuestComments           int64 `json:"total_guest_comments"`
-	TotalGuestPostLikes          int64 `json:"total_guest_post_likes"`
+	TotalUsers                   int64   `json:"total_users"`
+	TotalAdminUsers              int64   `json:"total_admin_users"`
+	TotalModeratorUsers          int64   `json:"total_moderator_users"`
+	TotalRegularUsers            int64   `json:"total_regular_users"`
+	TotalBusinessRoleUsers       int64   `json:"total_business_role_users"`
+	TotalActiveUsers             int64   `json:"total_active_users"`
+	TotalMutedUsers              int64   `json:"total_muted_users"`
+	TotalSuspendedUsers          int64   `json:"total_suspended_users"`
+	TotalCustomers               int64   `json:"total_customers"`
+	TotalGuestPosts              int64   `json:"total_guest_posts"`
+	TotalGuestComments           int64   `json:"total_guest_comments"`
+	TotalGuestPostLikes          int64   `json:"total_guest_post_likes"`
 	TotalCollections             int64   `json:"total_collections"`
 	AvgPostsPerCustomer          float64 `json:"avg_posts_per_customer"`
 	AvgCommentsPerCustomer       float64 `json:"avg_comments_per_customer"`
 	AvgCommentsPerPost           float64 `json:"avg_comments_per_post"`
 	CollectionsWithCollaborators int64   `json:"collections_with_collaborators"`
 	PostsWithCollaborators       int64   `json:"posts_with_collaborators"`
-	TotalBusinessOrgUnits        int64 `json:"total_business_org_units"`
-	TotalBusinessPosts           int64 `json:"total_business_posts"`
-	TotalBusinessComments        int64 `json:"total_business_comments"`
-	TotalBusinessLikes           int64 `json:"total_business_likes"`
+	TotalBusinessOrgUnits        int64   `json:"total_business_org_units"`
+	TotalBusinessPosts           int64   `json:"total_business_posts"`
+	TotalBusinessComments        int64   `json:"total_business_comments"`
+	TotalBusinessLikes           int64   `json:"total_business_likes"`
 	TotalBusinessBoxes           int64   `json:"total_business_boxes"`
 	TotalBusinessBoxItems        int64   `json:"total_business_box_items"`
 	AvgPostsPerBusiness          float64 `json:"avg_posts_per_business"`

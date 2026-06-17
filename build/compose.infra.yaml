@@ -53,15 +53,17 @@ services:
     container_name: share-bite-redis
     ports:
       - '${REDIS_PORT}:6379'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - ../redis.conf:/usr/local/etc/redis/redis.conf:ro
       - redis-data:/data
     networks:
       - share-bite-net
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli --raw ping | grep -q PONG"]
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD --raw ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -142,29 +142,28 @@ func (s *service) CreateBox(ctx context.Context, userID string, req dto.CreateBo
 	return box, nil
 }
 
-
 func (s *service) ListNearbyBoxes(ctx context.Context, offset, limit int, lat, lon float64, categoryID *int, orgID *int) (pagination.Result[entity.BoxWithDistance], error) {
-    const op = "service.box.ListNearbyBoxes"
+	const op = "service.box.ListNearbyBoxes"
 
-    result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID, orgID)
-    if err != nil {
-        return pagination.Result[entity.BoxWithDistance]{}, fmt.Errorf("%s: %w", op, err)
-    }
+	result, err := s.businessRepo.ListNearbyBoxes(ctx, offset, limit, lat, lon, categoryID, orgID)
+	if err != nil {
+		return pagination.Result[entity.BoxWithDistance]{}, fmt.Errorf("%s: %w", op, err)
+	}
 
-    for i := range result.Items {
-        result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
+	for i := range result.Items {
+		result.Items[i].Distance = result.Items[i].Distance * kilometerIndex
 
-        img := result.Items[i].Box.Image
-        if img != "" {
-            if strings.HasPrefix(img, "http://") || strings.HasPrefix(img, "https://") {
-                result.Items[i].Box.Image = img
-            } else {
-                result.Items[i].Box.Image = s.storage.BuildURL(img)
-            }
-        }
-    }
+		img := result.Items[i].Box.Image
+		if img != "" {
+			if strings.HasPrefix(img, "http://") || strings.HasPrefix(img, "https://") {
+				result.Items[i].Box.Image = img
+			} else {
+				result.Items[i].Box.Image = s.storage.BuildURL(img)
+			}
+		}
+	}
 
-    return result, nil
+	return result, nil
 }
 
 func (s *service) ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error) {

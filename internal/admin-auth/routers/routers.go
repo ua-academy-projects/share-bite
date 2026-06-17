@@ -39,6 +39,7 @@ func SetupRouter(r *gin.RouterGroup, authHandler *authhttp.Handler, adminHandler
 	{
 		usersGroup.GET("/:userId/status", authHandler.GetUserStatus)
 		usersGroup.PUT("/:userId/status", authHandler.UpdateUserStatus)
+		usersGroup.GET("/:userId/email", authHandler.GetUserEmail)
 	}
 	adminGroup := r.Group("/admin").Use(authMiddleware)
 	{

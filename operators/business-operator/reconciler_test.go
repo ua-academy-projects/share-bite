@@ -163,7 +163,7 @@ func TestBusinessAppProfileReconciler_Reconcile(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to get profile: %v", err)
 				}
-				
+
 				found := false
 				for _, cond := range profile.Status.Conditions {
 					if cond.Reason == "Scaled" && cond.Status == metav1.ConditionTrue {

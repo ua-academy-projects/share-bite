@@ -25,6 +25,7 @@ func NewEmailProcessor(emailSender email.Sender) *EmailProcessor {
 	}
 
 	processor.RegisterHandler(notification.RegistrationConfirmed, NewRegistrationConfirmedHandler())
+	processor.RegisterHandler(notification.PasswordResetRequested, NewPasswordResetRequestedHandler())
 
 	return processor
 }

@@ -214,6 +214,7 @@ func TestPostService_CreatePostWithCollaborators_RemovesDuplicateInvites(t *test
 		&customerRepoMock{},
 		&storageMock{},
 		&txManagerMock{},
+		WithOutboxWriter(&outboxWriterMock{}),
 	)
 
 	_, err := svc.CreatePostWithCollaborators(
@@ -278,6 +279,7 @@ func TestPostService_CreatePostWithCollaborators_ExcludesOwnerFromInvites(t *tes
 		&customerRepoMock{},
 		&storageMock{},
 		&txManagerMock{},
+		WithOutboxWriter(&outboxWriterMock{}),
 	)
 
 	_, err := svc.CreatePostWithCollaborators(

@@ -70,7 +70,7 @@ func (in *BusinessAppProfile) DeepCopyObject() runtime.Object {
 
 func (in *BusinessAppProfileList) DeepCopyObject() runtime.Object {
 	if in == nil {
-		return nil 
+		return nil
 	}
 
 	out := &BusinessAppProfileList{
@@ -80,7 +80,7 @@ func (in *BusinessAppProfileList) DeepCopyObject() runtime.Object {
 
 	if in.Items != nil {
 		out.Items = make([]BusinessAppProfile, len(in.Items))
-		for i := range in.Items{
+		for i := range in.Items {
 			in.Items[i].DeepCopyInto(&out.Items[i])
 		}
 	}
@@ -89,7 +89,7 @@ func (in *BusinessAppProfileList) DeepCopyObject() runtime.Object {
 
 func (in *BusinessAppProfile) DeepCopyInto(out *BusinessAppProfile) {
 	clone := in.DeepCopyObject().(*BusinessAppProfile)
-	*out = *clone 
+	*out = *clone
 }
 
 func (r *BusinessAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -102,9 +102,9 @@ func (r *BusinessAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	targetName := profile.Name
-    if profile.Spec.DeploymentName != nil {
-        targetName = *profile.Spec.DeploymentName
-    }
+	if profile.Spec.DeploymentName != nil {
+		targetName = *profile.Spec.DeploymentName
+	}
 
 	var dep appsv1.Deployment
 
@@ -146,7 +146,6 @@ func (r *BusinessAppProfileReconciler) Reconcile(ctx context.Context, req ctrl.R
 			Status:             metav1.ConditionTrue,
 			Reason:             "Scaled",
 			LastTransitionTime: metav1.Now(),
-			
 		}
 	} else {
 		condition = metav1.Condition{

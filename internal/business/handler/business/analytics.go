@@ -67,7 +67,7 @@ func (h *handler) GetDailySummary(c *gin.Context) {
 	parsedID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.Error(apperror.BadRequest("Error parsing id"))
-		return 
+		return
 	}
 
 	res, err := h.service.GetDailySummary(c, *startDate, *endDate, parsedID)
@@ -111,7 +111,7 @@ func (h *handler) GetReservationSummary(c *gin.Context) {
 	parsedID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.Error(apperror.BadRequest("Error parsing id"))
-		return 
+		return
 	}
 
 	res, err := h.service.GetReservationSummary(c, *startDate, *endDate, parsedID, req.VenueID)
@@ -156,7 +156,7 @@ func (h *handler) GetVenueActivitySummary(c *gin.Context) {
 	parsedID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.Error(apperror.BadRequest("Error parsing id"))
-		return 
+		return
 	}
 
 	venueIDStr := c.Param("venue_id")
@@ -207,7 +207,7 @@ func (h *handler) GetFoodBoxPerformance(c *gin.Context) {
 	parsedID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.Error(apperror.BadRequest("Error parsing id"))
-		return 
+		return
 	}
 
 	res, err := h.service.GetFoodBoxPerformance(c, *startDate, *endDate, parsedID, req.VenueID)
@@ -226,18 +226,18 @@ func (h *handler) GetFoodBoxPerformance(c *gin.Context) {
 	})
 }
 
-func (h *handler) GetEngagementSummary (c *gin.Context) {
+func (h *handler) GetEngagementSummary(c *gin.Context) {
 	var req dto.EngagementSummaryRequest
 
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.Error(apperror.BadRequest("invalid request"))
-		return 
+		return
 	}
 
 	startDate, endDate, err := parseDates(req.StartDate, req.EndDate)
 	if err != nil {
 		c.Error(apperror.BadRequest("Error parsing dates"))
-		return 
+		return
 	}
 
 	if !isStartDateValid(*startDate, *endDate) {
@@ -254,7 +254,7 @@ func (h *handler) GetEngagementSummary (c *gin.Context) {
 	parsedID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.Error(apperror.BadRequest("Error parsing id"))
-		return 
+		return
 	}
 
 	res, err := h.service.GetEngagementSummary(c, *startDate, *endDate, parsedID, req.VenueID)
@@ -264,10 +264,10 @@ func (h *handler) GetEngagementSummary (c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, dto.EngagementSummaryResponse{
-		TotalPostsCreated: res.TotalPostsCreated,
-		TotalComments: res.TotalComments,
-		TotalLikes: res.TotalLikes,
+		TotalPostsCreated:  res.TotalPostsCreated,
+		TotalComments:      res.TotalComments,
+		TotalLikes:         res.TotalLikes,
 		AverageCommentsNum: res.AverageCommentsNum,
-		AverageLikesNum: res.AverageLikesNum,
+		AverageLikesNum:    res.AverageLikesNum,
 	})
 }
