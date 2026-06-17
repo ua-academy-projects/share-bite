@@ -41,6 +41,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/closer"
 	"github.com/ua-academy-projects/share-bite/pkg/database/pg"
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
+	admingateway "github.com/ua-academy-projects/share-bite/pkg/gateway/admin"
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	common_middleware "github.com/ua-academy-projects/share-bite/pkg/middleware"
@@ -228,6 +229,48 @@ func main() {
 		logger.Fatalf(ctx, "init business gateway: %v", err)
 	}
 
+	adminResiliencePolicy := resilience.Policy{
+		RetryConfig: resilience.RetryConfig{
+			InitialInterval:     200 * time.Millisecond,
+			RandomizationFactor: 0.25,
+			Multiplier:          2,
+			MaxInterval:         2 * time.Second,
+			MaxElapsedTime:      8 * time.Second,
+		},
+		RetryNotify: func(err error, nextRetryIn time.Duration) {
+			logger.WarnKV(ctx, "admin retry attempt", "next_retry_in", nextRetryIn, "err", err)
+		},
+		Breaker: resilience.NewCircuitBreaker(resilience.CircuitBreakerConfig{
+			Name:        "guest-admin-auth",
+			MaxRequests: 2,
+			Interval:    20 * time.Second,
+			Timeout:     8 * time.Second,
+			OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+				logger.WarnKV(ctx, "admin circuit breaker state changed",
+					"name", name,
+					"from", from.String(),
+					"to", to.String(),
+				)
+			},
+			IsSuccessful: func(err error) bool {
+				if err == nil {
+					return true
+				}
+				if errors.Is(err, context.Canceled) {
+					return true
+				}
+				return resilience.IsPermanent(err)
+			},
+		}),
+	}
+
+	adminGateway := admingateway.New(
+		config.Config().AdminHttpServer.Address(),
+		"/",
+		"http",
+		&adminResiliencePolicy,
+	)
+
 	storageClient, err := storage.NewStorageClient(ctx, config.Config().Storage)
 	if err != nil {
 		logger.Fatal(ctx, "init storage client:", err)
@@ -261,7 +304,7 @@ func main() {
 
 	// services
 	outboxWriter := outbox.NewWriter(client.DB())
-	customerSvc := customersvc.New(customerRepo, outboxWriter, txManager)
+	customerSvc := customersvc.New(customerRepo, outboxWriter, txManager, adminGateway)
 	postSvc := postsvc.New(postRepo, businessGateway, followRepo, customerRepo, storageClient, txManager, postsvc.WithOutboxWriter(outboxWriter), postsvc.WithImageProcessingProducer(imageProcessingProducer))
 	postsvc.StartPostCleanupJob(ctx, postSvc)
 	commentSvc := commentsvc.New(

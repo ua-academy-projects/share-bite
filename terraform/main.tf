@@ -181,7 +181,7 @@ resource "aws_sns_topic_subscription" "to_lambda" {
   raw_message_delivery = true
 
   filter_policy = jsonencode({
-    eventType = ["registration_confirmed", "post_invitation_received"]
+    eventType = ["registration_confirmed", "invitation_received", "password_reset_requested"]
   })
 }
 

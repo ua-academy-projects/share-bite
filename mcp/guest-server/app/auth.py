@@ -1,4 +1,7 @@
 from collections.abc import Mapping
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from fastmcp import Context
 
 from .config import settings
 from .constants import HEADER_AUTH
@@ -23,6 +26,16 @@ def extract_bearer_token(
         return token.strip()
 
     return None
+
+
+def get_headers_from_context(ctx: "Context | None") -> Mapping[str, str] | None:
+    """Safely extract HTTP headers from FastMCP Context if available."""
+    if not ctx or not getattr(ctx, "request_context", None):
+        return None
+    request = getattr(ctx.request_context, "request", None)
+    if not request:
+        return None
+    return getattr(request, "headers", None)
 
 
 def resolve_auth_token(

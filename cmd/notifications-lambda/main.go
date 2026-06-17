@@ -45,7 +45,10 @@ func main() {
 		emailSender = email.NewFakeSender()
 	}
 
-	validator := notificationworker.NewDefaultValidator(notification.RegistrationConfirmed)
+	validator := notificationworker.NewDefaultValidator(
+		notification.RegistrationConfirmed,
+		notification.PasswordResetRequested,
+	)
 
 	emailProcessor := notificationworker.NewEmailProcessor(emailSender)
 

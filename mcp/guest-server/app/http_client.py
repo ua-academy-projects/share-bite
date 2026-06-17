@@ -113,14 +113,16 @@ class GuestAPIClient:
                 is_error=False, status=response.status_code, data=response_data
             )
         except httpx.HTTPStatusError as e:
-            # Attempt to extract a structured JSON error message from the Guest API
             try:
                 error_payload = e.response.json()
-                parsed_error = (
-                    error_payload.get("error")
-                    or error_payload.get("message")
-                    or "Unknown API Error"
-                )
+                if isinstance(error_payload, dict):
+                    parsed_error = (
+                        error_payload.get("message")
+                        or error_payload.get("error")
+                        or "Unknown API Error"
+                    )
+                else:
+                    parsed_error = f"Unexpected JSON response: {error_payload!r}"
             except ValueError:
                 parsed_error = "Non-JSON response received (possible server fault)"
 
@@ -134,7 +136,7 @@ class GuestAPIClient:
             return APIErrorResponse(
                 is_error=True,
                 status=e.response.status_code,
-                error_message=f"Guest API returned {e.response.status_code}: {parsed_error}",
+                error_message=parsed_error,
             )
         except httpx.TimeoutException:
             logger.error("TimeoutException for %s", path)

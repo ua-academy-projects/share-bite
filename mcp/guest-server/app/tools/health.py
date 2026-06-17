@@ -1,6 +1,8 @@
 import json
 
-from ..auth import resolve_auth_token
+from fastmcp import Context
+
+from .. import auth
 
 from ..http_client import guest_client, APIResponse, APIErrorResponse
 from ..server import mcp
@@ -17,20 +19,26 @@ def _unwrap_guest_result(action: str, result: APIResponse | APIErrorResponse) ->
 
 
 @mcp.tool(description="Checks the basic health status of the Guest API")
-async def guest_health_check() -> str:
+async def guest_health_check(ctx: Context | None = None) -> str:
     """
     Checks the basic health status of the Guest API.
     Use this to verify if the service container is up and running.
     """
-    result = await guest_client.get("/health")
+    result = await guest_client.get(
+        "/health",
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
+    )
     return _unwrap_guest_result("Health check", result)
 
 
 @mcp.tool(description="Fetches the deep operational status of the Guest API")
-async def get_guest_api_status() -> str:
+async def get_guest_api_status(ctx: Context | None = None) -> str:
     """
     Fetches the deep operational status of the Guest API.
     Returns the connection status for internal components like PostgreSQL and Redis.
     """
-    result = await guest_client.get("/status", auth_token=resolve_auth_token())
+    result = await guest_client.get(
+        "/status",
+        auth_token=auth.resolve_auth_token(headers=auth.get_headers_from_context(ctx)),
+    )
     return _unwrap_guest_result("Status check", result)

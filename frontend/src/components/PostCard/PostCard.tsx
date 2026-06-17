@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Share2, Bookmark, Trash2, Edit2, ChevronLeft, ChevronRight, Plus, MoreHorizontal, Star } from 'lucide-react';
-import type { PostResponse } from '../../types/api';
+import type { PostResponse } from '@/types/api';
 import { clsx } from 'clsx';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { apiClient } from '../../api/client';
-import { useCurrentCustomer } from '../../hooks/useCurrentCustomer';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
+import { apiClient } from '@/api/client';
+import { useCurrentCustomer } from '@/hooks/useCurrentCustomer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { 
   DropdownMenu, 
@@ -15,15 +15,15 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from '../ui/dropdown-menu';
-import { Textarea } from '../ui/textarea';
+} from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PostCardProps {
   post: PostResponse;
   restaurantName?: string;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
+export function GuestPostCard({ post, restaurantName }: PostCardProps) {
   const queryClient = useQueryClient();
   const { data: currentCustomer } = useCurrentCustomer();
   const isLiked = post.isLikedByMe || false;
@@ -176,11 +176,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
         });
       });
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-      queryClient.invalidateQueries({ queryKey: ['venuePosts'] });
-    }
   });
 
   const deletePostMutation = useMutation({
@@ -245,7 +240,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90"></div>
           
           <div className="absolute top-4 left-4 bg-primary/20 backdrop-blur-md text-primary-foreground text-xs font-semibold px-3 py-1.5 rounded-full border border-primary/30 shadow-sm flex items-center gap-1">
-            <Link to={`/restaurant/${post.venueId}`} className="hover:text-primary transition-colors">
+            <Link to={`/venue/${post.venueId}`} className="hover:text-primary transition-colors">
               📍 {restaurantName || `Venue #${post.venueId}`}
             </Link>
           </div>
@@ -329,7 +324,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, restaurantName }) => {
             
             {!(post.images && post.images.length > 0) && (
               <div className="flex flex-col items-end gap-1">
-                <Link to={`/restaurant/${post.venueId}`} className="text-xs font-semibold text-primary hover:underline bg-primary/10 px-2 py-1 rounded-full">
+                <Link to={`/venue/${post.venueId}`} className="text-xs font-semibold text-primary hover:underline bg-primary/10 px-2 py-1 rounded-full">
                   📍 {restaurantName || `Venue #${post.venueId}`}
                 </Link>
                 <span className="text-xs font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">★ {post.rating}</span>

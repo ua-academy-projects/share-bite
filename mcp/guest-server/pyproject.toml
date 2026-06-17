@@ -11,3 +11,10 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic-settings>=2.14.1",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "pytest-asyncio>=0.24",
+    "respx>=0.22",
+]

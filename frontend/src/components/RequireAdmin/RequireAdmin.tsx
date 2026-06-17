@@ -1,18 +1,16 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { isAdminOrModerator } from '../../utils/auth';
+import { Navigate } from "react-router-dom";
+import { isAdminOrModerator } from "@/utils/auth";
 
-export const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
-  const token = localStorage.getItem('token');
+export function RequireAdmin({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem("token");
 
   if (!token) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   if (!isAdminOrModerator()) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/forbidden" replace />;
   }
 
   return <>{children}</>;
-};
+}

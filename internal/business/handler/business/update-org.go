@@ -74,5 +74,6 @@ func (h *handler) updateOrgUnit(c *gin.Context) {
 		Avatar:      updated.Avatar,
 		Banner:      updated.Banner,
 		Description: updated.Description,
+		Status:      string(updated.Status),
 	})
 }

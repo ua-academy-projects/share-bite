@@ -20,24 +20,22 @@ type CustomerRepository interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
-type OutboxWriter interface {
-	Enqueue(ctx context.Context, event outbox.Event) error
+type emailClient interface {
+	GetUserEmail(ctx context.Context, userID, authToken string) (string, error)
 }
 
 type service struct {
 	customerRepo CustomerRepository
-	outboxWriter OutboxWriter
 	txManager    database.TxManager
+	outboxWriter outbox.Writer
+	adminClient  emailClient
 }
 
-func New(
-	customerRepo CustomerRepository,
-	outboxWriter OutboxWriter,
-	txManager database.TxManager,
-) *service {
+func New(customerRepo CustomerRepository, outboxWriter outbox.Writer, txManager database.TxManager, adminClient emailClient) *service {
 	return &service{
 		customerRepo: customerRepo,
-		outboxWriter: outboxWriter,
 		txManager:    txManager,
+		outboxWriter: outboxWriter,
+		adminClient:  adminClient,
 	}
 }

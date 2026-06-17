@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -30,6 +31,19 @@ type MockAdminService struct {
 	mock.Mock
 }
 
+func (m *MockAdminService) GetPendingBusinessesList(ctx context.Context, limit, offset int) (*dto.PaginatedPendingBusinessesResponse, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.PaginatedPendingBusinessesResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockAdminService) ReviewBusinessStatus(ctx context.Context, params dto.ReviewBusinessParams) error {
+	args := m.Called(ctx, params)
+	return args.Error(0)
+}
+
 func (m *MockAdminService) GetUserDetails(ctx context.Context, userID string) (*dto.FullUserDetails, error) {
 	args := m.Called(ctx, userID)
 	if args.Get(0) != nil {
@@ -49,6 +63,14 @@ func (m *MockAdminService) GetUsersList(ctx context.Context, filter dto.AdminUse
 func (m *MockAdminService) ChangeUserRole(ctx context.Context, targetUserID string, newRoleSlug string) error {
 	args := m.Called(ctx, targetUserID, newRoleSlug)
 	return args.Error(0)
+}
+
+func (m *MockAdminService) GetPlatformStatistics(ctx context.Context) (*dto.PlatformStatisticsResponse, error) {
+	args := m.Called(ctx)
+	if args.Get(0) != nil {
+		return args.Get(0).(*dto.PlatformStatisticsResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *mockUserRepository) UpsertByGitHubID(ctx context.Context, ghUser dto.GitHubUser) (*dto.User, error) {
@@ -240,6 +262,14 @@ func (m *MockAuthService) RecoverAccess(ctx context.Context, email string) error
 	return args.Error(0)
 }
 
+func (m *MockAuthService) GetUserEmail(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (string, error) {
+	args := m.Called(ctx, requesterUserID, requesterRole, targetUserID)
+	if args.Get(0) != nil {
+		return args.String(0), args.Error(1)
+	}
+	return "", args.Error(1)
+}
+
 func (m *MockAuthService) ResetPassword(ctx context.Context, token, newPassword string) error {
 	args := m.Called(ctx, token, newPassword)
 	return args.Error(0)
@@ -274,7 +304,7 @@ func (s *mockEmailSender) SendPasswordResetToken(ctx context.Context, toEmail, t
 	return args.Error(0)
 }
 
-func (s *mockEmailSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]any) error {
+func (s *mockEmailSender) SendEmail(ctx context.Context, toEmail, subject, templateName string, data map[string]string) error {
 	args := s.Called(ctx, toEmail, subject, templateName, data)
 	return args.Error(0)
 }
@@ -305,8 +335,29 @@ func (n noopOutboxWriter) Enqueue(ctx context.Context, event outbox.Event) error
 	return nil
 }
 
+type emailOutboxAdapter struct{ sender *mockEmailSender }
+
+func (a emailOutboxAdapter) Enqueue(ctx context.Context, event outbox.Event) error {
+	msg, ok := event.Payload.(outbox.Message)
+	if !ok {
+		return fmt.Errorf("invalid outbox payload type %T", event.Payload)
+	}
+
+	email, ok := msg.Metadata["email"].(string)
+	if !ok || email == "" {
+		return fmt.Errorf("missing or invalid outbox metadata email")
+	}
+
+	token, ok := msg.Metadata["reset_token"].(string)
+	if !ok || token == "" {
+		return fmt.Errorf("missing or invalid outbox metadata reset_token")
+	}
+
+	return a.sender.SendPasswordResetToken(ctx, email, token)
+}
+
 func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *auth.Handler {
-	service := authsvc.New(repo, stubTokenProvider{}, emailSender, noopTxManager{}, time.Hour, 5)
+	service := authsvc.New(repo, stubTokenProvider{}, noopTxManager{}, time.Hour, emailOutboxAdapter{sender: emailSender}, 5)
 	return auth.NewHandler(service, nil)
 }
 

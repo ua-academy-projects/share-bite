@@ -12,8 +12,8 @@ import (
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/models"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/pkg"
-	emailsvc "github.com/ua-academy-projects/share-bite/pkg/email"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
@@ -45,6 +45,7 @@ type Service interface {
 	OAuthLogin(ctx context.Context, provider OAuthProvider, code string, slug string) (*Tokens, error)
 	LinkProvider(ctx context.Context, userID string, provider OAuthProvider, code string) error
 	GetUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (models.UserStatus, error)
+	GetUserEmail(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (string, error)
 	UpdateUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string, status models.UserStatus) error
 	RecoverAccess(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token, newPassword string) error
@@ -53,19 +54,19 @@ type Service interface {
 type service struct {
 	userRepo         user.AuthRepository
 	tokenProvider    TokenProvider
-	emailSender      emailsvc.Sender
 	txManager        database.TxManager
 	passwordResetTTL time.Duration
+	outboxWriter     outbox.Writer
 	maxSessions      int
 }
 
-func New(userRepo user.AuthRepository, tokenProvider TokenProvider, emailSender emailsvc.Sender, txManager database.TxManager, resetTTL time.Duration, maxSessions int) Service {
+func New(userRepo user.AuthRepository, tokenProvider TokenProvider, txManager database.TxManager, resetTTL time.Duration, outboxWriter outbox.Writer, maxSessions int) Service {
 	return &service{
 		userRepo:         userRepo,
 		tokenProvider:    tokenProvider,
-		emailSender:      emailSender,
 		txManager:        txManager,
 		passwordResetTTL: resetTTL,
+		outboxWriter:     outboxWriter,
 		maxSessions:      maxSessions,
 	}
 }
@@ -295,6 +296,22 @@ func (s *service) GetUserStatus(ctx context.Context, requesterUserID, requesterR
 	return u.Status, nil
 }
 
+func (s *service) GetUserEmail(ctx context.Context, requesterUserID, requesterRole, targetUserID string) (string, error) {
+	u, err := s.userRepo.FindByID(ctx, targetUserID)
+	if err != nil {
+		return "", fmt.Errorf("find user by id: %w", err)
+	}
+	if u == nil {
+		return "", apperr.ErrUserNotFound
+	}
+
+	if !canReadUserStatus(requesterRole, requesterUserID, targetUserID) {
+		return "", apperr.ErrForbiddenEmailRead
+	}
+
+	return u.Email, nil
+}
+
 func (s *service) UpdateUserStatus(ctx context.Context, requesterUserID, requesterRole, targetUserID string, status models.UserStatus) error {
 	if !canUpdateUserStatus(requesterRole) {
 		return apperr.ErrForbiddenStatusRead
@@ -363,15 +380,32 @@ func (s *service) RecoverAccess(ctx context.Context, email string) error {
 			return apperr.Wrap(http.StatusInternalServerError, "failed to store reset token", err)
 		}
 
+		event := outbox.Event{
+			EventType: outbox.EventTypePasswordResetRequested,
+			Payload: outbox.Message{
+				EventID:     outbox.NewEventID(u.ID, email, rawToken),
+				EventType:   outbox.EventTypePasswordResetRequested,
+				RecipientID: u.ID,
+				ActorID:     u.ID,
+				EntityType:  "user",
+				EntityID:    u.ID,
+				Metadata: map[string]any{
+					"email":       email,
+					"reset_token": rawToken,
+				},
+				CreatedAt: time.Now().UTC(),
+			},
+			SourceService: outbox.DefaultSourceService,
+		}
+
+		if err := s.outboxWriter.Enqueue(txCtx, event); err != nil {
+			return fmt.Errorf("failed to enqueue password_reset_requested outbox event: %w", err)
+		}
 		return nil
 	})
 
 	if err != nil {
 		return err
-	}
-
-	if err := s.emailSender.SendPasswordResetToken(ctx, u.Email, rawToken); err != nil {
-		return apperr.Wrap(http.StatusInternalServerError, "failed to send password reset email", err)
 	}
 
 	return nil

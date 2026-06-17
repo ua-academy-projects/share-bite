@@ -26,7 +26,7 @@ func (s *RegistrationConfirmedHandler) Handle(ctx context.Context, event notific
 		return fmt.Errorf("invalid or missing username in metadata")
 	}
 
-	if err := emailSender.SendEmail(ctx, emailAddr, "Welcome to Share Bite!", "registration_confirmed", map[string]any{
+	if err := emailSender.SendEmail(ctx, emailAddr, "Welcome to Share Bite!", "registration_confirmed", map[string]string{
 		"email":    emailAddr,
 		"username": username,
 	}); err != nil {

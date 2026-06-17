@@ -78,6 +78,36 @@ type PaginatedAdminUsersResponse struct {
 	TotalCount int                 `json:"total_count"`
 }
 
+type PlatformStatisticsResponse struct {
+	TotalUsers                   int64   `json:"total_users"`
+	TotalAdminUsers              int64   `json:"total_admin_users"`
+	TotalModeratorUsers          int64   `json:"total_moderator_users"`
+	TotalRegularUsers            int64   `json:"total_regular_users"`
+	TotalBusinessRoleUsers       int64   `json:"total_business_role_users"`
+	TotalActiveUsers             int64   `json:"total_active_users"`
+	TotalMutedUsers              int64   `json:"total_muted_users"`
+	TotalSuspendedUsers          int64   `json:"total_suspended_users"`
+	TotalCustomers               int64   `json:"total_customers"`
+	TotalGuestPosts              int64   `json:"total_guest_posts"`
+	TotalGuestComments           int64   `json:"total_guest_comments"`
+	TotalGuestPostLikes          int64   `json:"total_guest_post_likes"`
+	TotalCollections             int64   `json:"total_collections"`
+	AvgPostsPerCustomer          float64 `json:"avg_posts_per_customer"`
+	AvgCommentsPerCustomer       float64 `json:"avg_comments_per_customer"`
+	AvgCommentsPerPost           float64 `json:"avg_comments_per_post"`
+	CollectionsWithCollaborators int64   `json:"collections_with_collaborators"`
+	PostsWithCollaborators       int64   `json:"posts_with_collaborators"`
+	TotalBusinessOrgUnits        int64   `json:"total_business_org_units"`
+	TotalBusinessPosts           int64   `json:"total_business_posts"`
+	TotalBusinessComments        int64   `json:"total_business_comments"`
+	TotalBusinessLikes           int64   `json:"total_business_likes"`
+	TotalBusinessBoxes           int64   `json:"total_business_boxes"`
+	TotalBusinessBoxItems        int64   `json:"total_business_box_items"`
+	AvgPostsPerBusiness          float64 `json:"avg_posts_per_business"`
+	AvgCommentsPerBusiness       float64 `json:"avg_comments_per_business"`
+	AvgBusinessCommentsPerPost   float64 `json:"avg_business_comments_per_post"`
+}
+
 type ChangeRoleRequest struct {
 	RoleSlug string `json:"role_slug" validate:"required"`
 }
@@ -108,6 +138,7 @@ type BusinessProfileData struct {
 	Description string   `json:"description"`
 	Latitude    *float64 `json:"latitude"`
 	Longitude   *float64 `json:"longitude"`
+	Status      string   `json:"status"`
 }
 
 type GitHubUser struct {
@@ -124,4 +155,25 @@ type User struct {
 	Email     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type PendingBusinessListItem struct {
+	ID           int    `json:"id"`
+	OrgAccountID string `json:"org_account_id"`
+	Name         string `json:"name"`
+	Avatar       string `json:"avatar"`
+	Description  string `json:"description"`
+	Status       string `json:"status"`
+}
+
+type PaginatedPendingBusinessesResponse struct {
+	Items      []PendingBusinessListItem `json:"items"`
+	TotalCount int                       `json:"total_count"`
+}
+
+type ReviewBusinessParams struct {
+	OrgUnitID int     `json:"orgUnitId"`
+	AdminID   string  `json:"adminId" binding:"required,uuid"`
+	NewStatus string  `json:"newStatus"`
+	Comment   *string `json:"comment"`
 }

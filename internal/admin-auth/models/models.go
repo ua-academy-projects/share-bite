@@ -12,6 +12,11 @@ const (
 	UserStatusSuspended UserStatus = "suspended"
 )
 
+const (
+	RoleAdmin     = "admin"
+	RoleModerator = "moderator"
+)
+
 type User struct {
 	ID           string     `db:"id" json:"id"`
 	Email        string     `db:"email" json:"email"`

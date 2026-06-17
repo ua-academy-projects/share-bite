@@ -37,7 +37,6 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 	err = s.txManager.ReadCommitted(
 		ctx,
 		func(txCtx context.Context) error {
-
 			post, err := s.createPostTx(
 				txCtx,
 				in,
@@ -56,7 +55,6 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 
 			// no collaborators -> publish immediately
 			if len(invited) == 0 {
-
 				if err := s.postRepo.UpdateStatus(
 					txCtx,
 					post.ID,
@@ -154,9 +152,7 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 				return nil
 			}
 
-			expiresAt := time.Now().Add(
-				postInvitationTTL,
-			)
+			expiresAt := time.Now().Add(postInvitationTTL)
 
 			if err := s.postRepo.CreatePostCollaborators(
 				txCtx,
@@ -225,18 +221,12 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 						CreatedAt: time.Now().UTC(),
 					}
 
-					if err := s.outboxWriter.Enqueue(
-						txCtx,
-						outbox.Event{
-							EventType:     eventType,
-							Payload:       evt,
-							SourceService: outbox.DefaultSourceService,
-						},
-					); err != nil {
-						return fmt.Errorf(
-							"enqueue outbox event: %w",
-							err,
-						)
+					if err := s.outboxWriter.Enqueue(txCtx, outbox.Event{
+						EventType:     eventType,
+						Payload:       evt,
+						SourceService: outbox.DefaultSourceService,
+					}); err != nil {
+						return fmt.Errorf("enqueue post invitation event: %w", err)
 					}
 				}
 			}
@@ -246,15 +236,8 @@ func (s *service) CreatePostWithCollaborators(ctx context.Context, in dto.Create
 	)
 
 	if err != nil {
-		rollbackUploadedImages(
-			s.storage,
-			uploadedKeys,
-		)
-
-		return entity.Post{}, fmt.Errorf(
-			"execute collaborative post creation transaction: %w",
-			err,
-		)
+		rollbackUploadedImages(s.storage, uploadedKeys)
+		return entity.Post{}, fmt.Errorf("execute collaborative post creation transaction: %w", err)
 	}
 
 	return result, nil

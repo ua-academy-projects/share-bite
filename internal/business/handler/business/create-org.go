@@ -53,6 +53,7 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 		Description:  req.Description,
 		Avatar:       req.Avatar,
 		Banner:       req.Banner,
+		Status:       entity.OrgStatusPending,
 	}
 
 	id, err := h.service.Create(c.Request.Context(), orgEntity)

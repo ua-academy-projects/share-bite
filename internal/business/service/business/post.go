@@ -150,6 +150,7 @@ func (s *service) CreatePost(ctx context.Context, userID string, unitID int, des
 		Images:      photoURLs,
 		OrgName:     org.Name,
 		ProfileType: org.ProfileType,
+		OrgStatus:   org.Status,
 	}, nil
 }
 
@@ -175,12 +176,20 @@ func (s *service) UpdatePost(ctx context.Context, postID int64, userID string, c
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	org, err := s.businessRepo.GetById(ctx, post.OrgID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: get org: %w", op, err)
+	}
+
 	return &entity.PostWithPhotos{
-		ID:        post.ID,
-		OrgID:     post.OrgID,
-		Content:   post.Content,
-		CreatedAt: post.CreatedAt,
-		Images:    photos,
+		ID:          post.ID,
+		OrgID:       post.OrgID,
+		Content:     post.Content,
+		CreatedAt:   post.CreatedAt,
+		Images:      photos,
+		OrgName:     org.Name,
+		ProfileType: org.ProfileType,
+		OrgStatus:   org.Status,
 	}, nil
 }
 
@@ -261,6 +270,7 @@ func (s *service) GetPosts(ctx context.Context, skip, limit int) (pagination.Res
 			Images:      photos,
 			OrgName:     org.Name,
 			ProfileType: org.ProfileType,
+			OrgStatus:   org.Status,
 		})
 	}
 

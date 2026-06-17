@@ -11,19 +11,15 @@ guest-server/
 ├── .env.example
 ├── pyproject.toml
 ├── README.md
-└── app/
-    ├── auth.py
-    ├── config.py
-    ├── constants.py
-    ├── http_client.py
-    ├── main.py
-    ├── server.py
-    ├── resources/
-    │   ├── __init__.py
-    │   └── api.py
-    └── tools/
-        ├── __init__.py
-        └── health.py
+├── app/
+│   ├── resources/   # read-only contextual data exposed to LLM clients
+│   ├── tools/       # executable operations exposed to LLM clients
+│   └── ...          # shared config, auth, HTTP client
+└── tests/
+    ├── factories/   # shared mock response builders
+    └── unit/
+        ├── resources/
+        └── tools/
 ```
 
 ## Architecture
@@ -104,11 +100,32 @@ Once started:
 1. Open the generated localhost URL in your browser
 2. Add `GUEST_API_BASE_URL` in **Environment Variables**
 3. Click **Connect**
+4. To verify connectivity, select any tool (e.g. `guest_health_check`) from the tools list and click **Run**
 
 Optional authentication can be provided via:
 
 ```env
 GUEST_API_AUTH_TOKEN=
+```
+
+### Unit Tests
+
+Install dev dependencies:
+
+```bash
+uv sync --group dev
+```
+
+Run all tests:
+
+```bash
+uv run pytest tests/ -v
+```
+
+Run a specific test file:
+
+```bash
+uv run pytest tests/unit/tools/test_health.py -v
 ```
 
 ## Claude Desktop Integration
