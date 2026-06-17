@@ -30,7 +30,6 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/database/txmanager"
 	admingateway "github.com/ua-academy-projects/share-bite/pkg/gateway/admin"
 	"github.com/ua-academy-projects/share-bite/pkg/outbox"
-	"github.com/ua-academy-projects/share-bite/pkg/resilience"
 
 	_ "github.com/ua-academy-projects/share-bite/docs/api/business"
 	h3 "github.com/ua-academy-projects/share-bite/pkg/aws"
