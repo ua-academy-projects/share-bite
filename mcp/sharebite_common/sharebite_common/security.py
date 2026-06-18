@@ -31,21 +31,31 @@ class ConfirmationRequiredError(ValueError):
 
 
 def redact_secrets(value: Any) -> Any:
+    return _redact_secrets(value, seen=set())
+
+
+def _redact_secrets(value: Any, *, seen: set[int]) -> Any:
+    if isinstance(value, (Mapping, list, tuple)):
+        obj_id = id(value)
+        if obj_id in seen:
+            return REDACTED
+        seen.add(obj_id)
+
+
     if isinstance(value, Mapping):
         result: dict[Any, Any] = {}
         for key, item in value.items():
             if _is_secret_key(str(key)):
                 result[key] = REDACTED
             else:
-                result[key] = redact_secrets(item)
+                result[key] = _redact_secrets(item, seen=seen)
         return result
 
     if isinstance(value, list):
-        return [redact_secrets(item) for item in value]
+        return [_redact_secrets(item, seen=seen) for item in value]
 
     if isinstance(value, tuple):
-        return tuple(redact_secrets(item) for item in value)
-
+        return tuple(_redact_secrets(item, seen=seen) for item in value)
     return value
 
 
@@ -61,19 +71,29 @@ def require_confirmation(confirm: bool, action: str) -> None:
 
 
 def _find_secret_path(value: Any, prefix: str = "") -> str | None:
+        return _find_secret_path_impl(value, prefix=prefix, seen=set())
+
+
+def _find_secret_path_impl(value: Any, prefix: str, seen: set[int]) -> str | None:
+    if isinstance(value, (Mapping, Sequence)) and not isinstance(value, (str, bytes, bytearray)):
+        obj_id = id(value)
+        if obj_id in seen:
+            return None
+        seen.add(obj_id)
+
     if isinstance(value, Mapping):
         for key, item in value.items():
             key_str = str(key)
             path = f"{prefix}.{key_str}" if prefix else key_str
             if _is_secret_key(key_str):
                 return path
-            nested = _find_secret_path(item, path)
+            nested = _find_secret_path_impl(item, path, seen)
             if nested:
                 return nested
 
     elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         for idx, item in enumerate(value):
-            nested = _find_secret_path(item, f"{prefix}[{idx}]")
+            nested = _find_secret_path_impl(item, f"{prefix}[{idx}]", seen)
             if nested:
                 return nested
 

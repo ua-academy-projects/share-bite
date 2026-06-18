@@ -19,6 +19,9 @@ def clamp_pagination(
     default_limit: int = 20,
     max_limit: int = 100,
 ) -> Pagination:
+    if max_limit < 1:
+        raise ValueError("max_limit must be >= 1")
+
     final_limit = default_limit if limit is None else limit
     final_offset = 0 if offset is None else offset
 

@@ -12,7 +12,7 @@ class MCPError:
     details: Any | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {"ok": False, "error": self.error}
+        payload: dict[str, Any] = {"ok": self.ok, "error": self.error}
         if self.status is not None:
             payload["status"] = self.status
         if self.details is not None:
