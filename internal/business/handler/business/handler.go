@@ -188,7 +188,6 @@ func (h *handler) ready(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"error":   "service not ready",
-			"details": err.Error(),
 		})
 		return
 	}
