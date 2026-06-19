@@ -57,3 +57,31 @@ func scanRowError(err error) error {
 func scanRowsError(err error) error {
 	return fmt.Errorf("scan rows: %w", err)
 }
+
+type FollowerCustomer struct {
+	ID                string    `db:"id"`
+	UserID            string    `db:"user_id"`
+	UserName          string    `db:"username"`
+	FirstName         string    `db:"first_name"`
+	LastName          string    `db:"last_name"`
+	AvatarObjectKey   *string   `db:"avatar_object_key"`
+	Bio               *string   `db:"bio"`
+	IsFollowersPublic bool      `db:"is_followers_public"`
+	IsFollowingPublic bool      `db:"is_following_public"`
+	CreatedAt         time.Time `db:"created_at"`
+}
+
+func (f FollowerCustomer) ToEntity() entity.Customer {
+	return entity.Customer{
+		ID:                f.ID,
+		UserID:            f.UserID,
+		UserName:          f.UserName,
+		FirstName:         f.FirstName,
+		LastName:          f.LastName,
+		AvatarObjectKey:   f.AvatarObjectKey,
+		Bio:               f.Bio,
+		IsFollowersPublic: f.IsFollowersPublic,
+		IsFollowingPublic: f.IsFollowingPublic,
+		CreatedAt:         f.CreatedAt,
+	}
+}

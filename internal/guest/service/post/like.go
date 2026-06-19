@@ -41,15 +41,7 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 		// Get actor's profile for notification enrichment
 		actor, err := s.customerRepo.GetByID(txCtx, customerID)
 		if err != nil {
-			logger.ErrorKV(txCtx, "failed to get actor for notification, using partial data", "customer_id", customerID, "error", err)
-			// fallback to basic data
-			actor.ID = customerID
-			actor.UserName = "Anonymous"
-		}
-
-		actorName := actor.UserName
-		if actor.FirstName != "" || actor.LastName != "" {
-			actorName = fmt.Sprintf("%s %s", actor.FirstName, actor.LastName)
+			return fmt.Errorf("get actor customer: %w", err)
 		}
 
 		var actorAvatar string
@@ -68,7 +60,6 @@ func (s *service) Like(ctx context.Context, postID string, customerID string) er
 			EntityType:  "post",
 			EntityID:    postID,
 			Metadata: map[string]any{
-				"actor_name":     actorName,
 				"actor_avatar":   actorAvatar,
 				"actor_username": actor.UserName,
 			},

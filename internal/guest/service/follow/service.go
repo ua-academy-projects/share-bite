@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"github.com/ua-academy-projects/share-bite/internal/guest/entity"
 	"github.com/ua-academy-projects/share-bite/internal/guest/service/customer"
+	"github.com/ua-academy-projects/share-bite/internal/storage"
+	"github.com/ua-academy-projects/share-bite/pkg/database"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 	"time"
 )
 
@@ -26,16 +29,44 @@ type CustomerFollowRepository interface {
 type service struct {
 	customerFollowRepo CustomerFollowRepository
 	customerRepo       customer.CustomerRepository
+	outboxWriter       outbox.Writer
+	txManager          database.TxManager
+	storage            storage.ObjectStorage
+}
+
+type Option func(*service)
+
+func WithOutboxWriter(w outbox.Writer) Option {
+	return func(s *service) {
+		s.outboxWriter = w
+	}
+}
+
+func WithTxManager(tm database.TxManager) Option {
+	return func(s *service) {
+		s.txManager = tm
+	}
+}
+
+func WithStorage(st storage.ObjectStorage) Option {
+	return func(s *service) {
+		s.storage = st
+	}
 }
 
 func New(
 	customerFollowRepo CustomerFollowRepository,
 	customerRepo customer.CustomerRepository,
+	opts ...Option,
 ) *service {
-	return &service{
+	s := &service{
 		customerFollowRepo: customerFollowRepo,
 		customerRepo:       customerRepo,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 type pageToken struct {

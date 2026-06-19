@@ -176,6 +176,7 @@ func (m *venueProviderMock) GetNearbyVenues(ctx context.Context, lat, lon float6
 
 type followRepoMock struct {
 	getAllowedMentionsFn func(ctx context.Context, customerID string, ids []string) ([]string, error)
+	getFollowersFn       func(ctx context.Context, customerID string) ([]entity.Customer, error)
 }
 
 func (m *followRepoMock) GetAllowedMentions(ctx context.Context, customerID string, ids []string) ([]string, error) {
@@ -183,6 +184,13 @@ func (m *followRepoMock) GetAllowedMentions(ctx context.Context, customerID stri
 		return m.getAllowedMentionsFn(ctx, customerID, ids)
 	}
 	return ids, nil
+}
+
+func (m *followRepoMock) GetFollowers(ctx context.Context, customerID string) ([]entity.Customer, error) {
+	if m.getFollowersFn != nil {
+		return m.getFollowersFn(ctx, customerID)
+	}
+	return nil, nil
 }
 
 type customerRepoMock struct {

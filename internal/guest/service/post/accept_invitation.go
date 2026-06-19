@@ -52,12 +52,17 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 				txCtx,
 				postID,
 			)
-			if err == nil {
-				collaborators = append(
-					collaborators,
-					authorID,
+			if err != nil {
+				return fmt.Errorf(
+					"get author customer id: %w",
+					err,
 				)
 			}
+
+			collaborators = append(
+				collaborators,
+				authorID,
+			)
 
 			actor, err := s.customerRepo.GetByID(
 				txCtx,
@@ -67,16 +72,6 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 				return fmt.Errorf(
 					"get actor customer: %w",
 					err,
-				)
-			}
-
-			actorName := actor.UserName
-
-			if actor.FirstName != "" || actor.LastName != "" {
-				actorName = fmt.Sprintf(
-					"%s %s",
-					actor.FirstName,
-					actor.LastName,
 				)
 			}
 
@@ -106,7 +101,7 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 					continue
 				}
 
-				eventType := "post_published"
+				eventType := outbox.EventTypePostPublished
 
 				eventID := outbox.NewEventID(
 					eventType,
@@ -124,7 +119,6 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 					EntityType:  "post",
 					EntityID:    postID,
 					Metadata: map[string]any{
-						"actor_name":     actorName,
 						"actor_avatar":   actorAvatar,
 						"actor_username": actor.UserName,
 					},
@@ -143,6 +137,98 @@ func (s *service) AcceptInvitation(ctx context.Context, collaboratorID string, c
 						"enqueue outbox event: %w",
 						err,
 					)
+				}
+			}
+
+			processedAuthors := make(map[string]struct{})
+
+			for _, pubAuthorID := range collaborators {
+
+				if _, ok := processedAuthors[pubAuthorID]; ok {
+					continue
+				}
+
+				processedAuthors[pubAuthorID] = struct{}{}
+
+				followers, err := s.followRepo.GetFollowers(
+					txCtx,
+					pubAuthorID,
+				)
+				if err != nil {
+					return fmt.Errorf(
+						"get followers: %w",
+						err,
+					)
+				}
+
+				authorProfile, err := s.customerRepo.GetByID(
+					txCtx,
+					pubAuthorID,
+				)
+				if err != nil {
+					return fmt.Errorf(
+						"get author customer profile: %w",
+						err,
+					)
+				}
+
+				var authorAvatar string
+
+				if authorProfile.AvatarObjectKey != nil {
+					authorAvatar = s.storage.BuildURL(
+						*authorProfile.AvatarObjectKey,
+					)
+				}
+
+				for _, follower := range followers {
+
+					if _, ok := seen[follower.ID]; ok {
+						continue
+					}
+
+					seen[follower.ID] = struct{}{}
+
+					if follower.UserID == "" {
+						continue
+					}
+
+					eventType := outbox.EventTypePostPublished
+
+					eventID := outbox.NewEventID(
+						eventType,
+						follower.UserID,
+						pubAuthorID,
+						"post",
+						postID,
+					)
+
+					evt := outbox.Message{
+						EventID:     eventID,
+						EventType:   eventType,
+						RecipientID: follower.UserID,
+						ActorID:     pubAuthorID,
+						EntityType:  "post",
+						EntityID:    postID,
+						Metadata: map[string]any{
+							"actor_avatar":   authorAvatar,
+							"actor_username": authorProfile.UserName,
+						},
+						CreatedAt: time.Now().UTC(),
+					}
+
+					if err := s.outboxWriter.Enqueue(
+						txCtx,
+						outbox.Event{
+							EventType:     eventType,
+							Payload:       evt,
+							SourceService: outbox.DefaultSourceService,
+						},
+					); err != nil {
+						return fmt.Errorf(
+							"enqueue outbox event for follower: %w",
+							err,
+						)
+					}
 				}
 			}
 

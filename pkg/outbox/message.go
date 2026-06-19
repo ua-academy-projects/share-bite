@@ -8,8 +8,12 @@ import (
 
 const (
 	EventTypePostLiked              = "post_liked"
+	EventTypePostCommented          = "post_commented"
+	EventTypePostMentioned          = "post_mentioned"
+	EventTypePostInvitationReceived = "post_invitation_received"
 	EventTypePostPublished          = "post_published"
 	EventTypeRegistrationConfirmed  = "registration_confirmed"
+	EventTypeFollowAdded            = "follow_added"
 	EventTypePasswordResetRequested = "password_reset_requested"
 )
 

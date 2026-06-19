@@ -170,7 +170,7 @@ resource "aws_sns_topic_subscription" "to_sse" {
   raw_message_delivery = true
 
   filter_policy = jsonencode({
-    eventType = ["post_liked", "comment_added", "follow_added", "invitation_received"]
+    eventType = ["post_liked", "post_commented", "post_mentioned", "post_invitation_received", "post_published", "follow_added"]
   })
 }
 
