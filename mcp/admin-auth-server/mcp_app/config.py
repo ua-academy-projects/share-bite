@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import ClassVar
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,13 +21,15 @@ class Settings(BaseSettings):
     )
 
     timeout_seconds: int = Field(
-        default=10, alias="REQUEST_TIMEOUT", description="Global timeout for HTTP requests to Go API"
+        default=10,
+        validation_alias=AliasChoices("ADMIN_AUTH_API_REQUEST_TIMEOUT_SECONDS", "REQUEST_TIMEOUT"),
+        description="Global timeout for HTTP requests to Go API",
     )
 
     audit_log_destination: str = Field(
         default=str(BASE_DIR / "audit.log"),
-        alias="AUDIT_LOG_DESTINATION",
-        description="Path to the system audit log file"
+        validation_alias=AliasChoices("MCP_AUDIT_LOG_PATH", "AUDIT_LOG_DESTINATION"),
+        description="Path to the system audit log file",
     )
 
     enforce_authentication: bool = Field(
