@@ -22,6 +22,7 @@ TOOL_GET_VENUE_DETAILS = "get_venue_details"
 TOOL_UPDATE_VENUE_DETAILS = "update_venue_details"
 TOOL_UPDATE_VENUE_HOURS = "update_venue_hours"
 TOOL_RECOMMEND_VENUES_BY_CONTEXT = "recommend_venues_by_context"
+TOOL_PREVIEW_VENUE_HOURS_UPDATE = "preview_venue_hours_update"
 
 # Discovery tool names
 TOOL_SEARCH_VENUES = "search_venues"
