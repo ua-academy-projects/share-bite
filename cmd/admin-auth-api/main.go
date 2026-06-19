@@ -17,7 +17,6 @@ import (
 	mcphttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/mcp"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
-	"github.com/ua-academy-projects/share-bite/pkg/email"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
 	"github.com/ua-academy-projects/share-bite/pkg/redis"
 	"github.com/ua-academy-projects/share-bite/pkg/resilience"
