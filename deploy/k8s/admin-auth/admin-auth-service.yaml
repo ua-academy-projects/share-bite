@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-auth-api
+  namespace: share-bite-local
+spec:
+  selector:
+    app: admin-auth-api
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3850

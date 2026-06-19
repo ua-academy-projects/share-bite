@@ -52,3 +52,6 @@ secret.yaml
 __pycache__/
 *.py[cod]
 .venv/
+
+mcp/admin-auth-server/audit.log
+mcp/admin-auth-server/uv.lock
