@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-operator
+  namespace: share-bite-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-operator
+  template:
+    metadata:
+      labels:
+        app: admin-operator
+    spec:
+      serviceAccountName: admin-operator-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: operator
+          image: admin-operator:latest
+          command:
+            - /manager
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi

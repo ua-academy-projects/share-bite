@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-operator-sa
+  namespace: share-bite-local
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: admin-operator-role
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["watch", "update", "get", "list", "patch"]
+  - apiGroups: ["admin.sharebite.dev"]
+    resources: ["adminappprofiles", "adminappprofiles/status"]
+    verbs: ["watch", "update", "get", "list", "patch", "create", "delete"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-operator-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: admin-operator-sa
+    namespace: share-bite-local

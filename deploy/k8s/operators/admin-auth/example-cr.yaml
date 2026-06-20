@@ -1,0 +1,8 @@
+apiVersion: admin.sharebite.dev/v1alpha1
+kind: AdminAppProfile
+metadata:
+  name: admin-auth-profile
+  namespace: share-bite-local
+spec:
+  replicas: 2
+  enabled: true
