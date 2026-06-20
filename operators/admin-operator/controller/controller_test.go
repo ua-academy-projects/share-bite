@@ -39,7 +39,9 @@ func TestReconcile_EnabledFalse(t *testing.T) {
 	}
 
 	updatedDep := &appsv1.Deployment{}
-	_ = cl.Get(context.Background(), types.NamespacedName{Name: "admin-auth-api", Namespace: "default"}, updatedDep)
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: "admin-auth-api", Namespace: "default"}, updatedDep); err != nil {
+		t.Fatalf("failed to get deployment: %v", err)
+	}
 
 	if *updatedDep.Spec.Replicas != 0 {
 		t.Errorf("expected 0 replicas, got %d", *updatedDep.Spec.Replicas)
@@ -95,7 +97,9 @@ func TestReconcile_HappyPath(t *testing.T) {
 	}
 
 	updatedDep := &appsv1.Deployment{}
-	_ = cl.Get(context.Background(), types.NamespacedName{Name: "admin-auth-api", Namespace: "default"}, updatedDep)
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: "admin-auth-api", Namespace: "default"}, updatedDep); err != nil {
+		t.Fatalf("failed to get deployment: %v", err)
+	}
 
 	if *updatedDep.Spec.Replicas != 3 {
 		t.Errorf("expected 3 replicas, got %d", *updatedDep.Spec.Replicas)

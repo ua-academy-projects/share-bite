@@ -22,6 +22,7 @@ spec:
       containers:
         - name: operator
           image: admin-operator:latest
+          imagePullPolicy: IfNotPresent
           command:
             - /manager
           securityContext:

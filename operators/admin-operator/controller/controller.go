@@ -102,5 +102,6 @@ func (r *AdminAppProfileReconciler) updateStatus(ctx context.Context, profile *a
 func (r *AdminAppProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adminv1alpha1.AdminAppProfile{}).
+		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }

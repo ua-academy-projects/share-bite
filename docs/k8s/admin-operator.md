@@ -1,6 +1,6 @@
 # admin-operator
 
-Scales the **business-api** Deployment from a `AdminAppProfile` resource.
+Scales the **admin-api** Deployment from a `AdminAppProfile` resource.
 
 Implementation: [#216](https://github.com/ua-academy-projects/share-bite/issues/216).
 Conventions: [operators-overview.md](./operators-overview.md).
@@ -103,13 +103,13 @@ the CRD and the underlying `Deployment` for changes.
 
 To safely interact with the cluster, the operator requires the following RBAC permissions:
 
-| API Group             | Resources                    | Verbs                                             | Purpose                                            |
-|:----------------------|:-----------------------------|:--------------------------------------------------|:---------------------------------------------------|
-| `apps`                | `deployments`                | `get, list, watch, update, patch`                 | Allows observing and scaling target deployments.   |
-| `admin.sharebite.dev` | `adminappprofiles`           | `get, list, watch, create, update, patch, delete` | Full lifecycle control over the CRD.               |
-| `admin.sharebite.dev` | `businessappprofiles/status` | `get, update, patch`                              | Restricted permission to report status conditions. |
-| `coordination.k8s.io` | `leases`                     | `get, list, watch, create, update, patch, delete` | Manages Leader Election locks.                     |
-| `` (core)             | `events`                     | `create, patch`                                   | Writes controller events to the cluster.           |
+| API Group             | Resources                 | Verbs                                             | Purpose                                            |
+|:----------------------|:--------------------------|:--------------------------------------------------|:---------------------------------------------------|
+| `apps`                | `deployments`             | `get, list, watch, update, patch`                 | Allows observing and scaling target deployments.   |
+| `admin.sharebite.dev` | `adminappprofiles`        | `get, list, watch, create, update, patch, delete` | Full lifecycle control over the CRD.               |
+| `admin.sharebite.dev` | `adminappprofiles/status` | `get, update, patch`                              | Restricted permission to report status conditions. |
+| `coordination.k8s.io` | `leases`                  | `get, list, watch, create, update, patch, delete` | Manages Leader Election locks.                     |
+| `` (core)             | `events`                  | `create, patch`                                   | Writes controller events to the cluster.           |
 
 ---
 
@@ -148,7 +148,7 @@ The entire runtime environment can be stood up, managed, and torn down cleanly u
    Deploy the supporting stack (Postgres Database, Redis Cache, Admin Auth API API, and Database Migrations) via
    Kustomize:
    ```bash
-   make run-auth-service
+   make run-admin-service
    ```
 2. Build and Deploy the Admin Operator Container
    Automatically compile the Go codebase, package it into a secure Docker image, register the CRDs, apply the
@@ -167,7 +167,7 @@ The entire runtime environment can be stood up, managed, and torn down cleanly u
    configurations, execute:
    ```bash
    make stop-admin-operator
-   make stop-auth-service
+   make stop-admin-service
    ```
 
 ### Example Usage
