@@ -204,7 +204,9 @@ func (h *handler) ready(c *gin.Context) {
 
 	_, err := h.service.ListLocationTags(ctx)
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service not ready"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":   "service not ready",
+		})
 		return
 	}
 

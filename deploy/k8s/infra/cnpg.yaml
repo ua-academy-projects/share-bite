@@ -1,0 +1,15 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: share-bite-cnpg
+  namespace: share-bite-local
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:18
+  instances: 2
+  enableSuperuserAccess: true
+  bootstrap:
+    initdb:
+      database: share_bite
+      owner: share
+  storage:
+    size: 2Gi
