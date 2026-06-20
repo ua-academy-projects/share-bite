@@ -183,8 +183,14 @@ export function Sidebar() {
             {isAdminOrModerator() ? (
               <>
                 <NavSection label="Admin" />
-                <NavLink to="/admin" className={linkClass}>
+                <NavLink to="/admin" end className={linkClass}>
                   Admin Users
+                </NavLink>
+                <NavLink to="/admin/statistics" className={linkClass}>
+                  Statistics
+                </NavLink>
+                <NavLink to="/admin/businesses" className={linkClass}>
+                  Verify Businesses
                 </NavLink>
               </>
             ) : null}
