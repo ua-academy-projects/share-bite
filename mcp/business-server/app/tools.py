@@ -1017,6 +1017,14 @@ def register_tools(
             return _tool_error("validation failed", validation_errors=validation_errors)
 
         try:
+            before = _unwrap(
+                await client.get(
+                    API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
+                    auth_token=auth_token,
+                    request_id=request_id,
+                )
+            )
+            
             after = _unwrap(
                 await client.patch(
                     API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
