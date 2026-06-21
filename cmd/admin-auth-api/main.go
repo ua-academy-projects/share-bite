@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	businessclient "github.com/ua-academy-projects/share-bite/internal/admin-auth/adapter/business"
 	guestclient "github.com/ua-academy-projects/share-bite/internal/admin-auth/adapter/guest"
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
@@ -13,6 +15,7 @@ import (
 	adminhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/admin"
 	healthhttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/health"
 	mcphttp "github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/mcp"
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/metrics"
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/worker"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
 	"go.uber.org/zap"
@@ -41,6 +44,10 @@ import (
 	adminmw "github.com/ua-academy-projects/share-bite/internal/admin-auth/middleware"
 )
 
+const (
+	appName = "admin-auth-service"
+)
+
 // @title			Share Bite Admin Auth API
 // @version		1.0
 // @description	Admin authentication API documentation.
@@ -57,13 +64,25 @@ func main() {
 		logger.Fatal(ctx, "load google oauth config: ", err)
 	}
 
+	redisCfg, err := env.NewRedisConfig()
+	if err != nil {
+		logger.Fatal(ctx, "load redis config: ", err)
+	}
+	cfg := config.Config()
+
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(pkgmw.RequestID())
 	router.Use(pkgmw.RequestLogger())
 	router.Use(ErrorMiddleware())
 
-	cfg := config.Config()
+	// prometheus metrics
+	reg := prometheus.NewRegistry()
+	metrics := metrics.New(cfg.App.Name(), appName, reg)
+	metricsMiddleware := middleware.Metrics(metrics)
+
+	router.Use(metricsMiddleware)
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	if cfg.App.IsProd() {
 		logger.SetLevel(zap.InfoLevel)

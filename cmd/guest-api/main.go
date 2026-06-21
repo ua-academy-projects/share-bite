@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/observability"
+	"github.com/ua-academy-projects/share-bite/internal/guest/metrics"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -53,6 +56,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	appName = "guest-service"
+)
+
 // @title						Share Bite - Guest Service API
 // @version					1.0
 // @description				API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
@@ -83,7 +90,16 @@ func main() {
 	router.Use(gin.Recovery())
 	router.Use(guest_middleware.ErrorMiddleware())
 
+	// swagger docs
 	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
+
+	// prometheus metrics
+	reg := prometheus.NewRegistry()
+	metrics := metrics.New(config.Config().App.Name(), appName, reg)
+	metricsMiddleware := middleware.Metrics(metrics)
+
+	router.Use(metricsMiddleware)
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	binding.Validator = validator.New("binding")
 
