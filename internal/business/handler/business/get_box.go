@@ -16,7 +16,7 @@ import (
 //	@Description	Retrieves a single food box with all details (prices, expiration, images, etc.)
 //	@Tags			boxes
 //	@Produce		json
-//	@Param			food_box_id	path		int	true	"Food Box ID"
+//	@Param			id	path		int	true	"Food Box ID"
 //	@Success		200			{object}	dto.BoxResponse
 //	@Failure		400			{object}	errorResponse
 //	@Failure		404			{object}	errorResponse
