@@ -45,7 +45,7 @@ API_PATH_UPDATE_VENUE_DETAILS = "/business/locations/{venue_id}"
 API_PATH_UPDATE_VENUE_HOURS = "/business/locations/{venue_id}/hours"
 API_PATH_BUSINESS_FOOD_BOXES = "/business/boxes"
 API_PATH_FOOD_BOX = "/business/food-boxes/{food_box_id}"
-API_PATH_FOOD_BOX_RESERVATIONS = "/business/boxes/{food_box_id}/reserve"
+API_PATH_FOOD_BOX_RESERVATIONS = "/business/boxes/{food_box_id}/reservations"
 
 # Discovery API paths
 API_PATH_SEARCH_VENUES = "/business/venues/search"

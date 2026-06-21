@@ -429,17 +429,6 @@ def validate_food_box_update(payload: dict[str, Any]) -> ValidationErrors:
 
     return errors
 
-def ensure_food_box_owned_by_business(food_box_data: dict[str, Any], business_id: int) -> None:
-    """Verify that a food box belongs to the specified business."""
-    owner_id = food_box_data.get("businessId") or food_box_data.get("business_id") or food_box_data.get("ownerId") or food_box_data.get("owner_id")
-
-    if owner_id is None:
-        raise ForbiddenError("cannot verify food box ownership")
-
-    if int(owner_id) != int(business_id):
-        raise ForbiddenError("unauthorized access to another business food box")
-
-
 def _validate_update_payload(payload: dict[str, Any], allowed: set[str]) -> ValidationErrors:
     errors: ValidationErrors = []
 

@@ -65,6 +65,7 @@ type businessService interface {
 	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	ListBoxesByBusiness(ctx context.Context, userID string, offset, limit int) (pagination.Result[entity.Box], error)
 	UpdateBox(ctx context.Context, boxID int64, userID string, input entity.BoxUpdateInput) (*entity.Box, error)
+	GetBox(ctx context.Context, boxID int64) (*entity.Box, error) 
 	GetBoxReservations(ctx context.Context, boxID int64, userID string, offset, limit int) (pagination.Result[entity.BoxItem], error)
 	Rating(ctx context.Context, id int) (float32, error)
 
@@ -114,6 +115,7 @@ func RegisterHandlers(
 	r.GET("/posts/:id/likes", h.GetLikes)
 	r.GET("/posts/:id/comments", h.GetComments)
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
+	r.GET("/food-boxes/:id", h.GetBox)
 	r.GET("/location-tags", h.listLocationTags)
 	r.GET("/venues/search", h.searchVenues)
 

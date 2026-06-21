@@ -275,6 +275,23 @@ func (s *service) UpdateBox(ctx context.Context, boxID int64, userID string, inp
 	return updatedBox, nil
 }
 
+func (s *service) GetBox(ctx context.Context, boxID int64) (*entity.Box, error) {
+	const op = "service.box.GetBox"
+
+	box, err := s.businessRepo.GetBox(ctx, boxID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if box.Image != "" {
+		if !strings.HasPrefix(box.Image, "http://") && !strings.HasPrefix(box.Image, "https://") {
+			box.Image = s.storage.BuildURL(box.Image)
+		}
+	}
+
+	return box, nil
+}
+
 func (s *service) GetBoxReservations(ctx context.Context, boxID int64, userID string, offset, limit int) (pagination.Result[entity.BoxItem], error) {
 	const op = "service.box.GetBoxReservations"
 

@@ -945,6 +945,7 @@ def register_tools(
         except (BusinessApiError, ForbiddenError, RuntimeError) as exc:
             return _tool_error(str(exc))
 
+
     @mcp.tool()
     async def create_food_box(
         business_id: int,
@@ -1016,15 +1017,6 @@ def register_tools(
             return _tool_error("validation failed", validation_errors=validation_errors)
 
         try:
-            before = _unwrap(
-                await client.get(
-                    API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
-                    auth_token=auth_token,
-                    request_id=request_id,
-                )
-            )
-            ensure_food_box_owned_by_business(before, business_id)
-
             after = _unwrap(
                 await client.patch(
                     API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
@@ -1057,18 +1049,9 @@ def register_tools(
         request_id: str | None = None,
     ) -> dict[str, Any]:
         """
-        Get reservations for a food box after verifying that the food box belongs to business_id.
+        Get reservations for a food box.
         """
         try:
-            food_box = _unwrap(
-                await client.get(
-                    API_PATH_FOOD_BOX.format(food_box_id=food_box_id),
-                    auth_token=auth_token,
-                    request_id=request_id,
-                )
-            )
-            ensure_food_box_owned_by_business(food_box, business_id)
-
             reservations = _unwrap(
                 await client.get(
                     API_PATH_FOOD_BOX_RESERVATIONS.format(food_box_id=food_box_id),
