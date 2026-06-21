@@ -46,7 +46,6 @@ from app.utils import (
     validate_date_range,
     build_venue_hours_preview,
     extract_venue_hours_days,
-    ensure_food_box_owned_by_business,
     validate_profile_update,
     validate_venue_hours,
     validate_venue_update,
@@ -935,7 +934,6 @@ def register_tools(
                     request_id=request_id,
                 )
             )
-            ensure_food_box_owned_by_business(food_box, business_id)
 
             return _tool_success(
                 business_id=business_id,

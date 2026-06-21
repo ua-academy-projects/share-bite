@@ -220,7 +220,7 @@ def test_list_business_food_boxes_success(registered_tools, api_client):
     api_client.get_responses = [{"data": {"items": [{"id": 101}], "total": 1}}]
 
     res = asyncio.run(
-        registered_tools["list_business_food_boxes"](
+        registered_tools[TOOL_LIST_BUSINESS_FOOD_BOXES](
             business_id=BUSINESS_ID,
             skip=0,
             limit=10,
@@ -243,7 +243,7 @@ def test_create_food_box_success(registered_tools, api_client):
     }
 
     res = asyncio.run(
-        registered_tools["create_food_box"](
+        registered_tools[TOOL_CREATE_FOOD_BOX](
             business_id=BUSINESS_ID,
             payload=payload,
             auth_token=AUTH_TOKEN,
@@ -263,7 +263,7 @@ def test_update_food_box_success(registered_tools, api_client):
     api_client.patch_responses = [{"data": {"id": 101, "fullPrice": 120}}]
 
     res = asyncio.run(
-        registered_tools["update_food_box"](
+        registered_tools[TOOL_UPDATE_FOOD_BOX](
             business_id=BUSINESS_ID,
             food_box_id=101,
             payload={"price_full": 120},
@@ -278,7 +278,7 @@ def test_get_food_box_reservations_success(registered_tools, api_client):
     api_client.get_responses = [{"data": {"items": [{"id": "res-1", "status": "CONFIRMED"}]}}]
 
     res = asyncio.run(
-        registered_tools["get_food_box_reservations"](
+        registered_tools[TOOL_GET_FOOD_BOX_RESERVATIONS](
             business_id=BUSINESS_ID,
             food_box_id=101,
             skip=0,
