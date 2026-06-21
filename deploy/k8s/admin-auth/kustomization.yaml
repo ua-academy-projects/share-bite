@@ -4,3 +4,4 @@ resources:
   - admin-auth-configmap.yaml
   - admin-auth-service.yaml
   - admin-auth-deployment.yaml
+  - admin-auth-servicemonitor.yaml

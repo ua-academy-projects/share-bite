@@ -1,0 +1,32 @@
+nameOverride: ""
+alertmanager:
+  enabled: false
+grafana:
+  enabled: true
+  fullnameOverride: "grafana"
+  adminPassword: admin
+prometheusOperator:
+  fullnameOverride: "prometheus-operator"
+  enabled: true
+kube-state-metrics:
+  fullnameOverride: "kube-state-metrics"
+kubelet:
+  serviceMonitor:
+    enabled: true
+    interval: "15s"
+prometheus:
+  fullnameOverride: "prometheus"
+  serviceAccount:
+    create: true
+    name: "prometheus-k8s"
+  prometheusSpec:
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    retention: 10d
+prometheus-node-exporter:
+  fullnameOverride: "node-exporter"
+  prometheus:
+    monitor:
+      enabled: true
+      interval: "15s"

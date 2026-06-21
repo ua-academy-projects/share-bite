@@ -4,3 +4,4 @@ resources:
 - ./infra
 - ./business
 - ./admin-auth
+- ./monitoring

@@ -8,12 +8,14 @@
 .PHONY: docker-build docker-build-business-operator docker-push-business-operator
 .PHONY: k8s-secrets k8s-up k8s-down k8s-migrate
 .PHONY: run-admin-service stop-admin-service run-admin-operator stop-admin-operator apply-cr
+.PHONY: kind-load monitoring-up monitoring-down monitoring-forward
 
 REGISTRY ?= mykolashevchenko
 TAG ?= latest
 OPERATOR_IMAGE := $(REGISTRY)/business-operator:$(TAG)
 
 COUNT ?= 1
+CHART_VERSION ?= 86.3.0
 MIGRATIONS_DIR := migrations
 K8S_NAMESPACE ?= share-bite-local
 K8S_SECRETS_FILE ?= docs/k8s/secrets.local.yaml
@@ -215,6 +217,31 @@ k8s-migrate:
 
 k8s-down:
 	kubectl delete namespace $(K8S_NAMESPACE) --ignore-not-found=true
+
+kind-load: docker-build
+	kind load docker-image guest-api:latest business-api:latest admin-auth-api:latest migrator:latest
+
+monitoring-up:
+	@echo "You can specify `CHART_VERSION` by setting it as an environment variable, otherwise the default one ($(CHART_VERSION)) will be used."
+
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	helm repo update
+
+	helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+	  --version $(CHART_VERSION) \
+	  --namespace monitoring \
+	  --create-namespace \
+	  --values ./deploy/k8s/monitoring/values.yaml
+
+monitoring-down:
+	helm uninstall kube-prometheus-stack --namespace monitoring
+	kubectl delete namespace monitoring --ignore-not-found=true
+
+monitoring-forward:
+	@echo "Grafana:    http://localhost:3000  (admin/admin)"
+	@echo "Prometheus: http://localhost:9090"
+	kubectl port-forward -n monitoring svc/grafana 3000:80 &
+	kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
 
 run-guest-operator:
 	go run cmd/guest-operator/main.go

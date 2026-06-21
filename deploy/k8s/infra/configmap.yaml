@@ -4,7 +4,8 @@ metadata:
   name: share-bite-infra-config
   namespace: share-bite-local
 data:
-  APP_NAME: share-bite
+  # please use `_` instead of `-` there (prometheus has some problems while searching with `-` symbol)
+  APP_NAME: share_bite
   APP_STAGE: dev
   APP_GRACEFUL_SHUTDOWN_TIMEOUT: 15s
   GUEST_HTTP_SERVER_HOST: 0.0.0.0
