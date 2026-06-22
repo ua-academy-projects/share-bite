@@ -8,7 +8,7 @@
 .PHONY: docker-build docker-build-business-operator docker-push-business-operator
 .PHONY: k8s-secrets k8s-up k8s-down k8s-migrate
 .PHONY: run-admin-service stop-admin-service run-admin-operator stop-admin-operator apply-cr
-.PHONY: kind-load monitoring-up monitoring-down monitoring-forward
+.PHONY: kind-load monitoring-up monitoring-down monitoring-forward-grafana monitoring-forward-prometheus
 
 REGISTRY ?= mykolashevchenko
 TAG ?= latest
@@ -222,10 +222,13 @@ kind-load: docker-build
 	kind load docker-image guest-api:latest business-api:latest admin-auth-api:latest migrator:latest
 
 monitoring-up:
-	@echo "You can specify `CHART_VERSION` by setting it as an environment variable, otherwise the default one ($(CHART_VERSION)) will be used."
+	@echo "You can specify CHART_VERSION by setting it as an environment variable, otherwise the default one ($(CHART_VERSION)) will be used."
 
 	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 	helm repo update
+
+	@echo "Creating secret..."
+	kubectl apply -f deploy/k8s/monitoring/grafana-secret.yaml
 
 	helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
 	  --version $(CHART_VERSION) \
@@ -237,11 +240,13 @@ monitoring-down:
 	helm uninstall kube-prometheus-stack --namespace monitoring
 	kubectl delete namespace monitoring --ignore-not-found=true
 
-monitoring-forward:
-	@echo "Grafana:    http://localhost:3000  (admin/admin)"
+monitoring-forward-grafana:
+	@echo "Grafana: http://localhost:3000"
+	@kubectl port-forward -n monitoring svc/grafana 3000:80
+
+monitoring-forward-prometheus:
 	@echo "Prometheus: http://localhost:9090"
-	kubectl port-forward -n monitoring svc/grafana 3000:80 &
-	kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
+	@kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
 
 run-guest-operator:
 	go run cmd/guest-operator/main.go

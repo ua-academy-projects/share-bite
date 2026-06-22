@@ -15,3 +15,6 @@ configMapGenerator:
 
 generatorOptions:
   disableNameSuffixHash: true
+
+resources:
+  - grafana-secret.yaml

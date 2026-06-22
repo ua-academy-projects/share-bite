@@ -64,10 +64,6 @@ func main() {
 		logger.Fatal(ctx, "load google oauth config: ", err)
 	}
 
-	redisCfg, err := env.NewRedisConfig()
-	if err != nil {
-		logger.Fatal(ctx, "load redis config: ", err)
-	}
 	cfg := config.Config()
 
 	router := gin.New()

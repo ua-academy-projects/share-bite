@@ -40,10 +40,15 @@ The `metrics-values.yaml` tells Prometheus to discover our ServiceMonitors in th
 ## Access
 
 ```bash
-make monitoring-forward
+make monitoring-forward-grafana
 ```
 
-- Grafana: http://localhost:3000 (admin/admin)
+- Grafana: http://localhost:3000
+
+```bash
+make monitoring-forward-prometheus
+```
+
 - Prometheus: http://localhost:9090
 
 ## Dashboard
