@@ -219,13 +219,15 @@ k8s-down:
 	kubectl delete namespace $(K8S_NAMESPACE) --ignore-not-found=true
 
 kind-load: docker-build
-	kind load docker-image guest-api:latest business-api:latest admin-auth-api:latest migrator:latest
+	kind load docker-image guest-api:$(TAG) business-api:$(TAG) admin-auth-api:$(TAG) migrator:$(TAG)
 
 monitoring-up:
 	@echo "You can specify CHART_VERSION by setting it as an environment variable, otherwise the default one ($(CHART_VERSION)) will be used."
 
 	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 	helm repo update
+
+	kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f - || true
 
 	@echo "Creating secret..."
 	kubectl apply -f deploy/k8s/monitoring/grafana-secret.yaml
@@ -237,8 +239,8 @@ monitoring-up:
 	  --values ./deploy/k8s/monitoring/metrics-values.yaml
 
 monitoring-down:
-	helm uninstall kube-prometheus-stack --namespace monitoring
-	kubectl delete namespace monitoring --ignore-not-found=true
+	@helm uninstall kube-prometheus-stack --namespace monitoring || true
+	@kubectl delete namespace monitoring --ignore-not-found=true
 
 monitoring-forward-grafana:
 	@echo "Grafana: http://localhost:3000"
