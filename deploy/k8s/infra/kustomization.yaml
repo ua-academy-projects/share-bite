@@ -9,3 +9,6 @@ resources:
 - redis.yaml
 - secret.yaml
 - migrator-job.yaml
+- loki.yaml
+- alloy-configmap.yaml
+- alloy-daemonset.yaml

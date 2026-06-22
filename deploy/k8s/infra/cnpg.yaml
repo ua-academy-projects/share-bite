@@ -5,7 +5,7 @@ metadata:
   namespace: share-bite-local
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:18
-  instances: 2
+  instances: 1
   enableSuperuserAccess: true
   bootstrap:
     initdb:
