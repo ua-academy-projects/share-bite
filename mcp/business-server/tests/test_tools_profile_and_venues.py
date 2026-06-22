@@ -1,4 +1,5 @@
 import asyncio
+from unittest.mock import MagicMock
 
 from app.constants import (
     TOOL_GET_BUSINESS_PROFILE,
@@ -9,6 +10,10 @@ from app.constants import (
     TOOL_UPDATE_VENUE_DETAILS,
     TOOL_UPDATE_VENUE_HOURS,
     TOOL_PREVIEW_VENUE_HOURS_UPDATE,
+    TOOL_LIST_BUSINESS_FOOD_BOXES,
+    TOOL_CREATE_FOOD_BOX,
+    TOOL_UPDATE_FOOD_BOX,
+    TOOL_GET_FOOD_BOX_RESERVATIONS,
 )
 
 
@@ -16,6 +21,10 @@ AUTH_TOKEN = "token-123"
 REQUEST_ID = "req-1"
 BUSINESS_ID = 10
 
+def _create_mock_context(token: str) -> MagicMock:
+    ctx = MagicMock()
+    ctx.request_context.meta = {"headers": {"authorization": f"Bearer {token}"}}
+    return ctx
 
 def test_get_business_profile_success(registered_tools, api_client):
     api_client.get_responses = [{"data": {"id": 10, "name": "Brand 10"}}]
@@ -207,6 +216,79 @@ def test_update_venue_hours_forbidden_for_foreign_venue(registered_tools, api_cl
     assert res["ok"] is False
     assert "unauthorized" in res["error"]
 
+def test_list_business_food_boxes_success(registered_tools, api_client):
+    api_client.get_responses = [{"data": {"items": [{"id": 101}], "total": 1}}]
+
+    res = asyncio.run(
+        registered_tools[TOOL_LIST_BUSINESS_FOOD_BOXES](
+            business_id=BUSINESS_ID,
+            skip=0,
+            limit=10,
+            auth_token=AUTH_TOKEN,
+            request_id=REQUEST_ID,
+        )
+    )
+    assert res["ok"] is True
+    assert len(res["result"]["items"]) == 1
+
+def test_create_food_box_success(registered_tools, api_client):
+    api_client.post_form_responses = [{"data": {"id": 99, "price_full": 150}}]
+    
+    payload = {
+        "venue_id": 7,
+        "price_full": 150,
+        "expires_at": "2026-12-31T23:59:59Z",
+        "quantity": 10,
+        "image_base64": "data:image/jpeg;base64,YWJj",
+    }
+
+    res = asyncio.run(
+        registered_tools[TOOL_CREATE_FOOD_BOX](
+            business_id=BUSINESS_ID,
+            payload=payload,
+            auth_token=AUTH_TOKEN,
+            request_id=REQUEST_ID,
+        )
+    )
+    assert res["ok"] is True
+    assert res["result"]["id"] == 99
+
+    form_data = api_client.post_form_calls[0]["form_data"]
+    assert form_data["venue_id"] == "7"
+    assert form_data["price_full"] == "150"
+    assert "image" in form_data
+
+def test_update_food_box_success(registered_tools, api_client):
+    api_client.get_responses = [{"data": {"id": 101, "fullPrice": 100}}]
+    api_client.patch_responses = [{"data": {"id": 101, "fullPrice": 120}}]
+
+    res = asyncio.run(
+        registered_tools[TOOL_UPDATE_FOOD_BOX](
+            business_id=BUSINESS_ID,
+            food_box_id=101,
+            payload={"price_full": 120},
+            auth_token=AUTH_TOKEN,
+            request_id=REQUEST_ID,
+        )
+    )
+    assert res["ok"] is True
+    assert "fullPrice" in res["changed_fields"]
+
+def test_get_food_box_reservations_success(registered_tools, api_client):
+    api_client.get_responses = [{"data": {"items": [{"id": "res-1", "status": "CONFIRMED"}]}}]
+
+    res = asyncio.run(
+        registered_tools[TOOL_GET_FOOD_BOX_RESERVATIONS](
+            business_id=BUSINESS_ID,
+            food_box_id=101,
+            skip=0,
+            limit=10,
+            auth_token=AUTH_TOKEN,
+            request_id=REQUEST_ID,
+        )
+    )
+    assert res["ok"] is True
+    assert res["result"]["items"][0]["status"] == "CONFIRMED"
 
 def test_preview_venue_hours_update_success(registered_tools, api_client):
     api_client.get_responses = [

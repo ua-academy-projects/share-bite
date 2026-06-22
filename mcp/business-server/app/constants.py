@@ -10,6 +10,8 @@ CONTENT_TYPE_JSON = "application/json"
 URI_PROFILE_SCHEMA = "sharebite://business/profile-schema"
 URI_VENUE_SCHEMA = "sharebite://business/venue-schema"
 URI_VENUE_HOURS_FORMAT = "sharebite://business/venue-hours-format"
+URI_FOOD_BOX_SCHEMA = "sharebite://business/food-box-schema"
+URI_RESERVATION_STATUSES = "sharebite://business/reservation-statuses"
 
 # MCP Server
 MCP_SERVER_NAME = "business-server"
@@ -29,6 +31,11 @@ TOOL_SEARCH_VENUES = "search_venues"
 TOOL_GET_RECOMMENDED_VENUES = "get_recommended_venues"
 TOOL_GET_FEED_ITEMS = "get_feed_items"
 TOOL_SEARCH_BOXES = "search_boxes"
+TOOL_LIST_BUSINESS_FOOD_BOXES = "list_business_food_boxes"
+TOOL_GET_FOOD_BOX = "get_food_box"
+TOOL_CREATE_FOOD_BOX = "create_food_box"
+TOOL_UPDATE_FOOD_BOX = "update_food_box"
+TOOL_GET_FOOD_BOX_RESERVATIONS = "get_food_box_reservations"
 
 # API paths
 API_PATH_BUSINESS_PROFILE = "/business/{business_id}"
@@ -36,6 +43,9 @@ API_PATH_BUSINESS_VENUES = "/business/org-units/{business_id}/locations"
 API_PATH_VENUE_DETAILS = "/business/org-units/{venue_id}"
 API_PATH_UPDATE_VENUE_DETAILS = "/business/locations/{venue_id}"
 API_PATH_UPDATE_VENUE_HOURS = "/business/locations/{venue_id}/hours"
+API_PATH_BUSINESS_FOOD_BOXES = "/business/boxes"
+API_PATH_FOOD_BOX = "/business/food-boxes/{food_box_id}"
+API_PATH_FOOD_BOX_RESERVATIONS = "/business/boxes/{food_box_id}/reservations"
 
 # Discovery API paths
 API_PATH_SEARCH_VENUES = "/business/venues/search"

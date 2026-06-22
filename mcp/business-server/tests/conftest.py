@@ -43,10 +43,13 @@ class FakeMCP:
 
 class FakeAPIClient:
     def __init__(self) -> None:
-        self.get_responses: list[dict[str, Any]] = []
-        self.patch_responses: list[dict[str, Any]] = []
-        self.get_calls: list[dict[str, Any]] = []
-        self.patch_calls: list[dict[str, Any]] = []
+        self.get_responses: list[dict] = []
+        self.patch_responses: list[dict] = []
+        self.post_form_responses: list[dict] = [] 
+        
+        self.get_calls: list[dict] = []
+        self.patch_calls: list[dict] = []
+        self.post_form_calls: list[dict] = [] 
 
     async def get(
         self,
@@ -85,6 +88,14 @@ class FakeAPIClient:
         if not self.patch_responses:
             raise AssertionError("Unexpected PATCH call: no fake response queued")
         return self.patch_responses.pop(0)
+    
+    async def post_form(self, path, form_data, auth_token=None, request_id=None):
+        self.post_form_calls.append(
+            {"path": path, "form_data": form_data, "auth_token": auth_token, "request_id": request_id}
+        )
+        if not self.post_form_responses:
+            raise AssertionError("Unexpected POST form call: no fake response queued")
+        return self.post_form_responses.pop(0)
 
 
 class FakeSettings:

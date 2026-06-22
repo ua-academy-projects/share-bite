@@ -70,6 +70,9 @@ type businessRepository interface {
 
 	GetBox(ctx context.Context, boxID int64) (*entity.Box, error)
 	ReserveBoxItem(ctx context.Context, boxID int64, userID string) (string, error)
+	ListBoxesByVenueID(ctx context.Context, venueID int, offset, limit int) (pagination.Result[entity.Box], error)
+	UpdateBox(ctx context.Context, boxID int64, input entity.BoxUpdateInput) (*entity.Box, error)
+	GetBoxItems(ctx context.Context, boxID int64, offset, limit int) (pagination.Result[entity.BoxItem], error)
 
 	GetById(ctx context.Context, id int) (*entity.OrgUnit, error)
 	ListByParentID(ctx context.Context, parentID, offset, limit int, tags []string) (pagination.Result[entity.OrgUnit], error)
