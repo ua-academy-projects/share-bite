@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
-import { Bell, Loader2 } from "lucide-react";
-import { fetchNotifications } from "@/api/notifications";
+import { Bell, Check, CheckCheck, Loader2 } from "lucide-react";
+import { fetchNotifications, markNotificationsRead } from "@/api/notifications";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { pageEmpty, pageLoader, pagePanel } from "@/components/layout/pageStyles";
@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 
 export function NotificationsPage() {
   const token = localStorage.getItem("token");
+
+  const queryClient = useQueryClient();
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications"],
@@ -18,6 +20,13 @@ export function NotificationsPage() {
     },
     enabled: !!token,
   });
+
+  const markRead = useMutation({
+    mutationFn: (ids: string[]) => markNotificationsRead(token!, ids),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
 
   if (!token) {
     return <Navigate to="/auth" replace />;
@@ -29,6 +38,20 @@ export function NotificationsPage() {
         title="Notifications"
         description="Stay up to date with your Share Bite activity"
       />
+
+      {unreadIds.length > 0 && (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => markRead.mutate(unreadIds)}
+            disabled={markRead.isPending}
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-50 dark:text-emerald-300"
+          >
+            <CheckCheck className="h-4 w-4" />
+            Mark all as read
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center">
@@ -63,9 +86,22 @@ export function NotificationsPage() {
                       ? notification.metadata.message
                       : "You have a new notification")}
                 </p>
-                <span className="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-                  {new Date(notification.createdAt).toLocaleDateString()}
-                </span>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <span className="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(notification.createdAt).toLocaleDateString()}
+                  </span>
+                  {!notification.read && (
+                    <button
+                      type="button"
+                      onClick={() => markRead.mutate([notification.id])}
+                      disabled={markRead.isPending}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 transition-colors hover:text-emerald-700 disabled:opacity-50 dark:text-emerald-300 dark:hover:text-emerald-200"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      Mark as read
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

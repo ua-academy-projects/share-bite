@@ -15,6 +15,10 @@ import type {
   FullUserDetails,
   AdminUsersParams,
   CollectionItem,
+  PlatformStatistics,
+  PaginatedPendingBusinesses,
+  ReviewBusinessStatus,
+  PaginationParams,
 } from "@/types/api";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
@@ -548,6 +552,31 @@ export const apiClient = {
     const res = await apiRoot.patch<{ message: string }>(
       `/admin/users/${id}/role`,
       { role_slug: roleSlug }
+    );
+    return res.data;
+  },
+
+  adminGetStatistics: async () => {
+    const res = await apiRoot.get<PlatformStatistics>("/admin/statistics");
+    return res.data;
+  },
+
+  adminGetPendingBusinesses: async (params: PaginationParams = {}) => {
+    const res = await apiRoot.get<PaginatedPendingBusinesses>(
+      "/admin/businesses/pending",
+      { params }
+    );
+    return res.data;
+  },
+
+  adminReviewBusiness: async (
+    orgUnitId: number,
+    status: ReviewBusinessStatus,
+    comment?: string
+  ) => {
+    const res = await apiRoot.patch<{ message: string }>(
+      `/admin/businesses/${orgUnitId}/review`,
+      { status, ...(comment ? { comment } : {}) }
     );
     return res.data;
   },

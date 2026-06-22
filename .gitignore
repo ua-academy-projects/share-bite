@@ -33,6 +33,7 @@ docs/k8s/secrets.local.yaml
 
 # generated api clients
 internal/guest/gateway/business/client/
+pkg/gateway/admin/client/
 
 .agent
 
