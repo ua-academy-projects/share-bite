@@ -26,8 +26,20 @@ spec:
       labels:
         app: loki
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        fsGroup: 10001
       containers:
         - name: loki
-          image: grafana/loki:latest
+          image: grafana/loki:2.9.4@sha256:221d60ea262b92131972856db364ff0ffc3f910408ca42ce296df442fb0ce598
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 3100
