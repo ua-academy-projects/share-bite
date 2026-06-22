@@ -28,6 +28,9 @@ Or run manually:
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
+kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f - || true
+kubectl apply -f deploy/k8s/monitoring/grafana-secret.yaml
+
 helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
     --version 86.3.0 \
     --namespace monitoring \
