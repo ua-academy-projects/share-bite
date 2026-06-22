@@ -41,6 +41,16 @@ func (s *Service) ProcessMessage(ctx context.Context, msg notification.Message) 
 		return fmt.Errorf("recipient_id is required")
 	}
 
+	prefs, err := s.repo.GetPreferences(ctx, msg.RecipientID)
+	if err != nil {
+		return fmt.Errorf("get notification preferences: %w", err)
+	}
+
+	if enabled, ok := prefs[string(msg.EventType)]; ok && !enabled {
+		logger.InfoKV(ctx, "notification skipped due to user preference", "notification_id", msg.EventID, "recipient_id", msg.RecipientID, "event_type", msg.EventType)
+		return nil
+	}
+
 	inserted, err := s.repo.Save(ctx, notificationentity.FromMessage(msg))
 	if err != nil {
 		return err
@@ -110,4 +120,32 @@ func (s *Service) GetHistory(ctx context.Context, recipientID string, limit, off
 
 func (s *Service) MarkAsRead(ctx context.Context, recipientID string, notificationIDs []string) error {
 	return s.repo.MarkAsRead(ctx, recipientID, notificationIDs)
+}
+
+func (s *Service) GetPreferences(ctx context.Context, recipientID string) (map[string]bool, error) {
+	dbPrefs, err := s.repo.GetPreferences(ctx, recipientID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := map[string]bool{
+		"post_liked":               true,
+		"invitation_received":      true,
+		"post_published":           true,
+		"post_invitation_accepted": true,
+		"business_verified":        true,
+		"business_rejected":        true,
+	}
+
+	for k, v := range dbPrefs {
+		if _, ok := result[k]; ok {
+			result[k] = v
+		}
+	}
+
+	return result, nil
+}
+
+func (s *Service) UpdatePreferences(ctx context.Context, recipientID string, prefs map[string]bool) error {
+	return s.repo.UpdatePreferences(ctx, recipientID, prefs)
 }
