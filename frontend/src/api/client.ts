@@ -326,7 +326,8 @@ export const apiClient = {
     }));
   },
 
-  createPost: async (data: CreatePostInput) => {
+  createPost: async (data: CreatePostInput, token?: string) => {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
     const createFormData = new FormData();
     createFormData.append("venueId", data.venueId.toString());
     createFormData.append("text", data.text);
@@ -334,9 +335,13 @@ export const apiClient = {
     if (data.images?.length) {
       data.images.forEach((img) => createFormData.append("images", img));
     }
+    if (data.invitedCustomerIds?.length) {
+      data.invitedCustomerIds.forEach((id) => createFormData.append("invitedCustomerIds", id));
+    }
     const createRes = await guestApi.post<{ post: RawPost }>(
       "/posts/",
-      createFormData
+      createFormData,
+      config
     );
     const newPostId = createRes.data.post.id;
     const patchFormData = new FormData();
@@ -347,7 +352,8 @@ export const apiClient = {
       try {
         const patchRes = await guestApi.patch<{ post: RawPost }>(
           `/posts/${newPostId}`,
-          patchFormData
+          patchFormData,
+          config
         );
         return mapRawPostToPost(patchRes.data.post);
       } catch {
@@ -400,8 +406,9 @@ export const apiClient = {
     await guestApi.delete(`/posts/${postId}`);
   },
 
-  likePost: async (postId: string) => {
-    await guestApi.post(`/posts/${postId}/like`);
+  likePost: async (postId: string, token?: string) => {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+    await guestApi.post(`/posts/${postId}/like`, {}, config);
   },
 
   unlikePost: async (postId: string) => {
@@ -428,20 +435,25 @@ export const apiClient = {
     return mapCustomer(res.data.customer);
   },
 
-  createCustomer: async (data: {
-    email: string;
-    userName: string;
-    firstName: string;
-    lastName: string;
-    bio?: string;
-  }) => {
-    const res = await guestApi.post<{ customerId: string }>("customers/", data);
+  createCustomer: async (
+    data: {
+      email: string;
+      userName: string;
+      firstName: string;
+      lastName: string;
+      bio?: string;
+    },
+    token?: string
+  ) => {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+    const res = await guestApi.post<{ customerId: string }>("customers/", data, config);
     markGuestHasCustomer();
     return res.data;
   },
 
-  getCurrentCustomer: async () => {
-    const res = await guestApi.get<{ customer: RawCustomerResponse }>("customers/");
+  getCurrentCustomer: async (token?: string) => {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+    const res = await guestApi.get<{ customer: RawCustomerResponse }>("customers/", config);
     markGuestHasCustomer();
     return mapCustomer(res.data.customer);
   },
@@ -499,10 +511,12 @@ export const apiClient = {
     return res.data;
   },
 
-  createComment: async (postId: string | number, text: string) => {
+  createComment: async (postId: string | number, text: string, token?: string) => {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
     const res = await guestApi.post<{ comment: CommentResponse }>(
       `/posts/${postId}/comments/`,
-      { text }
+      { text },
+      config
     );
     return res.data.comment;
   },
@@ -626,5 +640,54 @@ export const apiClient = {
     email: string
   ) => {
     await guestApi.post(`/collections/${collectionId}/invitations`, { email });
+  },
+
+  followUser: async (customerId: string | number, token: string) => {
+    await guestApi.post(`/customers/id/${customerId}/follow`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  unfollowUser: async (customerId: string | number, token: string) => {
+    await guestApi.delete(`/customers/id/${customerId}/follow`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  getPostInvitations: async (token: string) => {
+    const res = await guestApi.get<{ invitations: any[] }>("/posts/invitations", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  acceptPostInvitation: async (id: number | string, token: string) => {
+    await guestApi.post(`/posts/invitations/${id}/accept`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  },
+
+  labRegister: async (data: RegisterRequest) => {
+    const res = await authApi.post<AuthResponse>("/register", data);
+    return res.data;
+  },
+
+  labLogin: async (data: LoginRequest) => {
+    const res = await authApi.post<AuthResponse>("/login", data);
+    return res.data;
+  },
+
+  getNotificationHistory: async (limit: number, offset: number, token: string) => {
+    const res = await apiRoot.get(`/notifications/history`, {
+      params: { limit, offset },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data;
+  },
+
+  markNotificationsRead: async (notificationIDs: string[], token: string) => {
+    await apiRoot.post(`/notifications/mark-read`, { notificationIDs }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   },
 };
