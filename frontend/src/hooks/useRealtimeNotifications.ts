@@ -11,9 +11,9 @@ import { buildNotificationsStreamUrl } from "@/api/notifications";
  */
 export function useRealtimeNotifications() {
   const queryClient = useQueryClient();
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!token) return;
 
     let es: EventSource | null = null;
@@ -46,5 +46,5 @@ export function useRealtimeNotifications() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       es?.close();
     };
-  }, [queryClient]);
+  }, [queryClient, token]);
 }

@@ -29,7 +29,12 @@ awslocal() {
 }
 
 echo "==> Waiting for LocalStack to be healthy..."
-until [ "$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null)" = "healthy" ]; do
+for i in $(seq 1 60); do
+  [ "$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null)" = "healthy" ] && break
+  if [ "$i" -eq 60 ]; then
+    echo -e "${YELLOW}LocalStack did not become healthy within 60s. Is container '${CONTAINER}' running?${RESET}" >&2
+    exit 1
+  fi
   sleep 1
 done
 echo -e "${GREEN}    LocalStack is healthy${RESET}"
