@@ -7,6 +7,7 @@
 .PHONY: goose-up goose-down goose-status goose-create
 .PHONY: docker-build docker-build-business-operator docker-push-business-operator
 .PHONY: k8s-secrets k8s-up k8s-down k8s-migrate
+.PHONY: run-admin-service stop-admin-service run-admin-operator stop-admin-operator apply-cr
 
 REGISTRY ?= mykolashevchenko
 TAG ?= latest
@@ -217,3 +218,23 @@ k8s-down:
 
 run-guest-operator:
 	go run cmd/guest-operator/main.go
+
+run-admin-service:
+	kubectl apply -k deploy/k8s/admin-auth
+
+stop-admin-service:
+	kubectl delete -k deploy/k8s/admin-auth --ignore-not-found=true
+
+run-admin-operator:
+	docker build -t admin-operator:latest -f build/Dockerfile.admin-operator .
+	kubectl apply -f deploy/k8s/operators/admin-auth/crd.yaml
+	kubectl apply -f deploy/k8s/operators/admin-auth/rbac.yaml
+	kubectl apply -f deploy/k8s/operators/admin-auth/operator-deployment.yaml
+
+stop-admin-operator:
+	kubectl delete -f deploy/k8s/operators/admin-auth/operator-deployment.yaml --ignore-not-found=true
+	kubectl delete -f deploy/k8s/operators/admin-auth/rbac.yaml --ignore-not-found=true
+	kubectl delete -f deploy/k8s/operators/admin-auth/crd.yaml --ignore-not-found=true
+
+apply-cr:
+	kubectl apply -f deploy/k8s/operators/admin-auth/example-cr.yaml

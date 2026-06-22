@@ -56,3 +56,4 @@ __pycache__/
 
 mcp/admin-auth-server/audit.log
 mcp/admin-auth-server/uv.lock
+pkg/gateway
