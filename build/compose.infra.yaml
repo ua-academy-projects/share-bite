@@ -68,9 +68,29 @@ services:
       timeout: 5s
       retries: 5
 
+  localstack:
+    image: localstack/localstack:3
+    container_name: share-bite-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sns,sqs
+      DEFAULT_REGION: us-east-2
+      AWS_DEFAULT_REGION: us-east-2
+    volumes:
+      - localstack-data:/var/lib/localstack
+    networks:
+      - share-bite-net
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sns list-topics >/dev/null 2>&1 && awslocal sqs list-queues >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   pg_data:
   pgadmin_data:
+  localstack-data:
   redis-data:
     driver: local
 

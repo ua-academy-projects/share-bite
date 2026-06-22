@@ -45,7 +45,10 @@ func main() {
 		logger.Fatal(ctx, "OUTBOX_SNS_TOPIC_ARN is required")
 	}
 
-	snsPub, err := outboxpkg.NewSNSPublisher(ctx, topicArn)
+	// Optional: point SNS at a custom endpoint (e.g. LocalStack) for local dev.
+	snsEndpoint := config.GetSecret("OUTBOX_SNS_ENDPOINT_URL")
+
+	snsPub, err := outboxpkg.NewSNSPublisher(ctx, topicArn, snsEndpoint)
 	if err != nil {
 		logger.Fatal(ctx, "new sns publisher:", err)
 	}

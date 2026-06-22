@@ -6,6 +6,7 @@ import { NotificationBell } from "@/components/Notifications/NotificationBell";
 import { LogoutDialog } from "@/components/LogoutDialog";
 import { useCurrentCustomer } from "@/hooks/useCurrentCustomer";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import {
   getBusinessOrgId,
   getTokenRole,
@@ -30,6 +31,7 @@ export function Sidebar() {
   const token = localStorage.getItem("token");
   const { data: customer } = useCurrentCustomer();
   useOnboardingStatus(!!token);
+  useRealtimeNotifications();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const businessOrgId = getBusinessOrgId();
 

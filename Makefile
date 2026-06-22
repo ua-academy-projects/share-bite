@@ -1,5 +1,5 @@
 .PHONY: build build-guest build-business build-auth build-migrator build-notifications build-outbox build-lambda
-.PHONY: run-all run-guest run-business run-auth migrate-up
+.PHONY: run-all run-guest run-business run-auth run-notifications run-outbox migrate-up
 .PHONY: test test-cover tidy clean
 .PHONY: docs docs-guest docs-business docs-admin-auth
 .PHONY: generate generate-guest-business-client
@@ -42,6 +42,12 @@ run-business: build-business
 
 run-auth: build-auth
 	./bin/admin-auth-api
+
+run-notifications: build-notifications
+	./bin/notifications-service
+
+run-outbox: build-outbox
+	./bin/outbox-worker
 
 migrate-up: build-migrator
 	./bin/migrator

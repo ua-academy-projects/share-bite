@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Building2, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Building2, CheckCircle2, Hash, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/api/client";
 import type { PendingBusinessListItem } from "@/types/api";
@@ -24,7 +25,19 @@ function businessInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || "?";
 }
 
+function statusBadgeClass(status: string) {
+  switch (status.toLowerCase()) {
+    case "verified":
+      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300";
+    case "rejected":
+      return "border-red-500/40 bg-red-500/10 text-red-500 dark:text-red-400";
+    default:
+      return "border-[#FFD700]/40 bg-[#FFD700]/10 text-[#FFD700]";
+  }
+}
+
 export function AdminPendingBusinessesPage() {
+  const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<PendingBusinessListItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -149,11 +162,22 @@ export function AdminPendingBusinessesPage() {
             return (
               <Card
                 key={business.id}
-                className="rounded-3xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-[#2f5e50] dark:bg-[#163d32]"
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/venue/${business.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(`/venue/${business.id}`);
+                  }
+                }}
+                aria-label={`Open ${business.name} business page`}
+                className="cursor-pointer overflow-hidden rounded-3xl border border-gray-200 bg-white py-0 shadow-sm ring-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 dark:border-[#2f5e50] dark:bg-[#163d32]"
               >
-                <CardContent className="space-y-4 p-5">
-                  <div className="flex gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-[#163d32] text-2xl font-bold text-[#98FF98] dark:border-[#2f5e50]">
+                <CardContent className="flex h-full flex-col p-0">
+                  {/* Identity header */}
+                  <div className="flex items-start gap-4 border-b border-gray-100 bg-gradient-to-br from-emerald-500/[0.07] via-transparent to-transparent p-5 dark:border-[#2f5e50] dark:from-[#98FF98]/[0.06]">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#163d32] text-2xl font-bold text-[#98FF98] shadow-inner ring-1 ring-emerald-500/20 dark:ring-[#2f5e50]">
                       {business.avatar ? (
                         <img
                           src={business.avatar}
@@ -165,53 +189,86 @@ export function AdminPendingBusinessesPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-lg font-bold text-[#1A3C34] dark:text-white">
-                        {business.name}
-                      </h3>
-                      <p className="mt-1 inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-                        <Building2 className="h-3.5 w-3.5" />
-                        Org #{business.id}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="truncate text-xl font-bold leading-tight text-[#1A3C34] dark:text-white">
+                          {business.name}
+                        </h3>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize",
+                            statusBadgeClass(business.status)
+                          )}
+                        >
+                          {business.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-[#0d241d] dark:text-gray-300">
+                          <Building2 className="h-3.5 w-3.5" />
+                          Org #{business.id}
+                        </span>
+                        {business.org_account_id ? (
+                          <span
+                            className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-500 dark:bg-[#0d241d] dark:text-gray-400"
+                            title={business.org_account_id}
+                          >
+                            <Hash className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{business.org_account_id}</span>
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
 
-                  {business.description ? (
-                    <p className="line-clamp-3 text-sm text-gray-600 dark:text-gray-300">
-                      {business.description}
-                    </p>
-                  ) : (
-                    <p className="text-sm italic text-gray-400">No description provided.</p>
-                  )}
-
-                  <div className="flex items-center gap-3 border-t border-gray-100 pt-4 dark:border-[#2f5e50]">
-                    <Button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void handleApprove(business)}
-                      className="flex-1 rounded-xl bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
-                    >
-                      {busy ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                  {/* Body */}
+                  <div className="flex flex-1 flex-col gap-4 p-5">
+                    <div>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                        About
+                      </p>
+                      {business.description ? (
+                        <p className="line-clamp-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                          {business.description}
+                        </p>
                       ) : (
-                        <>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Approve
-                        </>
+                        <p className="text-sm italic text-gray-400">No description provided.</p>
                       )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() => {
-                        setRejectTarget(business);
-                        setRejectComment("");
-                      }}
-                      className="flex-1 rounded-xl border-red-500/40 font-semibold text-red-500 hover:bg-red-500/10 hover:text-red-400"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Reject
-                    </Button>
+                    </div>
+
+                    <div className="mt-auto grid grid-cols-2 gap-3 border-t border-gray-100 pt-4 dark:border-[#2f5e50]">
+                      <Button
+                        type="button"
+                        disabled={busy}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleApprove(business);
+                        }}
+                        className="h-11 rounded-xl bg-emerald-600 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                      >
+                        {busy ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRejectTarget(business);
+                          setRejectComment("");
+                        }}
+                        className="h-11 rounded-xl border-red-500/40 bg-red-500/5 font-semibold text-red-500 transition-colors hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Reject
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
