@@ -231,7 +231,7 @@ monitoring-up:
 	  --version $(CHART_VERSION) \
 	  --namespace monitoring \
 	  --create-namespace \
-	  --values ./deploy/k8s/monitoring/values.yaml
+	  --values ./deploy/k8s/monitoring/metrics-values.yaml
 
 monitoring-down:
 	helm uninstall kube-prometheus-stack --namespace monitoring

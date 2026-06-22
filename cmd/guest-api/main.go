@@ -88,7 +88,6 @@ func main() {
 	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
-	router.Use(guest_middleware.ErrorMiddleware())
 
 	// swagger docs
 	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
@@ -99,6 +98,8 @@ func main() {
 	metricsMiddleware := middleware.Metrics(metrics)
 
 	router.Use(metricsMiddleware)
+	router.Use(guest_middleware.ErrorMiddleware())
+
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	binding.Validator = validator.New("binding")

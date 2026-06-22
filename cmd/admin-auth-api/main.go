@@ -74,7 +74,6 @@ func main() {
 	router.Use(gin.Recovery())
 	router.Use(pkgmw.RequestID())
 	router.Use(pkgmw.RequestLogger())
-	router.Use(ErrorMiddleware())
 
 	// prometheus metrics
 	reg := prometheus.NewRegistry()
@@ -82,6 +81,8 @@ func main() {
 	metricsMiddleware := middleware.Metrics(metrics)
 
 	router.Use(metricsMiddleware)
+	router.Use(ErrorMiddleware())
+
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	if cfg.App.IsProd() {

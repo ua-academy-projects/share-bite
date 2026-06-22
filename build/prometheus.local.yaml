@@ -1,3 +1,6 @@
+# This file is used only for development purposes
+# when applications are running outside Docker containers.
+
 global:
   scrape_interval:     5s
   evaluation_interval: 5s
@@ -15,18 +18,18 @@ scrape_configs:
     scrape_timeout: 5s
 
     static_configs:
-      - targets: ["guest-api:3800"]
+      - targets: ["host.docker.internal:3800"]
 
   - job_name: "admin-auth-service"
     scrape_interval: 5s
     scrape_timeout: 5s
 
     static_configs:
-      - targets: ["admin-api:3850"]
+      - targets: ["host.docker.internal:3850"]
 
   - job_name: "business-service"
     scrape_interval: 5s
     scrape_timeout: 5s
 
     static_configs:
-      - targets: ["business-api:3900"]
+      - targets: ["host.docker.internal:3900"]

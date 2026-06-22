@@ -32,10 +32,10 @@ helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheu
     --version 86.3.0 \
     --namespace monitoring \
     --create-namespace \
-    --values ./deploy/k8s/monitoring/values.yaml
+    --values ./deploy/k8s/monitoring/metrics-values.yaml
 ```
 
-The `values.yaml` tells Prometheus to discover our ServiceMonitors in the `share-bite-local` namespace. Without it, Prometheus only looks inside `monitoring`.
+The `metrics-values.yaml` tells Prometheus to discover our ServiceMonitors in the `share-bite-local` namespace. Without it, Prometheus only looks inside `monitoring`.
 
 ## Access
 
@@ -48,7 +48,7 @@ make monitoring-forward
 
 ## Dashboard
 
-The dashboard is loaded _automatically_ via Kustomize. The source JSON is at `docs/k8s/monitoring/share-bite-services.json`.
+The dashboard is loaded _automatically_ via Kustomize. The source JSON is at `deploy/k8s/monitoring/share-bite-services.json`.
 
 The dashboard has a service dropdown at the top. New services appear automatically once they start scraping.
 

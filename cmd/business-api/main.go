@@ -77,7 +77,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 	router.Use(gin.Recovery())
-	router.Use(ErrorMiddleware())
 
 	// swagger docs
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
@@ -90,6 +89,8 @@ func main() {
 	metricsMiddleware := middleware.Metrics(metrics)
 
 	router.Use(metricsMiddleware)
+	router.Use(ErrorMiddleware())
+
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	if config.Config().App.IsProd() {
