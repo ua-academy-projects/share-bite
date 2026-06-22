@@ -202,7 +202,8 @@ k8s-secrets:
 k8s-up: k8s-secrets
 	kubectl apply -k deploy/k8s/infra
 	kubectl wait --for=create secret/$(K8S_SECRET_NAME) -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
-	kubectl rollout status statefulset/postgres -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	# kubectl rollout status statefulset/postgres -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl wait --for=condition=Ready cluster/share-bite-cnpg -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
 	kubectl rollout status deployment/redis -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
 	@echo "Infrastructure ready in namespace $(K8S_NAMESPACE)."
 	@echo "Next step: run 'make k8s-migrate'."

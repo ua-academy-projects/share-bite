@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alloy
+  namespace: share-bite-local
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy-role
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: alloy-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: alloy-role
+subjects:
+  - kind: ServiceAccount
+    name: alloy
+    namespace: share-bite-local
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: alloy
+  namespace: share-bite-local
+spec:
+  selector:
+    matchLabels:
+      app: alloy
+  template:
+    metadata:
+      labels:
+        app: alloy
+    spec:
+      serviceAccountName: alloy
+      containers:
+        - name: alloy
+          image: grafana/alloy:latest
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/var/lib/alloy
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alloy
+            - name: alloy-storage
+              mountPath: /var/lib/alloy
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: alloy-config
+        - name: alloy-storage
+          emptyDir: {}
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
