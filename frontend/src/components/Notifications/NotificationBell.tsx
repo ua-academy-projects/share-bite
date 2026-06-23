@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/popover";
 import { pageLinkAccent } from "@/components/layout/pageStyles";
 import { cn } from "@/lib/utils";
+import { playNotificationSound } from "@/utils/audio";
 
 type NotificationBellProps = {
   variant?: "default" | "compact";
@@ -27,6 +29,39 @@ export function NotificationBell({ variant = "default" }: NotificationBellProps)
     refetchIntervalInBackground: false,
     enabled: !!token,
   });
+
+  const prevNewestIdRef = useRef<string | null>(null);
+  const isInitialMountRef = useRef(true);
+
+  useEffect(() => {
+    if (!token || notifications.length === 0) {
+      prevNewestIdRef.current = null;
+      isInitialMountRef.current = true;
+      return;
+    }
+
+    const newestNotification = notifications[0];
+    const newestId = newestNotification.id;
+
+    if (isInitialMountRef.current) {
+      prevNewestIdRef.current = newestId;
+      isInitialMountRef.current = false;
+      return;
+    }
+
+    if (newestId !== prevNewestIdRef.current) {
+      prevNewestIdRef.current = newestId;
+      
+      if (!newestNotification.read) {
+        const soundEnabled = localStorage.getItem("notification_sound_enabled") !== "false";
+        if (soundEnabled) {
+          const volStr = localStorage.getItem("notification_sound_volume");
+          const volume = volStr ? parseFloat(volStr) / 100 : 0.5;
+          playNotificationSound(volume);
+        }
+      }
+    }
+  }, [notifications, token]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

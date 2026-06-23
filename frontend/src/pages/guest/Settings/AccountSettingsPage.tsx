@@ -11,6 +11,7 @@ import {
   Smartphone,
   Tag,
   User,
+  Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/api/client";
@@ -36,6 +37,7 @@ import {
   isBusinessRole,
 } from "@/utils/auth";
 import { cn } from "@/lib/utils";
+import { playNotificationSound } from "@/utils/audio";
 
 const settingsCardClass =
   "rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-[#2f5e50] dark:bg-[#163d32]";
@@ -178,6 +180,30 @@ export function AccountSettingsPage() {
   const [isRevoking, setIsRevoking] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem("notification_sound_enabled") !== "false";
+  });
+  const [soundVolume, setSoundVolume] = useState(() => {
+    const vol = localStorage.getItem("notification_sound_volume");
+    return vol ? parseInt(vol, 10) : 50;
+  });
+
+  const handleToggleSound = (enabled: boolean) => {
+    setSoundEnabled(enabled);
+    localStorage.setItem("notification_sound_enabled", String(enabled));
+    toast.success(enabled ? "Sound notifications enabled" : "Sound notifications muted");
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = parseInt(e.target.value, 10);
+    setSoundVolume(vol);
+    localStorage.setItem("notification_sound_volume", String(vol));
+  };
+
+  const handleTestSound = () => {
+    playNotificationSound(soundVolume / 100);
+  };
 
   const token = localStorage.getItem("token") || "";
 
@@ -617,6 +643,64 @@ export function AccountSettingsPage() {
                 Unable to load notification preferences.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className={settingsCardClass}>
+          <CardContent className="space-y-6 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold text-[#1A3C34] dark:text-white">
+                <Volume2 size={20} className="text-emerald-500 dark:text-[#98FF98]" />
+                <span>Notification Sounds</span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs font-semibold h-8"
+                disabled={!soundEnabled}
+                onClick={handleTestSound}
+              >
+                Test Sound
+              </Button>
+            </div>
+
+            <div className="space-y-5 divide-y divide-gray-100 dark:divide-gray-800">
+              <div className="flex items-center justify-between">
+                <div className="mr-4 space-y-0.5">
+                  <label className="text-sm font-medium text-[#1A3C34] dark:text-white">
+                    Sound Effects
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Play a premium chime sound when you receive a new notification
+                  </p>
+                </div>
+                <Switch
+                  checked={soundEnabled}
+                  onChange={handleToggleSound}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 pt-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-[#1A3C34] dark:text-white">
+                    Volume Level
+                  </label>
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {soundVolume}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={soundVolume}
+                  disabled={!soundEnabled}
+                  onChange={handleVolumeChange}
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-emerald-500 disabled:opacity-50 dark:bg-gray-800"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
