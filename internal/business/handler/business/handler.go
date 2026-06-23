@@ -65,7 +65,7 @@ type businessService interface {
 	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
 	ListBoxesByBusiness(ctx context.Context, userID string, offset, limit int) (pagination.Result[entity.Box], error)
 	UpdateBox(ctx context.Context, boxID int64, userID string, input entity.BoxUpdateInput) (*entity.Box, error)
-	GetBox(ctx context.Context, boxID int64) (*entity.Box, error) 
+	GetBox(ctx context.Context, boxID int64) (*entity.Box, error)
 	GetBoxReservations(ctx context.Context, boxID int64, userID string, offset, limit int) (pagination.Result[entity.BoxItem], error)
 	Rating(ctx context.Context, id int) (float32, error)
 
@@ -213,7 +213,7 @@ func (h *handler) ready(c *gin.Context) {
 	_, err := h.service.ListLocationTags(ctx)
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error":   "service not ready",
+			"error": "service not ready",
 		})
 		return
 	}

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  Bell,
   Camera,
   Loader2,
   Mail,
@@ -10,9 +11,14 @@ import {
   Smartphone,
   Tag,
   User,
+  Volume2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiClient } from "@/api/client";
+import {
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
+} from "@/api/notifications";
 import { useCurrentCustomer } from "@/hooks/useCurrentCustomer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -31,6 +37,7 @@ import {
   isBusinessRole,
 } from "@/utils/auth";
 import { cn } from "@/lib/utils";
+import { playNotificationSound } from "@/utils/audio";
 
 const settingsCardClass =
   "rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-[#2f5e50] dark:bg-[#163d32]";
@@ -95,6 +102,70 @@ function statusPillClass(status: string) {
   return "border-[#2f5e50] bg-[#0d241d] text-gray-300";
 }
 
+function Switch({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50",
+        checked ? "bg-emerald-500" : "bg-gray-200 dark:bg-[#0d241d]"
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+          checked ? "translate-x-5" : "translate-x-0"
+        )}
+      />
+    </button>
+  );
+}
+
+const PREFERENCE_DETAILS = [
+  {
+    key: "post_liked",
+    label: "Post Likes",
+    description: "Get notified when someone likes one of your posts",
+  },
+  {
+    key: "invitation_received",
+    label: "Collaboration Invitations",
+    description: "Get notified when you are invited to co-author a post or collection",
+  },
+  {
+    key: "post_published",
+    label: "Collaborator Posts Published",
+    description: "Get notified when a collaborative post you contributed to is published",
+  },
+  {
+    key: "post_invitation_accepted",
+    label: "Invitations Accepted",
+    description: "Get notified when someone accepts your collaborator invitation",
+  },
+  {
+    key: "business_verified",
+    label: "Brand Profile Verified",
+    description: "Get notified when your brand page is verified by our admins",
+  },
+  {
+    key: "business_rejected",
+    label: "Brand Profile Rejected",
+    description: "Get notified if your brand page verification request is rejected",
+  },
+];
+
 export function AccountSettingsPage() {
   const queryClient = useQueryClient();
   const payload = getTokenPayload();
@@ -111,6 +182,57 @@ export function AccountSettingsPage() {
   const [isRevoking, setIsRevoking] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem("notification_sound_enabled") !== "false";
+  });
+  const [soundVolume, setSoundVolume] = useState(() => {
+    const vol = localStorage.getItem("notification_sound_volume");
+    return vol ? parseInt(vol, 10) : 50;
+  });
+
+  const handleToggleSound = (enabled: boolean) => {
+    setSoundEnabled(enabled);
+    localStorage.setItem("notification_sound_enabled", String(enabled));
+    toast.success(enabled ? "Sound notifications enabled" : "Sound notifications muted");
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = parseInt(e.target.value, 10);
+    setSoundVolume(vol);
+    localStorage.setItem("notification_sound_volume", String(vol));
+  };
+
+  const handleTestSound = () => {
+    playNotificationSound(soundVolume / 100);
+  };
+
+  const token = localStorage.getItem("token") || "";
+
+  const { data: preferences, isLoading: prefsLoading } = useQuery({
+    queryKey: ["notificationPreferences"],
+    queryFn: () => fetchNotificationPreferences(token),
+    enabled: !!token,
+  });
+
+  const updatePrefsMutation = useMutation({
+    mutationFn: (newPrefs: Record<string, boolean>) =>
+      updateNotificationPreferences(token, newPrefs),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["notificationPreferences"] });
+      toast.success("Notification preferences updated");
+    },
+    onError: (error: unknown) => {
+      const e = error as { response?: { data?: { error?: string } } };
+      toast.error(e?.response?.data?.error || "Failed to update preferences");
+    },
+  });
+
+  const handleTogglePreference = (key: string, currentValue: boolean) => {
+    if (!preferences) return;
+    const updated = { ...preferences, [key]: !currentValue };
+    updatePrefsMutation.mutate(updated);
+  };
 
   useEffect(() => {
     if (customer) {
@@ -473,6 +595,114 @@ export function AccountSettingsPage() {
                 ) : null}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className={settingsCardClass}>
+          <CardContent className="space-y-6 p-6">
+            <div className="flex items-center gap-2 font-semibold text-[#1A3C34] dark:text-white">
+              <Bell size={20} className="text-emerald-500 dark:text-[#98FF98]" />
+              <span>Notification Preferences</span>
+            </div>
+
+            {prefsLoading ? (
+              <div className="flex h-20 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-500 dark:text-[#98FF98]" />
+              </div>
+            ) : preferences ? (
+              <div className="space-y-5 divide-y divide-gray-100 dark:divide-gray-800">
+                {PREFERENCE_DETAILS.filter((item) => {
+                  if (item.key.startsWith("business_")) {
+                    return isBusinessRole();
+                  }
+                  return true;
+                }).map((pref) => {
+                  const isChecked = !!preferences[pref.key];
+                  return (
+                    <div
+                      key={pref.key}
+                      className="flex items-center justify-between pt-4 first:pt-0"
+                    >
+                      <div className="mr-4 space-y-0.5">
+                        <label className="text-sm font-medium text-[#1A3C34] dark:text-white">
+                          {pref.label}
+                        </label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {pref.description}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={isChecked}
+                        disabled={updatePrefsMutation.isPending}
+                        onChange={() => handleTogglePreference(pref.key, isChecked)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Unable to load notification preferences.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className={settingsCardClass}>
+          <CardContent className="space-y-6 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold text-[#1A3C34] dark:text-white">
+                <Volume2 size={20} className="text-emerald-500 dark:text-[#98FF98]" />
+                <span>Notification Sounds</span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl text-xs font-semibold h-8"
+                disabled={!soundEnabled}
+                onClick={handleTestSound}
+              >
+                Test Sound
+              </Button>
+            </div>
+
+            <div className="space-y-5 divide-y divide-gray-100 dark:divide-gray-800">
+              <div className="flex items-center justify-between">
+                <div className="mr-4 space-y-0.5">
+                  <label className="text-sm font-medium text-[#1A3C34] dark:text-white">
+                    Sound Effects
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Play a premium chime sound when you receive a new notification
+                  </p>
+                </div>
+                <Switch
+                  checked={soundEnabled}
+                  onChange={handleToggleSound}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 pt-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-[#1A3C34] dark:text-white">
+                    Volume Level
+                  </label>
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {soundVolume}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={soundVolume}
+                  disabled={!soundEnabled}
+                  onChange={handleVolumeChange}
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-emerald-500 disabled:opacity-50 dark:bg-gray-800"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 

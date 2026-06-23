@@ -20,7 +20,7 @@ go run ./cmd/notifications-service
 Run the SPA:
 
 ```bash
-cd business-frontend
+cd frontend
 npm install
 npm run dev
 ```

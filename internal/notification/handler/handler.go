@@ -38,6 +38,8 @@ func RegisterHandlers(r *gin.RouterGroup, notificationService *service.Service, 
 		auth.GET("/history", h.getHistory)
 		auth.POST("/mark-read", h.markAsRead)
 		auth.GET("/stream", h.stream)
+		auth.GET("/preferences", h.getPreferences)
+		auth.PUT("/preferences", h.updatePreferences)
 	}
 }
 
@@ -192,4 +194,43 @@ func (h *handler) stream(c *gin.Context) {
 			return false
 		}
 	})
+}
+
+func (h *handler) getPreferences(c *gin.Context) {
+	userID, err := httpctx.GetUserID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	prefs, err := h.svc.GetPreferences(c.Request.Context(), userID)
+	if err != nil {
+		logger.ErrorKV(c.Request.Context(), "get notification preferences", "error", err)
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, prefs)
+}
+
+func (h *handler) updatePreferences(c *gin.Context) {
+	userID, err := httpctx.GetUserID(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	var req map[string]bool
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(apperror.BadRequest(err.Error()))
+		return
+	}
+
+	if err := h.svc.UpdatePreferences(c.Request.Context(), userID, req); err != nil {
+		logger.ErrorKV(c.Request.Context(), "update notification preferences", "error", err)
+		c.Error(err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

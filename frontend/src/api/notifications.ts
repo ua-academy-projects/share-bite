@@ -68,6 +68,35 @@ export async function markNotificationsRead(
   }
 }
 
+export async function fetchNotificationPreferences(
+  token: string
+): Promise<Record<string, boolean>> {
+  const response = await fetch(`${API_BASE_URL}/preferences`, {
+    headers: authHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load notification preferences: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function updateNotificationPreferences(
+  token: string,
+  preferences: Record<string, boolean>
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/preferences`, {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(preferences),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update notification preferences: ${response.status}`);
+  }
+}
+
 export function buildNotificationsStreamUrl(token: string) {
   return `${API_BASE_URL}/stream?access_token=${encodeURIComponent(token)}`;
 }

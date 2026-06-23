@@ -49,6 +49,7 @@ export interface CreatePostInput {
   text: string;
   rating: number;
   images?: File[];
+  invitedCustomerIds?: string[];
 }
 
 export interface CustomerResponse {
