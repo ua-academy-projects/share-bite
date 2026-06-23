@@ -42,7 +42,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "h": 4,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -104,7 +104,7 @@
       "gridPos": {
         "x": 6,
         "y": 1,
-        "h": 4,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -174,7 +174,7 @@
       "gridPos": {
         "x": 12,
         "y": 1,
-        "h": 4,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -244,7 +244,7 @@
       "gridPos": {
         "x": 18,
         "y": 1,
-        "h": 4,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -314,7 +314,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 6,
         "h": 1,
         "w": 24
       },
@@ -326,7 +326,7 @@
       "title": "RPS by Status",
       "gridPos": {
         "x": 0,
-        "y": 6,
+        "y": 7,
         "h": 8,
         "w": 12
       },
@@ -416,7 +416,7 @@
       "title": "RPS by Path (Top 10)",
       "gridPos": {
         "x": 12,
-        "y": 6,
+        "y": 7,
         "h": 8,
         "w": 12
       },
@@ -507,7 +507,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 15,
         "h": 1,
         "w": 24
       },
@@ -519,7 +519,7 @@
       "title": "Response Time Percentiles",
       "gridPos": {
         "x": 0,
-        "y": 15,
+        "y": 16,
         "h": 8,
         "w": 12
       },
@@ -627,7 +627,7 @@
       "title": "Latency by Path (p95)",
       "gridPos": {
         "x": 12,
-        "y": 15,
+        "y": 16,
         "h": 8,
         "w": 12
       },
@@ -718,7 +718,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 24,
         "h": 1,
         "w": 24
       },
@@ -730,7 +730,7 @@
       "title": "Error Rate by Path",
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 25,
         "h": 8,
         "w": 12
       },
@@ -820,7 +820,7 @@
       "title": "4xx Rate by Path",
       "gridPos": {
         "x": 12,
-        "y": 24,
+        "y": 25,
         "h": 8,
         "w": 12
       },
@@ -911,7 +911,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 33,
         "h": 1,
         "w": 24
       },
@@ -923,8 +923,8 @@
       "title": "Guest Events Rate",
       "gridPos": {
         "x": 0,
-        "y": 33,
-        "h": 4,
+        "y": 34,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -973,7 +973,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_posts_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_posts_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Posts",
           "refId": "A"
         },
@@ -982,7 +982,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_collections_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_collections_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Collections",
           "refId": "B"
         },
@@ -991,7 +991,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_post_likes_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_post_likes_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Likes",
           "refId": "C"
         },
@@ -1000,7 +1000,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_follows_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_follows_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Follows",
           "refId": "D"
         },
@@ -1009,7 +1009,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_collection_invitations_sent_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_collection_invitations_sent_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Coll. Invites",
           "refId": "E"
         },
@@ -1018,7 +1018,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_post_invitations_sent_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_post_invitations_sent_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Post Invites",
           "refId": "F"
         }
@@ -1030,8 +1030,8 @@
       "title": "Business Events Rate",
       "gridPos": {
         "x": 6,
-        "y": 33,
-        "h": 4,
+        "y": 34,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -1080,7 +1080,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_businesses_registered_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_businesses_registered_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Businesses",
           "refId": "A"
         },
@@ -1089,7 +1089,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_locations_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_locations_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Locations",
           "refId": "B"
         },
@@ -1098,7 +1098,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_boxes_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_boxes_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Boxes",
           "refId": "C"
         },
@@ -1107,7 +1107,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_boxes_reserved_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_boxes_reserved_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Reservations",
           "refId": "D"
         },
@@ -1116,7 +1116,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_posts_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_posts_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Posts",
           "refId": "E"
         }
@@ -1128,8 +1128,8 @@
       "title": "Auth Events Rate",
       "gridPos": {
         "x": 12,
-        "y": 33,
-        "h": 4,
+        "y": 34,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -1199,8 +1199,8 @@
       "title": "Admin Reviews Rate",
       "gridPos": {
         "x": 18,
-        "y": 33,
-        "h": 4,
+        "y": 34,
+        "h": 5,
         "w": 6
       },
       "datasource": {
@@ -1262,7 +1262,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 38,
+        "y": 39,
         "h": 1,
         "w": 24
       },
@@ -1274,7 +1274,7 @@
       "title": "Guest Activity Trend",
       "gridPos": {
         "x": 0,
-        "y": 39,
+        "y": 40,
         "h": 8,
         "w": 12
       },
@@ -1352,7 +1352,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_posts_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_posts_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Posts",
           "refId": "A"
         },
@@ -1361,7 +1361,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_collections_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_collections_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Collections",
           "refId": "B"
         },
@@ -1370,7 +1370,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_post_likes_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_post_likes_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Likes",
           "refId": "C"
         },
@@ -1379,7 +1379,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_follows_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_follows_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Follows",
           "refId": "D"
         },
@@ -1388,7 +1388,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_collection_invitations_sent_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_collection_invitations_sent_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Coll. Invites",
           "refId": "E"
         },
@@ -1397,7 +1397,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_guest_post_invitations_sent_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_guest_post_invitations_sent_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Post Invites",
           "refId": "F"
         }
@@ -1409,7 +1409,7 @@
       "title": "Business Activity Trend",
       "gridPos": {
         "x": 12,
-        "y": 39,
+        "y": 40,
         "h": 8,
         "w": 12
       },
@@ -1487,7 +1487,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_businesses_registered_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_businesses_registered_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Businesses",
           "refId": "A"
         },
@@ -1496,7 +1496,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_locations_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_locations_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Locations",
           "refId": "B"
         },
@@ -1505,7 +1505,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_boxes_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_boxes_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Boxes",
           "refId": "C"
         },
@@ -1514,7 +1514,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_boxes_reserved_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_boxes_reserved_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Reservations",
           "refId": "D"
         },
@@ -1523,7 +1523,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(share_bite_business_posts_created_total{app=~\"$app\"}[$interval])",
+          "expr": "sum(rate(share_bite_business_posts_created_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "Posts",
           "refId": "E"
         }
@@ -1536,7 +1536,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 47,
+        "y": 48,
         "h": 1,
         "w": 24
       },
@@ -1548,9 +1548,9 @@
       "title": "Active Requests",
       "gridPos": {
         "x": 0,
-        "y": 48,
+        "y": 49,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -1626,7 +1626,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "share_bite_http_active_requests{app=~\"$app\"}",
+          "expr": "sum by (app) (share_bite_http_active_requests{app=~\"$app\"})",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -1638,9 +1638,9 @@
       "title": "Requests by Method",
       "gridPos": {
         "x": 8,
-        "y": 48,
+        "y": 49,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -1728,8 +1728,8 @@
       "title": "Status Distribution",
       "gridPos": {
         "x": 16,
-        "y": 48,
-        "h": 7,
+        "y": 49,
+        "h": 8,
         "w": 8
       },
       "datasource": {
@@ -1804,7 +1804,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 55,
+        "y": 57,
         "h": 1,
         "w": 24
       },
@@ -1816,9 +1816,9 @@
       "title": "Goroutines",
       "gridPos": {
         "x": 0,
-        "y": 56,
+        "y": 58,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -1894,7 +1894,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "go_goroutines{app=~\"$app\"}",
+          "expr": "sum by (app) (go_goroutines{app=~\"$app\"})",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -1906,9 +1906,9 @@
       "title": "Heap Memory",
       "gridPos": {
         "x": 8,
-        "y": 56,
+        "y": 58,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -1984,7 +1984,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "go_memstats_heap_alloc_bytes{app=~\"$app\"}",
+          "expr": "sum by (app) (go_memstats_heap_alloc_bytes{app=~\"$app\"})",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -1996,9 +1996,9 @@
       "title": "GC Duration (p99)",
       "gridPos": {
         "x": 16,
-        "y": 56,
+        "y": 58,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -2087,7 +2087,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 63,
+        "y": 66,
         "h": 1,
         "w": 24
       },
@@ -2099,9 +2099,9 @@
       "title": "Go Threads",
       "gridPos": {
         "x": 0,
-        "y": 64,
+        "y": 67,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -2177,7 +2177,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "go_threads{app=~\"$app\"}",
+          "expr": "sum by (app) (go_threads{app=~\"$app\"})",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -2189,9 +2189,9 @@
       "title": "Heap Objects",
       "gridPos": {
         "x": 8,
-        "y": 64,
+        "y": 67,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -2267,7 +2267,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "go_memstats_heap_objects{app=~\"$app\"}",
+          "expr": "sum by (app) (go_memstats_heap_objects{app=~\"$app\"})",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -2279,9 +2279,9 @@
       "title": "GC Rate",
       "gridPos": {
         "x": 16,
-        "y": 64,
+        "y": 67,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -2357,7 +2357,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(go_gc_duration_seconds_count{app=~\"$app\"}[$interval])) by (app)",
+          "expr": "sum by (app) (rate(go_gc_duration_seconds_count{app=~\"$app\"}[$interval]))",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -2370,7 +2370,7 @@
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 71,
+        "y": 75,
         "h": 1,
         "w": 24
       },
@@ -2382,9 +2382,9 @@
       "title": "CPU Usage",
       "gridPos": {
         "x": 0,
-        "y": 72,
+        "y": 76,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -2460,7 +2460,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(process_cpu_seconds_total{app=~\"$app\"}[$interval])",
+          "expr": "sum by (app) (rate(process_cpu_seconds_total{app=~\"$app\"}[$interval]))",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -2472,9 +2472,9 @@
       "title": "RSS Memory",
       "gridPos": {
         "x": 8,
-        "y": 72,
+        "y": 76,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -2550,7 +2550,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "process_resident_memory_bytes{app=~\"$app\"}",
+          "expr": "sum by (app) (process_resident_memory_bytes{app=~\"$app\"})",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -2562,9 +2562,9 @@
       "title": "Open File Descriptors",
       "gridPos": {
         "x": 16,
-        "y": 72,
+        "y": 76,
         "h": 8,
-        "w": 12
+        "w": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -2640,7 +2640,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "process_open_fds{app=~\"$app\"}",
+          "expr": "sum by (app) (process_open_fds{app=~\"$app\"})",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
@@ -2756,6 +2756,6 @@
   "timezone": "browser",
   "title": "Share Bite Services",
   "uid": "share-bite-services",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }
