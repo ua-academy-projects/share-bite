@@ -116,6 +116,7 @@ func (h *handler) createLocation(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	h.metrics.RecordLocationCreated()
 
 	c.JSON(http.StatusCreated, toLocationResponse(location))
 }

@@ -86,7 +86,14 @@ func main() {
 	// prometheus metrics
 	reg := prometheus.NewRegistry()
 	metrics := metrics.New(config.Config().App.Name(), appName, reg)
-	metricsMiddleware := middleware.Metrics(metrics)
+
+	ignoredPaths := []string{
+		"/business/healthz",
+		"/business/ready",
+		"/metrics",
+		"/swagger/*any",
+	}
+	metricsMiddleware := middleware.Metrics(metrics, ignoredPaths)
 
 	router.Use(metricsMiddleware)
 	router.Use(ErrorMiddleware())
@@ -214,7 +221,7 @@ func main() {
 	authMw := middleware.Auth(tokenManager)
 
 	// handlers
-	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient)
+	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient, metrics)
 	notifhandler.RegisterHandlers(router.Group("/business"), notifHub, authMw)
 
 	go func() {

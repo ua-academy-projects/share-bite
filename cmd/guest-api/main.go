@@ -95,7 +95,15 @@ func main() {
 	// prometheus metrics
 	reg := prometheus.NewRegistry()
 	metrics := metrics.New(config.Config().App.Name(), appName, reg)
-	metricsMiddleware := middleware.Metrics(metrics)
+
+	ignoredPaths := []string{
+		"/health",
+		"/status",
+		"/info",
+		"/metrics",
+		"/swagger/*any",
+	}
+	metricsMiddleware := middleware.Metrics(metrics, ignoredPaths)
 
 	router.Use(metricsMiddleware)
 	router.Use(guest_middleware.ErrorMiddleware())
@@ -348,7 +356,7 @@ func main() {
 
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
-	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
+	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient, metrics)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
 		router.Group("/collections"),
@@ -357,8 +365,9 @@ func main() {
 		optionalAuthMiddleware,
 		customerMiddleware,
 		storageClient,
+		metrics,
 	)
-	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
+	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient, metrics)
 	observability.RegisterHandlers(router.Group("/"), authMiddleware, client, rdb)
 
 	go func() {

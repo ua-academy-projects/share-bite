@@ -74,7 +74,16 @@ func main() {
 	// prometheus metrics
 	reg := prometheus.NewRegistry()
 	metrics := metrics.New(cfg.App.Name(), appName, reg)
-	metricsMiddleware := middleware.Metrics(metrics)
+
+	ignoredPaths := []string{
+		"/health",
+		"/mcp/health",
+		"/mcp/context",
+		"/mcp/validate-permission",
+		"/metrics",
+		"/swagger/*any",
+	}
+	metricsMiddleware := middleware.Metrics(metrics, ignoredPaths)
 
 	router.Use(metricsMiddleware)
 	router.Use(ErrorMiddleware())
@@ -127,13 +136,13 @@ func main() {
 	})
 	outboxWriter := outbox.NewWriter(client.DB())
 	authSvc := authsvc.New(userRepo, tokenManager, txManager, cfg.Email.PasswordResetTTLValue(), outboxWriter, cfg.Auth.MaxSessions())
-	authHandler := authhttp.NewHandler(authSvc, providerFactory)
+	authHandler := authhttp.NewHandler(authSvc, providerFactory, metrics)
 
 	customerClient := guestclient.NewClient(client)
 	businessClient := businessclient.NewClient(client)
 
 	adminSvc := adminsvc.NewService(adminRepo, userRepo, customerClient, businessClient, outboxWriter, txManager)
-	adminHandler := adminhttp.NewHandler(adminSvc)
+	adminHandler := adminhttp.NewHandler(adminSvc, metrics)
 
 	mcpSvc := mcpsvc.NewMCPPermissionService(adminRepo)
 	mcpHandler := mcphttp.NewHandler(mcpSvc)

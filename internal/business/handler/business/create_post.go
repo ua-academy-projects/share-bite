@@ -87,6 +87,7 @@ func (h *handler) CreatePost(c *gin.Context) {
 		return
 	}
 	logger.InfoKV(ctx, "post successfully created", "post_id", post.ID, "unit_id", unitID)
+	h.metrics.RecordBusinessPostCreated()
 
 	c.JSON(http.StatusCreated, mapper.ToPostResponse(post))
 }

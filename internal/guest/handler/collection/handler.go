@@ -12,10 +12,16 @@ import (
 type handler struct {
 	service collectionService
 	storage objectStorage
+	metrics metrics
 }
 
 type objectStorage interface {
 	BuildURL(key string) string
+}
+
+type metrics interface {
+	RecordCollectionCreated()
+	RecordCollectionInvitationSent()
 }
 
 type collectionService interface {
@@ -48,10 +54,12 @@ func RegisterHandlers(
 	optionalAuthMiddleware gin.HandlerFunc,
 	customerMiddleware gin.HandlerFunc,
 	st objectStorage,
+	metrics metrics,
 ) {
 	h := &handler{
 		service: service,
 		storage: st,
+		metrics: metrics,
 	}
 	optional := r.Group("/").Use(optionalAuthMiddleware, customerMiddleware)
 

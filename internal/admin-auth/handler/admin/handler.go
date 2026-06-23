@@ -15,11 +15,17 @@ import (
 
 type Handler struct {
 	service adminsvc.Service
+	metrics metrics
 }
 
-func NewHandler(service adminsvc.Service) *Handler {
+type metrics interface {
+	RecordBusinessReview(status string)
+}
+
+func NewHandler(service adminsvc.Service, metrics metrics) *Handler {
 	return &Handler{
 		service: service,
+		metrics: metrics,
 	}
 }
 
@@ -283,6 +289,7 @@ func (h *Handler) ReviewBusiness(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
+	h.metrics.RecordBusinessReview(req.Status)
 
 	c.JSON(http.StatusOK, handler.MessageResponse{Message: "Business verification status updated successfully."})
 }

@@ -9,6 +9,13 @@ import (
 type metrics struct {
 	requestCounter        *prometheus.CounterVec
 	histogramResponseTime *prometheus.HistogramVec
+	activeRequests        prometheus.Gauge
+
+	businessesRegistered prometheus.Counter
+	locationsCreated     prometheus.Counter
+	boxesCreated         prometheus.Counter
+	boxesReserved        prometheus.Counter
+	businessPostsCreated prometheus.Counter
 }
 
 func New(namespace, appName string, reg prometheus.Registerer) *metrics {
@@ -17,7 +24,7 @@ func New(namespace, appName string, reg prometheus.Registerer) *metrics {
 	wrappedReg.MustRegister(collectors.NewGoCollector())
 	wrappedReg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 
-	return &metrics{
+	m := &metrics{
 		requestCounter: promauto.With(wrappedReg).NewCounterVec(prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: "http",
@@ -31,13 +38,81 @@ func New(namespace, appName string, reg prometheus.Registerer) *metrics {
 			Help:      "Response time in seconds",
 			Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 16),
 		}, []string{"path", "method", "status"}),
+		activeRequests: promauto.With(wrappedReg).NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: "http",
+			Name:      "active_requests",
+			Help:      "Number of requests currently being processed",
+		}),
+		businessesRegistered: promauto.With(wrappedReg).NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "business",
+			Name:      "businesses_registered_total",
+			Help:      "Total business organizations registered",
+		}),
+		locationsCreated: promauto.With(wrappedReg).NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "business",
+			Name:      "locations_created_total",
+			Help:      "Total business locations created",
+		}),
+		boxesCreated: promauto.With(wrappedReg).NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "business",
+			Name:      "boxes_created_total",
+			Help:      "Total boxes created",
+		}),
+		boxesReserved: promauto.With(wrappedReg).NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "business",
+			Name:      "boxes_reserved_total",
+			Help:      "Total boxes reserved",
+		}),
+		businessPostsCreated: promauto.With(wrappedReg).NewCounter(prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "business",
+			Name:      "posts_created_total",
+			Help:      "Total business posts created",
+		}),
 	}
+
+	return m
 }
 
+// middleware
 func (m *metrics) IncRequestCounter(path, method, status string) {
 	m.requestCounter.WithLabelValues(path, method, status).Inc()
 }
 
 func (m *metrics) HistogramResponseTimeObserve(path, method, status string, time float64) {
 	m.histogramResponseTime.WithLabelValues(path, method, status).Observe(time)
+}
+
+func (m *metrics) IncActiveRequests() {
+	m.activeRequests.Inc()
+}
+
+func (m *metrics) DecActiveRequests() {
+	m.activeRequests.Dec()
+}
+
+// handler
+func (m *metrics) RecordBusinessRegistered() {
+	m.businessesRegistered.Inc()
+}
+
+func (m *metrics) RecordLocationCreated() {
+	m.locationsCreated.Inc()
+}
+
+func (m *metrics) RecordBoxCreated() {
+	m.boxesCreated.Inc()
+}
+
+func (m *metrics) RecordBoxReserved() {
+	m.boxesReserved.Inc()
+}
+
+func (m *metrics) RecordBusinessPostCreated() {
+	m.businessPostsCreated.Inc()
 }

@@ -22,6 +22,7 @@ import (
 type handler struct {
 	service businessService
 	storage storage.ObjectStorage
+	metrics metrics
 }
 
 func (h *handler) extractUserUUID(c *gin.Context) (uuid.UUID, error) {
@@ -81,15 +82,25 @@ type businessService interface {
 	GetEngagementSummary(ctx context.Context, startDate, endDate time.Time, orgID uuid.UUID, venueID *int) (entity.EngagementSummary, error)
 }
 
+type metrics interface {
+	RecordBusinessRegistered()
+	RecordLocationCreated()
+	RecordBoxCreated()
+	RecordBoxReserved()
+	RecordBusinessPostCreated()
+}
+
 func RegisterHandlers(
 	r *gin.RouterGroup,
 	service businessService,
 	parser middleware.AccessTokenParser,
 	st storage.ObjectStorage,
+	metrics metrics,
 ) {
 	h := &handler{
 		service: service,
 		storage: st,
+		metrics: metrics,
 	}
 
 	r.GET("/healthz", h.healthz)
@@ -205,7 +216,7 @@ func (h *handler) ready(c *gin.Context) {
 	_, err := h.service.ListLocationTags(ctx)
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error":   "service not ready",
+			"error": "service not ready",
 		})
 		return
 	}

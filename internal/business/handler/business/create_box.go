@@ -97,6 +97,7 @@ func (h *handler) CreateBox(c *gin.Context) {
 		}
 		return
 	}
+	h.metrics.RecordBoxCreated()
 
 	c.JSON(http.StatusCreated, CreateBoxResponse{
 		ID:      box.ID,
