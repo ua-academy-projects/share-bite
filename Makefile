@@ -204,7 +204,7 @@ k8s-secrets:
 k8s-up: k8s-secrets
 	kubectl apply -k deploy/k8s/infra
 	kubectl wait --for=create secret/$(K8S_SECRET_NAME) -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
-	kubectl rollout status statefulset/postgres -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
+	kubectl wait --for=condition=Ready cluster/share-bite-cnpg -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
 	kubectl rollout status deployment/redis -n $(K8S_NAMESPACE) --timeout=$(K8S_READY_TIMEOUT)
 	@echo "Infrastructure ready in namespace $(K8S_NAMESPACE)."
 	@echo "Next step: run 'make k8s-migrate'."
@@ -239,16 +239,16 @@ monitoring-up:
 	  --values ./deploy/k8s/monitoring/metrics-values.yaml
 
 monitoring-down:
-	@helm uninstall kube-prometheus-stack --namespace monitoring || true
-	@kubectl delete namespace monitoring --ignore-not-found=true
+	helm uninstall kube-prometheus-stack --namespace monitoring || true
+	kubectl delete namespace monitoring --ignore-not-found=true
 
 monitoring-forward-grafana:
-	@echo "Grafana: http://localhost:3000"
-	@kubectl port-forward -n monitoring svc/grafana 3000:80
+	echo "Grafana: http://localhost:3000"
+	kubectl port-forward -n monitoring svc/grafana 3000:80
 
 monitoring-forward-prometheus:
-	@echo "Prometheus: http://localhost:9090"
-	@kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+	echo "Prometheus: http://localhost:9090"
+	kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
 
 run-guest-operator:
 	go run cmd/guest-operator/main.go
