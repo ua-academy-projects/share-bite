@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Bell } from "lucide-react";
-import { fetchNotifications } from "@/api/notifications";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, CheckCheck } from "lucide-react";
+import { fetchNotifications, markNotificationsRead } from "@/api/notifications";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -21,6 +21,8 @@ type NotificationBellProps = {
 
 export function NotificationBell({ variant = "default" }: NotificationBellProps) {
   const token = localStorage.getItem("token");
+
+  const queryClient = useQueryClient();
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
@@ -51,7 +53,7 @@ export function NotificationBell({ variant = "default" }: NotificationBellProps)
 
     if (newestId !== prevNewestIdRef.current) {
       prevNewestIdRef.current = newestId;
-      
+
       if (!newestNotification.read) {
         const soundEnabled = localStorage.getItem("notification_sound_enabled") !== "false";
         if (soundEnabled) {
@@ -63,7 +65,13 @@ export function NotificationBell({ variant = "default" }: NotificationBellProps)
     }
   }, [notifications, token]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const markRead = useMutation({
+    mutationFn: (ids: string[]) => markNotificationsRead(token!, ids),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+
+  const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+  const unreadCount = unreadIds.length;
 
   const formatMessage = (n: (typeof notifications)[0]) =>
     n.message ||
@@ -113,9 +121,23 @@ export function NotificationBell({ variant = "default" }: NotificationBellProps)
               Notifications
             </PopoverTitle>
           </div>
-          <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-300">
-            {unreadCount} new
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-300">
+              {unreadCount} new
+            </span>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={() => markRead.mutate(unreadIds)}
+                disabled={markRead.isPending}
+                aria-label="Mark all as read"
+                title="Mark all as read"
+                className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 transition-colors hover:text-emerald-700 disabled:opacity-50 dark:text-emerald-300 dark:hover:text-emerald-200"
+              >
+                <CheckCheck className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </PopoverHeader>
 
         <div className="max-h-80 overflow-y-auto border-t border-gray-200 dark:border-[#2f5e50]">

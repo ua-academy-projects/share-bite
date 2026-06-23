@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -228,4 +229,153 @@ func (r *Repository) ReserveBoxItem(ctx context.Context, boxID int64, userID str
 	}
 
 	return boxCode, nil
+}
+
+func (r *Repository) ListBoxesByVenueID(ctx context.Context, venueID int, offset, limit int) (pagination.Result[entity.Box], error) {
+	const op = "repository.box.ListBoxesByVenueID"
+
+	scanner := func(rows pgx.Rows) (entity.Box, error) {
+		var box entity.Box
+
+		err := rows.Scan(
+			&box.ID,
+			&box.VenueID,
+			&box.CategoryID,
+			&box.Image,
+			&box.FullPrice,
+			&box.DiscountPrice,
+			&box.CreatedAt,
+			&box.ExpiresAt,
+		)
+
+		if err != nil {
+			return entity.Box{}, err
+		}
+
+		return box, nil
+	}
+
+	p := pagination.Params{
+		Table:   "business.boxes",
+		Columns: "id, venue_id, category_id, image, price_full, price_discount, created_at, expires_at",
+		Where:   "venue_id = $1",
+		Args:    []any{venueID},
+		OrderBy: "created_at DESC",
+		Offset:  offset,
+		Limit:   limit,
+	}
+
+	result, err := pagination.List(ctx, r.db.DB(), op, p, scanner)
+	if err != nil {
+		return pagination.Result[entity.Box]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return result, nil
+}
+
+func (r *Repository) UpdateBox(ctx context.Context, boxID int64, input entity.BoxUpdateInput) (*entity.Box, error) {
+	const op = "repository.box.UpdateBox"
+
+	var setClauses []string
+	var args []any
+	argNum := 1
+
+	if input.CategoryID != nil {
+		setClauses = append(setClauses, fmt.Sprintf("category_id = $%d", argNum))
+		args = append(args, *input.CategoryID)
+		argNum++
+	}
+
+	if input.FullPrice != nil {
+		setClauses = append(setClauses, fmt.Sprintf("price_full = $%d", argNum))
+		args = append(args, *input.FullPrice)
+		argNum++
+	}
+
+	if input.DiscountPrice != nil {
+		setClauses = append(setClauses, fmt.Sprintf("price_discount = $%d", argNum))
+		args = append(args, *input.DiscountPrice)
+		argNum++
+	}
+
+	if input.ExpiresAt != nil {
+		setClauses = append(setClauses, fmt.Sprintf("expires_at = $%d", argNum))
+		args = append(args, *input.ExpiresAt)
+		argNum++
+	}
+
+	if len(setClauses) == 0 {
+		return nil, fmt.Errorf("%s: no fields to update", op)
+	}
+
+	args = append(args, boxID)
+	whereNum := argNum
+
+	q := database.Query{
+		Name: "update_box",
+		Sql: fmt.Sprintf(`
+		UPDATE business.boxes
+		SET %s
+		WHERE id = $%d
+		RETURNING id, venue_id, category_id, image, price_full, price_discount, created_at, expires_at
+	`, strings.Join(setClauses, ", "), whereNum),
+	}
+
+	var box entity.Box
+	err := r.db.DB().QueryRowContext(ctx, q, args...).Scan(
+		&box.ID,
+		&box.VenueID,
+		&box.CategoryID,
+		&box.Image,
+		&box.FullPrice,
+		&box.DiscountPrice,
+		&box.CreatedAt,
+		&box.ExpiresAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return &box, nil
+}
+
+func (r *Repository) GetBoxItems(ctx context.Context, boxID int64, offset, limit int) (pagination.Result[entity.BoxItem], error) {
+	const op = "repository.box.GetBoxItems"
+
+	scanner := func(rows pgx.Rows) (entity.BoxItem, error) {
+		var item entity.BoxItem
+
+		err := rows.Scan(
+			&item.BoxID,
+			&item.BoxCode,
+			&item.ReservedByUserID,
+		)
+
+		if err != nil {
+			return entity.BoxItem{}, err
+		}
+
+		return item, nil
+	}
+
+	p := pagination.Params{
+		Table:   "business.box_items",
+		Columns: "box_id, box_code, reserved_by_user_id",
+		Where:   "box_id = $1",
+		Args:    []any{boxID},
+		OrderBy: "box_code ASC",
+		Offset:  offset,
+		Limit:   limit,
+	}
+
+	result, err := pagination.List(ctx, r.db.DB(), op, p, scanner)
+	if err != nil {
+		return pagination.Result[entity.BoxItem]{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return result, nil
 }

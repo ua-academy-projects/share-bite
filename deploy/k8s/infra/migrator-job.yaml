@@ -19,6 +19,7 @@ spec:
             runAsGroup: 1000
             runAsNonRoot: true
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -41,6 +42,23 @@ spec:
                 name: share-bite-infra-config
             - secretRef:
                 name: share-bite-secrets
+          env:
+            - name: POSTGRES_HOST
+              value: share-bite-cnpg-rw
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: share_bite
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: share-bite-cnpg-superuser
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: share-bite-cnpg-superuser
+                  key: password
       containers:
         - name: migrator
           image: migrator:latest
@@ -50,6 +68,7 @@ spec:
             runAsGroup: 1000
             runAsNonRoot: true
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -58,3 +77,20 @@ spec:
                 name: share-bite-infra-config
             - secretRef:
                 name: share-bite-secrets
+          env:
+            - name: POSTGRES_HOST
+              value: share-bite-cnpg-rw
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: share_bite
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: share-bite-cnpg-superuser
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: share-bite-cnpg-superuser
+                  key: password

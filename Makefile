@@ -1,5 +1,5 @@
 .PHONY: build build-guest build-business build-auth build-migrator build-notifications build-outbox build-lambda
-.PHONY: run-all run-guest run-business run-auth migrate-up
+.PHONY: run-all run-guest run-business run-auth run-notifications run-outbox migrate-up
 .PHONY: test test-cover tidy clean
 .PHONY: docs docs-guest docs-business docs-admin-auth
 .PHONY: generate generate-guest-business-client
@@ -7,6 +7,7 @@
 .PHONY: goose-up goose-down goose-status goose-create
 .PHONY: docker-build docker-build-business-operator docker-push-business-operator
 .PHONY: k8s-secrets k8s-up k8s-down k8s-migrate
+.PHONY: run-admin-service stop-admin-service run-admin-operator stop-admin-operator apply-cr
 
 REGISTRY ?= mykolashevchenko
 TAG ?= latest
@@ -42,6 +43,12 @@ run-business: build-business
 
 run-auth: build-auth
 	./bin/admin-auth-api
+
+run-notifications: build-notifications
+	./bin/notifications-service
+
+run-outbox: build-outbox
+	./bin/outbox-worker
 
 migrate-up: build-migrator
 	./bin/migrator
@@ -211,3 +218,23 @@ k8s-down:
 
 run-guest-operator:
 	go run cmd/guest-operator/main.go
+
+run-admin-service:
+	kubectl apply -k deploy/k8s/admin-auth
+
+stop-admin-service:
+	kubectl delete -k deploy/k8s/admin-auth --ignore-not-found=true
+
+run-admin-operator:
+	docker build -t admin-operator:latest -f build/Dockerfile.admin-operator .
+	kubectl apply -f deploy/k8s/operators/admin-auth/crd.yaml
+	kubectl apply -f deploy/k8s/operators/admin-auth/rbac.yaml
+	kubectl apply -f deploy/k8s/operators/admin-auth/operator-deployment.yaml
+
+stop-admin-operator:
+	kubectl delete -f deploy/k8s/operators/admin-auth/operator-deployment.yaml --ignore-not-found=true
+	kubectl delete -f deploy/k8s/operators/admin-auth/rbac.yaml --ignore-not-found=true
+	kubectl delete -f deploy/k8s/operators/admin-auth/crd.yaml --ignore-not-found=true
+
+apply-cr:
+	kubectl apply -f deploy/k8s/operators/admin-auth/example-cr.yaml

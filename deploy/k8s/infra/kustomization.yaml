@@ -3,7 +3,9 @@ kind: Kustomization
 resources:
 - namespace.yaml
 - configmap.yaml
-- postgres.yaml
+- cnpg.yaml 
+# for StatefulSet - use postgres.yaml instead of cnpg.yaml
+#- postgres.yaml
 - redis.yaml
 - secret.yaml
 - migrator-job.yaml

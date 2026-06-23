@@ -63,6 +63,10 @@ type businessService interface {
 
 	CreateBox(ctx context.Context, userID string, req dto.CreateBoxRequest, image *multipart.FileHeader) (*entity.Box, error)
 	ReserveBox(ctx context.Context, userID string, boxID int64) (*entity.BoxReservation, error)
+	ListBoxesByBusiness(ctx context.Context, userID string, offset, limit int) (pagination.Result[entity.Box], error)
+	UpdateBox(ctx context.Context, boxID int64, userID string, input entity.BoxUpdateInput) (*entity.Box, error)
+	GetBox(ctx context.Context, boxID int64) (*entity.Box, error)
+	GetBoxReservations(ctx context.Context, boxID int64, userID string, offset, limit int) (pagination.Result[entity.BoxItem], error)
 	Rating(ctx context.Context, id int) (float32, error)
 
 	Create(ctx context.Context, in entity.OrgUnit) (int, error)
@@ -111,6 +115,7 @@ func RegisterHandlers(
 	r.GET("/posts/:id/likes", h.GetLikes)
 	r.GET("/posts/:id/comments", h.GetComments)
 	r.GET("/nearby-boxes", h.ListNearbyBoxes)
+	r.GET("/food-boxes/:id", h.GetBox)
 	r.GET("/location-tags", h.listLocationTags)
 	r.GET("/venues/search", h.searchVenues)
 
@@ -159,6 +164,9 @@ func RegisterHandlers(
 		Use(common_middleware.RequireWritableAccountStatus())
 	{
 		boxes.POST("", h.CreateBox)
+		boxes.GET("", h.ListBoxesByBusiness)
+		boxes.PUT("/:id", h.UpdateBox)
+		boxes.GET("/:id/reservations", h.GetBoxReservations)
 	}
 
 	authenticated := r.Group("/").Use(auth)
@@ -204,7 +212,9 @@ func (h *handler) ready(c *gin.Context) {
 
 	_, err := h.service.ListLocationTags(ctx)
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service not ready"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "service not ready",
+		})
 		return
 	}
 

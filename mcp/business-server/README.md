@@ -7,18 +7,27 @@ The server wraps safe `business-api` workflows and exposes them as MCP tools and
 The contextual venue recommender is implemented in Python as an explainable ML-style ranker. It does not require external AI API keys, so it can run in local tests and later be swapped for embeddings or an LLM-backed scorer.
 
 ## Capabilities
-
 **Tools:**
-
 - `business_health_check`
 - `get_business_api_status`
 - `recommend_venues_by_context` - ranks venue candidates for contexts like date, meetup, or budget plans using a deterministic AI-style scorer
+- `get_business_profile`
+- `update_business_profile`
+- `list_business_venues`
+- `get_venue_details`
+- `update_venue_details`
+- `update_venue_hours`
+- `list_business_food_boxes`
+- `create_food_box`
+- `update_food_box`
+- `get_food_box_reservations`
 
 **Resources:**
 
 - `sharebite://business/api-info`
 - `sharebite://business/openapi-summary`
-
+- `sharebite://business/food-box-schema`
+- `sharebite://business/reservation-statuses`
 ---
 
 ## Architecture & Connection Management

@@ -31,7 +31,7 @@ function mapNotification(raw: Record<string, unknown>): NotificationItem {
     entityID: String(raw.entityID ?? raw.entity_id ?? ""),
     metadata,
     createdAt: String(raw.createdAt ?? raw.created_at ?? new Date().toISOString()),
-    read: Boolean(raw.read),
+    read: Boolean(raw.isRead ?? raw.is_read ?? raw.read),
     message,
   };
 }

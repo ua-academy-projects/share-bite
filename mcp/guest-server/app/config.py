@@ -1,5 +1,5 @@
 from typing import ClassVar
-from pydantic import AnyHttpUrl, Field
+from pydantic import AliasChoices, AnyHttpUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     )
 
     timeout_seconds: int = Field(
-        default=10, description="Global timeout for HTTP requests to Go API"
+        default=10,
+        validation_alias=AliasChoices("GUEST_API_REQUEST_TIMEOUT_SECONDS", "TIMEOUT_SECONDS"),
+        description="Global timeout for HTTP requests to Go API",
     )
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(

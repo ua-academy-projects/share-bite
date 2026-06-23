@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-auth-api
+  namespace: share-bite-local
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-auth-api
+  template:
+    metadata:
+      labels:
+        app: admin-auth-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: admin-auth-api
+          image: admin-auth-api:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 3850
+          envFrom:
+            - configMapRef:
+                name: share-bite-infra-config
+            - configMapRef:
+                name: admin-auth-config
+            - secretRef:
+                name: share-bite-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3850
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3850
+            initialDelaySeconds: 5
+            periodSeconds: 5

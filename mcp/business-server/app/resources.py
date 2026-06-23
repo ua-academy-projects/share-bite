@@ -13,8 +13,9 @@ from app.constants import (
     URI_VENUE_SCHEMA,
     URI_ANALYTICS_METRICS,
     URI_REPORTING_PERIODS,
+    URI_FOOD_BOX_SCHEMA,
+    URI_RESERVATION_STATUSES,
 )
-
 
 class AuthInfo(BaseModel):
     authorization_forwarding: bool
@@ -233,4 +234,37 @@ def register_resources(
                 "timezone": "UTC",
                 "notes": "Queries exceeding 90 days will be rejected to prevent database overload.",
             },
+        }
+
+    @mcp.resource(URI_FOOD_BOX_SCHEMA)
+    def business_food_box_schema() -> dict[str, Any]:
+        return {
+            "type": "object",
+            "required": ["venue_id", "price_full", "expires_at", "quantity", "image_base64"],
+            "properties": {
+                "venue_id": {"type": "integer", "minimum": 1, "description": "The venue ID where the food box is offered"},
+                "category_id": {"type": ["integer", "null"], "minimum": 1, "description": "Optional category ID for the food box"},
+                "price_full": {"type": "number", "minimum": 0, "exclusiveMinimum": True, "description": "The full price of the food box"},
+                "price_discount": {"type": ["number", "null"], "minimum": 0, "description": "The discounted price of the food box (optional)"},
+                "expires_at": {"type": "string", "format": "date-time", "description": "When the food box offer expires (ISO 8601)"},
+                "quantity": {"type": "integer", "minimum": 1, "maximum": 1000, "description": "Number of boxes available (1-1000)"},
+                "image_base64": {"type": "string", "description": "Base64-encoded image file (PNG, JPG, etc). Max ~7.5MB"},
+            },
+            "additionalProperties": False,
+            "example": {
+                "venue_id": 123,
+                "category_id": 5,
+                "price_full": 25.99,
+                "price_discount": 12.99,
+                "expires_at": "2026-06-15T18:00:00Z",
+                "quantity": 10,
+                "image_base64": "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcG..."
+            }
+        }
+
+    @mcp.resource(URI_RESERVATION_STATUSES)
+    def business_reservation_statuses() -> dict[str, Any]:
+        return {
+            "description": "Reservation states for food boxes",
+            "info": "Food boxes track whether they are reserved or not. A reserved box means it has been claimed by a guest.",
         }

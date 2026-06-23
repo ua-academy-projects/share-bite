@@ -37,6 +37,26 @@ spec:
                 name: share-bite-business-config
             - secretRef:
                 name: share-bite-secrets
+          env:
+            - name: POSTGRES_HOST
+              value: share-bite-cnpg-rw
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: share-bite-cnpg-app
+                  key: dbname
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: share-bite-cnpg-app
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: share-bite-cnpg-app
+                  key: password
           readinessProbe:
             httpGet:
               path: /business/ready

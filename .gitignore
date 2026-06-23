@@ -33,6 +33,7 @@ docs/k8s/secrets.local.yaml
 
 # generated api clients
 internal/guest/gateway/business/client/
+pkg/gateway/admin/client/
 
 .agent
 
@@ -52,3 +53,7 @@ secret.yaml
 __pycache__/
 *.py[cod]
 .venv/
+
+mcp/admin-auth-server/audit.log
+mcp/admin-auth-server/uv.lock
+pkg/gateway

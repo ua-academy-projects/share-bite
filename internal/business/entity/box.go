@@ -58,3 +58,10 @@ type BoxReservation struct {
 	DiscountPrice decimal.Decimal
 	BoxCode       string
 }
+
+type BoxUpdateInput struct {
+	CategoryID    *int
+	FullPrice     *decimal.Decimal
+	DiscountPrice *decimal.Decimal
+	ExpiresAt     *time.Time
+}

@@ -42,6 +42,27 @@ class BusinessApiClient:
 
         return self._parse_response(response)
 
+    async def post(
+        self,
+        path: str,
+        *,
+        json_data: dict[str, Any],
+        auth_token: str | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Performs a POST request to the specified API path."""
+        headers = self._build_headers(auth_token=auth_token, request_id=request_id)
+
+        try:
+            async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
+                response = await client.post(path, headers=headers, json=json_data)
+        except httpx.TimeoutException as exc:
+            raise BusinessApiError("business-api request timed out") from exc
+        except httpx.HTTPError as exc:
+            raise BusinessApiError(f"business-api request failed: {exc}") from exc
+
+        return self._parse_response(response)
+
     async def patch(
         self,
         path: str,
@@ -55,6 +76,44 @@ class BusinessApiClient:
         try:
             async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
                 response = await client.patch(path, headers=headers, json=json_data)
+        except httpx.TimeoutException as exc:
+            raise BusinessApiError("business-api request timed out") from exc
+        except httpx.HTTPError as exc:
+            raise BusinessApiError(f"business-api request failed: {exc}") from exc
+
+        return self._parse_response(response)
+
+    async def post_form(
+        self,
+        path: str,
+        *,
+        form_data: dict[str, Any],
+        auth_token: str | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Performs a POST request with multipart/form-data."""
+        headers = self._build_headers(auth_token=auth_token, request_id=request_id)
+        
+        # Удаляем Content-Type, чтобы httpx сам сгенерировал multipart/form-data с правильным boundary
+        headers.pop("Content-Type", None)
+
+        data_fields = {}
+        files_fields = {}
+
+        for key, value in form_data.items():
+            if isinstance(value, tuple) and len(value) == 3:
+                files_fields[key] = value
+            else:
+                data_fields[key] = value
+
+        try:
+            async with httpx.AsyncClient(base_url=self._base_url, timeout=self._timeout) as client:
+                response = await client.post(
+                    path,
+                    headers=headers,
+                    data=data_fields if data_fields else None,
+                    files=files_fields if files_fields else None,
+                )
         except httpx.TimeoutException as exc:
             raise BusinessApiError("business-api request timed out") from exc
         except httpx.HTTPError as exc:

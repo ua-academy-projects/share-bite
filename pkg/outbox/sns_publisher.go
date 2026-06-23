@@ -18,7 +18,10 @@ type SNSPublisher struct {
 	topicArn string
 }
 
-func NewSNSPublisher(ctx context.Context, topicArn string) (*SNSPublisher, error) {
+// NewSNSPublisher builds an SNS publisher for topicArn. When endpointURL is
+// non-empty the SNS client targets that endpoint instead of real AWS, which is
+// how local development points the publisher at LocalStack.
+func NewSNSPublisher(ctx context.Context, topicArn, endpointURL string) (*SNSPublisher, error) {
 	if topicArn == "" {
 		return nil, fmt.Errorf("sns topic arn is required")
 	}
@@ -38,7 +41,11 @@ func NewSNSPublisher(ctx context.Context, topicArn string) (*SNSPublisher, error
 		)
 		cfg.Region = topicRegion
 	}
-	cli := sns.NewFromConfig(cfg)
+	cli := sns.NewFromConfig(cfg, func(o *sns.Options) {
+		if endpointURL != "" {
+			o.BaseEndpoint = aws.String(endpointURL)
+		}
+	})
 	return &SNSPublisher{client: cli, topicArn: topicArn}, nil
 }
 

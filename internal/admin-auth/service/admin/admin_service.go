@@ -12,7 +12,7 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/repository/user"
 	"github.com/ua-academy-projects/share-bite/pkg/database"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
-	"github.com/ua-academy-projects/share-bite/pkg/notification"
+	"github.com/ua-academy-projects/share-bite/pkg/outbox"
 )
 
 type CustomerServiceClient interface {
@@ -40,7 +40,7 @@ type service struct {
 	authRepo        user.AuthRepository
 	customerService CustomerServiceClient
 	businessService BusinessServiceClient
-	broker          notification.Publisher
+	outboxWriter    outbox.Writer
 	txManager       database.TxManager
 }
 
@@ -49,7 +49,7 @@ func NewService(
 	authRepo user.AuthRepository,
 	customerSvc CustomerServiceClient,
 	businessSvc BusinessServiceClient,
-	broker notification.Publisher,
+	outboxWriter outbox.Writer,
 	txManager database.TxManager,
 ) Service {
 	return &service{
@@ -57,7 +57,7 @@ func NewService(
 		authRepo:        authRepo,
 		customerService: customerSvc,
 		businessService: businessSvc,
-		broker:          broker,
+		outboxWriter:    outboxWriter,
 		txManager:       txManager,
 	}
 }
@@ -226,29 +226,41 @@ func (s *service) ReviewBusinessStatus(ctx context.Context, params dto.ReviewBus
 		return apperr.Wrap(http.StatusInternalServerError, "failed to complete business verification review", err)
 	}
 
-	var eventType notification.EventType
+	var eventType string
 	metadata := make(map[string]any)
 
 	if params.NewStatus == "verified" {
-		eventType = notification.BusinessVerified
+		eventType = outbox.EventTypeBusinessVerified
 		metadata["message"] = "Congratulations! Your business verification request has been successfully approved."
 	} else {
-		eventType = notification.BusinessRejected
+		eventType = outbox.EventTypeBusinessRejected
 		metadata["message"] = fmt.Sprintf("We regret to inform you that your business verification request has been rejected. Reason: %s", *params.Comment)
 	}
 
-	notificationMsg := notification.NewMessageWithMetadata(
-		eventType,
-		ownerID,
-		params.AdminID,
-		"business",
-		fmt.Sprintf("%d", params.OrgUnitID),
-		metadata,
-		time.Now(),
-	)
+	// A business can be reviewed multiple times over its lifecycle (e.g. rejected,
+	// resubmitted, then reviewed again), and each review is a distinct notification.
+	// Mix the review timestamp into the event id so repeated reviews don't collide on
+	// the notification_id UNIQUE constraint, while a single review stays idempotent
+	// across relay/consumer delivery retries (the id is stored once with the row).
+	now := time.Now().UTC()
+	entityID := fmt.Sprintf("%d", params.OrgUnitID)
+	event := outbox.Event{
+		EventType: eventType,
+		Payload: outbox.Message{
+			EventID:     outbox.NewEventID(eventType, ownerID, params.AdminID, "business", entityID, fmt.Sprintf("%d", now.UnixNano())),
+			EventType:   eventType,
+			RecipientID: ownerID,
+			ActorID:     params.AdminID,
+			EntityType:  "business",
+			EntityID:    entityID,
+			Metadata:    metadata,
+			CreatedAt:   now,
+		},
+		SourceService: outbox.DefaultSourceService,
+	}
 
-	if pubErr := s.broker.Publish(ctx, ownerID, notificationMsg); pubErr != nil {
-		logger.ErrorKV(ctx, "failed to publish review notification to redis", "org_unit_id", params.OrgUnitID, "error", pubErr.Error())
+	if err := s.outboxWriter.Enqueue(ctx, event); err != nil {
+		logger.ErrorKV(ctx, "failed to enqueue business review notification", "org_unit_id", params.OrgUnitID, "error", err.Error())
 	}
 	return nil
 }

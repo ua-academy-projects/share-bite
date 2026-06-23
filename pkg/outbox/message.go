@@ -15,6 +15,8 @@ const (
 	EventTypeRegistrationConfirmed  = "registration_confirmed"
 	EventTypeFollowAdded            = "follow_added"
 	EventTypePasswordResetRequested = "password_reset_requested"
+	EventTypeBusinessVerified       = "business_verified"
+	EventTypeBusinessRejected       = "business_rejected"
 )
 
 type Message struct {

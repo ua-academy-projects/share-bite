@@ -2,8 +2,8 @@ apiVersion: business.sharebite.dev/v1alpha1
 kind: BusinessAppProfile
 metadata:
   name: business-api-example
-  namespace: default
+  namespace: share-bite-local
 spec:
-  replicas: 2
+  replicas: 3
   enabled: true
   deploymentName: business-api

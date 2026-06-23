@@ -135,3 +135,54 @@ export interface AdminUsersParams {
   status?: string;
   sort_order?: string;
 }
+
+export interface PlatformStatistics {
+  total_users: number;
+  total_admin_users: number;
+  total_moderator_users: number;
+  total_regular_users: number;
+  total_business_role_users: number;
+  total_active_users: number;
+  total_muted_users: number;
+  total_suspended_users: number;
+  total_customers: number;
+  total_guest_posts: number;
+  total_guest_comments: number;
+  total_guest_post_likes: number;
+  total_collections: number;
+  avg_posts_per_customer: number;
+  avg_comments_per_customer: number;
+  avg_comments_per_post: number;
+  collections_with_collaborators: number;
+  posts_with_collaborators: number;
+  total_business_org_units: number;
+  total_business_posts: number;
+  total_business_comments: number;
+  total_business_likes: number;
+  total_business_boxes: number;
+  total_business_box_items: number;
+  avg_posts_per_business: number;
+  avg_comments_per_business: number;
+  avg_business_comments_per_post: number;
+}
+
+export interface PendingBusinessListItem {
+  id: number;
+  org_account_id: string;
+  name: string;
+  avatar: string;
+  description: string;
+  status: string;
+}
+
+export interface PaginatedPendingBusinesses {
+  items: PendingBusinessListItem[];
+  total_count: number;
+}
+
+export type ReviewBusinessStatus = "verified" | "rejected";
+
+export interface PaginationParams {
+  limit?: number;
+  offset?: number;
+}

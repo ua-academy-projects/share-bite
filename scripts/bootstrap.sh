@@ -21,11 +21,11 @@ RESET='\033[0m'
 
 # Shortcut: run any garage CLI command inside the container
 garage() { 
-  MSYS_NO_PATHCONV=1 docker compose -f build/compose.yaml exec -T "$CONTAINER" /garage "$@"; 
+  MSYS_NO_PATHCONV=1 docker compose -f build/compose.s3.yaml exec -T "$CONTAINER" /garage "$@"; 
 }
 
 echo "==> Waiting for Garage to be healthy..."
-until docker compose -f build/compose.yaml ps "$CONTAINER" | grep -q "healthy"; do
+until docker compose -f build/compose.s3.yaml ps "$CONTAINER" | grep -q "healthy"; do
   sleep 1
 done
 echo -e "${GREEN}    Garage is healthy${RESET}"

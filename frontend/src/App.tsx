@@ -28,6 +28,8 @@ import { ProfileCreatePage } from "@/pages/guest/UserProfile/ProfileCreatePage";
 import { CreatePost } from "@/pages/guest/CreatePost/CreatePost";
 import { AdminUsersPage } from "@/pages/guest/Admin/AdminUsersPage";
 import { AdminUserDetailPage } from "@/pages/guest/Admin/AdminUserDetailPage";
+import { AdminStatisticsPage } from "@/pages/guest/Admin/AdminStatisticsPage";
+import { AdminPendingBusinessesPage } from "@/pages/guest/Admin/AdminPendingBusinessesPage";
 import { ForbiddenPage } from "@/pages/guest/Forbidden/ForbiddenPage";
 import { isUserRole } from "@/utils/auth";
 
@@ -163,6 +165,22 @@ function App() {
             element={
               <RequireAdmin>
                 <AdminUserDetailPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/statistics"
+            element={
+              <RequireAdmin>
+                <AdminStatisticsPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin/businesses"
+            element={
+              <RequireAdmin>
+                <AdminPendingBusinessesPage />
               </RequireAdmin>
             }
           />
