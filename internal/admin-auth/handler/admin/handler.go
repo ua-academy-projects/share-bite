@@ -289,7 +289,9 @@ func (h *Handler) ReviewBusiness(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
-	h.metrics.RecordBusinessReview(req.Status)
+	if h.metrics != nil {
+		h.metrics.RecordBusinessReview(req.Status)
+	}
 
 	c.JSON(http.StatusOK, handler.MessageResponse{Message: "Business verification status updated successfully."})
 }

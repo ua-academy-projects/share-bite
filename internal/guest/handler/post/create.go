@@ -106,12 +106,14 @@ func (h *handler) create(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	h.metrics.RecordPostCreated()
+	if h.metrics != nil {
+		h.metrics.RecordPostCreated()
 
-	invitationsSent := len(req.InvitedCustomerIDs)
-	if invitationsSent > 0 {
-		for range invitationsSent {
-			h.metrics.RecordPostInvitationSent()
+		invitationsSent := len(req.InvitedCustomerIDs)
+		if invitationsSent > 0 {
+			for range invitationsSent {
+				h.metrics.RecordPostInvitationSent()
+			}
 		}
 	}
 

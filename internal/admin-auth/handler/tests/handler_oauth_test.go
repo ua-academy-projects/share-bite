@@ -13,8 +13,8 @@ import (
 	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler"
 
 	apperr "github.com/ua-academy-projects/share-bite/internal/admin-auth/error"
-	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"         // пакет з твоїми хендлерами та Request-структурами
-	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth" // пакет з інтерфейсами провайдера та сервісу
+	"github.com/ua-academy-projects/share-bite/internal/admin-auth/handler/auth"
+	authsvc "github.com/ua-academy-projects/share-bite/internal/admin-auth/service/auth"
 	"github.com/ua-academy-projects/share-bite/internal/middleware"
 )
 
@@ -25,7 +25,7 @@ func TestHandler_OAuthCallback(t *testing.T) {
 		mockSvc := new(MockAuthService)
 		mockFactory := new(MockProviderFactory)
 
-		h := auth.NewHandler(mockSvc, mockFactory)
+		h := auth.NewHandler(mockSvc, mockFactory, nil)
 
 		expectedErr := &apperr.AppError{
 			Code:    http.StatusBadRequest,
@@ -49,7 +49,7 @@ func TestHandler_OAuthCallback(t *testing.T) {
 		mockSvc := new(MockAuthService)
 		mockFactory := new(MockProviderFactory)
 		mockProvider := new(MockOAuthProvider)
-		h := auth.NewHandler(mockSvc, mockFactory)
+		h := auth.NewHandler(mockSvc, mockFactory, nil)
 
 		mockFactory.On("Get", "google").Return(mockProvider, nil)
 
@@ -79,7 +79,7 @@ func TestHandler_OAuthCallback(t *testing.T) {
 		mockSvc := new(MockAuthService)
 		mockFactory := new(MockProviderFactory)
 		mockProvider := new(MockOAuthProvider)
-		h := auth.NewHandler(mockSvc, mockFactory)
+		h := auth.NewHandler(mockSvc, mockFactory, nil)
 
 		mockFactory.On("Get", "google").Return(mockProvider, nil)
 
@@ -109,7 +109,7 @@ func TestHandler_OAuthLinkAccount(t *testing.T) {
 	t.Run("Missing UserID in Context", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
 		mockFactory := new(MockProviderFactory)
-		h := auth.NewHandler(mockSvc, mockFactory)
+		h := auth.NewHandler(mockSvc, mockFactory, nil)
 
 		r := gin.New()
 		r.POST("/user/link/:provider", h.OAuthLinkAccount)
@@ -125,7 +125,7 @@ func TestHandler_OAuthLinkAccount(t *testing.T) {
 		mockSvc := new(MockAuthService)
 		mockFactory := new(MockProviderFactory)
 		mockProvider := new(MockOAuthProvider)
-		h := auth.NewHandler(mockSvc, mockFactory)
+		h := auth.NewHandler(mockSvc, mockFactory, nil)
 
 		mockFactory.On("Get", "google").Return(mockProvider, nil)
 		mockSvc.On("LinkProvider", mock.Anything, "user-123", mockProvider, "valid-code").Return(nil)

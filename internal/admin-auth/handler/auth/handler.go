@@ -54,7 +54,9 @@ func (h *Handler) Login(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
-	h.metrics.RecordLogin("email")
+	if h.metrics != nil {
+		h.metrics.RecordLogin("email")
+	}
 
 	c.JSON(http.StatusOK, handler.TokensResponse{
 		AccessToken:  tokens.AccessToken,
@@ -143,7 +145,9 @@ func (h *Handler) Register(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
-	h.metrics.RecordRegistration("email")
+	if h.metrics != nil {
+		h.metrics.RecordRegistration("email")
+	}
 
 	c.JSON(http.StatusCreated, handler.TokensResponse{
 		AccessToken:  tokens.AccessToken,
@@ -217,7 +221,9 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
-	h.metrics.RecordLogin(providerName)
+	if h.metrics != nil {
+		h.metrics.RecordLogin(providerName)
+	}
 
 	logger.InfoKV(ctx, "user oauth login success", "provider", providerName)
 

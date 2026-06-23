@@ -50,7 +50,9 @@ func (h *handler) like(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	h.metrics.RecordPostLike()
+	if h.metrics != nil {
+		h.metrics.RecordPostLike()
+	}
 
 	c.Status(http.StatusNoContent)
 }

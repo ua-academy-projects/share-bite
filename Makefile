@@ -222,12 +222,10 @@ kind-load: docker-build
 	kind load docker-image guest-api:$(TAG) business-api:$(TAG) admin-auth-api:$(TAG) migrator:$(TAG)
 
 monitoring-up:
-	@echo "You can specify CHART_VERSION by setting it as an environment variable, otherwise the default one ($(CHART_VERSION)) will be used."
-
-	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update
 	helm repo update
 
-	kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f - || true
+	kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
 
 	@echo "Creating secret..."
 	kubectl apply -f deploy/k8s/monitoring/grafana-secret.yaml

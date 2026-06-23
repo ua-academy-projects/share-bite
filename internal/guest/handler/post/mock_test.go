@@ -233,7 +233,7 @@ func testRouter(postSvc postService, customerSvc customerService, authMiddleware
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.Use(testErrorMiddleware())
-	RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware, objectStorageMock{})
+	RegisterHandlers(router.Group("/posts"), postSvc, customerSvc, authMiddleware, objectStorageMock{}, nil)
 
 	return router
 }

@@ -22,7 +22,7 @@ func TestAdminHandler_GetUserDetails(t *testing.T) {
 
 	t.Run("Success returns 200 and user details including customer profile", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		expectedUser := &dto.FullUserDetails{
 			ID:       "68d15417-f340-445f-a3a1-4d934fea5bbc",
@@ -51,7 +51,7 @@ func TestAdminHandler_GetUserDetails(t *testing.T) {
 
 	t.Run("User not found returns 404 via middleware", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 		fakeUUID := "00000000-0000-0000-0000-000000000000"
 
 		mockSvc.On("GetUserDetails", mock.Anything, fakeUUID).Return(nil, apperr.ErrUserNotFound)
@@ -79,7 +79,7 @@ func TestAdminHandler_ChangeUserRole(t *testing.T) {
 
 	t.Run("Success returns 200", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		mockSvc.On("ChangeUserRole", mock.Anything, targetUUID, "moderator").Return(nil)
 
@@ -100,7 +100,7 @@ func TestAdminHandler_ChangeUserRole(t *testing.T) {
 
 	t.Run("Invalid transition returns 400 via middleware", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		appError := &apperr.AppError{Code: http.StatusBadRequest, Message: "invalid role transition from 'user' to 'admin'"}
 		mockSvc.On("ChangeUserRole", mock.Anything, targetUUID, "admin").Return(appError)
@@ -128,7 +128,7 @@ func TestAdminHandler_GetPendingBusinesses(t *testing.T) {
 
 	t.Run("Success returns 200 with custom pagination", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		expectedResp := &dto.PaginatedPendingBusinessesResponse{}
 		mockSvc.On("GetPendingBusinessesList", mock.Anything, 15, 5).Return(expectedResp, nil)
@@ -146,7 +146,7 @@ func TestAdminHandler_GetPendingBusinesses(t *testing.T) {
 
 	t.Run("Success sanitizes out of bounds parameters", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		expectedResp := &dto.PaginatedPendingBusinessesResponse{}
 		mockSvc.On("GetPendingBusinessesList", mock.Anything, 50, 0).Return(expectedResp, nil)
@@ -167,7 +167,7 @@ func TestAdminHandler_GetPlatformStatistics(t *testing.T) {
 
 	t.Run("Success returns 200 and statistics payload", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		expected := &dto.PlatformStatisticsResponse{
 			TotalUsers:                   100,
@@ -219,7 +219,7 @@ func TestAdminHandler_GetPlatformStatistics(t *testing.T) {
 
 	t.Run("Service error returns 500 via middleware", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		appError := &apperr.AppError{Code: http.StatusInternalServerError, Message: "database connection failed"}
 		mockSvc.On("GetPendingBusinessesList", mock.Anything, 10, 0).Return(nil, appError)
@@ -254,7 +254,7 @@ func TestAdminHandler_ReviewBusiness(t *testing.T) {
 
 	t.Run("Success verification returns 200", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		expectedParams := dto.ReviewBusinessParams{
 			OrgUnitID: 42,
@@ -284,7 +284,7 @@ func TestAdminHandler_ReviewBusiness(t *testing.T) {
 
 	t.Run("Invalid integer ID format returns 400", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		r := gin.New()
 		r.PATCH("/admin/businesses/:id/review", h.ReviewBusiness)
@@ -299,7 +299,7 @@ func TestAdminHandler_ReviewBusiness(t *testing.T) {
 
 	t.Run("Invalid body payload returns 400", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		r := gin.New()
 		r.PATCH("/admin/businesses/:id/review", h.ReviewBusiness)
@@ -315,7 +315,7 @@ func TestAdminHandler_ReviewBusiness(t *testing.T) {
 
 	t.Run("Unauthorized when admin context is unresolved", func(t *testing.T) {
 		mockSvc := new(MockAdminService)
-		h := admin.NewHandler(mockSvc)
+		h := admin.NewHandler(mockSvc, nil)
 
 		r := gin.New()
 		r.PATCH("/admin/businesses/:id/review", h.ReviewBusiness)
