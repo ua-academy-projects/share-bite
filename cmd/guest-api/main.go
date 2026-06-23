@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/follow"
 	"github.com/ua-academy-projects/share-bite/internal/guest/handler/observability"
+	"github.com/ua-academy-projects/share-bite/internal/guest/metrics"
 	"github.com/ua-academy-projects/share-bite/internal/storage"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -53,6 +56,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	appName = "guest-service"
+)
+
 // @title						Share Bite - Guest Service API
 // @version					1.0
 // @description				API for the Guest microservice. Manages customer profiles, their posts, collections, comments, likes etc.
@@ -81,9 +88,27 @@ func main() {
 	router.Use(common_middleware.RequestID())
 	router.Use(common_middleware.RequestLogger())
 	router.Use(gin.Recovery())
+
+	// swagger docs
+	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
+
+	// prometheus metrics
+	reg := prometheus.NewRegistry()
+	metrics := metrics.New(config.Config().App.Name(), appName, reg)
+
+	ignoredPaths := []string{
+		"/health",
+		"/status",
+		"/info",
+		"/metrics",
+		"/swagger/*any",
+	}
+	metricsMiddleware := middleware.Metrics(metrics, ignoredPaths)
+
+	router.Use(metricsMiddleware)
 	router.Use(guest_middleware.ErrorMiddleware())
 
-	router.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	binding.Validator = validator.New("binding")
 
@@ -331,7 +356,7 @@ func main() {
 
 	// handlers
 	customer.RegisterHandlers(router.Group("/customers"), customerSvc, authMiddleware, storageClient)
-	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient)
+	post.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), postSvc, customerSvc, authMiddleware, storageClient, metrics)
 	comment.RegisterHandlers(router.Group("/posts", optionalAuthMiddleware), commentSvc, customerSvc, authMiddleware)
 	collection.RegisterHandlers(
 		router.Group("/collections"),
@@ -340,8 +365,9 @@ func main() {
 		optionalAuthMiddleware,
 		customerMiddleware,
 		storageClient,
+		metrics,
 	)
-	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient)
+	follow.RegisterHandler(router.Group("/customers"), followSvc, authMiddleware, optionalAuthMiddleware, customerMiddleware, storageClient, metrics)
 	observability.RegisterHandlers(router.Group("/"), authMiddleware, client, rdb)
 
 	go func() {

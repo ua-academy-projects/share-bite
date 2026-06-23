@@ -358,7 +358,7 @@ func (a emailOutboxAdapter) Enqueue(ctx context.Context, event outbox.Event) err
 
 func buildRecoverResetHandler(repo *mockUserRepository, emailSender *mockEmailSender) *auth.Handler {
 	service := authsvc.New(repo, stubTokenProvider{}, noopTxManager{}, time.Hour, emailOutboxAdapter{sender: emailSender}, 5)
-	return auth.NewHandler(service, nil)
+	return auth.NewHandler(service, nil, nil)
 }
 
 func buildGinContext(t *testing.T, method, target string, body any) (*gin.Context, *httptest.ResponseRecorder) {

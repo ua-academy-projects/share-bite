@@ -57,7 +57,7 @@ func setupResubmitRouter(s businessService, mockUserID, mockRole string) *gin.En
 		mockRole:   mockRole,
 		mockStatus: jwt.UserStatusActive,
 	}
-	RegisterHandlers(r.Group("/business"), s, parser, nil)
+	RegisterHandlers(r.Group("/business"), s, parser, nil, nil)
 
 	return r
 }

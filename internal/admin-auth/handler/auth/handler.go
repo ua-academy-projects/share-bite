@@ -14,13 +14,20 @@ import (
 type ProviderFactory interface {
 	Get(name string) (authsvc.OAuthProvider, error)
 }
+
+type metrics interface {
+	RecordRegistration(provider string)
+	RecordLogin(provider string)
+}
+
 type Handler struct {
 	service         authsvc.Service
 	providerFactory ProviderFactory
+	metrics         metrics
 }
 
-func NewHandler(service authsvc.Service, providerFactory ProviderFactory) *Handler {
-	return &Handler{service: service, providerFactory: providerFactory}
+func NewHandler(service authsvc.Service, providerFactory ProviderFactory, metrics metrics) *Handler {
+	return &Handler{service: service, providerFactory: providerFactory, metrics: metrics}
 }
 
 // Login godoc
@@ -46,6 +53,9 @@ func (h *Handler) Login(c *gin.Context) {
 	if err != nil {
 		_ = c.Error(err)
 		return
+	}
+	if h.metrics != nil {
+		h.metrics.RecordLogin("email")
 	}
 
 	c.JSON(http.StatusOK, handler.TokensResponse{
@@ -135,6 +145,9 @@ func (h *Handler) Register(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
+	if h.metrics != nil {
+		h.metrics.RecordRegistration("email")
+	}
 
 	c.JSON(http.StatusCreated, handler.TokensResponse{
 		AccessToken:  tokens.AccessToken,
@@ -207,6 +220,9 @@ func (h *Handler) OAuthCallback(c *gin.Context) {
 	if err != nil {
 		_ = c.Error(err)
 		return
+	}
+	if h.metrics != nil {
+		h.metrics.RecordLogin(providerName)
 	}
 
 	logger.InfoKV(ctx, "user oauth login success", "provider", providerName)

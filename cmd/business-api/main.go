@@ -8,9 +8,12 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sony/gobreaker"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/ua-academy-projects/share-bite/internal/business/metrics"
 	"github.com/ua-academy-projects/share-bite/internal/config/env"
 	"github.com/ua-academy-projects/share-bite/pkg/notification"
 	"github.com/ua-academy-projects/share-bite/pkg/redis"
@@ -36,6 +39,10 @@ import (
 	"github.com/ua-academy-projects/share-bite/pkg/jwt"
 	"github.com/ua-academy-projects/share-bite/pkg/logger"
 	"go.uber.org/zap"
+)
+
+const (
+	appName = "business-service"
 )
 
 // @title                  ShareBite Business API
@@ -71,11 +78,27 @@ func main() {
 	}))
 	router.Use(gin.Recovery())
 
+	// swagger docs
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.URL("/swagger/doc.json"),
 	))
 
+	// prometheus metrics
+	reg := prometheus.NewRegistry()
+	metrics := metrics.New(config.Config().App.Name(), appName, reg)
+
+	ignoredPaths := []string{
+		"/business/healthz",
+		"/business/ready",
+		"/metrics",
+		"/swagger/*any",
+	}
+	metricsMiddleware := middleware.Metrics(metrics, ignoredPaths)
+
+	router.Use(metricsMiddleware)
 	router.Use(ErrorMiddleware())
+
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(reg, promhttp.HandlerOpts{})))
 
 	if config.Config().App.IsProd() {
 		logger.SetLevel(zap.InfoLevel)
@@ -198,7 +221,7 @@ func main() {
 	authMw := middleware.Auth(tokenManager)
 
 	// handlers
-	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient)
+	business.RegisterHandlers(router.Group("/business"), businessSvc, tokenManager, storageClient, metrics)
 	notifhandler.RegisterHandlers(router.Group("/business"), notifHub, authMw)
 
 	go func() {

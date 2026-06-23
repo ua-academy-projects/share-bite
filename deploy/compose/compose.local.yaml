@@ -51,6 +51,18 @@ services:
       timeout: 3s
       retries: 5
 
+  prometheus:
+    image: prom/prometheus:v3.5.4
+    container_name: share-bite-prometheus
+    restart: on-failure
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ../../build/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
   migrator:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/share-bite/migrator:${IMAGE_TAG:-latest}
     container_name: share-bite-migrator

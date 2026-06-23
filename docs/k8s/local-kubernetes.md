@@ -11,7 +11,7 @@ It aligns with:
 
 - `kubectl`
 - `make`
-- One runtime: k3s, Podman Desktop, or Docker Desktop
+- One runtime: k3s, Podman Desktop, Docker Desktop, or kind
 - A container builder available in your environment (`docker` or `podman`)
 
 ## 1) Create/enable a local cluster
@@ -50,6 +50,18 @@ It aligns with:
    kubectl cluster-info
    ```
 
+### kind
+
+1. Install kind:
+    ```bash
+    brew install kind # macOS
+    # or see https://kind.sigs.k8s.io/docs/user/quick-start/
+    ```
+2. Create cluster:
+    ```bash
+    kind create cluster --name share-bite
+    ```
+
 ## 2) Build and load local migrator image
 
 The migrator Job uses `migrator:latest` (see `deploy/k8s/infra/migrator-job.yaml`).
@@ -72,6 +84,16 @@ Runtime-specific image loading:
   docker save migrator:latest -o /tmp/migrator.tar
   sudo k3s ctr images import /tmp/migrator.tar
   ```
+- kind:
+    ```bash
+    kind load docker-image migrator:latest
+    ```
+
+If you use `kind` and want to load all service images at once after building:
+    ```bash
+    make kind-load
+    ```
+This builds guest-api, business-api, admin-auth-api, and migrator, then loads them into the kind cluster.
 
 ## 3) Create local secrets (placeholders are committed only)
 

@@ -21,7 +21,7 @@ func TestHandler_Logout(t *testing.T) {
 
 	t.Run("Bad JSON body returns 400", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		r := gin.New()
 		r.Use(func(c *gin.Context) {
@@ -41,7 +41,7 @@ func TestHandler_Logout(t *testing.T) {
 
 	t.Run("Success returns 200", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		mockSvc.On("Logout", mock.Anything, "user-123", "valid-refresh-token").Return(nil)
 
@@ -65,7 +65,7 @@ func TestHandler_Logout(t *testing.T) {
 
 	t.Run("Invalid token returns 401 via error middleware", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		mockSvc.On("Logout", mock.Anything, "user-123", "expired-token").
 			Return(apperr.ErrInvalidToken)
@@ -91,7 +91,7 @@ func TestHandler_Logout(t *testing.T) {
 
 	t.Run("Internal service error returns 500 via error middleware", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		serviceErr := &apperr.AppError{Code: http.StatusInternalServerError, Message: "failed to logout"}
 		mockSvc.On("Logout", mock.Anything, "user-123", "some-token").Return(serviceErr)
@@ -120,7 +120,7 @@ func TestHandler_RevokeAllSessions(t *testing.T) {
 
 	t.Run("Missing UserID in context returns 401", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		r := gin.New()
 		r.POST("/user/sessions/revoke-all", h.RevokeAllSessions)
@@ -136,7 +136,7 @@ func TestHandler_RevokeAllSessions(t *testing.T) {
 
 	t.Run("UserID wrong type in context returns 500", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		r := gin.New()
 		r.Use(func(c *gin.Context) {
@@ -157,7 +157,7 @@ func TestHandler_RevokeAllSessions(t *testing.T) {
 
 	t.Run("Success returns 200", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		mockSvc.On("RevokeAllSessions", mock.Anything, "user-42").Return(nil)
 
@@ -179,7 +179,7 @@ func TestHandler_RevokeAllSessions(t *testing.T) {
 
 	t.Run("Service error is forwarded to gin context", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		serviceErr := &apperr.AppError{Code: http.StatusInternalServerError, Message: "failed to revoke all sessions"}
 		mockSvc.On("RevokeAllSessions", mock.Anything, "user-42").Return(serviceErr)

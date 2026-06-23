@@ -52,6 +52,9 @@ func (h *handler) createCollection(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	if h.metrics != nil {
+		h.metrics.RecordCollectionCreated()
+	}
 
 	resp := createCollectionResponse{Collection: collectionToResponse(collection)}
 	c.JSON(http.StatusCreated, resp)

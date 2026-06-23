@@ -22,7 +22,7 @@ func TestHandler_GetUserStatus(t *testing.T) {
 
 	t.Run("self access returns 200", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		mockSvc.On("GetUserStatus", mock.Anything, "user-1", "user", "user-1").
 			Return(models.UserStatusActive, nil)
@@ -46,7 +46,7 @@ func TestHandler_GetUserStatus(t *testing.T) {
 
 	t.Run("service forbidden error returns 403", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		mockSvc.On("GetUserStatus", mock.Anything, "user-2", "user", "user-1").
 			Return(models.UserStatus(""), apperr.ErrForbiddenStatusRead)
@@ -74,7 +74,7 @@ func TestHandler_UpdateUserStatus(t *testing.T) {
 
 	t.Run("invalid body returns 400", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		r := gin.New()
 		r.Use(func(c *gin.Context) {
@@ -95,7 +95,7 @@ func TestHandler_UpdateUserStatus(t *testing.T) {
 
 	t.Run("success returns 200", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		mockSvc.On("UpdateUserStatus", mock.Anything, "admin-1", "admin", "user-1", models.UserStatusMuted).
 			Return(nil)
@@ -122,7 +122,7 @@ func TestHandler_UpdateUserStatus(t *testing.T) {
 
 	t.Run("service not found error returns 404", func(t *testing.T) {
 		mockSvc := new(MockAuthService)
-		h := auth.NewHandler(mockSvc, nil)
+		h := auth.NewHandler(mockSvc, nil, nil)
 
 		mockSvc.On("UpdateUserStatus", mock.Anything, "admin-1", "admin", "user-404", models.UserStatusSuspended).
 			Return(apperr.ErrUserNotFound)

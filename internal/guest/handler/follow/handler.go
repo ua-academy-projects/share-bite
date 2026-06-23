@@ -12,6 +12,7 @@ type handler struct {
 	service         customerFollowService
 	customerService customerService
 	storage         storage.ObjectStorage
+	metrics         metrics
 }
 
 type customerFollowService interface {
@@ -26,6 +27,10 @@ type customerService interface {
 	GetByUserID(ctx context.Context, userID string) (entity.Customer, error)
 }
 
+type metrics interface {
+	RecordFollowCreated()
+}
+
 func RegisterHandler(
 	r *gin.RouterGroup,
 	service customerFollowService,
@@ -33,10 +38,12 @@ func RegisterHandler(
 	optionalAuthMiddleware gin.HandlerFunc,
 	customerMiddleware gin.HandlerFunc,
 	st storage.ObjectStorage,
+	metrics metrics,
 ) {
 	h := &handler{
 		service: service,
 		storage: st,
+		metrics: metrics,
 	}
 
 	protected := r.Group("/").Use(authMiddleware, customerMiddleware)

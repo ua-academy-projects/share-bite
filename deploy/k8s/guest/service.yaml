@@ -3,6 +3,8 @@ kind: Service
 metadata:
   name: guest-api
   namespace: share-bite-local
+  labels:
+    app: guest-api
 spec:
   selector:
     app: guest-api

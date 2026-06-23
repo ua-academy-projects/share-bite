@@ -68,6 +68,9 @@ func (h *handler) reserveBox(c *gin.Context) {
 		}
 		return
 	}
+	if h.metrics != nil {
+		h.metrics.RecordBoxReserved()
+	}
 
 	c.JSON(http.StatusOK, reserveBoxResponse{
 		Image:         resp.Image,

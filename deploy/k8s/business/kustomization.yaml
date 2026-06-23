@@ -4,3 +4,4 @@ resources:
 - business-configmap.yaml
 - business-deploy.yaml
 - business-service.yaml
+- business-servicemonitor.yaml

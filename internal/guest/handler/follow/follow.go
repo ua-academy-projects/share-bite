@@ -44,5 +44,8 @@ func (h *handler) follow(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	if h.metrics != nil {
+		h.metrics.RecordFollowCreated()
+	}
 	c.Status(http.StatusCreated)
 }

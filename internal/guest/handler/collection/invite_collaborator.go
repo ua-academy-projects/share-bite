@@ -60,6 +60,9 @@ func (h *handler) inviteCollaborator(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	if h.metrics != nil {
+		h.metrics.RecordCollectionInvitationSent()
+	}
 
 	c.Status(http.StatusNoContent)
 }

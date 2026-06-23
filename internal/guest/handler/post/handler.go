@@ -20,6 +20,7 @@ type handler struct {
 	service         postService
 	customerService customerService
 	storage         storage.ObjectStorage
+	metrics         metrics
 }
 
 type postService interface {
@@ -44,17 +45,25 @@ type customerService interface {
 	GetByIDs(ctx context.Context, ids []string) ([]entity.Customer, error)
 }
 
+type metrics interface {
+	RecordPostCreated()
+	RecordPostLike()
+	RecordPostInvitationSent()
+}
+
 func RegisterHandlers(
 	r *gin.RouterGroup,
 	service postService,
 	customerService customerService,
 	authMiddleware gin.HandlerFunc,
 	storage storage.ObjectStorage,
+	metrics metrics,
 ) {
 	h := &handler{
 		service:         service,
 		customerService: customerService,
 		storage:         storage,
+		metrics:         metrics,
 	}
 
 	r.GET("/", middleware.CustomerID(h.customerService), h.list)

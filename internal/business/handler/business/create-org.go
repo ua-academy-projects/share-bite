@@ -61,5 +61,8 @@ func (h *handler) createOrgUnit(c *gin.Context) {
 		_ = c.Error(err)
 		return
 	}
+	if h.metrics != nil {
+		h.metrics.RecordBusinessRegistered()
+	}
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }

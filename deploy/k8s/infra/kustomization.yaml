@@ -7,5 +7,5 @@ resources:
 # for StatefulSet - use postgres.yaml instead of cnpg.yaml
 #- postgres.yaml
 - redis.yaml
-- secret.yaml
+# - secret.yaml
 - migrator-job.yaml
