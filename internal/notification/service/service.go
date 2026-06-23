@@ -147,5 +147,20 @@ func (s *Service) GetPreferences(ctx context.Context, recipientID string) (map[s
 }
 
 func (s *Service) UpdatePreferences(ctx context.Context, recipientID string, prefs map[string]bool) error {
+	validKeys := map[string]bool{
+		"post_liked":               true,
+		"invitation_received":      true,
+		"post_published":           true,
+		"post_invitation_accepted": true,
+		"business_verified":        true,
+		"business_rejected":        true,
+	}
+
+	for k := range prefs {
+		if !validKeys[k] {
+			return fmt.Errorf("unsupported preference key: %s", k)
+		}
+	}
+
 	return s.repo.UpdatePreferences(ctx, recipientID, prefs)
 }

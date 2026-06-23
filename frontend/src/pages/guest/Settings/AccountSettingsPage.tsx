@@ -114,6 +114,8 @@ function Switch({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(

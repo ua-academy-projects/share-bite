@@ -27,6 +27,12 @@ export const playNotificationSound = (volume: number) => {
     
     osc1.stop(ctx.currentTime + 0.6);
     osc2.stop(ctx.currentTime + 0.6);
+
+    setTimeout(() => {
+      ctx.close().catch((err: any) => {
+        console.error("Failed to close AudioContext", err);
+      });
+    }, 700);
   } catch (e) {
     console.error("Failed to play synthesized notification sound", e);
   }

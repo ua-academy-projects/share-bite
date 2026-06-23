@@ -35,21 +35,21 @@ export function useRealtimeNotifications(token: string | null) {
             const es = new EventSource(url);
 
             es.onopen = () => {
-                console.log(`[SSE] Connection established for token: ${token.substring(0, 10)}...`);
+                console.log("[SSE] Connection established");
                 setStatus('connected');
             };
 
             es.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data) as LabNotification;
-                    setNotifications((prev) => [data, ...prev]);
+                    setNotifications((prev) => [data, ...prev].slice(0, 100));
                 } catch (err) {
                     console.error("[SSE] Failed to parse event data", err);
                 }
             };
 
             es.onerror = () => {
-                console.error(`[SSE] Connection error for token: ${token.substring(0, 10)}..., retrying in 5s`);
+                console.error("[SSE] Connection error, retrying in 5s");
                 setStatus('connecting');
                 es.close();
 

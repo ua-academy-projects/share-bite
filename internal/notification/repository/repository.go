@@ -137,6 +137,10 @@ func (r *SQLRepository) GetPreferences(ctx context.Context, recipientID string) 
 }
 
 func (r *SQLRepository) UpdatePreferences(ctx context.Context, recipientID string, prefs map[string]bool) error {
+	if prefs == nil {
+		prefs = make(map[string]bool)
+	}
+
 	prefsJSON, err := json.Marshal(prefs)
 	if err != nil {
 		return fmt.Errorf("marshal preferences: %w", err)
